@@ -18,6 +18,9 @@
   })();
   try { var t = localStorage.getItem("ls-theme"); } catch (e) {}
   document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  var icon = document.createElement("link");
+  icon.rel = "icon"; icon.type = "image/svg+xml"; icon.href = BASE + "assets/favicon.svg";
+  document.head.appendChild(icon);
 </script>
 <style>
   :root { --bg: #f5f1e9; --card: #fffcf6; --border: #d9cdbb; --text: #25211d; --dim: #625a51; --accent: #3245c8; color-scheme: light; }
