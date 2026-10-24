@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabShelf · 인터랙티브 연구 서재</title>
+<meta name="description" content="딥러닝 논문 리뷰, 시계열 딥러닝, 물리학을 직접 움직여 보는 시뮬레이터와 함께 읽는 인터랙티브 웹 교과서 서재.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LabShelf · 인터랙티브 연구 서재">
+<meta property="og:description" content="딥러닝 논문 리뷰, 시계열 딥러닝, 물리학을 시뮬레이터와 함께 읽는 서재.">
+<meta property="og:locale" content="ko_KR">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/shelf.css">
+<script defer src="data/site.js"></script>
+<script defer src="data/books.js"></script>
+<script defer src="assets/js/viz.js"></script>
+<script defer src="assets/js/core.js"></script>
+<script defer src="assets/js/covers.js"></script>
+<script defer src="assets/js/lab.js"></script>
+<script defer src="assets/sims/dl.js"></script>
+<script defer src="assets/sims/ts.js"></script>
+<script defer src="assets/sims/phys.js"></script>
+<script defer src="assets/js/heroes.js"></script>
+<script defer src="assets/js/shelf.js"></script>
+</head>
+<body class="shelf" data-page="home" data-root="">
+<main>
+  <section class="shelf-hero" aria-labelledby="hero-title">
+    <canvas class="bg" data-hero="flow" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="welcome">
+        <div>
+          <div class="eyebrow">The Interactive Lab Shelf</div>
+          <h1 id="hero-title">읽고, 움직이고,<br><em>직접 확인하는 서재</em></h1>
+        </div>
+        <div class="side">
+          <p id="hero-text">논문 한 편, 수식 한 줄을 슬라이더로 움직여 보며 이해합니다.</p>
+          <div class="cta">
+            <a class="btn primary big" href="library/index.html">전체 책장 보기</a>
+            <a class="btn ghost big" href="lab/index.html">실험실 둘러보기</a>
+          </div>
+        </div>
+      </div>
+      <div class="hero-stats" id="hero-stats"></div>
+      <nav class="fields" id="hero-fields" aria-label="분야"></nav>
+    </div>
+  </section>
+
+  <section class="section" id="shelf" aria-labelledby="shelf-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="eyebrow">Bookshelf</div>
+          <h2 id="shelf-title">책장에서 한 권 꺼내 보세요</h2>
+          <p>집필 중인 책은 바로 펼칠 수 있고, 회색 표지는 집필 예정인 책입니다.</p>
+        </div>
+        <a href="library/index.html">전체 책장 →</a>
+      </div>
+      <div class="shelf-rail">
+        <div class="shelf-scroll" id="rail" tabindex="0" role="region" aria-label="책장 (옆으로 넘기기)"></div>
+        <div class="shelf-board" aria-hidden="true"></div>
+      </div>
+      <div class="rail-nav">
+        <span class="hint">책장을 옆으로 넘겨 보세요</span>
+        <div class="btns">
+          <button type="button" id="rail-prev" aria-label="이전 책 보기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+          <button type="button" id="rail-next" aria-label="다음 책 보기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="fields" aria-labelledby="fields-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="eyebrow">Fields</div>
+          <h2 id="fields-title">관심 있는 분야를 탐험해 보세요</h2>
+          <p>분야는 <code>data/books.js</code>의 <code>fields</code>에서 추가하거나 바꿀 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="field-cards" id="field-cards"></div>
+    </div>
+  </section>
+
+  <section class="section" id="play" aria-labelledby="play-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="eyebrow">Try it yourself</div>
+          <h2 id="play-title">궁금한 장면에서 시작해 보세요</h2>
+          <p>실험 하나를 골라 직접 움직여 보세요. 각 실험은 그 실험이 들어 있는 책의 챕터로 이어집니다.</p>
+        </div>
+        <a href="lab/index.html">전체 <span id="sim-total">–</span>개 실험 →</a>
+      </div>
+      <div class="lab-grid" id="home-sims"></div>
+    </div>
+  </section>
+
+  <section class="section" id="howto" aria-labelledby="howto-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="eyebrow">How to read</div>
+          <h2 id="howto-title">이 서재를 읽는 법</h2>
+        </div>
+      </div>
+      <div class="howto">
+        <div><b>고르기</b><p>분야나 책장에서 책을 고르세요. 실험실에서 실험부터 골라도 됩니다.</p></div>
+        <div><b>읽기</b><p>챕터는 개념 → 그림 → 수식 → 실험 → 퀴즈 순서로 짜여 있습니다.</p></div>
+        <div><b>만지기</b><p>슬라이더는 끝까지 움직여 보세요. 극단적인 값에서 가장 많이 배웁니다.</p></div>
+        <div><b>확인하기</b><p>장마다 핵심 정리와 퀴즈로 이해한 내용을 점검합니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="author" aria-labelledby="author-title">
+    <div class="wrap">
+      <div class="author-grid">
+        <div>
+          <div class="eyebrow" id="author-title">Author's Note</div>
+          <div class="quote" aria-hidden="true">“</div>
+        </div>
+        <div id="author-body"></div>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

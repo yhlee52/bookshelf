@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실험실 · LabShelf</title>
+<meta name="description" content="딥러닝, 시계열, 물리학 인터랙티브 실험을 한곳에서 찾아 직접 움직여 보세요.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="../assets/css/base.css">
+<link rel="stylesheet" href="../assets/css/shelf.css">
+<script defer src="../data/site.js"></script>
+<script defer src="../data/books.js"></script>
+<script defer src="../assets/js/viz.js"></script>
+<script defer src="../assets/js/core.js"></script>
+<script defer src="../assets/js/covers.js"></script>
+<script defer src="../assets/js/lab.js"></script>
+<script defer src="../assets/sims/dl.js"></script>
+<script defer src="../assets/sims/ts.js"></script>
+<script defer src="../assets/sims/phys.js"></script>
+<script defer src="../assets/js/shelf.js"></script>
+</head>
+<body class="shelf" data-page="lab" data-root="../">
+<main class="wrap">
+  <section class="page-head">
+    <div class="eyebrow">Laboratory</div>
+    <h1>실험실 <small class="mono" id="lab-count" style="font-size:.45em;color:var(--text-faint)"></small></h1>
+    <p>모든 책의 시뮬레이터를 한곳에 모았습니다. 카드를 누르면 실험을 크게 열고, 그 실험이 들어 있는 챕터로 이동할 수 있습니다.</p>
+    <div class="filters">
+      <input type="search" id="lab-q" placeholder="실험 이름이나 개념으로 찾기 (예: 어텐션, 카오스)" aria-label="실험 검색">
+      <div class="row"><span>분야</span><div class="row" id="lab-fields" role="group" aria-label="분야 선택"></div></div>
+    </div>
+  </section>
+  <div class="lab-grid" id="lab-grid"></div>
+  <p class="no-result" id="lab-none" hidden>조건에 맞는 실험이 없습니다.</p>
+  <div style="height:60px"></div>
+</main>
+</body>
+</html>

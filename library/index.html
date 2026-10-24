@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전체 책장 · LabShelf</title>
+<meta name="description" content="LabShelf의 모든 책 — 출간, 집필 중, 집필 예정인 책을 분야와 상태로 찾아보세요.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="../assets/css/base.css">
+<link rel="stylesheet" href="../assets/css/shelf.css">
+<script defer src="../data/site.js"></script>
+<script defer src="../data/books.js"></script>
+<script defer src="../assets/js/viz.js"></script>
+<script defer src="../assets/js/core.js"></script>
+<script defer src="../assets/js/covers.js"></script>
+<script defer src="../assets/js/lab.js"></script>
+<script defer src="../assets/sims/dl.js"></script>
+<script defer src="../assets/sims/ts.js"></script>
+<script defer src="../assets/sims/phys.js"></script>
+<script defer src="../assets/js/shelf.js"></script>
+</head>
+<body class="shelf" data-page="library" data-root="../">
+<main class="wrap">
+  <section class="page-head">
+    <div class="eyebrow">Library</div>
+    <h1>전체 책장 <small class="mono" id="lib-count" style="font-size:.45em;color:var(--text-faint)"></small></h1>
+    <p>출간, 집필 중, 집필 예정인 책을 분야와 상태로 찾아보세요. 회색 표지는 아직 페이지가 없는 집필 예정 책입니다.</p>
+    <div class="filters">
+      <input type="search" id="lib-q" placeholder="책 제목, 주제, 챕터 이름으로 찾기" aria-label="책 검색">
+      <div class="row"><span>분야</span><div class="row" id="lib-fields" role="group" aria-label="분야 선택"></div></div>
+      <div class="row"><span>상태</span><div class="row" id="lib-status" role="group" aria-label="상태 선택"></div></div>
+    </div>
+  </section>
+  <div id="groups"></div>
+  <p class="no-result" id="no-result" hidden>조건에 맞는 책이 없습니다. 다른 검색어를 입력하거나 <a href="index.html">조건을 초기화</a>해 보세요.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>페이지를 찾을 수 없습니다 · LabShelf</title>
+<!--
+  GitHub Pages는 없는 주소 어디에서든 이 파일을 보여 줍니다. 그래서 상대 경로 대신
+  스크립트가 사이트 뿌리(BASE)를 계산해 링크를 만듭니다. 스타일도 이 파일 안에 있습니다.
+  - 프로젝트 사이트 https://사용자.github.io/저장소/  → BASE = "/저장소/" (자동)
+  - 사용자 사이트(저장소 이름이 사용자.github.io) 또는 개인 도메인 → 아래 FORCE_BASE를 "/"로
+-->
+<script>
+  var FORCE_BASE = "";
+  var BASE = FORCE_BASE || (function () {
+    var h = location.hostname, seg = location.pathname.split("/")[1];
+    return /\.github\.io$/.test(h) && seg && seg.indexOf(".") < 0 ? "/" + seg + "/" : "/";
+  })();
+  try { var t = localStorage.getItem("ls-theme"); } catch (e) {}
+  document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+</script>
+<style>
+  :root { --bg: #f5f1e9; --card: #fffcf6; --border: #d9cdbb; --text: #25211d; --dim: #625a51; --accent: #3245c8; color-scheme: light; }
+  :root[data-theme="dark"] { --bg: #151517; --card: #1f1f23; --border: #3b3b42; --text: #f1ece4; --dim: #b9b1a6; --accent: #9fb0ff; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--text); font-family: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; word-break: keep-all; padding: 24px 16px; }
+  main { max-width: 560px; width: 100%; }
+  .code { font: 700 72px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: -0.04em; color: var(--accent); }
+  h1 { font-size: 28px; letter-spacing: -0.02em; margin: 14px 0 8px; }
+  p { color: var(--dim); line-height: 1.7; margin: 0 0 22px; }
+  nav { display: flex; gap: 10px; flex-wrap: wrap; }
+  nav a { padding: 10px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); text-decoration: none; font-weight: 600; }
+  nav a:first-child { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .books { margin: 22px 0 0; display: grid; gap: 8px; }
+  .books a { display: block; padding: 12px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--border); color: var(--text); text-decoration: none; }
+  .books small { color: var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <div class="code">404</div>
+  <h1>찾는 페이지가 책장에 없습니다</h1>
+  <p>주소가 바뀌었거나 아직 쓰지 않은 페이지일 수 있습니다. 서재 홈이나 전체 책장에서 다시 찾아보세요.</p>
+  <nav>
+    <a data-href="index.html" href="/">서재 홈</a>
+    <a data-href="library/index.html" href="/">전체 책장</a>
+    <a data-href="lab/index.html" href="/">실험실</a>
+  </nav>
+  <div class="books" id="books"></div>
+</main>
+<script>
+  document.querySelectorAll("[data-href]").forEach(function (a) { a.href = BASE + a.dataset.href; });
+  // 책 목록은 data/books.js를 읽어 와서 보여 준다 (실패하면 조용히 생략)
+  var s = document.createElement("script");
+  s.src = BASE + "data/books.js";
+  s.onload = function () {
+    var D = window.SHELF_DATA;
+    if (!D) return;
+    document.getElementById("books").innerHTML = D.books.filter(function (b) { return b.status !== "planned"; }).map(function (b) {
+      return '<a href="' + BASE + b.path + 'index.html"><b>' + b.series + " · " + b.title + "</b><br><small>" + b.tagline + "</small></a>";
+    }).join("");
+  };
+  document.head.appendChild(s);
+</script>
+</body>
+</html>
