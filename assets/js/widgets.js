@@ -52,7 +52,9 @@
       });
       ctx.font = VZ.font(10.5); ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = P.text;
       const px = Math.abs(C.X(bw) - C.X(0));
-      series.forEach((s, i) => s.data.forEach((v, k) => { if (isFinite(v)) ctx.fillText(Number(v).toFixed(digits), C.X(k) + (i - (ns - 1) / 2) * px, C.Y(v) - 3); }));
+      // 막대가 글자보다 좁으면 값 라벨이 서로 겹치므로 생략한다 (정확한 값은 본문 표에 둔다)
+      const fits = px >= ctx.measureText((0).toFixed(digits) + "0").width + 4;
+      if (fits && cfg.values !== false) series.forEach((s, i) => s.data.forEach((v, k) => { if (isFinite(v)) ctx.fillText(Number(v).toFixed(digits), C.X(k) + (i - (ns - 1) / 2) * px, C.Y(v) - 3); }));
     }, { aspect: cfg.aspect || 0.45, maxHeight: 380, minHeight: 220 });
     paintLegend();
     VZ.onTheme(paintLegend);

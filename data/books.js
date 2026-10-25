@@ -32,7 +32,7 @@ window.SHELF_DATA = {
       desc: "읽은 논문을 TL;DR, 방법, 결과, 한계, 구현 노트로 정리하고 핵심 아이디어를 인터랙티브 실험으로 재현합니다.",
       path: "books/paper-review/",
       chapters: [
-        { slug: "p01", num: "01", status: "slot", title: "논문 리뷰 슬롯 01", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 어텐션)", sims: ["attention-qk", "attention-matrix"], paper: { year: null, venue: "", tags: [] } },
+        { slug: "p01", num: "01", status: "draft", title: "CHARM: 센서 설명을 읽는 시계열 임베딩 모델", desc: "채널별 텍스트 설명으로 합성곱 커널과 어텐션 게이트를 만들고 JEPA로 학습하는 7.1M 파라미터 시계열 표현 모델.", sims: ["charm-gating", "charm-jepa", "tcn-receptive"], paper: { year: 2026, venue: "ICML 2026", tags: ["시계열 표현학습", "JEPA", "멀티모달"] } },
         { slug: "p02", num: "02", status: "slot", title: "논문 리뷰 슬롯 02", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 위치 인코딩·디코딩)", sims: ["posenc", "softmax-temp"], paper: { year: null, venue: "", tags: [] } },
         { slug: "p03", num: "03", status: "slot", title: "논문 리뷰 슬롯 03", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 합성곱·초기화)", sims: ["conv2d", "init-depth"], paper: { year: null, venue: "", tags: [] } },
         { slug: "p04", num: "04", status: "slot", title: "논문 리뷰 슬롯 04", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 확산 모델)", sims: ["diffusion2d"], paper: { year: null, venue: "", tags: [] } },

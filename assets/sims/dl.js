@@ -1348,4 +1348,234 @@
       upd();
     },
   });
+
+  /* ======================================================================
+     14. CHARM — 설명문이 여닫는 채널 게이트 (논문 리뷰 p01)
+     G_d = ReLU(Z − S), S = E_d E_dᵀ, 어텐션 로짓에서 −λ_G·G_d
+     ====================================================================== */
+  /** 장난감 문장 임베딩: 단어 + 글자 2-gram을 해시해 세는 bag-of-features (실제 CHARM은 nomic 같은 문장 임베딩 모델) */
+  function toyTextVec(s, D = 256) {
+    const v = new Float64Array(D);
+    s.toLowerCase().replace(/[()[\]{},.;:/]/g, " ").split(/\s+/).filter(Boolean).forEach((w) => {
+      v[hashStr("w:" + w) % D] += 1;
+      for (let i = 0; i + 1 < w.length; i++) v[hashStr("b:" + w.slice(i, i + 2)) % D] += 0.5;
+    });
+    const n = Math.hypot(...v) || 1;
+    return v.map((x) => x / n);
+  }
+  Lab.register({
+    id: "charm-gating", field: "dl", thumb: "heat", layout: "stack",
+    title: "설명문이 여닫는 채널 게이트 (CHARM)",
+    desc: "센서 설명문의 유사도 S와 임계값 Z로 게이트 G = ReLU(Z − S)를 만들어, 어떤 채널 쌍 사이의 어텐션이 열리는지 봅니다.",
+    tags: ["CHARM", "어텐션", "게이트", "멀티모달", "순서 등변성"],
+    note: "해볼 것: 설명문을 고쳐 보세요(예: '외기 온도'를 '펌프 외기 온도'로). 설명이 비슷한 채널끼리는 S가 Z보다 커서 게이트가 0이 되고 어텐션이 열립니다. 행렬 칸을 클릭하면 그 방향의 Z를 학습으로 낮춘 것처럼 강제로 엽니다 — 논문 그림 5의 ETT 예처럼 <b>한 방향만</b> 열릴 수 있습니다. <b>채널 순서 섞기</b>를 눌러도 설명문이 채널을 따라다니므로 출력은 같은 순서로 섞일 뿐입니다(순서 등변성). 이 실험의 문장 임베딩은 단어 해시를 쓰는 장난감입니다.",
+    mount(S) {
+      const st = {
+        desc: ["펌프 흡입 압력 (bar)", "펌프 토출 압력 (bar)", "모터 전류 (A)", "모터 베어링 온도 (°C)", "펌프 케이싱 진동 (mm/s)", "외기 온도 (°C)"],
+        Z: 0.45, lam: 8, view: "mult", perm: [0, 1, 2, 3, 4, 5], open: new Set(), hover: null,
+      };
+      const C = st.desc.length;
+      let E = [], Sim = [], G = [], M = [], equiv = 0;
+      const short = (s) => s.replace(/\s*\(.*\)\s*/, "").slice(0, 8);
+      function compute() {
+        E = st.desc.map((d) => toyTextVec(d));
+        Sim = E.map((a) => E.map((b) => a.reduce((s, v, k) => s + v * b[k], 0)));
+        G = Sim.map((row, i) => row.map((s, j) => Math.max(0, (st.open.has(i + "," + j) ? 0 : st.Z) - s)));
+        M = G.map((row, i) => row.map((g, j) => (i === j ? 1 : Math.exp(-st.lam * g))));
+        // 순서 등변성 확인: 장난감 출력 y_i = Σ_j w_ij x_j (w = 행 정규화한 배수)
+        const x = st.desc.map((_, i) => Math.sin(1.7 * i + 0.3));
+        const out = (Mm, xx) => Mm.map((row) => { const s = row.reduce((a, b) => a + b, 0); return row.reduce((a, w, j) => a + (w / s) * xx[j], 0); });
+        const y = out(M, x), p = st.perm;
+        const Mp = p.map((i) => p.map((j) => M[i][j])), yp = out(Mp, p.map((i) => x[i]));
+        equiv = Math.max(...p.map((i, k) => Math.abs(yp[k] - y[i])));
+      }
+      compute();
+      const [left, right] = S.split(2);
+      let geo = null;
+      const cvM = S.canvas({ parent: left, aspect: 0.92, maxHeight: 440 }, (ctx, w, h) => {
+        const P = VZ.palette(), p = st.perm, lab = 76, top = 74;
+        const cell = Math.min((w - lab - 16) / C, (h - top - 12) / C), ox = lab + (w - lab - 16 - cell * C) / 2, oy = top;
+        geo = { ox, oy, cell };
+        const bg = VZ.parse(P.bg), ac = VZ.parse(st.view === "gate" ? P.accent2 : P.accent);
+        const val = (i, j) => (st.view === "sim" ? Sim[i][j] : st.view === "gate" ? Math.min(1, G[i][j] / Math.max(st.Z, 0.05)) : M[i][j]);
+        for (let a = 0; a < C; a++) for (let b = 0; b < C; b++) {
+          const i = p[a], j = p[b], v = VZ.clamp(val(i, j), 0, 1);
+          ctx.fillStyle = `rgb(${bg.map((c, k) => Math.round(c + (ac[k] - c) * v)).join(",")})`;
+          ctx.fillRect(ox + b * cell, oy + a * cell, cell - 2, cell - 2);
+          ctx.fillStyle = v > 0.55 ? P.bg : P.dim; ctx.font = VZ.font(10.5); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText((st.view === "gate" ? G[i][j] : st.view === "sim" ? Sim[i][j] : M[i][j]).toFixed(2), ox + b * cell + cell / 2 - 1, oy + a * cell + cell / 2 - 1);
+          if (st.open.has(i + "," + j)) { ctx.strokeStyle = P.warn; ctx.lineWidth = 2.5; ctx.strokeRect(ox + b * cell + 1, oy + a * cell + 1, cell - 4, cell - 4); }
+        }
+        if (st.hover) { ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.strokeRect(ox + st.hover[1] * cell, oy + st.hover[0] * cell, cell - 2, cell - 2); }
+        ctx.font = VZ.font(11.5, false); ctx.fillStyle = P.text;
+        p.forEach((i, a) => {
+          ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(short(st.desc[i]), ox - 8, oy + a * cell + cell / 2);
+          ctx.save(); ctx.translate(ox + a * cell + cell / 2, oy - 6); ctx.rotate(-Math.PI / 4); ctx.textAlign = "left"; ctx.fillText(short(st.desc[i]), 0, 0); ctx.restore();
+        });
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText({ sim: "설명 유사도 S = E_d E_dᵀ", gate: "게이트 G_d = ReLU(Z − S)", mult: "어텐션 배수 exp(−λ_G·G_d)" }[st.view] + " · 행 = 보는 채널 i, 열 = 보이는 채널 j", 6, 4);
+      });
+      const cvG = S.canvas({ parent: right, aspect: 0.92, maxHeight: 440 }, (ctx, w, h) => {
+        const P = VZ.palette(), p = st.perm, cx = w / 2, cy = h / 2 + 8, R = Math.min(w, h) * 0.33;
+        const pos = p.map((_, a) => [cx + R * Math.cos(-Math.PI / 2 + (a / C) * 2 * Math.PI), cy + R * Math.sin(-Math.PI / 2 + (a / C) * 2 * Math.PI)]);
+        const at = {}; p.forEach((i, a) => (at[i] = pos[a]));
+        for (let i = 0; i < C; i++) for (let j = 0; j < C; j++) {
+          if (i === j || M[i][j] < 0.05) continue;
+          // 정보 흐름: 보이는 채널 j → 보는 채널 i (곡선을 살짝 휘어 양방향을 구분)
+          const [x0, y0] = at[j], [x1, y1] = at[i], mx = (x0 + x1) / 2 + (y1 - y0) * 0.12, my = (y0 + y1) / 2 - (x1 - x0) * 0.12;
+          const t = 0.82, ex = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * mx + t * t * x1, ey = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * my + t * t * y1;
+          ctx.strokeStyle = VZ.alpha(P.accent, 0.15 + 0.75 * M[i][j]); ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 1 + 4 * M[i][j];
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+          const ang = Math.atan2(ey - (my + ey) / 2, ex - (mx + ex) / 2);
+          ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 9 * Math.cos(ang - 0.45), ey - 9 * Math.sin(ang - 0.45)); ctx.lineTo(ex - 9 * Math.cos(ang + 0.45), ey - 9 * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill();
+        }
+        p.forEach((i, a) => {
+          const [x, y] = pos[a];
+          ctx.fillStyle = VZ.cat[i]; ctx.beginPath(); ctx.arc(x, y, 15, 0, 7); ctx.fill();
+          ctx.fillStyle = "#fff"; ctx.font = VZ.font(11, true, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(i + 1, x, y + 0.5);
+          ctx.fillStyle = P.text; ctx.font = VZ.font(11.5, false, 600);
+          const below = y > cy + 4;
+          ctx.textBaseline = below ? "top" : "bottom"; ctx.fillText(short(st.desc[i]), x, y + (below ? 19 : -19));
+        });
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("화살표 j → i : 채널 i가 채널 j를 본다 (굵을수록 강하게 열림)", 6, 4);
+      });
+      const set = S.stats([{ k: "open", label: "열린 채널 쌍 (배수 > 0.5)" }, { k: "sim", label: "평균 설명 유사도" }, { k: "eq", label: "순서를 섞은 뒤 되돌린 출력 차이" }]);
+      function upd() {
+        compute(); cvM.redraw(); cvG.redraw();
+        let n = 0, s = 0;
+        for (let i = 0; i < C; i++) for (let j = 0; j < C; j++) if (i !== j) { if (M[i][j] > 0.5) n++; s += Sim[i][j]; }
+        set("open", `${n} / ${C * (C - 1)}`); set("sim", (s / (C * (C - 1))).toFixed(3)); set("eq", equiv.toExponential(1));
+      }
+      S.seg({ label: "보기", options: [["mult", "어텐션 배수"], ["gate", "게이트 G"], ["sim", "유사도 S"]], value: st.view, onChange: (v) => { st.view = v; upd(); } });
+      S.range({ label: "임계값 Z (모든 쌍 공통)", min: 0, max: 1, step: 0.01, value: st.Z, fmt: (v) => v.toFixed(2), onInput: (v) => { st.Z = v; upd(); } });
+      S.range({ label: "게이트 세기 λ_G", min: 0, max: 30, step: 0.5, value: st.lam, fmt: (v) => v.toFixed(1), onInput: (v) => { st.lam = v; upd(); } });
+      st.desc.forEach((d, i) => S.text({ label: `채널 ${i + 1} 설명문`, value: d, onInput: (v) => { st.desc[i] = v || " "; upd(); } }));
+      S.button("채널 순서 섞기", () => { for (let k = C - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [st.perm[k], st.perm[r]] = [st.perm[r], st.perm[k]]; } upd(); }, { primary: true });
+      S.button("학습된 예외 지우기", () => { st.open.clear(); upd(); });
+      const cellAt = (p) => { if (!geo) return null; const b = Math.floor((p.x - geo.ox) / geo.cell), a = Math.floor((p.y - geo.oy) / geo.cell); return a >= 0 && b >= 0 && a < C && b < C ? [a, b] : null; };
+      VZ.drag(cvM.canvas, {
+        down(p) { const c = cellAt(p); if (c && c[0] !== c[1]) { const key = st.perm[c[0]] + "," + st.perm[c[1]]; st.open.has(key) ? st.open.delete(key) : st.open.add(key); upd(); } return false; },
+        hover(p) { st.hover = cellAt(p); cvM.redraw(); },
+        leave() { st.hover = null; cvM.redraw(); },
+      });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     15. CHARM — JEPA 과제와 다중 해상도 손실 (논문 리뷰 p01)
+     ====================================================================== */
+  Lab.register({
+    id: "charm-jepa", field: "dl", thumb: "windows", layout: "side",
+    title: "JEPA 학습 과제 — 인과 예측 · 평활화 · 다중 해상도 손실 (CHARM)",
+    desc: "맥락·목표·예측 위치를 어떻게 고르는지, 맥락 입력에 어떤 섭동을 거는지, 그리고 세 단계 L1 손실이 잡음과 편향에 어떻게 반응하는지 봅니다.",
+    tags: ["CHARM", "JEPA", "자기지도학습", "시계열"],
+    note: "논문 정의: <b>인과 예측</b>은 맥락 위치가 목표 위치의 부분집합(I<sub>ctx</sub> ⊂ I<sub>tgt</sub>)이고, <b>평활화</b>는 둘이 겹치며 예측 위치가 그 교집합 안에 있습니다(I<sub>prd</sub> ⊂ I<sub>ctx</sub> ∩ I<sub>tgt</sub>). 섭동은 맥락 입력에만 걸립니다. 아래 손실 그림에서 <b>잡음</b>을 키우면 세밀한 항만 커지고(평균을 내면 잡음이 상쇄), <b>편향</b>을 키우면 세 항이 모두 같이 커집니다 — 굵은 단위 항이 계통적 어긋남을 잡아 주는 이유입니다. (손실 막대는 원소 수로 나눈 평균값)",
+    mount(S) {
+      const T = 96, C = 6, H = 8;
+      const st = { task: "causal", ctx: 0.35, prd: 0.15, segMask: true, chMask: true, seed: 3, noise: 0.4, bias: 0 };
+      const names = ["압력 1", "압력 2", "전류", "온도", "진동", "외기"];
+      let I = null, masked = null, sig = [], loss = [0, 0, 0];
+      function signals() {
+        const r = VZ.rng(11);
+        sig = Array.from({ length: C }, (_, c) => Array.from({ length: T }, (_, t) => Math.sin((t / T) * Math.PI * (2 + c)) * 0.7 + 0.25 * Math.sin(t / (2 + c)) + VZ.randn(r) * 0.08));
+      }
+      function sample() {
+        const r = VZ.rng(st.seed * 7919 + 1);
+        const Lc = Math.max(4, Math.round(st.ctx * T)), Lp = Math.max(2, Math.round(st.prd * T));
+        let ctx, tgt, prd;
+        if (st.task === "causal") {
+          const Lt = Math.min(T, Lc + Lp), a = Math.floor(r() * (T - Lt + 1));
+          tgt = [a, a + Lt]; ctx = [a, a + Lc]; prd = [a + Lc, a + Lt];
+        } else {
+          const a = Math.floor(r() * (T - Lc + 1)), off = Math.round((r() - 0.5) * Lc * 0.8);
+          ctx = [a, a + Lc]; tgt = [VZ.clamp(a + off, 0, T - Lc), VZ.clamp(a + off, 0, T - Lc) + Lc];
+          const lo = Math.max(ctx[0], tgt[0]), hi = Math.min(ctx[1], tgt[1]), L = Math.min(Lp, hi - lo), s = lo + Math.floor(r() * (hi - lo - L + 1));
+          prd = [s, s + L];
+        }
+        masked = Array.from({ length: C }, () => new Uint8Array(T));
+        const segLen = Math.max(2, Math.round((ctx[1] - ctx[0]) * 0.2));
+        if (st.segMask) { const s = ctx[0] + Math.floor(r() * (ctx[1] - ctx[0] - segLen + 1)); for (let c = 0; c < C; c++) for (let t = s; t < s + segLen; t++) masked[c][t] = 1; }
+        if (st.chMask) {
+          const s = ctx[0] + Math.floor(r() * (ctx[1] - ctx[0] - segLen + 1));
+          for (let c = 0; c < C; c++) if (r() < 0.4) for (let t = s; t < s + segLen; t++) masked[c][t] = masked[c][t] || 2;
+        }
+        I = { ctx, tgt, prd };
+      }
+      function computeLoss() {
+        const r = VZ.rng(st.seed + 101), n = Math.max(1, I.prd[1] - I.prd[0]);
+        let fine = 0, perT = 0, glob = 0;
+        const gm = new Float64Array(H), gt = new Float64Array(H);
+        for (let t = 0; t < n; t++) {
+          const mp = new Float64Array(H), mt = new Float64Array(H);
+          for (let c = 0; c < C; c++) for (let h = 0; h < H; h++) {
+            const z = VZ.randn(r), zh = z + st.noise * VZ.randn(r) + st.bias;
+            fine += Math.abs(zh - z); mp[h] += zh / C; mt[h] += z / C;
+          }
+          for (let h = 0; h < H; h++) { perT += Math.abs(mp[h] - mt[h]); gm[h] += mp[h] / n; gt[h] += mt[h] / n; }
+        }
+        for (let h = 0; h < H; h++) glob += Math.abs(gm[h] - gt[h]);
+        loss = [fine / (n * C * H), perT / (n * H), glob / H];
+      }
+      function redrawAll() { cvI.redraw(); cvL.redraw(); }
+      signals(); sample(); computeLoss();
+      const cvI = S.canvas({ aspect: 0.62, maxHeight: 420 }, (ctx, w, h) => {
+        const P = VZ.palette(), m = { l: 74, r: 12 }, top = 92, rowH = (h - top - 22) / C;
+        const X = (t) => m.l + (t / T) * (w - m.l - m.r);
+        const bar = (y, [a, b], col, label, dash) => {
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(label, m.l - 8, y + 7);
+          ctx.fillStyle = VZ.alpha(P.dim, 0.12); ctx.fillRect(X(0), y, X(T) - X(0), 14);
+          if (b > a) { ctx.fillStyle = col; ctx.fillRect(X(a), y, X(b) - X(a), 14); }
+          if (dash) { ctx.strokeStyle = col; ctx.setLineDash([4, 3]); ctx.strokeRect(X(a), y, X(b) - X(a), 14); ctx.setLineDash([]); }
+        };
+        bar(8, I.ctx, VZ.alpha(P.accent, 0.75), "맥락 I_ctx");
+        bar(30, I.tgt, VZ.alpha(P.accent2, 0.55), "목표 I_tgt");
+        bar(52, I.prd, P.warn, "예측 I_prd");
+        ctx.fillStyle = P.faint; ctx.font = VZ.font(10.5); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(st.task === "causal" ? "인과 예측: 맥락 ⊂ 목표, 예측 위치는 맥락 뒤(미래)" : "평활화: 맥락 ∩ 목표 ≠ ∅, 예측 위치 ⊂ 교집합", m.l, 70);
+        for (let c = 0; c < C; c++) {
+          const y0 = top + c * rowH, mid = y0 + rowH / 2;
+          ctx.fillStyle = P.text; ctx.font = VZ.font(11.5, false, 600); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(names[c], m.l - 8, mid);
+          ctx.fillStyle = VZ.alpha(P.accent, 0.08); ctx.fillRect(X(I.ctx[0]), y0 + 1, X(I.ctx[1]) - X(I.ctx[0]), rowH - 2);
+          ctx.fillStyle = VZ.alpha(P.warn, 0.22); ctx.fillRect(X(I.prd[0]), y0 + 1, X(I.prd[1]) - X(I.prd[0]), rowH - 2);
+          for (let t = I.ctx[0]; t < I.ctx[1]; t++) if (masked[c][t]) { ctx.fillStyle = VZ.alpha(masked[c][t] === 1 ? P.text : P.bad, 0.18); ctx.fillRect(X(t), y0 + 2, X(t + 1) - X(t) + 0.5, rowH - 4); }
+          ctx.strokeStyle = VZ.alpha(P.dim, 0.8); ctx.lineWidth = 1.3; ctx.beginPath();
+          sig[c].forEach((v, t) => { const y = mid - v * rowH * 0.36; t ? ctx.lineTo(X(t), y) : ctx.moveTo(X(t), y); }); ctx.stroke();
+          ctx.strokeStyle = P.grid; ctx.beginPath(); ctx.moveTo(m.l, y0 + rowH); ctx.lineTo(w - m.r, y0 + rowH); ctx.stroke();
+        }
+        ctx.strokeStyle = P.accent2; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.strokeRect(X(I.tgt[0]), top, X(I.tgt[1]) - X(I.tgt[0]), rowH * C); ctx.setLineDash([]);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(10.5, false); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+        ctx.fillText("회색 칸: 균일 구간 마스킹 · 붉은 칸: 채널 선택 마스킹 (맥락 입력에만 적용) · 점선 상자: 목표 인코더(EMA)가 보는 구간", m.l, h - 4);
+      });
+      const cvL = S.canvas({ height: 150 }, (ctx, w, h) => {
+        const P = VZ.palette(), labels = ["세밀 (시점 × 채널)", "시점별 (채널 평균)", "전역 (시점·채널 평균)"], mx = Math.max(0.2, ...loss) * 1.15, ml = 150, bh = (h - 30) / 3;
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("다중 해상도 L1 손실의 세 항 (장난감 임베딩)", 8, 4);
+        loss.forEach((v, k) => {
+          const y = 24 + k * bh;
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(11.5, false); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(labels[k], ml - 10, y + bh / 2);
+          const bw = ((w - ml - 70) * v) / mx;
+          ctx.fillStyle = [P.accent, P.accent2, P.warn][k]; ctx.fillRect(ml, y + bh * 0.2, bw, bh * 0.6);
+          ctx.fillStyle = P.text; ctx.font = VZ.font(11, true, 700); ctx.textAlign = "left"; ctx.fillText(v.toFixed(3), ml + bw + 6, y + bh / 2);
+        });
+      });
+      const set = S.stats([{ k: "c", label: "|I_ctx|" }, { k: "t", label: "|I_tgt|" }, { k: "p", label: "|I_prd|" }, { k: "m", label: "맥락 중 섭동 칸" }]);
+      function upd(resample) {
+        if (resample) sample();
+        computeLoss(); redrawAll();
+        set("c", I.ctx[1] - I.ctx[0]); set("t", I.tgt[1] - I.tgt[0]); set("p", I.prd[1] - I.prd[0]);
+        let n = 0; for (let c = 0; c < C; c++) for (let t = I.ctx[0]; t < I.ctx[1]; t++) if (masked[c][t]) n++;
+        set("m", ((n / (C * (I.ctx[1] - I.ctx[0]))) * 100).toFixed(0) + "<small>%</small>");
+      }
+      S.seg({ label: "JEPA 과제", options: [["causal", "인과 예측"], ["smooth", "평활화"]], value: st.task, onChange: (v) => { st.task = v; upd(true); } });
+      S.range({ label: "맥락 길이 비율", min: 0.15, max: 0.6, step: 0.01, value: st.ctx, fmt: (v) => v.toFixed(2), onInput: (v) => { st.ctx = v; upd(true); } });
+      S.range({ label: "예측 길이 비율", min: 0.05, max: 0.3, step: 0.01, value: st.prd, fmt: (v) => v.toFixed(2), onInput: (v) => { st.prd = v; upd(true); } });
+      S.check({ label: "균일 구간 마스킹", value: true, onChange: (v) => { st.segMask = v; upd(true); } });
+      S.check({ label: "채널 선택 마스킹", value: true, onChange: (v) => { st.chMask = v; upd(true); } });
+      S.button("새 과제 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      S.range({ label: "예측 잡음 (무작위 오차)", min: 0, max: 1.5, step: 0.05, value: st.noise, fmt: (v) => v.toFixed(2), onInput: (v) => { st.noise = v; upd(false); } });
+      S.range({ label: "예측 편향 (계통 오차)", min: -1, max: 1, step: 0.05, value: st.bias, fmt: (v) => v.toFixed(2), onInput: (v) => { st.bias = v; upd(false); } });
+      upd(false);
+    },
+  });
 })();

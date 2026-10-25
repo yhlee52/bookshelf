@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>01 논문 리뷰 슬롯 01 · PaperBook</title>
-<meta name="description" content="리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 어텐션)">
+<title>01 CHARM: 센서 설명을 읽는 시계열 임베딩 모델 · PaperBook</title>
+<meta name="description" content="CHARM(ICML 2026) 논문 리뷰 — 채널별 텍스트 설명으로 합성곱 커널과 어텐션 게이트를 만들고 JEPA로 학습하는 시계열 임베딩 모델.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,101 +25,407 @@
 </head>
 <body data-root="../../../" data-book="paper-review" data-field="dl" data-chapter="p01">
 <!--
-  ✎ 이 파일은 '슬롯'(빈 틀)입니다.
-  - 점선 상자(class="slot")를 실제 내용으로 바꾼 뒤 class="slot"과 data-slot을 지우세요.
-  - 장 제목·설명은 data/books.js에서 바꾸면 이 페이지에 자동 반영됩니다 (data-fill 속성).
-  - 실험 넣기:     <div data-sim="실험-id"></div>   (id 목록: 실험실 페이지, assets/sims/*.js)
-  - 수식(KaTeX):   인라인 \( a^2 + b^2 \),  블록 \[ ... \]
-  - 결과 차트:     <div data-chart='{"type":"bar","labels":["A","B"],"series":[{"name":"방법","data":[1,2]}]}'></div>
-  - 콜아웃:        <div class="callout tip|warn|deep"><strong>제목</strong><p>내용</p></div>
+  논문 리뷰 01 — CHARM (ICML 2026)
+  출처: Dutta et al., "Giving Sensors a Voice: Multimodal JEPA for Semantic Time-Series Embeddings",
+        PMLR 306, 2026. 모든 수치는 논문 본문 표 1–5와 부록 표 26–33에서 옮겼다.
 -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Paper Review <span data-fill="chapter-num">01</span></div>
-    <h1 data-fill="chapter-title">논문 리뷰 슬롯 01</h1>
+    <h1 data-fill="chapter-title">CHARM: 센서 설명을 읽는 시계열 임베딩 모델</h1>
     <div class="paper-card">
       <dl>
-        <dt>원제</dt><dd><span class="slot" data-slot="원제">Paper Title in English</span></dd>
-        <dt>저자</dt><dd><span class="slot" data-slot="저자">First Author, Second Author, …</span></dd>
-        <dt>발표</dt><dd><span class="slot" data-slot="학회 · 연도">학회 또는 저널, 연도</span></dd>
-        <dt>키워드</dt><dd><span class="pill slot">태그 1</span> <span class="pill slot">태그 2</span></dd>
+        <dt>원제</dt><dd>Giving Sensors a Voice: Multimodal JEPA for Semantic Time-Series Embeddings</dd>
+        <dt>저자</dt><dd>Utsav Dutta*, Gerardo Pastrana*, Sina Khoshfetrat Pakazad, Henrik Ohlsson <span class="en">(C3 AI · *공동 1저자)</span></dd>
+        <dt>발표</dt><dd>ICML 2026 · PMLR 306, pp. 27330–27378 <span class="en">· 초판: arXiv 2505.14543 "Time to Embed" (2025)</span></dd>
+        <dt>키워드</dt><dd><span class="pill acc">시계열 표현학습</span> <span class="pill acc">JEPA</span> <span class="pill acc">멀티모달</span> <span class="pill">채널 설명문</span> <span class="pill">파운데이션 임베딩</span></dd>
       </dl>
-      <div class="links"><a class="btn" href="#" aria-disabled="true">arXiv ↗</a><a class="btn" href="#" aria-disabled="true">코드 ↗</a><a class="btn" href="#" aria-disabled="true">발표 영상 ↗</a></div>
+      <div class="links">
+        <a class="btn" href="https://arxiv.org/abs/2605.31580" rel="noopener">arXiv ↗</a>
+        <a class="btn" href="https://proceedings.mlr.press/v306/dutta26b.html" rel="noopener">PMLR ↗</a>
+        <a class="btn" href="https://openreview.net/forum?id=lNoaqrOXti" rel="noopener">OpenReview ↗</a>
+        <span class="btn" aria-disabled="true" title="논문은 사전학습 데이터와 적재 인프라를 GitHub로 공개할 예정이라고만 밝힘">공식 코드 미공개</span>
+      </div>
     </div>
-    <p class="tldr"><span class="slot" data-slot="한 문장 요약">이 논문의 주장을 한 문장으로.</span></p>
+    <p class="tldr">센서마다 붙은 한 줄짜리 텍스트 설명으로 합성곱 커널과 어텐션 게이트를 <em>생성</em>하고, 원신호 복원 대신 잠재 공간 예측(JEPA)으로 학습한 7.1M 파라미터 시계열 임베딩 모델. 고정된 임베딩에 가벼운 헤드만 붙여 분류·예측·이상 탐지에서 훨씬 큰 모델과 겨룬다.</p>
   </header>
 
   <section id="three-lines">
     <h2>세 줄 요약</h2>
     <ol>
-      <li class="slot" data-slot="요약">무엇을 했나</li>
-      <li class="slot" data-slot="요약">어떻게 했나</li>
-      <li class="slot" data-slot="요약">그래서 무엇이 좋아졌나</li>
+      <li><b>무엇을:</b> 다변량 시계열의 각 채널(센서)에 달린 텍스트 설명을 함께 읽는 범용 임베딩 모델 <span class="term">CHARM</span> <span class="en">(CHannel-Aware Representation Model)</span>을 제안한다.</li>
+      <li><b>어떻게:</b> 설명문 임베딩이 TCN의 커널과 층별 게이트, 어텐션의 채널 게이트와 시간차 편향을 만들어 내고(채널 순서에 등변), 학습은 원신호를 맞히는 대신 가려진 구간의 <em>임베딩</em>을 예측하는 JEPA와 다중 해상도 L1 손실로 한다.</li>
+      <li><b>그래서:</b> 고정 임베딩 + 선형 헤드로 UEA 분류(미세조정 시 평균 정확도 80.9%), SKAB·UCR 이상 탐지 F1 최고, LSF 예측 5개 중 3개에서 최저 MSE(미세조정 시). 성능을 가장 크게 끌어올린 것은 JEPA 목표였고, 텍스트는 도메인 지식보다 <b>채널을 식별하는 주소</b> 역할을 주로 한다.</li>
     </ol>
   </section>
 
   <section id="problem">
     <h2>어떤 문제를 푸는가</h2>
-    <p class="slot" data-slot="본문">논문이 겨냥한 문제와 그것이 왜 어려운지 설명하세요.</p>
-    <div class="callout warn"><strong>기존 방법의 한계</strong><p class="slot" data-slot="콜아웃">이전 연구가 막혀 있던 지점.</p></div>
+    <p>공장의 펌프 수십 대가 있어도 센서 구성이 조금씩 다르면 보통 설비마다 모델을 따로 만든다. 같은 물리 법칙을 따르는 데이터인데도 모델이 조각나는 이유는, 대부분의 시계열 모델이 <b>길이와 구조가 고정된 입력</b>을 가정하고 <b>서로 다른 센서를 묶는 장치</b>가 없기 때문이다.</p>
+    <p>언어·비전에서는 대규모 자기지도학습으로 만든 범용 임베딩이 여러 과제로 옮겨 가는데, 시계열에서는 아직 그런 '임베딩 파운데이션 모델'이 약하다. 논문은 그 원인을 세 가지로 짚는다.</p>
+    <div class="callout warn"><strong>기존 방법의 한계</strong>
+      <p>① 예측 손실로 사전학습한 시계열 파운데이션 모델(TimesFM, Moirai, Chronos 등)은 표현이 예측에 특화되어 분류·이상 탐지로 옮기기 어렵다.<br>② 마스크 복원·다음 값 예측 같은 목표는 인코더가 <b>원래 값</b>을 맞혀야 하므로 센서 잡음과 장비 특유의 아티팩트까지 외우게 된다.<br>③ 대부분의 모델이 채널을 이름 없는 숫자 줄기로 다룬다. 이 값이 압력인지 온도인지 모르니, 계측 구성이 다른 현장으로 옮겨 가기 어렵다.</p>
+    </div>
+    <p>그래서 이 논문의 목표는 두 가지다. (1) 잡음에 덜 민감한 <b>의미 수준의 자기지도 목표</b>(JEPA)를 시계열에 맞게 설계하고, (2) 전문가가 그래프와 센서 이름을 함께 보듯 <b>채널 설명문을 구조 안에 직접 넣는</b> 아키텍처를 만드는 것.</p>
   </section>
 
   <section id="method">
     <h2>핵심 아이디어와 방법</h2>
-    <p class="slot" data-slot="본문">핵심 아이디어를 그림 한 장과 수식 한두 개로 설명합니다.</p>
-    <figure class="diagram">
-      <div class="slot slot-figure" data-slot="아키텍처 그림"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 18 5-5 3 3 3-4 5 6"/></svg><p>모델 구조나 알고리즘 흐름을 SVG로 그려 넣으세요.</p></div></div>
-      <figcaption><b>그림 1-1.</b> <span class="slot" data-slot="캡션">그림 설명</span></figcaption>
+    <p>입력은 세 짝 \( t = (\mathbf{T}, \mathbf{D}, \mathrm{pos}) \)이다. \( \mathbf{T} \in \mathbb{R}^{T\times C} \)는 측정값, \( \mathbf{D} \)는 채널마다 하나씩 붙은 텍스트 설명(예: "모터 베어링 온도 (°C)"), pos는 시점 인덱스다. 설명문은 <b>학습하지 않는 문장 임베딩 모델</b>(논문은 nomic·minilm·mpnet을 비교)로 \( \mathbf{E}_d \in \mathbb{R}^{C\times D_e} \)가 되고, 이 행렬이 모델 곳곳의 가중치를 만드는 '조건'이 된다.</p>
+
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 1000 400" role="img" aria-label="CHARM 구조: 채널 설명 임베딩이 문맥 TCN과 문맥 어텐션 층을 조건화한다">
+        <defs><marker id="ch-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+        <marker id="ch-arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs>
+        <!-- 입력: 시계열 -->
+        <g transform="translate(16,40)">
+          <rect width="170" height="120" rx="12" class="f-surface"/>
+          <text x="85" y="22" text-anchor="middle" class="t-b">시계열 𝐓 (T × C)</text>
+          <path d="M14 48 C34 34, 50 60, 70 46 S 110 36, 130 50 S 150 56, 158 44" class="s-acc"/>
+          <path d="M14 76 C30 70, 46 84, 66 74 S 104 64, 122 80 S 148 86, 158 72" class="s-acc2"/>
+          <path d="M14 102 L40 98 L60 106 L86 94 L110 104 L134 96 L158 102" class="s-line"/>
+        </g>
+        <!-- 입력: 설명문 -->
+        <g transform="translate(16,214)">
+          <rect width="170" height="136" rx="12" class="f-surface"/>
+          <text x="85" y="22" text-anchor="middle" class="t-b">채널 설명 𝐃 (C개)</text>
+          <rect x="12" y="36" width="146" height="24" rx="6" class="f-elev"/><text x="20" y="53" class="t-dim">"펌프 흡입 압력 (bar)"</text>
+          <rect x="12" y="66" width="146" height="24" rx="6" class="f-elev"/><text x="20" y="83" class="t-dim">"모터 전류 (A)"</text>
+          <rect x="12" y="96" width="146" height="24" rx="6" class="f-elev"/><text x="20" y="113" class="t-dim">"베어링 온도 (°C)"</text>
+        </g>
+        <!-- 문장 임베딩 -->
+        <path d="M188 282 H222" class="s-acc2" marker-end="url(#ch-arr2)"/>
+        <g transform="translate(228,240)">
+          <rect width="150" height="84" rx="12" class="f-acc2-soft"/>
+          <text x="75" y="30" text-anchor="middle" class="t-b">고정 문장 임베딩</text>
+          <text x="75" y="50" text-anchor="middle" class="t-mono">nomic 등 (학습 안 함)</text>
+          <text x="75" y="70" text-anchor="middle" class="t-acc">𝐄_d ∈ ℝ^(C×D_e)</text>
+        </g>
+        <!-- 문맥 TCN -->
+        <path d="M188 100 H408" class="s-acc" marker-end="url(#ch-arr)"/>
+        <g transform="translate(414,30)">
+          <rect width="200" height="146" rx="14" class="f-acc-soft" stroke-width="2"/>
+          <text x="100" y="24" text-anchor="middle" class="t-b">문맥 TCN</text>
+          <text x="100" y="42" text-anchor="middle" class="t-mono">팽창 1 · 2 · 4 · … (2^l)</text>
+          <g class="s-line"><path d="M24 120 L58 92 M58 120 L58 92 M92 120 L126 64 M126 120 L126 64 M58 92 L126 64 M126 64 L176 54"/></g>
+          <circle cx="24" cy="120" r="4" class="f-acc"/><circle cx="58" cy="120" r="4" class="f-acc"/><circle cx="92" cy="120" r="4" class="f-acc"/><circle cx="126" cy="120" r="4" class="f-acc"/>
+          <circle cx="58" cy="92" r="4" class="f-acc"/><circle cx="126" cy="64" r="4" class="f-acc"/><circle cx="176" cy="54" r="5" class="f-acc2"/>
+          <text x="100" y="138" text-anchor="middle" class="t-dim">채널마다 다른 커널</text>
+        </g>
+        <!-- 커널 네트워크 화살표 -->
+        <path d="M330 240 C 380 214, 430 200, 470 178" class="s-acc2 flow-dash" marker-end="url(#ch-arr2)"/>
+        <text x="486" y="200" class="t-mono">커널 𝐆_k = 𝐄_d𝐖_k</text>
+        <text x="486" y="216" class="t-mono">게이트 𝐆_c = σ(𝐄_d𝐖_g)</text>
+        <!-- 문맥 어텐션 -->
+        <path d="M616 100 H648" class="s-acc" marker-end="url(#ch-arr)"/>
+        <g transform="translate(654,24)">
+          <rect x="10" y="10" width="190" height="150" rx="14" class="f-surface" opacity=".6"/>
+          <rect x="5" y="5" width="190" height="150" rx="14" class="f-surface" opacity=".8"/>
+          <rect width="190" height="150" rx="14" class="f-acc-soft" stroke-width="2"/>
+          <text x="95" y="24" text-anchor="middle" class="t-b">문맥 어텐션 층 × 8</text>
+          <text x="95" y="48" text-anchor="middle" class="t-mono">Q̂K̂ᵀ/√d</text>
+          <text x="95" y="68" text-anchor="middle" class="t-mono">+ Δ[i, j, q−p]  시간차</text>
+          <text x="95" y="88" text-anchor="middle" class="t-mono">− λ_G·𝐆_d[i, j]  채널 게이트</text>
+          <text x="95" y="114" text-anchor="middle" class="t-dim">RoPE · QK-norm · SwiGLU</text>
+          <text x="95" y="134" text-anchor="middle" class="t-dim">토큰 = (채널, 시점) 쌍</text>
+        </g>
+        <path d="M378 300 C 560 300, 700 260, 740 186" class="s-acc2 flow-dash" marker-end="url(#ch-arr2)"/>
+        <text x="560" y="318" class="t-mono">𝐆_d = ReLU(𝐙 − 𝐄_d𝐄_dᵀ),  Δ = 대칭([𝐄_d[i], 𝐄_d[j]]𝐖_d)</text>
+        <!-- 출력 -->
+        <path d="M860 100 H884" class="s-acc" marker-end="url(#ch-arr)"/>
+        <g transform="translate(890,40)">
+          <rect width="96" height="120" rx="12" class="f-surface"/>
+          <text x="48" y="22" text-anchor="middle" class="t-b">임베딩 𝐘</text>
+          <text x="48" y="40" text-anchor="middle" class="t-mono">T×C×H</text>
+          <g><rect x="16" y="52" width="14" height="14" class="f-acc"/><rect x="32" y="52" width="14" height="14" class="f-acc" opacity=".6"/><rect x="48" y="52" width="14" height="14" class="f-acc" opacity=".3"/><rect x="64" y="52" width="14" height="14" class="f-acc" opacity=".8"/>
+          <rect x="16" y="68" width="14" height="14" class="f-acc2" opacity=".7"/><rect x="32" y="68" width="14" height="14" class="f-acc2"/><rect x="48" y="68" width="14" height="14" class="f-acc2" opacity=".4"/><rect x="64" y="68" width="14" height="14" class="f-acc2" opacity=".6"/></g>
+          <text x="48" y="104" text-anchor="middle" class="t-dim">ℓ2 정규화</text>
+        </g>
+        <path d="M938 162 V196" class="s-line" marker-end="url(#ch-arr)"/>
+        <g transform="translate(866,200)">
+          <rect width="124" height="92" rx="12" class="f-elev"/>
+          <text x="62" y="22" text-anchor="middle" class="t-b">가벼운 헤드</text>
+          <text x="62" y="44" text-anchor="middle" class="t-dim">선형 프로브 · SVM</text>
+          <text x="62" y="62" text-anchor="middle" class="t-dim">재구성 헤드</text>
+          <text x="62" y="80" text-anchor="middle" class="t-dim">(인코더는 고정)</text>
+        </g>
+        <text x="500" y="384" text-anchor="middle" class="t-dim">설명문은 입력에 더해지는 것이 아니라, 합성곱 커널·게이트·어텐션 편향을 만들어 내는 조건으로 쓰인다 → 채널 순서를 섞어도 출력이 같이 섞일 뿐(등변성)</text>
+      </svg>
+      <figcaption><b>그림 1-1.</b> CHARM 인코더의 구조 (논문 그림 1–3을 바탕으로 다시 그림). 문장 임베딩 모델은 고정되어 있고, 설명 임베딩 \( \mathbf{E}_d \)에서 파생되는 가중치만 학습된다.</figcaption>
     </figure>
-    <div class="formula">\[ \theta^\star = \arg\min_\theta \; \mathbb{E}_{(x,y)\sim\mathcal{D}}\big[\,\ell\big(f_\theta(x),\, y\big)\big] \]<div class="where slot" data-slot="기호 설명">예시 수식입니다. 논문의 핵심 수식으로 바꾸고 기호를 설명하세요.</div></div>
+
+    <h3>① 설명문을 읽는 TCN — 패칭 대신 채널별 합성곱</h3>
+    <p>첫 층은 지수적으로 팽창하는 1D 합성곱(TCN)이다. 보통의 TCN은 모든 채널에 같은 커널을 쓰지만, CHARM은 설명 임베딩으로 <b>채널마다 다른 커널</b>을 만들고, 층마다 얼마나 쓸지 정하는 <b>게이트</b>도 만든다. 게이트가 깊은 층을 꺼 버리면 그 채널의 유효 수용 영역이 짧아진다. 논문은 이것을 "패치 크기를 손으로 정할 필요가 없는, 채널을 아는 패칭의 일반화"로 설명한다.</p>
+    <div class="formula">\[ \mathbf{G}_c = \sigma\!\left(\mathbf{E}_d\mathbf{W}_g\right) \in \mathbb{R}^{C\times N}, \qquad \mathbf{G}_k = \mathbf{E}_d\mathbf{W}_k,\;\; \mathbf{W}_k \in \mathbb{R}^{D_e\times (H\cdot K\cdot N)} \]
+      <div class="where">\( \mathbf{G}_c[i,j] \): 채널 \( i \)의 \( j \)번째 TCN 층 출력에 곱하는 게이트 · \( \mathbf{G}_k \): 채널별 합성곱 커널(층 \( N \)개, 커널 크기 \( K \), 은닉 차원 \( H \)). TCN의 모든 중간 층 출력을 이어 붙여 첫 표현 \( \mathbf{X}\in\mathbb{R}^{T\times C\times H} \)를 만든다.</div></div>
+
+    <h3>② 문맥 어텐션 — 채널 게이트와 대칭 시간차 편향</h3>
+    <p>그다음 8개의 어텐션 층이 (채널, 시점) 쌍 \( CT \)개를 모두 토큰으로 보고 섞는다. 표준 셀프 어텐션의 로짓에 두 가지를 더한다.</p>
+    <p><b>설명 기반 채널 게이트.</b> 두 채널 설명의 유사도 \( \mathbf{S} \)가 학습되는 임계값 \( \mathbf{Z} \)보다 작으면 그 쌍 사이의 어텐션을 막는다. 정규화 항이 \( \mathbf{Z} \)를 1 쪽으로 당기므로 <em>기본값은 '막힘'</em>이고, 학습이 필요하다고 판단한 쌍만 임계값을 낮춰 연다. \( \mathbf{Z} \)는 이중선형 형태라 비대칭일 수 있어서 한쪽 방향만 열리기도 한다.</p>
+    <div class="formula">\[ \mathbf{S} = \mathbf{E}_d\mathbf{E}_d^{\top}, \qquad \mathbf{Z}[i,j] = \sigma\!\left(\mathbf{E}_d[i]\,\mathbf{W}_b\,\mathbf{E}_d[j]^{\top}\right), \qquad \mathbf{G}_d = \mathrm{ReLU}(\mathbf{Z} - \mathbf{S}) \]</div>
+    <p><b>대칭 시간차 편향 \( \Delta \).</b> "채널 \( i \)가 \( t \)스텝 뒤에 채널 \( j \)를 따라간다"는 관계를 채널 쌍 설명으로부터 만든 편향으로 표현하되, \( i\to j \)의 \( +t \)와 \( j\to i \)의 \( -t \)가 같은 값이 되도록 구성해 파라미터를 아끼고 대칭 제약을 구조로 강제한다.</p>
+    <div class="formula">\[ \Delta^{+} = \big[\mathbf{E}_d[i],\, \mathbf{E}_d[j]\big]\,\mathbf{W}_d, \qquad \Delta[i,j,t] = \begin{cases} \Delta^{+}[i,j,t] & t \ge 0 \\ \Delta^{+}[j,i,-t] & t &lt; 0 \end{cases} \]</div>
+    <p>둘을 합친 어텐션은 다음과 같다. \( \lambda_G \)를 크게 두면 게이트가 사실상 어텐션 마스크가 된다.</p>
+    <div class="formula">\[ A\big[(i,p),(j,q)\big] = \mathrm{Softmax}\!\left( \frac{\hat{Q}[i,p]\,\hat{K}[j,q]^{\top}}{\sqrt{d}} \;+\; \underbrace{\Delta[i,j,q-p]}_{\text{채널 간 시간차}} \;-\; \underbrace{\lambda_G\,\mathbf{G}_d[i,j]}_{\text{채널 게이트}} \right) \]
+      <div class="where">\( (i,p) \): 채널 \( i \)의 시점 \( p \) 토큰 · \( \hat{Q},\hat{K} \): RoPE를 적용한 쿼리·키. 논문 본문 식에는 분모가 \( \sqrt{D_e} \)로 적혀 있다. 이 구조 덕분에 채널 순서를 무작위로 바꿔도 출력이 똑같이 재배열된다(8개 데이터셋에서 최대 출력 차이 \( 10^{-4} \) 미만으로 확인).</div></div>
+
+    <h3>③ JEPA로 학습하기 — 값이 아니라 임베딩을 예측</h3>
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="CHARM의 JEPA 학습: 맥락 인코더, 예측기, EMA 목표 인코더, 다중 해상도 L1 손실">
+        <defs><marker id="jp-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <!-- 시간축 -->
+        <text x="20" y="28" class="t-b">한 창(512 스텝) 안에서 위치 집합을 뽑는다</text>
+        <rect x="20" y="40" width="560" height="16" rx="4" class="f-surface"/>
+        <rect x="80" y="40" width="200" height="16" rx="4" class="f-acc"/><text x="180" y="72" text-anchor="middle" class="t-mono">맥락 I_ctx (섭동 적용)</text>
+        <rect x="80" y="36" width="300" height="24" rx="5" class="s-acc2" stroke-dasharray="5 4"/><text x="330" y="90" text-anchor="middle" class="t-mono">목표 I_tgt</text>
+        <rect x="280" y="40" width="100" height="16" rx="4" fill="#f59e0b" opacity=".85"/><text x="330" y="72" text-anchor="middle" class="t-mono">예측 I_prd</text>
+        <text x="600" y="46" class="t-dim">인과 예측: I_ctx ⊂ I_tgt (미래 임베딩 예측)</text>
+        <text x="600" y="66" class="t-dim">평활화: I_prd ⊂ I_ctx ∩ I_tgt (손상된 구간 예측)</text>
+        <!-- 맥락 경로 -->
+        <g transform="translate(20,118)">
+          <rect width="150" height="64" rx="12" class="f-surface"/>
+          <text x="75" y="26" text-anchor="middle" class="t-b">맥락 뷰</text>
+          <text x="75" y="46" text-anchor="middle" class="t-dim">구간·채널 마스킹</text>
+        </g>
+        <path d="M172 150 H206" class="s-acc" marker-end="url(#jp-arr)"/>
+        <g transform="translate(212,112)">
+          <rect width="170" height="76" rx="12" class="f-acc-soft" stroke-width="2"/>
+          <text x="85" y="28" text-anchor="middle" class="t-b">맥락 인코더 E_θ</text>
+          <text x="85" y="50" text-anchor="middle" class="t-mono">역전파로 학습</text>
+          <text x="85" y="66" text-anchor="middle" class="t-mono">7.1M</text>
+        </g>
+        <path d="M384 150 H418" class="s-acc" marker-end="url(#jp-arr)"/>
+        <g transform="translate(424,112)">
+          <rect width="190" height="76" rx="12" class="f-acc-soft" stroke-width="2"/>
+          <text x="95" y="28" text-anchor="middle" class="t-b">예측기 (좁고 얕음)</text>
+          <text x="95" y="50" text-anchor="middle" class="t-mono">[X_c, m_θ, …, m_θ] → X̂</text>
+          <text x="95" y="66" text-anchor="middle" class="t-mono">4층 · d=64</text>
+        </g>
+        <!-- 목표 경로 -->
+        <g transform="translate(20,236)">
+          <rect width="150" height="64" rx="12" class="f-surface"/>
+          <text x="75" y="26" text-anchor="middle" class="t-b">목표 뷰</text>
+          <text x="75" y="46" text-anchor="middle" class="t-dim">섭동 없음</text>
+        </g>
+        <path d="M172 268 H206" class="s-acc" marker-end="url(#jp-arr)"/>
+        <g transform="translate(212,230)">
+          <rect width="170" height="76" rx="12" class="f-elev"/>
+          <text x="85" y="28" text-anchor="middle" class="t-b">목표 인코더</text>
+          <text x="85" y="50" text-anchor="middle" class="t-mono">맥락 인코더의 EMA</text>
+          <text x="85" y="66" text-anchor="middle" class="t-mono">기울기 없음</text>
+        </g>
+        <path d="M297 190 V226" class="s-acc2 flow-dash" marker-end="url(#jp-arr)"/>
+        <text x="306" y="214" class="t-mono">EMA</text>
+        <path d="M384 268 H640" class="s-acc" marker-end="url(#jp-arr)"/>
+        <text x="510" y="260" text-anchor="middle" class="t-mono">X[I_prd]</text>
+        <path d="M616 150 H640" class="s-acc" marker-end="url(#jp-arr)"/>
+        <!-- 손실 -->
+        <g transform="translate(646,112)">
+          <rect width="336" height="194" rx="14" class="f-acc2-soft"/>
+          <text x="168" y="28" text-anchor="middle" class="t-b">다중 해상도 L1 손실</text>
+          <rect x="22" y="44" width="292" height="30" rx="7" class="f-elev"/><text x="34" y="64" class="t">세밀: 시점 × 채널마다 |X̂ − X|</text>
+          <rect x="22" y="80" width="292" height="30" rx="7" class="f-elev"/><text x="34" y="100" class="t">시점별: 채널 평균끼리 비교</text>
+          <rect x="22" y="116" width="292" height="30" rx="7" class="f-elev"/><text x="34" y="136" class="t">전역: 시점·채널 전체 평균끼리 비교</text>
+          <text x="168" y="174" text-anchor="middle" class="t-acc">+ λ₁R₁(게이트 희소) + λ₂R₂(Δ 크기)</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 1-2.</b> CHARM의 JEPA 학습 (논문 그림 4, 9를 바탕으로 다시 그림). 맥락 인코더와 목표 인코더는 같은 구조이고, 목표 인코더는 맥락 인코더의 지수 이동 평균(EMA)으로만 갱신된다. 추론 때는 맥락 인코더만 쓴다.</figcaption>
+    </figure>
+    <p>JEPA <span class="en">(Joint Embedding Predictive Architecture)</span>는 가린 부분의 <b>원래 값</b>이 아니라 <b>목표 인코더가 만든 임베딩</b>을 맞힌다. 값 자체를 복원할 필요가 없으니 센서 잡음을 그대로 외울 이유가 줄고, 대조학습처럼 음성 샘플을 고를 필요도 없다. CHARM은 여기에 시계열용 과제 두 가지(<b>인과 예측</b>·<b>평활화</b>)와, 실제 현장의 결측을 흉내 낸 섭동 두 가지(<b>모든 채널의 같은 구간 가리기</b>, <b>일부 채널만 가리기</b>)를 더했다. 섭동은 맥락 입력에만 건다.</p>
+    <div class="formula">\[ \mathcal{L}_{\text{ssl}} = \sum_{t,c,h}\big|\hat{X}_{t,c,h} - X_{t,c,h}\big| \;+\; \sum_{t,h}\big|\mu_c(\hat{X})_{t,h} - \mu_c(X)_{t,h}\big| \;+\; \sum_{h}\big|\mu_{t,c}(\hat{X})_{h} - \mu_{t,c}(X)_{h}\big| \]
+      \[ \mathcal{L} = \mathcal{L}_{\text{ssl}} + \lambda_1\underbrace{\sum_{i,j}\big|1 - \mathbf{Z}[i,j]\big|}_{R_1:\ \text{게이트를 기본적으로 닫기}} + \lambda_2\underbrace{\frac{1}{C^2}\sum_{i,j}\sum_{t}\Delta[i,j,t]^2}_{R_2:\ \text{시간차 편향을 작게}} \]
+      <div class="where">\( \hat{X} \): 예측기가 내놓은 \( I_{\text{prd}} \) 위치의 임베딩 · \( X \): 목표 인코더 임베딩 · \( \mu_c \): 채널 평균, \( \mu_{t,c} \): 시점·채널 전체 평균. 논문의 \( \lambda_1=\lambda_2=10^{-5} \). 굵은 단위의 두 항은 개별 오차가 상쇄되어도 남는 '계통적 어긋남'을 잡아, 여러 해상도에서 임베딩이 일관되게 만든다.</div></div>
   </section>
 
   <section id="lab">
     <h2>실험으로 이해하기</h2>
-    <p class="slot" data-slot="실험 안내">논문의 아이디어를 손으로 확인할 수 있는 실험을 넣습니다. 지금 들어 있는 실험은 형식을 보여 주는 예시입니다.</p>
-    <div data-sim="attention-qk"></div>
-    <div data-sim="attention-matrix"></div>
+    <p>CHARM의 두 핵심 장치를 직접 만져 볼 수 있도록 실험을 만들었다. 첫 번째는 <b>설명문 → 유사도 → 게이트 → 어텐션</b>으로 이어지는 채널 게이트이고, 두 번째는 <b>JEPA 과제와 다중 해상도 손실</b>이다. 세 번째는 시계열 책에 있는 팽창 합성곱 실험으로, CHARM 첫 층의 TCN이 층마다 수용 영역을 두 배로 넓히는 방식을 보여 준다.</p>
+    <div data-sim="charm-gating"></div>
+    <div data-sim="charm-jepa"></div>
+    <div data-sim="tcn-receptive" data-title="CHARM의 첫 층: 팽창 TCN의 수용 영역" data-note="CHARM은 이 구조에서 커널을 채널 설명으로 <b>채널마다 다르게 생성</b>하고, 층마다 설명 기반 게이트 \(\mathbf{G}_c\)를 곱해 채널별로 유효 수용 영역을 조절한다. 팽창 계수는 논문과 같이 2<sup>l</sup>로 커진다."></div>
   </section>
 
   <section id="results">
     <h2>실험 결과</h2>
-    <p class="slot" data-slot="본문">논문의 주요 결과를 요약하고 기준선과 비교하세요.</p>
+    <p>평가의 기본 원칙은 <b>인코더를 고정하고 가벼운 헤드만 학습</b>하는 것이다(일부는 미세조정 결과도 함께 보고). 사전학습 데이터에는 공개 데이터 9종(산업 설비·전력·웨어러블 등), UEA 16개, 예측 벤치마크 6개가 들어가며, 하류 벤치마크와 겹치는 데이터는 <em>train 분할만</em> 썼다고 밝힌다.</p>
+
+    <h3>장기 예측 (LSF: Weather · ETT)</h3>
     <figure>
-      <div data-chart='{"type":"bar","title":"예시 데이터 — 논문의 수치로 바꾸세요","labels":["벤치마크 1","벤치마크 2","벤치마크 3"],"series":[{"name":"기준선 A","data":[62.1,70.4,55.0]},{"name":"기준선 B","data":[66.8,72.9,58.2]},{"name":"제안 방법","data":[71.5,76.0,63.4]}],"highlight":"제안 방법","yLabel":"점수","yMin":0}'></div>
-      <figcaption><b>표 1-1.</b> <span class="slot" data-slot="캡션">결과 차트 설명 (위 숫자는 모두 가짜 예시입니다)</span></figcaption>
+      <div data-chart='{"type":"bar","title":"데이터셋별 평균 MSE (호라이즌 96·192·336·720 평균, 낮을수록 좋음)","labels":["Weather","ETTm1","ETTm2","ETTh1","ETTh2"],"series":[{"name":"CHARM + LP (고정)","data":[0.230,0.413,0.209,0.554,0.324]},{"name":"CHARM + NLH FT (미세조정)","data":[0.222,0.411,0.208,0.557,0.316]},{"name":"Toto","data":[0.224,0.396,0.266,0.435,0.349]},{"name":"Moirai-Large","data":[0.263,0.390,0.285,0.510,0.354]},{"name":"MOMENT-LP","data":[0.228,0.344,0.259,0.418,0.352]},{"name":"VisionTS","data":[0.269,0.373,0.281,0.392,0.333]}],"yMin":0,"digits":3,"aspect":0.5}'></div>
+      <figcaption><b>그림 1-3.</b> 논문 표 1에서 6개 방법을 골라 그렸다. CHARM은 고정 임베딩 + 선형 프로브만으로도 ETTm2·ETTh2에서 훨씬 큰 Moirai-Large·Toto보다 MSE가 낮지만, <b>ETTh1에서는 가장 약하다</b>.</figcaption>
     </figure>
-    <div class="table-wrap"><table>
-      <thead><tr><th>방법</th><th class="num">지표 1</th><th class="num">지표 2</th></tr></thead>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th>MSE / MAE</th><th class="num">Toto</th><th class="num">Moirai-S</th><th class="num">Moirai-B</th><th class="num">Moirai-L</th><th class="num">TimeMixer++</th><th class="num">VisionTS</th><th class="num">MOMENT-LP</th><th class="num">PatchTST-LP</th><th class="num">CHARM+LP</th><th class="num">CHARM+NLH</th><th class="num">CHARM+NLH FT</th></tr></thead>
       <tbody>
-        <tr><td>기준선 A</td><td class="num">—</td><td class="num">—</td></tr>
-        <tr class="best"><td>제안 방법</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td>Weather</td><td class="num">.224 / <b>.245</b></td><td class="num">.242 / .267</td><td class="num">.238 / .261</td><td class="num">.263 / .271</td><td class="num">.226 / .262</td><td class="num">.269 / .292</td><td class="num">.228 / .266</td><td class="num">.233 / .270</td><td class="num">.230 / .262</td><td class="num">.230 / .262</td><td class="num"><b>.222</b> / .255</td></tr>
+        <tr><td>ETTm1</td><td class="num">.396 / .378</td><td class="num">.448 / .410</td><td class="num">.382 / .404</td><td class="num">.390 / .389</td><td class="num">.368 / .378</td><td class="num">.373 / <b>.371</b></td><td class="num"><b>.344</b> / .379</td><td class="num">.350 / .382</td><td class="num">.413 / .432</td><td class="num">.416 / .437</td><td class="num">.411 / .428</td></tr>
+        <tr><td>ETTm2</td><td class="num">.266 / .303</td><td class="num">.322 / .319</td><td class="num">.302 / <b>.295</b></td><td class="num">.285 / .320</td><td class="num">.269 / .320</td><td class="num">.281 / .321</td><td class="num">.259 / .318</td><td class="num">.262 / .322</td><td class="num">.209 / .298</td><td class="num">.220 / .304</td><td class="num"><b>.208</b> / .299</td></tr>
+        <tr><td>ETTh1</td><td class="num">.435 / .413</td><td class="num">.400 / .423</td><td class="num">.432 / .440</td><td class="num">.510 / .469</td><td class="num">.395 / .419</td><td class="num"><b>.392</b> / <b>.405</b></td><td class="num">.418 / .422</td><td class="num">.428 / .438</td><td class="num">.554 / .532</td><td class="num">.592 / .555</td><td class="num">.557 / .526</td></tr>
+        <tr><td>ETTh2</td><td class="num">.349 / <b>.363</b></td><td class="num">.341 / .379</td><td class="num">.346 / .382</td><td class="num">.354 / .377</td><td class="num">.339 / .380</td><td class="num">.333 / .374</td><td class="num">.352 / .395</td><td class="num">.365 / .386</td><td class="num">.324 / .386</td><td class="num">.323 / .385</td><td class="num"><b>.316</b> / .381</td></tr>
       </tbody>
     </table></div>
+    <p>MSE 기준으로는 미세조정한 CHARM이 5개 중 3개(Weather·ETTm2·ETTh2)에서 1위다. MAE 1위는 Toto·VisionTS·Moirai에 고르게 퍼져 있는데, 논문은 이를 그 모델들이 MAE에 맞춘 목표로 학습되었기 때문이라고 설명한다(CHARM의 헤드는 MSE로 학습). 굵게 = 열이 아닌 <b>행(데이터셋)별 최솟값</b>.</p>
+
+    <h3>다변량 분류 (UEA 21개)</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>방법</th><th class="num">승수 ↑</th><th class="num">평균 정확도 ↑</th><th class="num">전체 정답 수 ↑</th></tr></thead>
+      <tbody>
+        <tr><td>TS2Vec</td><td class="num">2</td><td class="num">78.1</td><td class="num">7467</td></tr>
+        <tr><td>T-Loss</td><td class="num">3</td><td class="num">72.8</td><td class="num">7141</td></tr>
+        <tr><td>TS-TCC</td><td class="num">2</td><td class="num">74.4</td><td class="num">7118</td></tr>
+        <tr><td>T-Rep</td><td class="num">3</td><td class="num">78.5</td><td class="num">7363</td></tr>
+        <tr><td>MOMENT</td><td class="num">3</td><td class="num">72.5</td><td class="num">5414</td></tr>
+        <tr><td>MiniRocket (과제 특화)</td><td class="num">4</td><td class="num">77.6</td><td class="num">7569</td></tr>
+        <tr><td>CHARM 고정 + SVM</td><td class="num">4</td><td class="num">79.6</td><td class="num">7431</td></tr>
+        <tr class="best"><td>CHARM 미세조정</td><td class="num">5</td><td class="num">80.9</td><td class="num">7799</td></tr>
+      </tbody>
+    </table></div>
+    <p>고정 임베딩만으로 평균 정확도가 표현학습 기준선보다 높다. 다만 <b>전체 정답 수</b>는 MiniRocket(7569)이 고정 CHARM(7431)보다 많다 — 평균 정확도는 데이터셋마다 같은 비중이라 작은 데이터셋의 영향이 커진다. 평가는 채널 50개 미만·길이 1500 미만인 UEA 21개로 한정했다(모델의 기본 문맥 길이 때문).</p>
+
+    <h3>이상 탐지 (SKAB 다변량 · UCR 단변량)</h3>
+    <div class="review-grid">
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>SKAB (34개)</th><th class="num">F1 ↑</th><th class="num">FAR ↓</th><th class="num">MAR ↓</th></tr></thead>
+        <tbody>
+          <tr><td>MSCRED</td><td class="num">0.36</td><td class="num">49.94</td><td class="num">69.88</td></tr>
+          <tr><td>T-Rep</td><td class="num">0.78</td><td class="num"><b>12.60</b></td><td class="num">28.51</td></tr>
+          <tr><td>MOMENT (학습 없음)</td><td class="num">0.79</td><td class="num">14.20</td><td class="num">26.98</td></tr>
+          <tr><td>TS2Vec</td><td class="num">0.79</td><td class="num">12.77</td><td class="num">27.61</td></tr>
+          <tr><td>MOMENT-LP</td><td class="num">0.82</td><td class="num">15.52</td><td class="num">20.73</td></tr>
+          <tr class="best"><td>CHARM</td><td class="num">0.86</td><td class="num">19.35</td><td class="num">12.69</td></tr>
+        </tbody>
+      </table></div>
+      <div data-chart='{"type":"bar","title":"UCR 46개 데이터셋 평균 조정 F1","labels":["Anomaly Trans.","DGHL","GPT4TS","TimesNet","MOMENT","CHARM"],"series":[{"name":"평균 F1","data":[0.485,0.415,0.479,0.627,0.684,0.754]}],"yMin":0,"yMax":0.85,"digits":3,"aspect":0.75}'></div>
+    </div>
+    <p>SKAB에서는 모든 모델에 같은 선형 재구성 헤드를 붙여 비교했다. CHARM이 F1과 놓친 경보율(MAR)은 가장 좋지만, <b>오경보율(FAR) 19.35%는 MSCRED를 빼면 가장 높다</b>. 놓치는 이상을 줄이는 대신 경보가 늘어나는 쪽으로 기울어 있는 셈이다.</p>
+
+    <h3>무엇이 성능을 만들었나 — ablation</h3>
+    <figure>
+      <div data-chart='{"type":"bar","title":"구성별 분류 정확도 (%) — 논문 표 5","labels":["패칭","TCN (텍스트 없음)","TCN + 게이트","TCN + 생성 커널","어텐션: 기본","+ 시간차 Δ","+ 게이트 G","+ Δ + G"],"series":[{"name":"정확도","data":[63.0,68.0,69.0,71.4,67.9,68.6,69.8,71.4]}],"yMin":55,"yMax":75,"digits":1,"aspect":0.42}'></div>
+      <figcaption><b>그림 1-4.</b> 왼쪽 네 막대는 특징화 층(패칭 → TCN → 설명 조건화), 오른쪽 네 막대는 어텐션 변형이다. 기본 설정은 "TCN + 생성 커널"과 "Δ + G"를 함께 쓴다(둘 다 71.4%).</figcaption>
+    </figure>
+    <figure>
+      <div data-chart='{"type":"bar","title":"구성 요소를 하나씩 뺐을 때 분류 정확도 변화 (%p) — 논문 표 32","labels":["JEPA → 재구성","설명문 짝 섞기","정규화 R1+R2 제거","무작위 텍스트 임베딩"],"series":[{"name":"정확도 변화","data":[-4.4,-2.6,-2.4,-0.7]}],"yMin":-5,"yMax":0.5,"digits":1,"aspect":0.36}'></div>
+      <figcaption><b>그림 1-5.</b> 가장 큰 요인은 JEPA 목표(−4.4%p)다. 설명문을 <b>엉뚱한 채널에 섞어 붙이면</b>(−2.6%p) 무작위 임베딩(−0.7%p)보다 약 4배 더 나빠진다 — 텍스트의 <em>내용</em>보다 <em>채널과의 올바른 짝</em>이 중요하다는 근거.</figcaption>
+    </figure>
+    <div class="review-grid">
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>설명문 품질 (UEA 8개, 2,002개)</th><th class="num">정답</th><th class="num">Δ</th></tr></thead>
+        <tbody>
+          <tr><td>올바른 설명</td><td class="num">1,437</td><td class="num">—</td></tr>
+          <tr><td>50%를 "unknown sensor"로</td><td class="num">~1,435</td><td class="num">−2</td></tr>
+          <tr><td>모두 "unknown sensor"</td><td class="num">1,431</td><td class="num">−6</td></tr>
+          <tr><td>엉뚱한 도메인 (금융 용어)</td><td class="num">1,429</td><td class="num">−8</td></tr>
+        </tbody>
+      </table></div>
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>텍스트를 넣는 방식</th><th class="num">정확도</th></tr></thead>
+        <tbody>
+          <tr><td>설명 임베딩을 모든 층에 더하기</td><td class="num">60.5%</td></tr>
+          <tr><td>설명 임베딩을 첫 층에만 더하기</td><td class="num">63.3%</td></tr>
+          <tr class="best"><td>CHARM (게이트 + 시간차, Δ + G)</td><td class="num">71.4%</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <p>설명문을 망가뜨려도 손실은 0.4% 미만이고, 설명 임베딩을 위치 인코딩처럼 <b>그냥 더하면 오히려 크게 나빠진다</b>. 문장 임베딩 모델(nomic·minilm·mpnet)을 바꾼 비교에서는 뚜렷한 승자가 없었다(정확도 71.3–72%). 논문 스스로의 결론처럼, 이 모델에서 텍스트는 <b>도메인 지식의 원천이라기보다 채널을 가리키는 주소</b>다 — 고정된 센서 배치에서 인코더를 떼어 내는 역할.</p>
+
+    <h3>처음 보는 데이터</h3>
+    <div class="review-grid">
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>Exchange Rate MSE</th><th class="num">CHARM 고정</th><th class="num">iTrans.</th><th class="num">PatchTST</th><th class="num">DLinear</th></tr></thead>
+        <tbody>
+          <tr><td>96</td><td class="num">0.092</td><td class="num"><b>0.086</b></td><td class="num">0.088</td><td class="num">0.088</td></tr>
+          <tr><td>192</td><td class="num">0.182</td><td class="num">0.177</td><td class="num"><b>0.176</b></td><td class="num"><b>0.176</b></td></tr>
+          <tr><td>336</td><td class="num">0.318</td><td class="num">0.331</td><td class="num"><b>0.301</b></td><td class="num">0.313</td></tr>
+          <tr><td>720</td><td class="num">0.967</td><td class="num">0.847</td><td class="num">0.901</td><td class="num"><b>0.839</b></td></tr>
+        </tbody>
+      </table></div>
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>UCI 유압 시스템 (센서 17개)</th><th class="num">CHARM 고정 + SVM</th></tr></thead>
+        <tbody>
+          <tr><td>밸브 상태 (4클래스)</td><td class="num">99.8% <span class="en">(지도학습 1D-CNN 96.0%)</span></td></tr>
+          <tr><td>냉각기 상태 (3클래스)</td><td class="num">100.0%</td></tr>
+          <tr><td>펌프 누설 (3클래스)</td><td class="num">84.6%</td></tr>
+          <tr><td>어큐뮬레이터 압력 (4클래스)</td><td class="num">85.7%</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <p>본문은 두 데이터 모두 사전학습에서 제외했다고 밝힌다(다만 부록 표 9의 사전학습 데이터 목록에는 유압 시스템 데이터가 올라 있어 확인이 필요하다). 산업 센서 데이터인 유압 시스템에서는 매우 강하지만, 금융 시계열인 Exchange Rate에서는 끝단까지 학습한 지도학습 모델보다 대체로 MSE가 높다(특히 720 스텝).</p>
   </section>
 
   <section id="critique">
     <h2>강점과 한계</h2>
     <div class="pro-con">
-      <div class="pro"><h4>강점</h4><ul><li class="slot" data-slot="강점">강점 1</li><li class="slot" data-slot="강점">강점 2</li></ul></div>
-      <div class="con"><h4>한계 · 의문점</h4><ul><li class="slot" data-slot="한계">한계 1</li><li class="slot" data-slot="한계">한계 2</li></ul></div>
+      <div class="pro"><h4>강점</h4><ul>
+        <li><b>텍스트를 '조건'으로 쓰는 설계.</b> 설명문으로 커널·게이트·편향을 생성하는 방식은 단순 덧셈보다 확실히 낫고(71.4% vs 60.5–63.3%), 채널 순서 등변성을 구조적으로 보장한다.</li>
+        <li><b>작고 싸다.</b> 추론 인코더 7.1M 파라미터, A100 8장으로 약 18시간 사전학습. 그런데도 일부 데이터셋에서 훨씬 큰 예측 전용 파운데이션 모델을 이긴다.</li>
+        <li><b>정직한 ablation.</b> "텍스트가 지식을 준다"는 쉬운 서사 대신, 섞기·무작위·엉뚱한 도메인 실험으로 텍스트가 주로 채널 식별자라는 결론을 스스로 내린다.</li>
+        <li><b>해석 가능한 게이트.</b> ETT에서 목표 변수(오일 온도)가 다른 채널을 보지만 반대 방향은 막히는 비대칭 구조가 학습 중에 생겨난다(논문 그림 5).</li>
+      </ul></div>
+      <div class="con"><h4>한계 · 의문점</h4><ul>
+        <li><b>어텐션 비용 \( O(C^2T^2) \).</b> 패칭 없이 모든 (채널, 시점) 쌍을 보므로 창이 512로 제한되고, UEA도 채널 50개·길이 1500 미만인 21개만 평가했다. 센서 수백 개짜리 설비에는 바로 쓰기 어렵다.</li>
+        <li><b>엄밀한 제로샷은 아니다.</b> ETT·Weather·SKAB·UEA의 train 분할이 사전학습에 포함된다. 진짜 처음 보는 데이터 결과(표 29·30)는 산업 데이터에선 좋고 금융 데이터에선 지도학습 기준선에 밀린다.</li>
+        <li><b>약한 곳이 평균에 가려진다.</b> ETTh1 MSE는 0.554로 표 1의 모든 기준선보다 나쁘다. SKAB에서는 오경보율이 높다.</li>
+        <li><b>지표 선택.</b> UCR 결과는 평균 '조정 F1'이다. 이상 구간 단위로 점수를 조정하는 지표 계열은 점수를 후하게 줄 수 있다는 지적이 있어, 조정 없는 지표가 함께 있었으면 더 설득력 있었을 것이다.</li>
+        <li><b>표 확인이 필요한 곳.</b> ① 표 5의 ETTh2 열은 MAE가 \( \sqrt{\text{MSE}} \)보다 크게 적혀 있다(예: MSE 0.57, MAE 0.80). 같은 오차 집합이라면 \( \text{MAE} \le \sqrt{\text{MSE}} \)여야 하므로 열 표기나 산정 방식을 확인할 필요가 있다. ② 유압 시스템 데이터는 본문에서 '사전학습 제외'라고 하지만 부록 표 9의 사전학습 목록에 들어 있다.</li>
+        <li><b>재현성.</b> 코드와 가중치가 공개되지 않았다(사전학습 데이터·적재 도구만 공개 예정). 설명문을 손으로 다는 비용도 논문이 스스로 한계로 꼽는다.</li>
+      </ul></div>
     </div>
   </section>
 
   <section id="impl">
     <h2>구현 노트</h2>
-    <p class="slot" data-slot="본문">재현할 때 주의할 점, 하이퍼파라미터, 공개 코드와 다른 점 등을 기록합니다.</p>
-<pre><code># 핵심 구현을 짧게 적어 두는 자리 (예시)
-def forward(x):
-    ...
+    <p>공식 코드가 없으므로, 재현할 때 필요한 설정을 논문 부록(표 7, C.3, E, G)에서 모아 둔다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>설정</th></tr></thead>
+      <tbody>
+        <tr><td>인코더</td><td>문맥 어텐션 8층, d = 128, SwiGLU FFN(×4), pre-norm, QK-norm, RoPE(모든 채널에 같은 시점 위치), 어텐션 dropout 0.01</td></tr>
+        <tr><td>예측기</td><td>4층, d = 64 (위·아래 선형 사영으로 인코더 차원과 연결), 마스크 토큰 \( m_\theta \)</td></tr>
+        <tr><td>목표 인코더</td><td>맥락 인코더의 EMA, 모멘텀은 학습 중 점점 증가 (I-JEPA와 같은 일정)</td></tr>
+        <tr><td>데이터</td><td>창 길이 512, 보폭 128, 데이터셋당 표본 400–1000개로 균형(과소·과대 표집), 목표 블록 수 4. 사전학습: 공개 데이터 9종 + UEA 16개 + 예측 벤치마크 6개(하류 평가와 겹치면 train 분할만)</td></tr>
+        <tr><td>최적화</td><td>AdamW(β₁ 0.95, β₂ 0.99), 100 에폭, 선형 워밍업 10% → 코사인 감쇠, weight decay 0.04 → 0.4(코사인 증가), 기울기 클리핑 2.0, λ₁ = λ₂ = 1e-5</td></tr>
+        <tr><td>문장 임베딩</td><td>학습하지 않는 모델. nomic·minilm·mpnet을 비교했으나 뚜렷한 차이 없음 (ablation 기본 구성의 수치는 nomic 행과 같다). 설명 임베딩은 비매개 LayerNorm으로 정규화한 뒤 커널 생성에 쓴다</td></tr>
+        <tr><td>규모 · 자원</td><td>추론 인코더 7.1M (전체 18.2M, 학습 11.1M), A100 80GB × 8, bf16, 약 18시간</td></tr>
+      </tbody>
+    </table></div>
+    <p>아래는 논문의 식을 그대로 옮겨 본 PyTorch 스케치다(공식 구현이 아님). 게이트·대칭 Δ·다중 해상도 손실이 각각 몇 줄로 끝난다는 점이 이 구조의 장점이다.</p>
+<pre><code>import torch
+import torch.nn.functional as F
+
+def channel_gate(E_d, W_b, lam_G=1e4):
+    """E_d: (C, De) 설명 임베딩 → 어텐션 로짓에 더할 항 (C, C)"""
+    S = E_d @ E_d.T                          # 설명 유사도
+    Z = torch.sigmoid(E_d @ W_b @ E_d.T)     # 학습되는 임계값 (비대칭 가능)
+    G_d = F.relu(Z - S)                      # S &lt; Z 인 쌍만 막힌다
+    return -lam_G * G_d
+
+def symmetric_delta(E_d, W_d, T):
+    """Δ[i, j, t], t = −(T−1) … T−1, 그리고 Δ[i, j, t] = Δ[j, i, −t]"""
+    C = E_d.shape[0]
+    pair = torch.cat([E_d[:, None].expand(C, C, -1),
+                      E_d[None, :].expand(C, C, -1)], dim=-1)   # (C, C, 2De)
+    d_pos = pair @ W_d[:, :T]                                   # t ≥ 0
+    d_neg = d_pos.transpose(0, 1).flip(-1)[..., :-1]            # t &lt; 0
+    return torch.cat([d_neg, d_pos], dim=-1)                    # (C, C, 2T−1)
+
+def multires_l1(x_hat, x):
+    """x_hat, x: (T_prd, C, H) — 세밀 + 시점별(채널 평균) + 전역 평균"""
+    return ((x_hat - x).abs().sum()
+            + (x_hat.mean(1) - x.mean(1)).abs().sum()
+            + (x_hat.mean((0, 1)) - x.mean((0, 1))).abs().sum())
 </code></pre>
+    <div class="callout tip"><strong>재현할 때 주의</strong><p>① 어텐션 행렬에 \( \Delta \)와 게이트를 직접 더하므로 FlashAttention 같은 최적화 커널을 그대로 쓸 수 없다(논문도 같은 이유로 문맥 길이가 제한된다고 밝힘). ② 설명으로 생성한 커널은 초기화가 민감하다 — 논문은 생성 커널에 LayerNorm을 걸고 \( \sqrt{2/K} \)를 곱해 He 초기화와 맞춘다. ③ 데이터셋마다 표본 수를 맞추지 않으면 큰 데이터셋이 학습을 지배한다.</p></div>
   </section>
 
   <section id="rating">
     <h2>나의 평가</h2>
+    <!-- 점수는 data-radar 속성에서 바꾼다 (1–5) -->
     <div class="review-grid">
-      <div data-radar='{"신규성":3,"명확성":3,"실험 충실도":3,"재현 가능성":3,"실용성":3}' data-max="5"></div>
+      <div data-radar='{"신규성":4,"명확성":3,"실험 충실도":4,"재현 가능성":2,"실용성":4}' data-max="5"></div>
       <div>
-        <p class="slot" data-slot="총평">총평 — 누구에게 이 논문을 권하는지, 다시 읽을 가치가 있는지. 왼쪽 점수는 data-radar 속성에서 바꿉니다.</p>
+        <p><b>센서 메타데이터를 '어떻게' 넣을지에 대한 좋은 답.</b> 텍스트를 입력에 더하는 대신 가중치를 생성하는 조건으로 쓰고, 기본값을 '채널 간 차단'으로 둔 게이트 설계가 깔끔하다. 이 덕분에 센서 구성이 다른 설비를 하나의 인코더로 다룰 길이 열린다.</p>
+        <p><b>다만 '텍스트가 의미를 가르쳐 준다'는 기대로 읽으면 안 된다.</b> 논문 스스로 보여 주듯 이득의 대부분은 JEPA와 조건화 구조에서 오고, 텍스트는 채널 주소 역할이 크다. 실무에서는 컬럼 이름 수준의 설명만 있어도 충분할 가능성이 높다는 뜻이기도 하다.</p>
+        <p><b>추천 대상:</b> 센서 구성이 제각각인 산업 데이터를 다루는 사람, 시계열에 JEPA를 적용하려는 사람. 긴 시퀀스·고차원 채널이 필요한 경우나 코드로 바로 써 보고 싶은 경우에는 아직 이르다.</p>
       </div>
     </div>
   </section>
@@ -127,17 +433,24 @@ def forward(x):
   <section id="related">
     <h2>함께 읽을 논문</h2>
     <ul>
-      <li class="slot" data-slot="관련 논문">선행 논문 — 왜 같이 읽으면 좋은지</li>
-      <li class="slot" data-slot="관련 논문">후속 논문</li>
+      <li><b>Assran et al., "Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture" (I-JEPA), CVPR 2023</b> — CHARM이 시계열로 옮겨 온 JEPA의 원형. EMA 목표 인코더와 좁은 예측기 구조가 같다.</li>
+      <li><b>LeCun, "A Path Towards Autonomous Machine Intelligence" (2022)</b> — JEPA라는 개념과 '잠재 공간 예측'의 동기를 제시한 글.</li>
+      <li><b>Goswami et al., "MOMENT: A Family of Open Time-series Foundation Models" (2024)</b> — 마스크 재구성으로 학습한 단변량 시계열 파운데이션 모델. CHARM의 핵심 비교 대상.</li>
+      <li><b>Gao et al., "UniTS" (2024)</b> — 다변량·다중 과제 시계열 모델. 재구성 기반 사전학습의 대표 예로 인용된다.</li>
+      <li><b>Yue et al., "TS2Vec: Towards Universal Representation of Time Series" (2022)</b> — 대조학습 기반 시계열 표현학습의 기준선.</li>
+      <li><b>Bai, Kolter &amp; Koltun, "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling" (2018)</b> — CHARM 첫 층의 바탕인 팽창 TCN.</li>
+      <li><b>Dutta et al., "Time to Embed: Unlocking Foundation Models for Time Series with Channel Descriptions" (arXiv 2505.14543, 2025)</b> — 같은 저자들의 초판.</li>
     </ul>
   </section>
 
   <section class="keypoints" id="keypoints">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점 1</li>
-      <li class="slot" data-slot="요점">요점 2</li>
-      <li class="slot" data-slot="요점">요점 3</li>
+      <li>CHARM은 채널 설명문 임베딩으로 <b>TCN 커널·층 게이트</b>와 <b>어텐션의 채널 게이트·대칭 시간차 편향</b>을 생성하는 7.1M 파라미터 시계열 인코더다. 채널 순서에 등변이다.</li>
+      <li>채널 게이트 \( \mathbf{G}_d = \mathrm{ReLU}(\mathbf{Z} - \mathbf{S}) \)는 정규화로 기본이 '닫힘'이고, 학습이 필요한 채널 쌍(방향 포함)만 연다.</li>
+      <li>학습은 원신호 복원 대신 가려진 구간의 <b>임베딩</b>을 예측하는 JEPA(인과 예측·평활화)와 세 해상도의 L1 손실로 한다. 이것이 가장 큰 성능 요인(−4.4%p)이다.</li>
+      <li>텍스트는 도메인 지식보다 <b>채널을 식별하는 주소</b> 역할이 크다 — 설명을 섞으면 −2.6%p, 무작위로 바꾸면 −0.7%p, 엉뚱한 도메인 설명이어도 0.4% 미만 손실.</li>
+      <li>고정 임베딩만으로 분류·이상 탐지·예측에서 강하지만, \( O(C^2T^2) \) 어텐션 비용, ETTh1·Exchange Rate 같은 약한 지점, 높은 오경보율, 코드 미공개를 함께 기억할 것.</li>
     </ol>
   </section>
 
@@ -145,17 +458,32 @@ def forward(x):
     <h2>확인 퀴즈</h2>
     <p class="quiz-score"></p>
     <div class="quiz">
-      <div class="quiz-q"><p>1. (퀴즈 슬롯) 질문을 적으세요. 정답 보기에는 <code>data-correct</code> 속성을 붙입니다.</p><div class="opts">
-        <button class="opt">보기 A</button>
-        <button class="opt" data-correct>보기 B (정답 예시)</button>
-        <button class="opt">보기 C</button>
-        <button class="opt">보기 D</button>
-      </div><div class="quiz-exp">해설 슬롯 — 왜 이것이 정답인지 설명하세요.</div></div>
-      <div class="quiz-q"><p>2. (퀴즈 슬롯) 두 번째 질문.</p><div class="opts">
-        <button class="opt" data-correct>보기 A (정답 예시)</button>
-        <button class="opt">보기 B</button>
-        <button class="opt">보기 C</button>
-      </div><div class="quiz-exp">해설 슬롯.</div></div>
+      <div class="quiz-q"><p>1. CHARM이 채널 설명문을 모델에 넣는 방식으로 옳은 것은?</p><div class="opts">
+        <button class="opt">설명 임베딩을 각 시점의 시계열 임베딩에 더한다 (위치 인코딩처럼).</button>
+        <button class="opt" data-correct>설명 임베딩으로 TCN 커널과 게이트, 어텐션의 채널 게이트와 시간차 편향을 생성한다.</button>
+        <button class="opt">설명문과 시계열을 대조학습으로 같은 공간에 정렬한다.</button>
+        <button class="opt">LLM이 설명문과 시계열을 함께 토큰으로 읽는다.</button>
+      </div><div class="quiz-exp">설명 임베딩은 가중치를 만드는 '조건'으로 쓰인다. 단순히 더하는 방식은 오히려 정확도가 60.5–63.3%로 떨어졌다(CHARM 71.4%, 부록 표 28). 대조 정렬이나 LLM 재프로그래밍은 관련 연구로 소개되는 다른 접근이다.</div></div>
+
+      <div class="quiz-q"><p>2. 채널 게이트 \( \mathbf{G}_d = \mathrm{ReLU}(\mathbf{Z} - \mathbf{S}) \)에서 정규화 \( R_1 = \sum|1 - \mathbf{Z}[i,j]| \)이 \( \mathbf{Z} \)를 1 쪽으로 당기면 어떤 일이 일어나는가?</p><div class="opts">
+        <button class="opt">모든 채널 쌍의 어텐션이 기본적으로 열린다.</button>
+        <button class="opt" data-correct>설명이 아주 비슷하지 않은 쌍은 기본적으로 막히고, 학습이 필요한 쌍만 임계값을 낮춰 연다.</button>
+        <button class="opt">시간차 편향 Δ가 대칭이 된다.</button>
+        <button class="opt">채널 순서 등변성이 깨진다.</button>
+      </div><div class="quiz-exp">유사도 \( \mathbf{S} \)가 임계값 \( \mathbf{Z} \)보다 작으면 게이트가 양수가 되어 \( -\lambda_G \mathbf{G}_d \)만큼 로짓이 깎인다. \( \mathbf{Z}\to 1 \)이면 거의 모든 쌍이 막히므로, 채널 관계를 '희소하게' 배우도록 유도하는 장치다.</div></div>
+
+      <div class="quiz-q"><p>3. 부록 ablation에서 성능을 가장 크게 떨어뜨린 변경은?</p><div class="opts">
+        <button class="opt">설명문을 무작위 임베딩으로 바꾸기</button>
+        <button class="opt">정규화 항 R₁ + R₂ 제거</button>
+        <button class="opt" data-correct>JEPA 목표를 원신호 재구성 손실로 바꾸기</button>
+        <button class="opt">설명문을 다른 채널의 것과 섞기</button>
+      </div><div class="quiz-exp">JEPA → 재구성이 −4.4%p로 가장 크고, 설명문 섞기 −2.6%p, 정규화 제거 −2.4%p, 무작위 텍스트 −0.7%p 순이다(부록 표 32).</div></div>
+
+      <div class="quiz-q"><p>4. 설명문을 채널끼리 <em>섞었을 때</em>(−2.6%p)가 <em>무작위 임베딩</em>(−0.7%p)보다 더 나쁘다는 결과가 말해 주는 것은?</p><div class="opts">
+        <button class="opt">텍스트의 의미 내용이 성능의 대부분을 만든다.</button>
+        <button class="opt" data-correct>모델은 설명과 채널의 올바른 짝, 즉 '어느 채널인지'를 식별하는 데 텍스트를 주로 쓴다.</button>
+        <button class="opt">문장 임베딩 모델을 더 큰 것으로 바꾸면 성능이 크게 오른다.</button>
+      </div><div class="quiz-exp">무작위 임베딩도 채널마다 고정된 다른 벡터라 '주소' 역할은 한다. 반면 섞기는 주소를 엉뚱한 채널에 붙여 학습된 관계를 깨뜨린다. 문장 임베딩 모델을 바꾼 실험에서도 뚜렷한 승자가 없었다.</div></div>
     </div>
   </section>
 </main>
