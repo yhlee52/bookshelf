@@ -79,6 +79,8 @@ figure.diagram .slot-figure svg { width: 56px; height: 56px; margin: 0 auto 6px;
 figure { margin: 28px 0; }
 figure.diagram { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
 figure.diagram svg { display: block; width: 100%; height: auto; }
+/* 캡션 속 KaTeX(근호 등)도 내부 SVG를 쓰므로 위 규칙을 되돌린다 */
+figure.diagram .katex svg { height: inherit; }
 figure.diagram.scroll { overflow-x: auto; }
 figure.diagram.scroll svg { min-width: 720px; }
 figcaption { font-size: 14px; color: var(--text-dim); margin-top: 12px; line-height: 1.6; }
@@ -100,6 +102,14 @@ svg .f-acc { fill: var(--accent); }
 svg .f-acc2 { fill: var(--accent-2); }
 svg .f-acc-soft { fill: var(--accent-soft); stroke: var(--accent); }
 svg .f-acc2-soft { fill: var(--accent-2-soft); stroke: var(--accent-2); }
+svg .f-dim { fill: var(--text-dim); }
+svg .s-grid { stroke: var(--border); fill: none; stroke-width: 1; }
+/* 그림 속 수식 글자 (KaTeX 글꼴, 이탤릭·첨자는 tspan으로) */
+svg .t-math { fill: var(--text); font-family: KaTeX_Main, "Times New Roman", serif; font-size: 16px; }
+svg .t-math.acc { fill: var(--accent); }
+svg .t-math.acc2 { fill: var(--accent-2); }
+svg .t-math.dim { fill: var(--text-dim); }
+.fig-narrow { max-width: 440px; margin: 0 auto; }
 svg .flow-dash { stroke-dasharray: 5 6; animation: flowdash 1.2s linear infinite; }
 @keyframes flowdash { to { stroke-dashoffset: -22; } }
 @media (prefers-reduced-motion: reduce) { svg .flow-dash { animation: none; } }
@@ -188,6 +198,8 @@ details.sol[open] { padding-bottom: 4px; }
 .prob-n { display: block; margin-bottom: 6px; font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent); }
 .prob-n .lv { color: var(--warn); letter-spacing: .05em; font-family: var(--font); font-weight: 400; }
 .katex .tag { color: var(--text-dim); }
+/* 좁은 화면에서 식과 겹치는 식 번호는 식 아래 오른쪽으로 (book.js fitDisplays) */
+.katex-display.tag-below > .katex > .katex-html > .tag { position: static; display: block; text-align: right; margin-top: 2px; }
 /* 부(part)로 묶은 목차: 책 홈 카드 그리드와 서랍 */
 .ch-grid.by-part .part-row { grid-column: 1 / -1; display: flex; gap: 14px; align-items: baseline; margin: 22px 0 -4px; padding-top: 18px; border-top: 1px solid var(--border); }
 .ch-grid.by-part .part-row:first-child { margin-top: 0; padding-top: 0; border-top: 0; }

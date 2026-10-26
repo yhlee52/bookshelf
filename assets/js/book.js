@@ -183,11 +183,34 @@
   }
 
   /* ------------------------------------------------------------ 수식 (KaTeX, CDN에서 defer 로드) */
-  function math() {
-    const run = () => window.renderMathInElement && renderMathInElement(document.body, {
-      delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\[", right: "\\]", display: true }, { left: "\\(", right: "\\)", display: false }],
-      throwOnError: false,
+  // 좁은 화면에서: 식 번호가 식과 겹치면 번호를 식 아래 줄로 내리고(.tag-below),
+  // 조금(25% 이내) 넘치는 블록 수식은 글자를 줄여 맞춘다. 더 넓으면 가로 스크롤로 둔다
+  function fitDisplays() {
+    $$(".katex-display").forEach((d) => {
+      d.style.fontSize = "";
+      d.classList.remove("tag-below");
+      if (!d.clientWidth) return;   // 접힌 증명·풀이 안: 펼칠 때 다시 맞춘다
+      const tag = $(".tag", d);
+      if (tag) {
+        const right = Math.max(...$$(".katex-html > .base", d).map((b) => b.getBoundingClientRect().right));
+        if (tag.getBoundingClientRect().left - right < 8) d.classList.add("tag-below");
+      }
+      const r = d.clientWidth / d.scrollWidth;
+      if (r < 1 && r >= 0.75) d.style.fontSize = (r * 0.98).toFixed(3) + "em";
     });
+  }
+  function math() {
+    const run = () => {
+      if (!window.renderMathInElement) return;
+      renderMathInElement(document.body, {
+        delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\[", right: "\\]", display: true }, { left: "\\(", right: "\\)", display: false }],
+        throwOnError: false,
+      });
+      fitDisplays();
+      let raf = 0;
+      addEventListener("resize", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fitDisplays); });
+      document.addEventListener("toggle", fitDisplays, true);
+    };
     if (window.renderMathInElement) run();
     else addEventListener("load", run);
   }
