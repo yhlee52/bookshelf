@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>03 논문 리뷰 슬롯 03 · PaperBook</title>
-<meta name="description" content="리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 합성곱·초기화)">
+<title>03 OpenTSLM: 시계열을 읽고 설명하는 언어 모델 · PaperBook</title>
+<meta name="description" content="OpenTSLM(ICML 2026) 논문 리뷰 — 사전학습 LLM에 시계열을 소프트 프롬프트 또는 교차 어텐션으로 붙이고, 근거 문장을 쓰며 답하도록 학습한 오픈소스 시계열 언어 모델.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,101 +25,430 @@
 </head>
 <body data-root="../../../" data-book="paper-review" data-field="dl" data-chapter="p03">
 <!--
-  ✎ 이 파일은 '슬롯'(빈 틀)입니다.
-  - 점선 상자(class="slot")를 실제 내용으로 바꾼 뒤 class="slot"과 data-slot을 지우세요.
-  - 장 제목·설명은 data/books.js에서 바꾸면 이 페이지에 자동 반영됩니다 (data-fill 속성).
-  - 실험 넣기:     <div data-sim="실험-id"></div>   (id 목록: 실험실 페이지, assets/sims/*.js)
-  - 수식(KaTeX):   인라인 \( a^2 + b^2 \),  블록 \[ ... \]
-  - 결과 차트:     <div data-chart='{"type":"bar","labels":["A","B"],"series":[{"name":"방법","data":[1,2]}]}'></div>
-  - 콜아웃:        <div class="callout tip|warn|deep"><strong>제목</strong><p>내용</p></div>
+  논문 리뷰 03 — OpenTSLM (ICML 2026)
+  출처: Langer et al., "OpenTSLM: Time-Series Language Models for Reasoning over Multivariate Medical
+        Text- and Time-Series Data", PMLR 306, 2026. 수치는 학회판 본문 표 1–6과 부록 표 7–14에서 옮겼다.
+        구현 세부는 github.com/OpenTSLM/OpenTSLM (main, 2026-07-21)과 open_flamingo 소스를 읽어 확인했다.
 -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Paper Review <span data-fill="chapter-num">03</span></div>
-    <h1 data-fill="chapter-title">논문 리뷰 슬롯 03</h1>
+    <h1 data-fill="chapter-title">OpenTSLM: 시계열을 읽고 설명하는 언어 모델</h1>
     <div class="paper-card">
       <dl>
-        <dt>원제</dt><dd><span class="slot" data-slot="원제">Paper Title in English</span></dd>
-        <dt>저자</dt><dd><span class="slot" data-slot="저자">First Author, Second Author, …</span></dd>
-        <dt>발표</dt><dd><span class="slot" data-slot="학회 · 연도">학회 또는 저널, 연도</span></dd>
-        <dt>키워드</dt><dd><span class="pill slot">태그 1</span> <span class="pill slot">태그 2</span></dd>
+        <dt>원제</dt><dd>OpenTSLM: Time-Series Language Models for Reasoning over Multivariate Medical Text- and Time-Series Data</dd>
+        <dt>저자</dt><dd>Patrick Langer 외 18명 <span class="en">(Stanford · ETH Zurich · Google Research 등, 교신 Filipe Barata · Paul Schmiedmayer)</span></dd>
+        <dt>발표</dt><dd>ICML 2026 · PMLR 306 <span class="en">· 초판: arXiv 2510.02410 (2025년 10월)</span></dd>
+        <dt>키워드</dt><dd><span class="pill acc">시계열 언어모델</span> <span class="pill acc">멀티모달 LLM</span> <span class="pill acc">의료</span> <span class="pill">사고 사슬(CoT)</span> <span class="pill">Flamingo</span> <span class="pill">소프트 프롬프트</span></dd>
       </dl>
-      <div class="links"><a class="btn" href="#" aria-disabled="true">arXiv ↗</a><a class="btn" href="#" aria-disabled="true">코드 ↗</a><a class="btn" href="#" aria-disabled="true">발표 영상 ↗</a></div>
+      <div class="links">
+        <a class="btn" href="https://arxiv.org/abs/2510.02410" rel="noopener">arXiv ↗</a>
+        <a class="btn" href="https://proceedings.mlr.press/v306/langer26a.html" rel="noopener">PMLR ↗</a>
+        <a class="btn" href="https://github.com/OpenTSLM/OpenTSLM" rel="noopener">코드 ↗</a>
+        <a class="btn" href="https://huggingface.co/OpenTSLM" rel="noopener">모델 ↗</a>
+      </div>
     </div>
-    <p class="tldr"><span class="slot" data-slot="한 문장 요약">이 논문의 주장을 한 문장으로.</span></p>
+    <p class="tldr">사전학습 LLM(Llama 3.2 · Gemma 3)에 시계열을 별도 입력으로 붙이는 두 방법 — 패치 임베딩을 텍스트 사이에 끼워 넣는 <b>SoftPrompt</b>와 교차 어텐션으로 따로 읽는 <b>Flamingo</b> — 을 같은 조건에서 비교하고, 근거 문장(CoT)을 쓴 뒤 답하도록 학습한 오픈소스 모델군. 1–3B 모델이 숫자를 글자로 읽는 GPT-4o보다 훨씬 높은 F1을 내고, Flamingo는 시계열이 길고 많아져도 학습 메모리가 거의 변하지 않는다.</p>
   </header>
 
   <section id="three-lines">
     <h2>세 줄 요약</h2>
     <ol>
-      <li class="slot" data-slot="요약">무엇을 했나</li>
-      <li class="slot" data-slot="요약">어떻게 했나</li>
-      <li class="slot" data-slot="요약">그래서 무엇이 좋아졌나</li>
+      <li><b>무엇을:</b> 시계열을 텍스트·이미지처럼 LLM의 <b>고유한 입력 형식</b>으로 다루는 <span class="term">TSLM</span> <span class="en">(Time-Series Language Model)</span> 계열 OpenTSLM을 만들고, 사고 사슬이 붙은 의료 데이터셋 세 개(HAR-CoT · Sleep-CoT · ECG-QA-CoT)와 시계열 설명문 데이터(M4-Captions)를 새로 만들어 코드·데이터·체크포인트를 모두 공개했다.</li>
+      <li><b>어떻게:</b> 패치 인코더가 만든 시계열 토큰을 텍스트 사이에 끼우는 <b>SoftPrompt</b>(LoRA로 LLM 미세조정)와, 시계열을 Perceiver로 64개 잠재 벡터로 압축해 <b>게이트 교차 어텐션</b>으로 읽는 <b>Flamingo</b>(LLM은 고정)를 같은 커리큘럼(합성 문답·설명문 → CoT 과제)과 같은 손실(근거 + 답 문장의 다음 토큰 예측)로 학습했다.</li>
+      <li><b>그래서:</b> SoftPrompt-Llama-1B가 수면 단계 F1 69.88, 행동 인식 65.44를 내고 Flamingo-Llama-3B가 심전도 QA에서 40.25로 가장 높다. 숫자를 글자로 넣은 기준선은 대부분 답 형식조차 지키지 못한다. 사전학습 시계열 모델 Chronos-2를 인코더로 쓰면 크게 오르고, Flamingo는 입력 길이·개수와 무관하게 메모리가 일정하다. 심장내과 전문의 평가에서 심전도 해석의 92.9%가 '맞거나 부분적으로 맞음'이었다.</li>
     </ol>
   </section>
 
   <section id="problem">
     <h2>어떤 문제를 푸는가</h2>
-    <p class="slot" data-slot="본문">논문이 겨냥한 문제와 그것이 왜 어려운지 설명하세요.</p>
-    <div class="callout warn"><strong>기존 방법의 한계</strong><p class="slot" data-slot="콜아웃">이전 연구가 막혀 있던 지점.</p></div>
+    <p>의학은 본질적으로 <b>시간</b>을 본다. 활력 징후의 추세, 약에 대한 반응, 심전도 파형처럼 진단과 치료는 시간에 따라 변하는 신호에 기대고, 웨어러블과 연속 모니터링이 늘면서 이런 데이터는 쏟아지고 있다. 멀티모달 LLM은 텍스트·이미지·음성은 자연어로 해석해 주지만, 시계열은 여전히 사각지대다.</p>
+    <div class="callout warn"><strong>기존 방법의 한계</strong>
+      <p>① <b>숫자를 글자로 적어 넣기</b>(LLMTime 등): 12리드 10초 심전도 하나가 약 8만 토큰이 되고, 그렇게 넣어도 LLM은 시계열을 잘 추론하지 못한다는 보고가 있다(Merrill et al., 2024).<br>② <b>LLM을 특징 추출기로 재활용</b>(Time2Lang, MedualTime 등): 분류 헤드를 붙이면 정해진 클래스만 내놓고 <b>글을 생성하는 능력</b>을 잃는다. 근거를 설명하지 못한다.<br>③ <b>소프트 프롬프트</b>(Chow et al., 2024): 생성 능력은 지키지만, 시계열이 길거나 많을수록 토큰이 늘어 문맥과 계산량이 커진다.</p>
+    </div>
+    <p>논문의 질문은 두 가지다. (1) 시계열을 LLM에 넣는 방식으로 <b>소프트 프롬프트와 교차 어텐션 중 무엇이 나은가</b>, (2) 작은 공개 LLM에 시계열을 붙이면 <b>근거를 설명하며 답하는</b> 모델을 만들 수 있는가. 의료에서는 답만큼 '왜 그렇게 판단했는지'가 중요하다는 것이 출발점이다.</p>
   </section>
 
   <section id="method">
     <h2>핵심 아이디어와 방법</h2>
-    <p class="slot" data-slot="본문">핵심 아이디어를 그림 한 장과 수식 한두 개로 설명합니다.</p>
-    <figure class="diagram">
-      <div class="slot slot-figure" data-slot="아키텍처 그림"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 18 5-5 3 3 3-4 5 6"/></svg><p>모델 구조나 알고리즘 흐름을 SVG로 그려 넣으세요.</p></div></div>
-      <figcaption><b>그림 3-1.</b> <span class="slot" data-slot="캡션">그림 설명</span></figcaption>
+    <p>두 변형 모두 같은 프롬프트 형식을 쓴다. 지시문 뒤에 "계열 설명 + 시계열" 덩어리가 계열 수만큼 오고, 마지막에 질문이 붙는다. 시계열은 인코더에 넣기 전에 계열마다 정규화하고, 잃어버린 <b>크기 정보는 설명문에 숫자로</b> 적는다(예: "이것은 24시간 동안 50Hz로 잰 심박수이며 평균 61, 표준편차 12"). 모델은 근거 문단을 쓰고 마지막에 <code>Answer: …</code>로 답한다.</p>
+
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 1000 430" role="img" aria-label="OpenTSLM의 두 구조: SoftPrompt는 시계열 토큰을 텍스트 사이에 끼우고, Flamingo는 Perceiver 잠재 벡터를 게이트 교차 어텐션으로 읽는다">
+        <defs><marker id="ot-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+        <marker id="ot-arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs>
+        <!-- 왼쪽: SoftPrompt -->
+        <g transform="translate(10,10)">
+          <rect width="480" height="410" rx="14" class="f-surface"/>
+          <text x="240" y="28" text-anchor="middle" class="t-b">OpenTSLM-SoftPrompt — 시계열 토큰을 문맥에 끼운다</text>
+          <g transform="translate(18,48)">
+            <rect width="118" height="70" rx="10" class="f-elev"/>
+            <text x="59" y="20" text-anchor="middle" class="t-dim">시계열 (정규화)</text>
+            <path d="M10 48 C24 30, 36 62, 50 42 S 78 30, 92 50 S 104 56, 108 40" class="s-acc"/>
+          </g>
+          <path d="M138 83 H158" class="s-acc" marker-end="url(#ot-arr)"/>
+          <g transform="translate(162,44)">
+            <rect width="150" height="78" rx="10" class="f-acc-soft"/>
+            <text x="75" y="22" text-anchor="middle" class="t-b">패치 인코더</text>
+            <text x="75" y="42" text-anchor="middle" class="t-mono">Conv1D 패치 4 · d 128</text>
+            <text x="75" y="60" text-anchor="middle" class="t-mono">Transformer 6층</text>
+          </g>
+          <path d="M314 83 H334" class="s-acc" marker-end="url(#ot-arr)"/>
+          <g transform="translate(338,44)">
+            <rect width="124" height="78" rx="10" class="f-acc-soft"/>
+            <text x="62" y="22" text-anchor="middle" class="t-b">MLP 사영</text>
+            <text x="62" y="42" text-anchor="middle" class="t-mono">128 → d_LLM</text>
+            <text x="62" y="60" text-anchor="middle" class="t-mono">패치 1개 = 토큰 1개</text>
+          </g>
+          <path d="M400 124 V146" class="s-acc" marker-end="url(#ot-arr)"/>
+          <text x="18" y="168" class="t-dim">LLM 문맥 (자기 어텐션이 전부를 본다)</text>
+          <g transform="translate(18,178)">
+            <rect x="0" width="64" height="30" rx="5" class="f-elev"/><text x="32" y="20" text-anchor="middle" class="t-mono">지시문</text>
+            <g class="f-acc" opacity=".8"><rect x="70" width="14" height="30" rx="3"/><rect x="86" width="14" height="30" rx="3"/><rect x="102" width="14" height="30" rx="3"/><rect x="118" width="14" height="30" rx="3"/></g>
+            <rect x="138" width="56" height="30" rx="5" class="f-acc2-soft"/><text x="166" y="20" text-anchor="middle" class="t-mono">설명₁</text>
+            <g class="f-acc" opacity=".8"><rect x="200" width="14" height="30" rx="3"/><rect x="216" width="14" height="30" rx="3"/><rect x="232" width="14" height="30" rx="3"/><rect x="248" width="14" height="30" rx="3"/></g>
+            <rect x="268" width="56" height="30" rx="5" class="f-acc2-soft"/><text x="296" y="20" text-anchor="middle" class="t-mono">설명₂</text>
+            <rect x="330" width="114" height="30" rx="5" class="f-elev"/><text x="387" y="20" text-anchor="middle" class="t-mono">질문 · 보기</text>
+          </g>
+          <text x="101" y="226" text-anchor="middle" class="t-mono" style="fill:var(--accent)">Z₁</text><text x="231" y="226" text-anchor="middle" class="t-mono" style="fill:var(--accent)">Z₂</text>
+          <path d="M240 232 V252" class="s-acc" marker-end="url(#ot-arr)"/>
+          <g transform="translate(60,256)">
+            <rect width="360" height="64" rx="10" class="f-acc-soft" stroke-width="2"/>
+            <text x="180" y="26" text-anchor="middle" class="t-b">사전학습 LLM + LoRA (r 16, α 32)</text>
+            <text x="180" y="46" text-anchor="middle" class="t-mono">Llama-3.2 1B · 3B / Gemma-3 270M · 1B</text>
+          </g>
+          <path d="M240 322 V340" class="s-acc" marker-end="url(#ot-arr)"/>
+          <rect x="60" y="344" width="360" height="30" rx="6" class="f-elev"/><text x="240" y="364" text-anchor="middle" class="t">근거 문단 …  Answer: 걷기</text>
+          <text x="240" y="398" text-anchor="middle" class="t-dim">토큰 수 ∝ 계열 수 × 길이 / 4 → 길수록 문맥·메모리 증가</text>
+        </g>
+        <!-- 오른쪽: Flamingo -->
+        <g transform="translate(510,10)">
+          <rect width="480" height="410" rx="14" class="f-acc-soft"/>
+          <text x="240" y="28" text-anchor="middle" class="t-b">OpenTSLM-Flamingo — 교차 어텐션으로 따로 읽는다</text>
+          <g transform="translate(18,48)">
+            <rect width="118" height="70" rx="10" class="f-elev"/>
+            <text x="59" y="20" text-anchor="middle" class="t-dim">시계열 K개</text>
+            <path d="M10 40 C24 24, 36 52, 50 34 S 78 22, 92 40 S 104 46, 108 32" class="s-acc"/>
+            <path d="M10 56 C24 50, 36 64, 50 54 S 78 46, 92 58 S 104 62, 108 52" class="s-acc2"/>
+          </g>
+          <path d="M138 83 H158" class="s-acc" marker-end="url(#ot-arr)"/>
+          <g transform="translate(162,44)">
+            <rect width="140" height="78" rx="10" class="f-surface"/>
+            <text x="70" y="22" text-anchor="middle" class="t-b">패치 토크나이저</text>
+            <text x="70" y="42" text-anchor="middle" class="t-mono">Conv1D 패치 4 · d 128</text>
+            <text x="70" y="60" text-anchor="middle" class="t-mono">+ 위치 임베딩</text>
+          </g>
+          <path d="M304 83 H324" class="s-acc" marker-end="url(#ot-arr)"/>
+          <g transform="translate(328,44)">
+            <rect width="134" height="78" rx="10" class="f-surface"/>
+            <text x="67" y="22" text-anchor="middle" class="t-b">Perceiver 6층</text>
+            <g class="f-acc" opacity=".75"><rect x="20" y="32" width="10" height="10" rx="2"/><rect x="33" y="32" width="10" height="10" rx="2"/><rect x="46" y="32" width="10" height="10" rx="2"/><rect x="59" y="32" width="10" height="10" rx="2"/><rect x="72" y="32" width="10" height="10" rx="2"/><rect x="85" y="32" width="10" height="10" rx="2"/><rect x="98" y="32" width="10" height="10" rx="2"/><rect x="111" y="32" width="10" height="10" rx="2"/></g>
+            <text x="67" y="62" text-anchor="middle" class="t-mono">잠재 벡터 64개 (고정)</text>
+          </g>
+          <text x="18" y="168" class="t-dim">LLM 문맥에는 텍스트와 표시 토큰만</text>
+          <g transform="translate(18,178)">
+            <rect x="0" width="56" height="30" rx="5" class="f-elev"/><text x="28" y="20" text-anchor="middle" class="t-mono">지시문</text>
+            <rect x="60" width="36" height="30" rx="5" style="fill:var(--warn)" opacity=".8"/><text x="78" y="20" text-anchor="middle" class="t-mono" style="fill:#fff">TS</text>
+            <rect x="100" width="54" height="30" rx="5" class="f-acc2-soft"/><text x="127" y="20" text-anchor="middle" class="t-mono">설명₁</text>
+            <rect x="158" width="36" height="30" rx="5" style="fill:var(--warn)" opacity=".8"/><text x="176" y="20" text-anchor="middle" class="t-mono" style="fill:#fff">TS</text>
+            <rect x="198" width="54" height="30" rx="5" class="f-acc2-soft"/><text x="225" y="20" text-anchor="middle" class="t-mono">설명₂</text>
+            <rect x="256" width="188" height="30" rx="5" class="f-elev"/><text x="350" y="20" text-anchor="middle" class="t-mono">질문 · 보기</text>
+          </g>
+          <path d="M240 212 V238" class="s-acc" marker-end="url(#ot-arr)"/>
+          <g transform="translate(40,242)">
+            <rect width="290" height="96" rx="10" class="f-surface"/>
+            <text x="145" y="20" text-anchor="middle" class="t-b">고정된 LLM</text>
+            <g><rect x="16" y="30" width="258" height="12" rx="3" class="f-elev"/><rect x="16" y="46" width="258" height="8" rx="3" style="fill:var(--warn)" opacity=".55"/><rect x="16" y="58" width="258" height="12" rx="3" class="f-elev"/><rect x="16" y="74" width="258" height="8" rx="3" style="fill:var(--warn)" opacity=".55"/></g>
+          </g>
+          <text x="40" y="354" class="t-mono">회색 = LLM 층(고정) · 주황 = 게이트 교차 어텐션(학습)</text>
+          <path d="M395 124 C 420 180, 410 260, 336 292" class="s-acc flow-dash" marker-end="url(#ot-arr)"/>
+          <text x="386" y="144" text-anchor="end" class="t-mono">Q = 텍스트</text><text x="386" y="160" text-anchor="end" class="t-mono">K, V = 잠재 64개</text>
+          <rect x="40" y="364" width="290" height="30" rx="6" class="f-elev"/><text x="185" y="384" text-anchor="middle" class="t">근거 문단 …  Answer: 걷기</text>
+          <text x="400" y="384" text-anchor="middle" class="t-dim">메모리 ≈ 일정</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 3-1.</b> OpenTSLM의 두 구조 (논문 그림 2·3을 바탕으로, 층 수·크기는 공개 코드에서 확인해 다시 그림). 공개 코드에서 Flamingo의 교차 어텐션은 LLM의 <b>모든 층</b>에 붙어 있고(<code>cross_attn_every_n_layers=1</code>), 학습되는 것은 패치 토크나이저·Perceiver·교차 어텐션과 입력 임베딩이다.</figcaption>
     </figure>
-    <div class="formula">\[ \theta^\star = \arg\min_\theta \; \mathbb{E}_{(x,y)\sim\mathcal{D}}\big[\,\ell\big(f_\theta(x),\, y\big)\big] \]<div class="where slot" data-slot="기호 설명">예시 수식입니다. 논문의 핵심 수식으로 바꾸고 기호를 설명하세요.</div></div>
+
+    <h3>① 시계열 인코더 — PatchTST식 패치 임베딩</h3>
+    <p>길이 \( L \)인 계열을 겹치지 않는 길이 \( p \)의 패치 \( N = L/p \)개로 자르고, 커널과 보폭이 \( p \)인 1차원 합성곱으로 패치마다 \( d_\text{enc} \)차원 벡터를 만든 뒤 학습되는 위치 임베딩을 더한다. 공개 코드의 값은 \( p = 4 \), \( d_\text{enc} = 128 \)이다. 처음부터 학습하는 대신 사전학습 시계열 모델(Chronos-2)을 고정해 인코더로 쓰고 사영층만 학습할 수도 있다.</p>
+    <div class="formula">\[ E_i = \operatorname{Conv1D}\big(x_{ip\,:\,(i+1)p}\big) + P_i \;\in \mathbb{R}^{d_\text{enc}}, \qquad i = 1, \dots, N \]</div>
+
+    <h3>② SoftPrompt — 시계열 토큰을 텍스트 사이에</h3>
+    <p>패치 임베딩을 트랜스포머 인코더(6층)에 통과시키고 MLP로 LLM의 임베딩 차원에 맞춰, 계열마다 \( N \)개의 '시계열 토큰'을 만든다. 이것을 설명문 토큰과 번갈아 이어 붙이면 LLM은 둘을 구분하지 않고 하나의 문맥으로 처리한다. 단순하고 추가 파라미터가 적지만, 토큰 수가 <b>계열 수 × 길이 / 4</b>로 늘어난다.</p>
+    <div class="formula">\[ Z = \operatorname{MLP}\!\big(\operatorname{TransformerEncoder}(E_{1:N})\big) \in \mathbb{R}^{N \times d_\text{llm}}, \qquad X_\text{input} = \big[\,T_\text{pre},\, Z_1,\, T_{\text{desc}_1},\, \dots,\, Z_K,\, T_{\text{desc}_K},\, T_\text{post}\,\big] \]
+      <div class="where">\( T \): 텍스트 토큰 임베딩 · \( Z_k \): \( k \)번째 계열의 시계열 토큰. LLM은 LoRA(공개 코드 기본값 r = 16, α = 32, 모든 사영층)로 미세조정한다.</div></div>
+
+    <h3>③ Flamingo — 잠재 벡터를 교차 어텐션으로</h3>
+    <p>비전-언어 모델 Flamingo에서 이미지 인코더 자리에 시계열 패치 토크나이저를 넣었다. Perceiver Resampler가 패치들을 <b>고정된 64개 잠재 벡터</b>로 압축하고, LLM의 층 사이에 끼운 <b>게이트 교차 어텐션</b>이 텍스트 토큰(질의)으로 이 잠재 벡터(키·값)를 읽는다. 프롬프트에는 계열마다 특수 토큰 \( \langle\text{TS}\rangle \)과 \( \langle\text{endofchunk}\rangle \)만 남으므로 LLM 문맥이 시계열 길이에 따라 늘지 않는다.</p>
+    <div class="formula">\[ Z_\text{latent} = \operatorname{PerceiverResampler}(E_{1:N}) \in \mathbb{R}^{64 \times d}, \qquad \operatorname{GatedXAttn}(x, Z) = x + \tanh(\gamma)\cdot \operatorname{softmax}\!\left(\frac{Q_\text{text} K_\text{ts}^{\top}}{\sqrt{d_k}}\right) V_\text{ts} \]
+      <div class="where">\( \gamma \): 학습되는 게이트(0으로 시작 → 학습 초기에는 LLM이 원래대로 동작). 논문 식 (6)은 \( \gamma \)로 적었지만 바탕이 된 open_flamingo 구현은 \( \tanh(\gamma) \)를 곱한다. 교차 어텐션 뒤에 같은 방식으로 게이트된 피드포워드도 붙는다.</div></div>
+
+    <h3>④ 학습 — 2단계 커리큘럼과 GPT-4o가 쓴 근거</h3>
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="CoT 데이터 생성과 2단계 커리큘럼">
+        <defs><marker id="cu-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <text x="235" y="24" text-anchor="middle" class="t-b">근거(CoT) 데이터 만들기</text>
+        <g transform="translate(14,40)">
+          <rect width="138" height="96" rx="10" class="f-surface"/>
+          <text x="69" y="20" text-anchor="middle" class="t-dim">원신호 그림</text>
+          <path d="M14 70 C30 40, 44 86, 62 56 S 98 40, 124 66" class="s-acc"/>
+          <path d="M14 84 L40 80 L58 88 L84 76 L110 86 L124 80" class="s-acc2"/>
+        </g>
+        <g transform="translate(14,148)">
+          <rect width="138" height="70" rx="10" class="f-surface"/>
+          <text x="69" y="22" text-anchor="middle" class="t-dim">보기 두 개</text>
+          <text x="69" y="42" text-anchor="middle" class="t-mono" style="fill:var(--ok)">✓ 정답</text>
+          <text x="69" y="58" text-anchor="middle" class="t-mono">+ 가장 다른 답</text>
+        </g>
+        <path d="M154 88 C 180 88, 186 130, 206 130 M154 184 C 180 184, 186 136, 206 136" class="s-acc" marker-end="url(#cu-arr)"/>
+        <g transform="translate(210,96)">
+          <rect width="104" height="70" rx="10" class="f-acc2-soft"/>
+          <text x="52" y="30" text-anchor="middle" class="t-b">GPT-4o</text>
+          <text x="52" y="50" text-anchor="middle" class="t-mono">온도 0.3</text>
+        </g>
+        <path d="M316 131 H336" class="s-acc" marker-end="url(#cu-arr)"/>
+        <g transform="translate(340,72)">
+          <rect width="124" height="118" rx="10" class="f-elev"/>
+          <text x="62" y="24" text-anchor="middle" class="t-b">근거 문단</text>
+          <text x="62" y="46" text-anchor="middle" class="t-mono">"진동이 규칙적이고</text>
+          <text x="62" y="62" text-anchor="middle" class="t-mono">세기가 중간 정도로</text>
+          <text x="62" y="78" text-anchor="middle" class="t-mono">… "</text>
+          <text x="62" y="104" text-anchor="middle" class="t-mono" style="fill:var(--ok)">Answer: 걷기</text>
+        </g>
+        <text x="235" y="246" text-anchor="middle" class="t-dim">정답을 알려 준 채 '정답에 이르는 근거'를 쓰게 한다</text>
+        <text x="235" y="266" text-anchor="middle" class="t-dim">(라벨은 마지막 문장에만 쓰도록 지시)</text>
+        <!-- 커리큘럼 -->
+        <text x="735" y="24" text-anchor="middle" class="t-b">2단계 커리큘럼 (같은 손실: 다음 토큰 예측)</text>
+        <g transform="translate(500,44)">
+          <rect width="200" height="150" rx="12" class="f-surface"/>
+          <text x="100" y="24" text-anchor="middle" class="t-b">1단계 · 인코더 예열</text>
+          <text x="14" y="56" class="t">TSQA 합성 문답</text><text x="186" y="56" text-anchor="end" class="t-mono">38,400</text>
+          <text x="14" y="84" class="t">M4 시계열 설명문</text><text x="186" y="84" text-anchor="end" class="t-mono">80,000</text>
+          <text x="100" y="118" text-anchor="middle" class="t-dim">추세 오르내림 · 계절성 등</text>
+          <text x="100" y="136" text-anchor="middle" class="t-dim">(설명문도 ChatGPT가 작성)</text>
+        </g>
+        <path d="M702 119 H732" class="s-acc" marker-end="url(#cu-arr)"/>
+        <g transform="translate(736,44)">
+          <rect width="250" height="150" rx="12" class="f-acc-soft" stroke-width="2"/>
+          <text x="125" y="24" text-anchor="middle" class="t-b">2단계 · CoT 과제</text>
+          <text x="14" y="56" class="t">HAR-CoT 가속도 3축</text><text x="236" y="56" text-anchor="end" class="t-mono">68,542</text>
+          <text x="14" y="84" class="t">Sleep-CoT EEG 1채널</text><text x="236" y="84" text-anchor="end" class="t-mono">7,434</text>
+          <text x="14" y="112" class="t">ECG-QA-CoT 12리드</text><text x="236" y="112" text-anchor="end" class="t-mono">159,313</text>
+          <text x="125" y="138" text-anchor="middle" class="t-dim">숫자 = 학습 표본 수 (부록 표 7)</text>
+        </g>
+        <text x="745" y="236" text-anchor="middle" class="t-mono">손실 = −Σ log P(yₜ | y&lt;ₜ, 텍스트, 시계열)  — 근거와 답 토큰에만</text>
+        <text x="745" y="262" text-anchor="middle" class="t-dim">AdamW · 학습률 2e-4 · 웜업 10% · 조기 종료(인내 5 에폭)</text>
+      </svg>
+      <figcaption><b>그림 3-2.</b> CoT 데이터 생성(부록 A.2)과 학습 커리큘럼(4.1절). 근거 문장은 사람이 아니라 GPT-4o가 <b>정답을 아는 상태에서</b> 썼다. 논문은 일부 표본을 사람이 검토했다고 밝힌다.</figcaption>
+    </figure>
+    <p>학습은 Chow et al.(2024)의 커리큘럼을 따른다. 1단계에서 합성 시계열 문답(TSQA)과 M4 시계열 설명문으로 인코더가 추세·계절성 같은 기초 패턴을 익히고, 2단계에서 근거가 붙은 의료 과제로 넘어간다. 모든 단계의 목표는 같다 — 근거 문단과 <code>Answer: …</code>를 다음 토큰 예측으로 학습한다.</p>
+    <div class="formula">\[ \mathcal{L}_\text{LLM} = -\sum_{t=1}^{T} \log P\big(y_t \mid y_{&lt;t},\, x_{1:t},\, Z_\text{ts};\, \Theta\big) \]
+      <div class="where">\( y \): 근거와 답 토큰 · \( x \): 텍스트 프롬프트 · \( Z_\text{ts} \): 시계열 특징 · \( \Theta \): SoftPrompt는 인코더·MLP·LoRA, Flamingo는 인코더·Perceiver·교차 어텐션.</div></div>
   </section>
 
   <section id="lab">
     <h2>실험으로 이해하기</h2>
-    <p class="slot" data-slot="실험 안내">논문의 아이디어를 손으로 확인할 수 있는 실험을 넣습니다. 지금 들어 있는 실험은 형식을 보여 주는 예시입니다.</p>
-    <div data-sim="conv2d"></div>
-    <div data-sim="init-depth"></div>
+    <p>논문의 세 가지 핵심 주장 — 입력 방식에 따른 문맥·메모리 차이, Flamingo의 압축과 교차 어텐션, 그리고 모델이 실제로 신호를 보고 있는가 — 을 직접 만져 볼 수 있게 만들었다. 첫 번째와 세 번째 실험의 숫자는 논문의 실측값이다. 두 번째 실험의 '공개 코드 동작' 모드는 리뷰어가 코드를 읽어 정리한 경로를 보여 준다.</p>
+    <div data-sim="tslm-tokens"></div>
+    <div data-sim="flamingo-xattn"></div>
+    <div data-sim="tslm-noise"></div>
   </section>
 
   <section id="results">
     <h2>실험 결과</h2>
-    <p class="slot" data-slot="본문">논문의 주요 결과를 요약하고 기준선과 비교하세요.</p>
+    <p>평가는 네 과제의 테스트 분할에서 <b>최종 답의 F1·정확도</b>로 한다. 기준선은 같은 공개 LLM에 ① 숫자를 글자로 넣어 학습 없이(zero-shot), ② 같은 방식으로 LoRA 미세조정, ③ 그림으로 넣기(GPT-4o, Gemma-3-4B), 그리고 무작위 예측이다.</p>
+
+    <h3>주요 결과 — 과제별 최고 성능</h3>
     <figure>
-      <div data-chart='{"type":"bar","title":"예시 데이터 — 논문의 수치로 바꾸세요","labels":["벤치마크 1","벤치마크 2","벤치마크 3"],"series":[{"name":"기준선 A","data":[62.1,70.4,55.0]},{"name":"기준선 B","data":[66.8,72.9,58.2]},{"name":"제안 방법","data":[71.5,76.0,63.4]}],"highlight":"제안 방법","yLabel":"점수","yMin":0}'></div>
-      <figcaption><b>표 3-1.</b> <span class="slot" data-slot="캡션">결과 차트 설명 (위 숫자는 모두 가짜 예시입니다)</span></figcaption>
+      <div data-chart='{"type":"bar","title":"과제별 F1 (%) — 각 방식에서 가장 좋은 모델","labels":["TSQA","HAR-CoT","Sleep-CoT","ECG-QA-CoT"],"series":[{"name":"OpenTSLM-SoftPrompt","data":[97.50,65.44,69.88,33.67]},{"name":"OpenTSLM-Flamingo","data":[94.08,65.44,51.38,40.25]},{"name":"Gemma3-4B 그림 미세조정","data":[94.94,44.01,18.56,26.17]},{"name":"숫자 글자 + 미세조정","data":[84.54,60.44,9.05,null]},{"name":"GPT-4o 그림","data":[59.24,10.83,4.82,24.95]},{"name":"무작위","data":[33.33,11.49,17.48,16.47]}],"yMin":0,"yMax":100,"digits":1,"aspect":0.45}'></div>
+      <figcaption><b>그림 3-3.</b> 논문 표 2에서 방식별 최고값만 골라 그렸다(처음부터 학습한 인코더 기준). '숫자 글자 + 미세조정'은 심전도에서 메모리 부족으로 학습하지 못해 막대가 없다. 가장 큰 격차는 수면 단계(Sleep-CoT)에서 나온다.</figcaption>
     </figure>
-    <div class="table-wrap"><table>
-      <thead><tr><th>방법</th><th class="num">지표 1</th><th class="num">지표 2</th></tr></thead>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th>F1 / 정확도</th><th>모델</th><th class="num">TSQA</th><th class="num">HAR-CoT</th><th class="num">Sleep-CoT</th><th class="num">ECG-QA-CoT</th></tr></thead>
       <tbody>
-        <tr><td>기준선 A</td><td class="num">—</td><td class="num">—</td></tr>
-        <tr class="best"><td>제안 방법</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td>무작위</td><td></td><td class="num">33.33 / 33.33</td><td class="num">11.49 / 12.50</td><td class="num">17.48 / 20.00</td><td class="num">16.47 / 20.18</td></tr>
+        <tr><td>숫자 글자 (학습 없음)</td><td>Llama3.2-1B</td><td class="num">16.01 / 31.04</td><td class="num">0.00 / 0.00</td><td class="num">2.14 / 0.65</td><td class="num">0.00 / 0.00</td></tr>
+        <tr><td></td><td>Llama3.2-3B</td><td class="num">16.24 / 32.06</td><td class="num">0.00 / 0.00</td><td class="num">5.66 / 12.15</td><td class="num">0.00 / 0.00</td></tr>
+        <tr><td></td><td>Gemma3-270M · 1B</td><td class="num">10.52 · 11.76</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td></tr>
+        <tr><td></td><td>GPT-4o</td><td class="num">45.32 / 45.29</td><td class="num">2.95 / 11.74</td><td class="num">15.47 / 16.02</td><td class="num">18.19 / 28.76</td></tr>
+        <tr><td>숫자 글자 + 미세조정</td><td>Llama3.2-1B</td><td class="num">83.74 / 81.40</td><td class="num">51.28 / 62.71</td><td class="num">9.05 / 24.19</td><td class="num">OOM</td></tr>
+        <tr><td></td><td>Llama3.2-3B</td><td class="num">84.54 / 82.06</td><td class="num">60.44 / 66.87</td><td class="num">5.86 / 14.30</td><td class="num">OOM</td></tr>
+        <tr><td>그림 (Plot)</td><td>Gemma3-4B (학습 없음)</td><td class="num">48.77 / 50.60</td><td class="num">1.72 / 0.89</td><td class="num">6.75 / 14.95</td><td class="num">1.90 / 1.03</td></tr>
+        <tr><td></td><td>Gemma3-4B 미세조정</td><td class="num">94.94 / 94.85</td><td class="num">44.01 / 51.02</td><td class="num">18.56 / 38.28</td><td class="num">26.17 / 38.10</td></tr>
+        <tr><td></td><td>GPT-4o</td><td class="num">59.24 / 62.10</td><td class="num">10.83 / 13.90</td><td class="num">4.82 / 10.75</td><td class="num">24.95 / 33.30</td></tr>
+        <tr class="best"><td>OpenTSLM-SoftPrompt</td><td>Llama3.2-1B</td><td class="num"><b>97.50</b> / 97.54</td><td class="num"><b>65.44</b> / 71.48</td><td class="num"><b>69.88</b> / 81.08</td><td class="num">32.84 / 35.49</td></tr>
+        <tr><td></td><td>Llama3.2-3B</td><td class="num">97.37 / 97.33</td><td class="num">64.87 / 67.89</td><td class="num">54.40 / 72.04</td><td class="num">33.67 / 36.25</td></tr>
+        <tr><td></td><td>Gemma3-270M</td><td class="num">40.32 / 26.79</td><td class="num">1.43 / 0.55</td><td class="num">7.96 / 5.91</td><td class="num">1.29 / 1.11</td></tr>
+        <tr><td></td><td>Gemma3-1B</td><td class="num">87.29 / 89.18</td><td class="num">40.52 / 45.17</td><td class="num">30.99 / 36.56</td><td class="num">27.86 / 34.76</td></tr>
+        <tr><td>OpenTSLM-Flamingo</td><td>Llama3.2-1B</td><td class="num">94.08 / 94.00</td><td class="num">62.93 / 69.27</td><td class="num">49.33 / 67.31</td><td class="num">34.62 / 38.14</td></tr>
+        <tr class="best"><td></td><td>Llama3.2-3B</td><td class="num">90.14 / 90.10</td><td class="num">62.77 / 69.03</td><td class="num">45.45 / 69.14</td><td class="num"><b>40.25</b> / 46.25</td></tr>
+        <tr><td></td><td>Gemma3-270M</td><td class="num">77.86 / 78.12</td><td class="num">57.75 / 63.43</td><td class="num">51.38 / 68.49</td><td class="num">32.71 / 35.50</td></tr>
+        <tr><td></td><td>Gemma3-1B</td><td class="num">92.56 / 92.46</td><td class="num"><b>65.44</b> / 71.48</td><td class="num">43.69 / 60.67</td><td class="num">35.31 / 37.79</td></tr>
       </tbody>
     </table></div>
+    <p>표 3-1. 논문 표 2(일부 Gemma 기준선은 줄을 합쳤다). OOM = 12리드 10초 심전도가 글자로 약 8만 토큰이 되어 100GB 이상이 필요해 학습 불가. 몇 가지가 눈에 띈다.</p>
+    <ul>
+      <li><b>학습 없는 글자 입력의 0점은 대부분 '형식 실패'다.</b> 모델이 <code>Answer: …</code> 형식을 지키지 못하고 입력을 반복하거나 숫자를 세다가 끝난다(부록 A.4). 시계열 이해력을 재기 전에 지시 따르기에서 탈락한 셈이다.</li>
+      <li><b>공정한 비교 상대는 '미세조정' 기준선이다.</b> 같은 데이터로 미세조정하면 글자 입력도 HAR 60.44, TSQA 84.54까지 오르고, 그림을 미세조정한 Gemma3-4B는 TSQA 94.94로 OpenTSLM에 근접한다. 큰 차이가 나는 곳은 긴 계열을 다루는 수면 단계(9.05 대 69.88)와 메모리 때문에 학습할 수 없던 심전도다.</li>
+      <li><b>백본·구조에 따른 편차가 크다.</b> SoftPrompt는 Gemma3-270M에서 거의 무너지지만(HAR 1.43), 같은 백본의 Flamingo는 57.75를 낸다. 논문은 작은 Gemma의 문맥(32k)이 시계열 토큰으로 차기 때문이라고 설명한다.</li>
+    </ul>
+
+    <h3>사전학습 시계열 모델을 인코더로 — Chronos-2</h3>
+    <figure>
+      <div data-chart='{"type":"bar","title":"OpenTSLM-Flamingo F1 (%) — 인코더를 처음부터 vs Chronos-2 (고정)","labels":["Llama3.2-1B","Llama3.2-3B","Gemma3-270M","Gemma3-1B"],"series":[{"name":"Sleep · 처음부터","data":[49.33,45.45,51.38,43.69]},{"name":"Sleep · Chronos-2","data":[64.57,61.52,68.33,61.13]},{"name":"ECG-QA · 처음부터","data":[34.62,40.25,32.71,35.31]},{"name":"ECG-QA · Chronos-2","data":[41.92,41.89,35.92,40.25]}],"yMin":0,"yMax":75,"digits":1,"aspect":0.42}'></div>
+      <figcaption><b>그림 3-4.</b> 논문 표 3. Chronos-2를 고정한 채 사영층만 학습해도 수면 단계 F1이 15–17점 오른다. TSQA는 모든 백본에서 99.6–99.7%가 된다.</figcaption>
+    </figure>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th>Flamingo F1 (처음부터 → Chronos-2)</th><th class="num">TSQA</th><th class="num">HAR-CoT</th><th class="num">Sleep-CoT</th><th class="num">ECG-QA-CoT</th></tr></thead>
+      <tbody>
+        <tr><td>Llama3.2-1B</td><td class="num">94.08 → 99.71</td><td class="num">62.93 → 66.82</td><td class="num">49.33 → 64.57</td><td class="num">34.62 → 41.92</td></tr>
+        <tr><td>Llama3.2-3B</td><td class="num">90.14 → 99.58</td><td class="num">62.77 → <b>67.64</b></td><td class="num">45.45 → 61.52</td><td class="num">40.25 → 41.89</td></tr>
+        <tr><td>Gemma3-270M</td><td class="num">77.86 → 99.69</td><td class="num">57.75 → 58.65</td><td class="num">51.38 → <b>68.33</b></td><td class="num">32.71 → 35.92</td></tr>
+        <tr><td>Gemma3-1B</td><td class="num">92.56 → 99.71</td><td class="num">65.44 → 62.72</td><td class="num">43.69 → 61.13</td><td class="num">35.31 → 40.25</td></tr>
+      </tbody>
+    </table></div>
+    <p>초록의 'HAR 67.64%'는 이 표(Chronos-2 인코더 + Llama-3B)의 값이고, '수면 69.88%'는 표 2(처음부터 학습한 SoftPrompt)의 값이다. 서로 다른 구성의 최고치를 나란히 적은 것이다. 같은 HAR에서 Gemma3-1B는 Chronos-2를 쓰자 오히려 떨어졌다(65.44 → 62.72).</p>
+
+    <h3>메모리 — Flamingo는 일정하지만 기본값이 높다</h3>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th>학습 최대 VRAM (GB)</th><th>모델</th><th class="num">TSQA</th><th class="num">HAR-CoT</th><th class="num">Sleep-CoT</th><th class="num">ECG-QA-CoT</th></tr></thead>
+      <tbody>
+        <tr><td>SoftPrompt</td><td>Llama-3.2-1B</td><td class="num">4.4</td><td class="num">9.6</td><td class="num">15.9</td><td class="num">64.9</td></tr>
+        <tr><td></td><td>Llama-3.2-3B</td><td class="num">8.1</td><td class="num">14.3</td><td class="num">20.3</td><td class="num">87.1</td></tr>
+        <tr><td></td><td>Gemma-3-270M</td><td class="num">2.4</td><td class="num">8.6</td><td class="num">20.1</td><td class="num">24.1</td></tr>
+        <tr><td>Flamingo</td><td>Llama-3.2-1B</td><td class="num">20.5</td><td class="num">22.0</td><td class="num">21.6</td><td class="num">20.9</td></tr>
+        <tr><td></td><td>Llama-3.2-3B</td><td class="num">61.1</td><td class="num">63.5</td><td class="num">63.4</td><td class="num">71.6</td></tr>
+        <tr><td></td><td>Gemma-3-270M</td><td class="num">5.7</td><td class="num">6.4</td><td class="num">6.3</td><td class="num">7.3</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 3-2. 논문 부록 표 13(Gemma-3-1B 행 생략). Flamingo는 과제가 달라져도 메모리가 거의 같지만, 짧은 입력에서는 SoftPrompt보다 훨씬 무겁다(TSQA에서 Llama-1B 4.4GB 대 20.5GB). 교차 어텐션이 LLM의 모든 층에 붙어 있기 때문이다. 시뮬레이션(첫 번째 실험)에서는 길이 10,000인 계열 3개부터 SoftPrompt-Llama가 메모리 부족에 빠진다. 즉 '<b>어느 쪽이 가벼운가</b>'는 입력의 총 길이에 따라 뒤집힌다.</p>
+
+    <h3>과제를 섞어 학습하면 · 다른 시계열-LLM과 비교</h3>
+    <div class="review-grid">
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>Flamingo-Llama-3B F1</th><th class="num">과제별</th><th class="num">합쳐서</th></tr></thead>
+        <tbody>
+          <tr><td>TSQA</td><td class="num">90.14</td><td class="num">92.73</td></tr>
+          <tr><td>HAR-CoT</td><td class="num">62.77</td><td class="num">69.31</td></tr>
+          <tr><td>Sleep-CoT</td><td class="num">45.45</td><td class="num">52.13</td></tr>
+          <tr><td>ECG-QA-CoT</td><td class="num">40.25</td><td class="num">41.55</td></tr>
+        </tbody>
+      </table></div>
+      <div class="table-wrap" style="margin:0"><table>
+        <thead><tr><th>F1</th><th class="num">HAR</th><th class="num">Sleep</th><th class="num">ECG-QA</th></tr></thead>
+        <tbody>
+          <tr><td>ITFormer</td><td class="num">55.41</td><td class="num">42.38</td><td class="num">37.52</td></tr>
+          <tr><td>InstructTime</td><td class="num">61.73</td><td class="num">42.57</td><td class="num">20.71</td></tr>
+          <tr><td>ChatTS</td><td class="num">57.63</td><td class="num">41.31</td><td class="num">8.91</td></tr>
+          <tr><td>ChatTime</td><td class="num">41.11</td><td class="num">19.09</td><td class="num">OOM</td></tr>
+          <tr class="best"><td>OpenTSLM 최고</td><td class="num">65.44</td><td class="num">69.88</td><td class="num">40.25</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <p>표 3-3·3-4. 왼쪽: 네 과제를 한꺼번에 학습하면 커리큘럼으로 과제별 학습할 때보다 모든 과제에서 좋아진다(+1.30 ~ +6.68). 오른쪽: 같은 세 데이터셋에서 다른 시계열-LLM과 비교한 결과(논문 표 6). 다만 ChatTS의 심전도 정확도는 42.32로 OpenTSLM 최고(46.25)와 가깝다. 자주 나오는 답에 몰린 예측은 정확도에는 유리하고 F1에는 불리하므로, 두 지표를 함께 보는 편이 안전하다.</p>
+
+    <h3>잡음에 대한 강건성 — 심전도는 신호를 얼마나 보나</h3>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th>Flamingo F1</th><th class="num">잡음 없음</th><th class="num">10%</th><th class="num">30%</th><th class="num">50%</th><th class="num">70%</th><th class="num">센서 고장</th><th class="num">무작위</th></tr></thead>
+      <tbody>
+        <tr><td>TSQA</td><td class="num">94.08</td><td class="num">91.55</td><td class="num">77.11</td><td class="num">50.82</td><td class="num">35.28</td><td class="num">32.48</td><td class="num">33.33</td></tr>
+        <tr><td>HAR-CoT</td><td class="num">62.93</td><td class="num">62.91</td><td class="num">55.56</td><td class="num">43.10</td><td class="num">34.15</td><td class="num">10.59</td><td class="num">11.49</td></tr>
+        <tr><td>Sleep-CoT</td><td class="num">49.33</td><td class="num">43.74</td><td class="num">31.27</td><td class="num">12.76</td><td class="num">12.46</td><td class="num">16.50</td><td class="num">17.48</td></tr>
+        <tr><td>ECG-QA-CoT</td><td class="num">41.58</td><td class="num">40.27</td><td class="num">39.80</td><td class="num">39.92</td><td class="num">39.46</td><td class="num">28.31</td><td class="num">16.47</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 3-5. 논문 표 5와 표 2의 무작위 기준. 세 과제는 신호가 사라지면 무작위 수준으로 떨어진다 — 점수가 신호에서 나온다는 좋은 증거다. 반면 심전도 QA는 잡음 70%에서도 거의 그대로이고, 입력이 순수한 잡음이어도 무작위보다 12점 높다. 논문도 "모델이 함께 주어진 환자 정보에 기대는 것일 수 있다"고 해석한다. 리뷰어가 계산한 '신호 의존도'(세 번째 실험)로 보면 심전도는 0.53으로, 무작위를 넘는 점수의 약 절반만 신호에서 온다.</p>
+
+    <h3>심장내과 전문의 평가</h3>
+    <figure>
+      <div data-chart='{"type":"bar","title":"심전도 근거 문장 평가 (%) — 전문의 5명, 84개 표본","labels":["심전도 특징 인식","임상 추론","임상 맥락 반영"],"series":[{"name":"긍정","data":[65.5,62.5,85.1]},{"name":"부분적","data":[27,30,14]},{"name":"부정","data":[7,7,1]}],"yMin":0,"yMax":100,"digits":1,"aspect":0.36}'></div>
+      <figcaption><b>그림 3-5.</b> 논문 4.5절과 그림 6. Flamingo-Llama-3B가 쓴 심전도 근거를 템플릿마다 2개씩(84개) 뽑아 표본마다 전문의 2명 이상이 미국심장학회 역량 기준(RIME 틀)에 따라 평가했다. 전체적으로 92.9%가 '맞거나 부분적으로 맞는' 해석이었다. 긍정 비율은 본문 수치, 부분적·부정은 그림에서 읽은 반올림 값.</figcaption>
+    </figure>
+    <p>가장 높은 점수는 '임상 맥락 반영'(나이, 기록 상태, 잡음 등)이고, 심전도 패턴 인식과 추론은 60%대다. 평가자마다 후한 정도가 달랐고, 의견이 완전히 갈린 경우(긍정 대 부정)는 드물었다. 다만 다른 모델이나 사람이 쓴 근거와의 비교는 없다.</p>
   </section>
 
   <section id="critique">
     <h2>강점과 한계</h2>
     <div class="pro-con">
-      <div class="pro"><h4>강점</h4><ul><li class="slot" data-slot="강점">강점 1</li><li class="slot" data-slot="강점">강점 2</li></ul></div>
-      <div class="con"><h4>한계 · 의문점</h4><ul><li class="slot" data-slot="한계">한계 1</li><li class="slot" data-slot="한계">한계 2</li></ul></div>
+      <div class="pro"><h4>강점</h4><ul>
+        <li><b>완전한 공개.</b> 코드(MIT), 네 데이터셋, 그리고 과제 × 백본 × 구조별 체크포인트 51개를 Hugging Face에 올렸다. 시계열-LLM 연구를 바로 이어서 할 수 있는 기반이다.</li>
+        <li><b>두 융합 방식의 정면 비교.</b> 같은 백본·데이터·손실에서 소프트 프롬프트와 교차 어텐션을 비교하고 메모리까지 재서, '짧은 입력은 SoftPrompt, 길거나 많은 계열은 Flamingo'라는 실용적인 지침을 준다.</li>
+        <li><b>답이 아니라 근거를 낸다.</b> 분류 헤드 대신 글을 생성해, 전문의가 근거를 직접 평가할 수 있었다. 의료에서 필요한 '설명 가능한 인터페이스' 쪽으로 한 걸음 나아갔다.</li>
+        <li><b>조립이 쉬운 구조.</b> 사전학습 시계열 모델(Chronos-2)을 인코더로 끼우기만 해도 큰 향상이 나온다. 인코더 연구와 LLM 연구를 분리해 발전시킬 수 있다.</li>
+        <li><b>스스로 밝힌 한계와 추가 실험.</b> 잡음 실험, 과제 합동 학습, 관련 모델 비교가 학회판에 추가되었고, 한계 절도 구체적이다.</li>
+      </ul></div>
+      <div class="con"><h4>한계 · 의문점</h4><ul>
+        <li><b>기준선 비교의 해석.</b> 학습 없는 글자 입력의 0점은 대부분 답 형식 실패라, 'GPT-4o보다 낫다'는 결론은 시계열 이해력보다 지시 따르기의 차이를 크게 반영한다. 같은 데이터로 미세조정한 기준선과의 차이(HAR +5점, TSQA는 그림 미세조정과 +2.6점)가 더 의미 있는 비교다.</li>
+        <li><b>수면 데이터의 분할 방식.</b> 공개 코드는 30초 구간을 라벨 기준 층화 무작위로 나눈다. 같은 사람·같은 밤의 인접 구간이 학습과 테스트에 함께 들어가므로, 처음 보는 사람에 대한 성능은 이보다 낮을 수 있다. HAR은 미리 나눠 둔 파일을 쓰며 피험자 단위 분할인지 문서에 없다. 논문도 분포 밖 일반화는 평가하지 않았다고 밝힌다.</li>
+        <li><b>근거 문장의 출처.</b> 학습용 근거는 GPT-4o가 <b>정답을 알고</b> 그림을 보며 쓴 것이다. 그런데 표 2에서 GPT-4o는 그림만 보고 원래 과제(보기 8개·5개)를 풀면 HAR 10.83, 수면 4.82로 무작위 수준이다. 그래서 근거가 실제 신호 특징을 반영하는지는 보장되지 않는다(논문도 한계로 적었다). F1은 마지막 답만 재고, 근거의 질은 심전도 84개 표본에서만 평가되었다.</li>
+        <li><b>심전도 QA는 텍스트 단서에 크게 기댄다.</b> 잡음 70%에서도 점수가 거의 같고, 신호가 없어도 무작위보다 12점 높다(표 3-5).</li>
+        <li><b>Flamingo의 실제 배치 (공개 코드 기준).</b> 한 샘플의 여러 계열이 미디어 하나로 쌓여 계열 구분 임베딩 없이 64개 잠재 벡터로 합쳐진다. 그리고 open_flamingo의 기본 마스크(직전 미디어만 보기) 때문에 두 번째 \( \langle\text{TS}\rangle \) 뒤 토큰의 교차 어텐션은 균등 가중이 된다. 논문 식 (7)의 '계열마다 자기 잠재 표현을 읽는다'는 설명과 다르다. 코드를 읽어 정리한 내용이며 실행으로 확인하지는 않았다(두 번째 실험).</li>
+        <li><b>표 확인이 필요한 곳.</b> ① 표 2에서 SoftPrompt-Llama3.2-1B와 Flamingo-Gemma3-1B의 HAR 결과가 F1·정확도 모두 소수 둘째 자리까지 같다(65.44 / 71.48). ② 수면 단계는 본문에서 'N3·N4를 합쳐 5개'라고 하지만, 부록 표 9는 N3·N4를 따로 적고 평가 프롬프트(코드)는 'Movement'를 포함한 6개 보기를 준다. ③ 표 5의 '잡음 없음' 심전도 41.58은 같은 모델의 표 2 값 34.62와 다르다(나머지 세 과제는 일치). ④ 심전도 분할은 '80/10/10'이라고 했지만 실제 표본 수는 약 69/13/18%이고, 학습 표본 수도 표 7(159,313)과 표 10(159,306)이 다르다. ⑤ 소프트 프롬프트의 메모리가 "지수적으로" 는다고 쓰지만, 표 14에서는 길이 10배에 약 8배(3.6 → 29.5GB)로 다항식에 가깝다.</li>
+      </ul></div>
     </div>
   </section>
 
   <section id="impl">
     <h2>구현 노트</h2>
-    <p class="slot" data-slot="본문">재현할 때 주의할 점, 하이퍼파라미터, 공개 코드와 다른 점 등을 기록합니다.</p>
-<pre><code># 핵심 구현을 짧게 적어 두는 자리 (예시)
-def forward(x):
-    ...
+    <p>논문 부록 A.1과 공개 코드(<code>model_config.py</code>, 인코더·LLM 래퍼)에서 정리한 설정이다. 둘이 다른 곳은 코드 값을 적고 표시했다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>설정</th></tr></thead>
+      <tbody>
+        <tr><td>패치 · 인코더</td><td>패치 크기 4, 임베딩 128, 학습되는 위치 임베딩(기본 최대 1,024패치 → 계열당 4,096스텝까지). SoftPrompt는 Transformer 인코더 6층(헤드 8, FFN 1,024)을 더 쌓는다</td></tr>
+        <tr><td>SoftPrompt</td><td>MLP 사영(LayerNorm → Linear → GELU), LLM은 LoRA r 16 · α 32 · q/k/v/o/gate/up/down 사영. 학습률: 인코더 2e-4, LoRA 2e-4, 사영 1e-4</td></tr>
+        <tr><td>Flamingo</td><td>open_flamingo 기반. Perceiver Resampler 6층 · 잠재 64개, 게이트 교차 어텐션을 <b>모든 층</b>에(코드), 학습률 2e-4. LLM 본체는 고정하되 입력 임베딩은 학습(코드: 새 특수 토큰 때문)</td></tr>
+        <tr><td>정규화</td><td>계열마다 평균 0·표준편차 1로 정규화하고(코드), 원래 평균·표준편차는 설명문에 숫자로. 논문은 인코더 입력이 [−1, 1]이라고 적었다</td></tr>
+        <tr><td>최적화</td><td>AdamW, 선형 스케줄 + 웜업 10%(논문; 코드 3%), 기울기 클리핑 1.0, weight decay 0.01, 조기 종료 인내 5. 논문은 '최대 200 에폭'이라 적었고, 코드의 커리큘럼은 TSQA → M4 설명문 → HAR → 수면 → 심전도의 5단계를 차례로 학습하며 단계별 최대 30 · 20 · 30 · 60 · 60 에폭이다</td></tr>
+        <tr><td>데이터</td><td>HAR 2.56초 · 50Hz · 3축, Sleep 30초 EEG(Fpz-Cz, 공개 데이터는 계열당 1,500점), ECG 12리드 10초 · 100Hz. CoT 근거: gpt-4o-2024-08-06, 온도 0.3, 시드 42</td></tr>
+      </tbody>
+    </table></div>
+    <p>공개 체크포인트는 <code>OpenTSLM/{백본}-{과제}-{sp|flamingo}</code> 형식으로 올라와 있다. README의 사용법을 줄이면 다음과 같다.</p>
+<pre><code>import torch
+from torch.utils.data import DataLoader
+from opentslm import OpenTSLM
+from opentslm.time_series_datasets.ecg_qa.ECGQACoTQADataset import ECGQACoTQADataset
+from opentslm.time_series_datasets.util import extend_time_series_to_match_patch_size_and_aggregate
+from opentslm.model_config import PATCH_SIZE          # = 4
+
+repo = "OpenTSLM/llama-3.2-1b-ecg-sp"                # SoftPrompt 체크포인트는 LoRA를 켜서 불러온다
+model = OpenTSLM.load_pretrained(repo, enable_lora=True,
+                                 device="cuda" if torch.cuda.is_available() else "cpu")
+
+test = ECGQACoTQADataset("test", EOS_TOKEN=model.get_eos_token())
+loader = DataLoader(test, batch_size=1, collate_fn=lambda b:
+         extend_time_series_to_match_patch_size_and_aggregate(b, patch_size=PATCH_SIZE))
+
+for batch in loader:
+    print(model.generate(batch, max_new_tokens=400)[0])   # 근거 … Answer: …
+    break
 </code></pre>
+    <p>Flamingo 경로에서 리뷰어가 코드를 읽으며 확인한 데이터 흐름을 요약하면 다음과 같다(설명용 재작성).</p>
+<pre><code># OpenTSLMFlamingo.pad_and_apply_batch
+images = pad_time_series(batch)          # (B, K, L)  K = 계열 수
+images = images.unsqueeze(1)             # (B, T=1, F=K, L)  → 미디어 1개, 프레임 K개
+
+# open_flamingo PerceiverResampler.forward
+x = rearrange(x, "b T F v d -> b T (F v) d")   # K개 계열의 패치를 한 집합으로 (계열 임베딩 없음)
+latents = perceiver(x)                         # (B, 1, 64, d)
+
+# open_flamingo MaskedCrossAttention (only_attend_immediate_media=True)
+text_time = media_locations.cumsum(-1)         # k번째 &lt;TS&gt; 뒤면 k
+mask = (text_time == media_time)               # media_time = [1] 뿐 → k ≥ 2이면 전부 False
+# → 모든 키가 가려진 행은 softmax가 균등(1/64)이 된다
+</code></pre>
+    <div class="callout tip"><strong>쓸 때 주의</strong><p>① 계열이 짧고 하나뿐이면 SoftPrompt가 가볍고 정확하다. 길거나 계열이 많으면 Flamingo를 쓰되, 기본 메모리(Llama-3B 약 61GB)를 감안해야 한다. ② 여러 계열을 Flamingo에 넣을 때 계열의 정체(어느 리드인지)를 모델이 알아야 한다면, 설명문에 계열 이름을 분명히 적고 위의 마스크 동작을 확인하자. 예를 들어 <code>only_attend_immediate_media=False</code>로 바꾸거나 계열을 별도 미디어로 넣는 방법이 있다. ③ 실제 적용 전에는 피험자 단위로 분할한 데이터에서 다시 평가하자. ④ 인코더 최대 길이(4,096스텝)를 넘는 계열은 <code>max_patches</code>를 늘리거나 미리 줄여야 한다.</p></div>
   </section>
 
   <section id="rating">
     <h2>나의 평가</h2>
+    <!-- 점수는 data-radar 속성에서 바꾼다 (1–5) -->
     <div class="review-grid">
-      <div data-radar='{"신규성":3,"명확성":3,"실험 충실도":3,"재현 가능성":3,"실용성":3}' data-max="5"></div>
+      <div data-radar='{"신규성":3,"명확성":3,"실험 충실도":3,"재현 가능성":5,"실용성":3}' data-max="5"></div>
       <div>
-        <p class="slot" data-slot="총평">총평 — 누구에게 이 논문을 권하는지, 다시 읽을 가치가 있는지. 왼쪽 점수는 data-radar 속성에서 바꿉니다.</p>
+        <p><b>방법보다 기반이 돋보이는 논문.</b> 소프트 프롬프트와 Flamingo식 교차 어텐션은 둘 다 기존 기법이다. 이 논문의 가치는 둘을 같은 조건에서 비교하고, 근거 데이터셋·코드·체크포인트를 통째로 공개해 '시계열을 읽고 설명하는 작은 LLM'을 누구나 다시 만들 수 있게 한 데 있다. 사전학습 시계열 모델을 끼우면 바로 좋아진다는 결과도 실용적이다.</p>
+        <p><b>다만 성능 수치는 조건을 같이 읽어야 한다.</b> 가장 큰 격차는 학습하지 않은 기준선과의 비교에서 나온다. 수면 데이터는 같은 사람의 구간이 학습·테스트에 섞이는 분할이다. 심전도 점수의 절반 가까이는 신호 밖의 단서에서 온다. 표 사이의 불일치 몇 곳과 Flamingo 다중 계열 처리의 코드 동작도 확인이 필요하다.</p>
+        <p><b>추천 대상:</b> 웨어러블·생체 신호에 대해 자연어로 묻고 답하는 모델을 만들려는 사람, 시계열-LLM 융합 방식을 고르려는 사람에게 좋은 출발점. 임상 판단 보조처럼 신뢰도가 중요한 용도라면 피험자 단위 재평가와 근거 검증이 먼저다.</p>
       </div>
     </div>
   </section>
@@ -127,17 +456,26 @@ def forward(x):
   <section id="related">
     <h2>함께 읽을 논문</h2>
     <ul>
-      <li class="slot" data-slot="관련 논문">선행 논문 — 왜 같이 읽으면 좋은지</li>
-      <li class="slot" data-slot="관련 논문">후속 논문</li>
+      <li><b>Chow et al., "Towards Time Series Reasoning with LLMs" (2024)</b> — OpenTSLM-SoftPrompt와 2단계 커리큘럼의 직접적인 출발점.</li>
+      <li><b>Alayrac et al., "Flamingo: a Visual Language Model for Few-Shot Learning" (NeurIPS 2022) · Awadalla et al., "OpenFlamingo" (2023)</b> — Perceiver Resampler와 게이트 교차 어텐션의 원형과 그 공개 구현. 마스크 동작(직전 미디어만 보기)도 여기서 온다.</li>
+      <li><b>Nie et al., "A Time Series is Worth 64 Words" (PatchTST, ICLR 2023)</b> — 인코더의 패치 임베딩.</li>
+      <li><b>Gruver et al., "Large Language Models Are Zero-Shot Time Series Forecasters" (LLMTime, NeurIPS 2023) · Merrill et al., "Language Models Still Struggle to Zero-shot Reason about Time Series" (EMNLP Findings 2024)</b> — 숫자를 글자로 넣는 방식과 그 한계.</li>
+      <li><b>Oh et al., "ECG-QA" (NeurIPS 2023 Datasets &amp; Benchmarks)</b> — ECG-QA-CoT의 원본 질문 템플릿과 데이터.</li>
+      <li><b>Xie et al., "ChatTS" (VLDB 2025) · Zhang et al., "SensorLM" (2025)</b> — 각각 소프트 프롬프트와 교차 어텐션 계열의 가까운 경쟁 연구.</li>
+      <li><b>Ansari et al., "Chronos-2: From Univariate to Universal Forecasting" (2025)</b> — 인코더로 끼워 큰 향상을 낸 사전학습 시계열 모델.</li>
+      <li><b>후속: "OpenTSLM TeeMoE" (NeurIPS 2026 워크숍, 모델 페이지 기준)</b> — Qwen 27B에 LoRA 전문가 셋을 붙여 예측·분석을 합친 후속 모델. GIFT-Eval에 'agentic' 범주로 제출되어 있고, 원자료로 다시 계산하면 MASE 0.656 · CRPS 0.449로 <a href="p02.html">리뷰 02의 Timestral-209M</a>(0.658 · 0.446)과 비슷하다.</li>
+      <li><b>이 서재의 <a href="p01.html">리뷰 01 CHARM</a></b> — 텍스트를 시계열과 함께 쓰는 또 다른 길. CHARM은 채널 설명으로 인코더를 조건화하고, OpenTSLM은 LLM이 시계열을 읽고 글로 답한다.</li>
     </ul>
   </section>
 
   <section class="keypoints" id="keypoints">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점 1</li>
-      <li class="slot" data-slot="요점">요점 2</li>
-      <li class="slot" data-slot="요점">요점 3</li>
+      <li>OpenTSLM은 사전학습 LLM(Llama 3.2 · Gemma 3)에 시계열을 고유한 입력으로 붙이고, 근거 문단과 <code>Answer:</code>를 쓰도록 학습한 오픈소스 시계열 언어 모델군이다.</li>
+      <li><b>SoftPrompt</b>는 패치 토큰(패치 4개당 1개)을 텍스트 사이에 끼워 문맥이 길이에 비례해 늘고, <b>Flamingo</b>는 64개 잠재 벡터를 게이트 교차 어텐션으로 읽어 메모리가 일정하지만 기본값이 높다.</li>
+      <li>최고 F1: 수면 69.88(SoftPrompt-Llama-1B), 행동 65.44, 심전도 QA 40.25(Flamingo-Llama-3B). Chronos-2를 인코더로 쓰면 수면 F1이 15점 이상 오른다.</li>
+      <li>근거 데이터는 GPT-4o가 정답을 알고 쓴 것이고, 수면 데이터는 구간 단위 무작위 분할이며, 심전도 점수의 약 절반은 신호 밖 단서에서 온다 — 수치를 읽을 때 함께 기억할 것.</li>
+      <li>공개 코드의 Flamingo는 여러 계열을 미디어 하나로 합치고, 두 번째 &lt;TS&gt; 이후 토큰은 잠재 벡터를 균등하게 읽는다(코드 읽기 결과).</li>
     </ol>
   </section>
 
@@ -145,17 +483,38 @@ def forward(x):
     <h2>확인 퀴즈</h2>
     <p class="quiz-score"></p>
     <div class="quiz">
-      <div class="quiz-q"><p>1. (퀴즈 슬롯) 질문을 적으세요. 정답 보기에는 <code>data-correct</code> 속성을 붙입니다.</p><div class="opts">
-        <button class="opt">보기 A</button>
-        <button class="opt" data-correct>보기 B (정답 예시)</button>
-        <button class="opt">보기 C</button>
-        <button class="opt">보기 D</button>
-      </div><div class="quiz-exp">해설 슬롯 — 왜 이것이 정답인지 설명하세요.</div></div>
-      <div class="quiz-q"><p>2. (퀴즈 슬롯) 두 번째 질문.</p><div class="opts">
-        <button class="opt" data-correct>보기 A (정답 예시)</button>
-        <button class="opt">보기 B</button>
-        <button class="opt">보기 C</button>
-      </div><div class="quiz-exp">해설 슬롯.</div></div>
+      <div class="quiz-q"><p>1. 계열 길이를 10배로 늘렸을 때 LLM 자기 어텐션 문맥이 길어지는 방식은?</p><div class="opts">
+        <button class="opt">Flamingo만 길어진다.</button>
+        <button class="opt" data-correct>SoftPrompt만 길어진다 — 패치 4개마다 토큰이 하나씩 추가된다.</button>
+        <button class="opt">둘 다 똑같이 길어진다.</button>
+        <button class="opt">둘 다 변하지 않는다.</button>
+      </div><div class="quiz-exp">SoftPrompt는 시계열 토큰을 문맥에 직접 넣으므로 토큰 수가 \( N \times L / p \)로 늘어난다. Flamingo는 시계열을 64개 잠재 벡터로 압축해 교차 어텐션의 키·값으로만 쓰므로 문맥에는 표시 토큰 몇 개만 남는다.</div></div>
+
+      <div class="quiz-q"><p>2. 시계열의 평균과 표준편차를 설명문에 숫자로 적어 넣는 이유는?</p><div class="opts">
+        <button class="opt">LLM이 숫자 계산을 연습하도록</button>
+        <button class="opt" data-correct>인코더 입력을 정규화하면서 사라진 크기 정보를 모델에 알려 주려고</button>
+        <button class="opt">프롬프트 길이를 일정하게 맞추려고</button>
+        <button class="opt">GPT-4o가 근거를 쓰기 쉽게 하려고</button>
+      </div><div class="quiz-exp">센서마다 단위와 크기가 달라 인코더 입력은 계열마다 정규화한다. 그러면 '심박수 평균 61' 같은 절대 크기가 사라지므로, 이를 텍스트로 보존한다. 논문은 이 방식이 최선이 아닐 수 있다고 한계로 꼽는다.</div></div>
+
+      <div class="quiz-q"><p>3. HAR-CoT · Sleep-CoT · ECG-QA-CoT의 근거 문장은 어떻게 만들었나?</p><div class="opts">
+        <button class="opt">임상 전문가가 직접 작성했다.</button>
+        <button class="opt">OpenTSLM이 스스로 생성한 문장을 다시 학습했다.</button>
+        <button class="opt" data-correct>GPT-4o에 신호 그림과 정답 + 가장 다른 오답을 주고, 정답에 이르는 근거를 쓰게 했다.</button>
+        <button class="opt">원본 데이터셋에 이미 들어 있던 설명을 그대로 썼다.</button>
+      </div><div class="quiz-exp">부록 A.2: 그림과 두 보기(정답, 가장 다른 답)를 주고 "라벨은 마지막 문장에만 쓰라"고 지시했다. 정답을 아는 채로 쓴 근거라 실제 신호 특징을 반영하는지는 별도 검증이 필요하다.</div></div>
+
+      <div class="quiz-q"><p>4. 잡음 실험에서 심전도 QA만 보인 특징과 그 해석으로 알맞은 것은?</p><div class="opts">
+        <button class="opt">잡음이 늘수록 점수가 가장 빨리 떨어졌다 — 신호에 가장 민감하다.</button>
+        <button class="opt" data-correct>잡음 70%에서도 거의 그대로이고 신호가 없어도 무작위보다 높다 — 함께 주어진 텍스트 단서에 상당 부분 기댄다.</button>
+        <button class="opt">센서 고장일 때 점수가 오히려 올랐다.</button>
+      </div><div class="quiz-exp">ECG-QA-CoT F1: 잡음 없음 41.58 → 70% 39.46, 센서 고장 28.31(무작위 16.47). 다른 세 과제는 센서 고장 시 무작위 수준으로 떨어진다.</div></div>
+
+      <div class="quiz-q"><p>5. 사전학습 시계열 모델 Chronos-2를 인코더로 쓰는 방식으로 옳은 것은?</p><div class="opts">
+        <button class="opt">Chronos-2 전체를 LLM과 함께 처음부터 다시 학습한다.</button>
+        <button class="opt" data-correct>Chronos-2는 고정하고 사영층만 학습해 LLM에 연결한다.</button>
+        <button class="opt">Chronos-2의 예측값을 텍스트로 바꿔 프롬프트에 넣는다.</button>
+      </div><div class="quiz-exp">3.1절: 사전학습 인코더는 고정하고 사영층만 함께 학습한다. 그것만으로 Flamingo의 수면 단계 F1이 백본에 따라 15–17점 올랐다(표 3).</div></div>
     </div>
   </section>
 </main>

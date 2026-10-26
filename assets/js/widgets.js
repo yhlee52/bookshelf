@@ -2,6 +2,7 @@
    본문 위젯 — 코드 없이 HTML 속성만으로 그리는 그림
    1) 결과 차트:  <div data-chart='{"type":"bar","labels":["A","B"],"series":[{"name":"Ours","data":[1,2]}]}'></div>
       type: "bar"(묶음 막대) | "line" · 선택: title, xLabel, yLabel, yMin, yMax, highlight(시리즈 이름), digits, aspect
+      data의 null = 값 없음 (막대·점·값 라벨을 그리지 않는다)
    2) 리뷰 레이더: <div data-radar='{"신규성":4,"명확성":3,"재현성":2}' data-max="5"></div>
       비교값: data-compare='{"신규성":3,...}' data-labels="이 논문,평균"
    3) <pre> 코드 블록 복사 버튼 (자동)
@@ -30,7 +31,8 @@
       const P = VZ.palette();
       legend.innerHTML = series.map((s, i) => `<span><i style="background:${colorOf(s, i, P)}"></i>${s.name || "시리즈 " + (i + 1)}</span>`).join("");
     };
-    const all = series.flatMap((s) => s.data).filter(isFinite);
+    const has = (v) => v != null && isFinite(v);
+    const all = series.flatMap((s) => s.data).filter(has);
     const lo = cfg.yMin != null ? cfg.yMin : Math.min(0, ...all), hi = cfg.yMax != null ? cfg.yMax : Math.max(...all) * 1.12;
     VZ.canvas(c, (ctx) => {
       const P = VZ.palette();
@@ -39,8 +41,8 @@
         VZ.chart(ctx, null, {
           x: [0, Math.max(1, n - 1)], y: [lo, hi], title: cfg.title, xLabel: cfg.xLabel, yLabel: cfg.yLabel,
           xTicks: labels.map((_, i) => i), xFmt: (i) => labels[i] ?? "",
-          series: series.map((s, i) => ({ data: s.data.map((v, k) => [k, v]), color: colorOf(s, i, P), width: s.name === cfg.highlight ? 3 : 2 })),
-          points: series.flatMap((s, i) => s.data.map((v, k) => ({ x: k, y: v, color: colorOf(s, i, P), r: 3.5 }))),
+          series: series.map((s, i) => ({ data: s.data.map((v, k) => [k, has(v) ? v : NaN]), color: colorOf(s, i, P), width: s.name === cfg.highlight ? 3 : 2 })),
+          points: series.flatMap((s, i) => s.data.map((v, k) => ({ x: k, y: v, color: colorOf(s, i, P), r: 3.5 })).filter((p) => has(p.y))),
         });
         return;
       }
@@ -48,13 +50,13 @@
       const C = VZ.chart(ctx, null, {
         x: [-0.5, n - 0.5], y: [lo, hi], title: cfg.title, xLabel: cfg.xLabel, yLabel: cfg.yLabel,
         xTicks: labels.map((_, i) => i), xFmt: (i) => labels[i] ?? "", noGrid: false,
-        series: series.map((s, i) => ({ type: "bar", data: s.data.map((v, k) => [k, v]), color: colorOf(s, i, P), barWidth: bw, offset: i - (ns - 1) / 2 })),
+        series: series.map((s, i) => ({ type: "bar", data: s.data.map((v, k) => [k, v]).filter((d) => has(d[1])), color: colorOf(s, i, P), barWidth: bw, offset: i - (ns - 1) / 2 })),
       });
       ctx.font = VZ.font(10.5); ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = P.text;
       const px = Math.abs(C.X(bw) - C.X(0));
       // 막대가 글자보다 좁으면 값 라벨이 서로 겹치므로 생략한다 (정확한 값은 본문 표에 둔다)
       const fits = px >= ctx.measureText((0).toFixed(digits) + "0").width + 4;
-      if (fits && cfg.values !== false) series.forEach((s, i) => s.data.forEach((v, k) => { if (isFinite(v)) ctx.fillText(Number(v).toFixed(digits), C.X(k) + (i - (ns - 1) / 2) * px, C.Y(v) - 3); }));
+      if (fits && cfg.values !== false) series.forEach((s, i) => s.data.forEach((v, k) => { if (has(v)) ctx.fillText(Number(v).toFixed(digits), C.X(k) + (i - (ns - 1) / 2) * px, C.Y(v) - 3); }));
     }, { aspect: cfg.aspect || 0.45, maxHeight: 380, minHeight: 220 });
     paintLegend();
     VZ.onTheme(paintLegend);
