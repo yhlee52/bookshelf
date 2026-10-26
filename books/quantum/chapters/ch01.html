@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>01 벡터 공간과 디랙 표기법 · QuantumBook</title>
-<meta name="description" content="선형 벡터 공간 · 내적과 노름 · 정규직교 기저와 그람-슈미트 · 브라와 켓 · 부분공간">
+<meta name="description" content="양자역학의 상태가 사는 복소 벡터 공간을 공리에서 출발해 세우고, 내적과 정규직교 기저, 그람-슈미트 과정, 디랙의 브라·켓 표기법, 부분공간을 차례로 익힌다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,61 +24,491 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch01">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">01</span></div>
     <h1 data-fill="chapter-title">벡터 공간과 디랙 표기법</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">양자역학에서 계의 상태는 벡터다. 다만 화살표가 아니라 복소수 계수를 가진 추상적인 벡터여서, 화살표에서 익힌 직관을 조심스럽게 넓혀야 한다. 이 장에서는 벡터 공간, 내적, 정규직교 기저를 차례로 세우고, 이것들을 간결하게 적는 디랙의 브라·켓 표기법을 익힌다. 앞으로 나올 모든 장이 이 언어로 쓰인다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>벡터 공간의 공리로 어떤 집합이 벡터 공간인지 판별할 수 있다.</li>
+      <li>선형 독립, 차원, 기저를 정의하고, 주어진 기저에 대한 벡터의 성분을 구할 수 있다.</li>
+      <li>복소 내적의 세 성질을 말하고, 내적과 노름을 계산하며, 슈바르츠 부등식을 증명할 수 있다.</li>
+      <li>그람-슈미트 과정으로 정규직교 기저를 만들 수 있다.</li>
+      <li>켓과 브라를 구별하고, 켓으로 쓴 식을 브라로 옮길 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>평면·공간 벡터의 덧셈과 점곱, 행렬의 곱셈, 복소수의 기본 계산 (복소수는 1.2절의 수학 상자에서 다시 정리한다)</p>
   </header>
 
+  <!-- ============================================================ 1.1 -->
   <section id="s1">
     <h2>선형 벡터 공간</h2>
-    <p class="slot" data-slot="1.1절">아직 쓰지 않은 절입니다.</p>
+    <p>고등학교와 일반물리에서 만난 벡터는 화살표였다. 변위, 속도, 힘처럼 크기와 방향을 가진 양이다. 화살표로 하는 일은 크게 두 가지다. 두 화살표를 이어 붙여 <b>더할</b> 수 있고, 숫자를 <b>곱해</b> 늘이거나 줄이거나 뒤집을 수 있다.</p>
+    <p>양자역학에서도 이 두 연산이 핵심이다. 6장에서 보겠지만, 두 상태 \(|\psi_1\rangle\)과 \(|\psi_2\rangle\)가 가능하면 그 중첩 \(a|\psi_1\rangle + b|\psi_2\rangle\)도 가능한 상태다. 이 중첩 원리 때문에 상태들은 "더하고 숫자를 곱할 수 있는 것들의 모임", 곧 벡터 공간을 이룬다. 그런데 계수 \(a, b\)는 복소수이고, 상태를 화살표로 그릴 수도 없다. 그래서 그림에 기대지 않고, 덧셈과 숫자 곱이 지켜야 할 규칙만 뽑아 벡터를 정의한다.</p>
+    <p>이 책에서는 벡터를 \(|V\rangle\), \(|W\rangle\)처럼 세로 막대와 꺾쇠로 감싸 쓴다. 이 기호를 <span class="term">켓</span> <span class="en">(ket)</span>이라 부르는데, 왜 이런 모양인지는 1.4절에서 밝힌다. 지금은 "\(V\)라는 이름의 벡터"라는 뜻으로만 읽으면 된다.</p>
+
+    <div class="box def" id="def-vector-space"><div class="box-h">선형 벡터 공간</div>
+      <p>벡터라 부르는 대상들의 집합 \(\mathbb{V}\)에 두 연산, 곧 <b>벡터 덧셈</b> \(|V\rangle + |W\rangle\)와 <b>스칼라배</b> \(a|V\rangle\)가 정의되어 있다고 하자. 모든 벡터 \(|V\rangle, |W\rangle, |Z\rangle\)와 모든 스칼라(숫자) \(a, b\)에 대해 다음 아홉 가지가 성립하면 \(\mathbb{V}\)를 <span class="term">선형 벡터 공간</span> <span class="en">(linear vector space)</span>이라 한다.</p>
+      <ol>
+        <li><b>닫힘</b>: \(|V\rangle + |W\rangle\)와 \(a|V\rangle\)도 \(\mathbb{V}\)의 원소다.</li>
+        <li><b>덧셈의 교환법칙</b>: \(|V\rangle + |W\rangle = |W\rangle + |V\rangle\)</li>
+        <li><b>덧셈의 결합법칙</b>: \((|V\rangle + |W\rangle) + |Z\rangle = |V\rangle + (|W\rangle + |Z\rangle)\)</li>
+        <li><b>영벡터</b>: 모든 \(|V\rangle\)에 대해 \(|V\rangle + 0 = |V\rangle\)인 벡터 \(0\)이 있다.</li>
+        <li><b>역벡터</b>: 각 \(|V\rangle\)마다 \(|V\rangle + |{-V}\rangle = 0\)인 벡터 \(|{-V}\rangle\)가 있다.</li>
+        <li><b>벡터에 대한 분배법칙</b>: \(a(|V\rangle + |W\rangle) = a|V\rangle + a|W\rangle\)</li>
+        <li><b>스칼라에 대한 분배법칙</b>: \((a + b)|V\rangle = a|V\rangle + b|V\rangle\)</li>
+        <li><b>스칼라배의 결합법칙</b>: \(a(b|V\rangle) = (ab)|V\rangle\)</li>
+        <li><b>항등</b>: \(1|V\rangle = |V\rangle\)</li>
+      </ol>
+      <p>스칼라를 실수로만 제한하면 <span class="term">실벡터 공간</span>, 복소수까지 허용하면 <span class="term">복소 벡터 공간</span>이라 한다. 양자역학의 상태 공간은 복소 벡터 공간이다.</p>
+    </div>
+
+    <p>공리를 하나씩 보면 모두 화살표에서 당연했던 성질이다. 오히려 눈여겨볼 것은 목록에 <b>없는</b> 것이다. 길이도, 각도도, '수직'이라는 말도 없다. 벡터 공간은 덧셈과 스칼라배만 아는 구조다. 길이와 각도는 1.2절에서 내적을 따로 정의해야 비로소 생긴다.</p>
+
+    <div class="callout warn"><strong>영벡터는 그냥 0으로 쓴다</strong><p>많은 교재가 영벡터를 \(|0\rangle\)으로 쓰지만, 이 책은 그냥 \(0\)으로 쓴다. \(|0\rangle\)은 8장 조화 진동자의 바닥 상태처럼 '0번 상태'라는 이름이 붙은 진짜 상태를 위해 아껴 둔다. 바닥 상태 \(|0\rangle\)은 영벡터가 아니라 길이가 1인 벡터다. 숫자 0과 영벡터 0은 같은 기호를 쓰지만 문맥에서 늘 구별된다.</p></div>
+
+    <p>공리에서 곧바로 따라 나오는 성질 몇 가지를 정리해 두자. 너무 당연해 보이지만, 공리 말고는 아무것도 쓰지 않고 증명할 수 있다는 점이 중요하다.</p>
+    <div class="box thm" id="thm-zero"><div class="box-h">공리에서 나오는 기본 성질</div>
+      <p>(가) \(0|V\rangle = 0\) &nbsp; (나) \(|{-V}\rangle = (-1)|V\rangle\) &nbsp; (다) 영벡터와 각 벡터의 역벡터는 하나뿐이다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>(가) 공리 7에 따라 \(0|V\rangle = (0+0)|V\rangle = 0|V\rangle + 0|V\rangle\)이다. 양변에 \(0|V\rangle\)의 역벡터를 더하면 \(0 = 0|V\rangle\)이 남는다.</p>
+        <p>(나) 공리 9, 7과 (가)를 차례로 쓰면 \(|V\rangle + (-1)|V\rangle = 1|V\rangle + (-1)|V\rangle = (1-1)|V\rangle = 0|V\rangle = 0\)이다. 따라서 \((-1)|V\rangle\)는 \(|V\rangle\)의 역벡터다.</p>
+        <p>(다) \(0\)과 \(0'\)이 둘 다 영벡터라면, \(0'\)이 영벡터이므로 \(0 + 0' = 0\)이고, 교환법칙과 \(0\)이 영벡터라는 사실로 \(0 + 0' = 0' + 0 = 0'\)이다. 따라서 \(0 = 0'\)이다. 역벡터도 같다. \(|W\rangle\)와 \(|W'\rangle\)이 둘 다 \(|V\rangle\)의 역벡터라면 \(|W\rangle = |W\rangle + 0 = |W\rangle + (|V\rangle + |W'\rangle) = (|W\rangle + |V\rangle) + |W'\rangle = 0 + |W'\rangle = |W'\rangle\)이다.</p>
+      </details>
+    </div>
+    <p>그래서 앞으로는 \(|{-V}\rangle\) 대신 \(-|V\rangle\)로 쓰고, \(|V\rangle + (-|W\rangle)\)는 \(|V\rangle - |W\rangle\)로 쓴다.</p>
+
+    <h3 id="s1-examples">화살표가 아닌 벡터들</h3>
+    <p>공리만 만족하면 무엇이든 벡터다. 양자역학에서 실제로 쓰이는 예를 보자.</p>
+    <div class="box ex" id="ex-spaces"><div class="box-h">벡터 공간의 예</div>
+      <p><b>(가) 복소수의 열 \(\mathbb{C}^n\).</b> 복소수 \(n\)개를 늘어놓은 \((a_1, \ldots, a_n)\)들의 집합에서, 합을 \((a_1 + b_1, \ldots, a_n + b_n)\)으로, 스칼라배를 \((c a_1, \ldots, c a_n)\)으로 정의한다. 아홉 공리는 모두 복소수의 성질에서 나온다. 예를 들어 교환법칙은 각 자리에서 \(a_i + b_i = b_i + a_i\)라는 것이다. 영벡터는 \((0, \ldots, 0)\)이다.</p>
+      <p><b>(나) 2×2 복소 행렬.</b> 행렬의 덧셈과 숫자 곱으로 벡터 공간이 된다. 영벡터는 영행렬이다. 16장의 스핀 연산자들이 이 공간에 산다.</p>
+      <p><b>(다) 양 끝에서 0이 되는 함수.</b> 구간 \(0 \le x \le L\)에서 정의되고 \(f(0) = f(L) = 0\)인 함수 전체. 두 함수의 합 \((f+g)(x) = f(x) + g(x)\)도 양 끝에서 0이고, 상수배도 마찬가지다. 영벡터는 모든 \(x\)에서 0인 함수다. 7장에서 상자 속 입자의 파동함수가 바로 이런 함수들이다.</p>
+    </div>
+    <div class="box ex" id="ex-not-spaces"><div class="box-h">벡터 공간이 아닌 것</div>
+      <p><b>(가)</b> 양 끝에서 값이 1인 함수 전체: \(f(0) = g(0) = 1\)이면 \((f + g)(0) = 2\)가 되어 합이 집합 밖으로 나간다. 영함수도 들어 있지 않다.</p>
+      <p><b>(나)</b> 세 성분이 모두 양수인 실수 세 쌍 전체: \((-1)\)을 곱하면 집합 밖으로 나가고, 역벡터가 없다.</p>
+      <p>두 예 모두 <b>닫힘</b>(공리 1)에서 깨진다. 어떤 집합이 벡터 공간인지 따질 때 가장 먼저, 그리고 가장 자주 확인할 것이 닫힘이다.</p>
+    </div>
+
+    <h3 id="s1-basis">선형 독립, 차원, 기저</h3>
+    <p>벡터 몇 개에 숫자를 곱해 더한 \(a_1|1\rangle + a_2|2\rangle + \cdots + a_n|n\rangle\)을 그 벡터들의 <span class="term">선형결합</span> <span class="en">(linear combination)</span>이라 한다. 어떤 벡터가 다른 벡터들의 선형결합으로 쓰인다면, 그 벡터는 새로운 '방향'을 보태지 못한다. 이 생각을 정확하게 만든 것이 선형 독립이다.</p>
+    <div class="box def" id="def-independence"><div class="box-h">선형 독립</div>
+      <p>벡터 \(|1\rangle, |2\rangle, \ldots, |n\rangle\)에 대해</p>
+      <div class="formula">\[ \sum_{i=1}^{n} a_i |i\rangle = 0 \]</div>
+      <p>을 만족하는 계수가 \(a_1 = a_2 = \cdots = a_n = 0\)뿐이면 이 벡터들은 <span class="term">선형 독립</span> <span class="en">(linearly independent)</span>이다. 0이 아닌 계수로도 영벡터를 만들 수 있으면 <span class="term">선형 종속</span> <span class="en">(linearly dependent)</span>이다.</p>
+    </div>
+    <p>선형 종속이면 0이 아닌 계수가 적어도 하나 있다. 그것을 \(a_n\)이라 하고 나누면 \(|n\rangle = -\sum_{i&lt;n} (a_i/a_n)|i\rangle\)처럼 한 벡터를 나머지의 선형결합으로 쓸 수 있다. 평면에서 두 화살표가 한 직선 위에 있으면 종속이고, 방향이 다르면 독립이다. 평면 위의 화살표 셋은 언제나 종속이다.</p>
+    <div class="box def" id="def-dimension"><div class="box-h">차원</div>
+      <p>공간에서 고를 수 있는 선형 독립인 벡터의 최대 개수가 \(n\)이면 그 공간을 <span class="term">\(n\)차원</span>이라 한다. \(n\)차원 실벡터 공간을 \(\mathbb{V}^n(\mathbb{R})\), 복소 벡터 공간을 \(\mathbb{V}^n(\mathbb{C})\)로 쓴다.</p>
+    </div>
+    <p>차원이 \(n\)이면, 독립인 벡터 \(n\)개만 있으면 공간 전체를 다 표현할 수 있다. 이것이 이 절의 가장 중요한 결과다.</p>
+    <div class="box thm" id="thm-expansion"><div class="box-h">기저 전개</div>
+      <p>\(n\)차원 공간에서 선형 독립인 벡터 \(n\)개 \(|1\rangle, \ldots, |n\rangle\)을 고르면, 공간의 모든 벡터 \(|V\rangle\)는 이들의 선형결합으로 <b>단 한 가지 방법으로</b> 쓰인다.</p>
+      <div class="formula" id="eq-expansion">\[ |V\rangle = \sum_{i=1}^{n} v_i |i\rangle \]</div>
+      <details class="proof" open><summary>증명</summary>
+        <p><b>존재.</b> 차원이 \(n\)이므로 \(n+1\)개의 벡터 \(|V\rangle, |1\rangle, \ldots, |n\rangle\)은 선형 종속이다. 따라서 모두 0은 아닌 계수로 \(a_0|V\rangle + \sum_i a_i|i\rangle = 0\)을 만들 수 있다. 이때 \(a_0 \neq 0\)이다. 만약 \(a_0 = 0\)이면 \(\sum_i a_i|i\rangle = 0\)이 되고, \(|1\rangle, \ldots, |n\rangle\)이 독립이므로 \(a_i\)도 모두 0이 되어 '모두 0은 아니다'에 어긋나기 때문이다. \(a_0\)으로 나누면 \(|V\rangle = \sum_i (-a_i/a_0)|i\rangle\)이다.</p>
+        <p><b>유일성.</b> \(|V\rangle = \sum_i v_i|i\rangle = \sum_i v_i'|i\rangle\)처럼 두 가지로 썼다고 하자. 빼면 \(\sum_i (v_i - v_i')|i\rangle = 0\)이고, 독립이므로 모든 \(i\)에서 \(v_i = v_i'\)이다.</p>
+      </details>
+    </div>
+    <div class="box def" id="def-basis"><div class="box-h">기저와 성분</div>
+      <p>\(n\)차원 공간에서 선형 독립인 벡터 \(n\)개의 집합을 <span class="term">기저</span> <span class="en">(basis)</span>라 하고, 식 <a class="ref" href="#eq-expansion"></a>의 계수 \(v_i\)를 그 기저에 대한 \(|V\rangle\)의 <span class="term">성분</span> <span class="en">(component)</span>이라 한다.</p>
+    </div>
+    <p>기저를 정하면 벡터 계산이 숫자 계산이 된다. \(|V\rangle = \sum_i v_i|i\rangle\), \(|W\rangle = \sum_i w_i|i\rangle\)이면 공리에 따라</p>
+    <div class="formula">\[ \begin{aligned} |V\rangle + |W\rangle &= \sum_{i} (v_i + w_i)|i\rangle, \\ a|V\rangle &= \sum_{i} (a v_i)|i\rangle \end{aligned} \]</div>
+    <p>이다. 더하면 성분끼리 더하고, 숫자를 곱하면 성분마다 곱한다. 그래서 기저를 하나 고르면 벡터를 성분의 열로 적을 수 있다.</p>
+    <div class="formula">\[ |V\rangle \;\to\; \begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_n \end{pmatrix} \]</div>
+    <p>여기서 화살표 \(\to\)는 "이 기저에서 이렇게 표현된다"는 뜻이다. 등호를 쓰지 않는 데는 이유가 있다. 벡터 자체는 기저와 상관없이 하나지만, 성분의 열은 기저를 바꾸면 달라진다. 그림 1-1이 그 예다. 앞으로 자리를 아끼려고 성분을 \(|V\rangle \to (v_1, \ldots, v_n)\)처럼 가로로 적기도 하지만, 뜻은 위의 열과 같다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:1-1a--><svg viewBox="0 0 300 245" role="img" aria-label="기저 1, 2에서 벡터 V의 성분은 3과 2"><defs><marker id="f11a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f11a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f11a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="40" y1="225" x2="40" y2="30" class="s-grid"/><line x1="90" y1="225" x2="90" y2="30" class="s-grid"/><line x1="140" y1="225" x2="140" y2="30" class="s-grid"/><line x1="190" y1="225" x2="190" y2="30" class="s-grid"/><line x1="240" y1="225" x2="240" y2="30" class="s-grid"/><line x1="15" y1="205" x2="285" y2="205" class="s-grid"/><line x1="15" y1="155" x2="285" y2="155" class="s-grid"/><line x1="15" y1="105" x2="285" y2="105" class="s-grid"/><line x1="15" y1="55" x2="285" y2="55" class="s-grid"/><line x1="40" y1="205" x2="190" y2="205" class="s-line" stroke-dasharray="5 4" marker-end="url(#f11a-dim)"/><line x1="190" y1="205" x2="190" y2="105" class="s-line" stroke-dasharray="5 4" marker-end="url(#f11a-dim)"/><line x1="40" y1="205" x2="90" y2="205" class="s-acc2" stroke-width="3" marker-end="url(#f11a-acc2)"/><line x1="40" y1="205" x2="40" y2="155" class="s-acc2" stroke-width="3" marker-end="url(#f11a-acc2)"/><line x1="40" y1="205" x2="190" y2="105" class="s-acc" stroke-width="3" marker-end="url(#f11a-acc)"/><text x="65" y="226" class="t-math acc2" text-anchor="middle">|1⟩</text><text x="32" y="184" class="t-math acc2" text-anchor="end">|2⟩</text><text x="140" y="226" class="t-math dim" text-anchor="middle">3|1⟩</text><text x="198" y="160" class="t-math dim" text-anchor="start">2|2⟩</text><text x="196" y="99" class="t-math acc" text-anchor="start">|<tspan font-style="italic">V</tspan>⟩</text><text x="12" y="24" class="t-math" text-anchor="start">(가) |<tspan font-style="italic">V</tspan>⟩ = 3|1⟩ + 2|2⟩</text><circle cx="40" cy="205" r="3" class="f-dim"/></svg><!--/fig:1-1a--><!--fig:1-1b--><svg viewBox="0 0 300 245" role="img" aria-label="기울어진 기저 b1, b2에서 같은 벡터 V의 성분은 1과 2"><defs><marker id="f11b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f11b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f11b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="15" y1="205" x2="285" y2="205" class="s-grid"/><line x1="15" y1="155" x2="285" y2="155" class="s-grid"/><line x1="15" y1="105" x2="285" y2="105" class="s-grid"/><line x1="15" y1="55" x2="285" y2="55" class="s-grid"/><line x1="15" y1="80" x2="65" y2="30" class="s-grid"/><line x1="15" y1="130" x2="115" y2="30" class="s-grid"/><line x1="15" y1="180" x2="165" y2="30" class="s-grid"/><line x1="20" y1="225" x2="215" y2="30" class="s-grid"/><line x1="70" y1="225" x2="265" y2="30" class="s-grid"/><line x1="120" y1="225" x2="285" y2="60" class="s-grid"/><line x1="170" y1="225" x2="285" y2="110" class="s-grid"/><line x1="220" y1="225" x2="285" y2="160" class="s-grid"/><line x1="40" y1="205" x2="90" y2="205" class="s-line" stroke-dasharray="5 4" marker-end="url(#f11b-dim)"/><line x1="90" y1="205" x2="190" y2="105" class="s-line" stroke-dasharray="5 4" marker-end="url(#f11b-dim)"/><line x1="40" y1="205" x2="90" y2="205" class="s-acc2" stroke-width="3" marker-end="url(#f11b-acc2)"/><line x1="40" y1="205" x2="90" y2="155" class="s-acc2" stroke-width="3" marker-end="url(#f11b-acc2)"/><line x1="40" y1="205" x2="190" y2="105" class="s-acc" stroke-width="3" marker-end="url(#f11b-acc)"/><text x="65" y="226" class="t-math acc2" text-anchor="middle">|<tspan font-style="italic">b</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>⟩</text><text x="84" y="146" class="t-math acc2" text-anchor="end">|<tspan font-style="italic">b</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text><text x="152" y="172" class="t-math dim" text-anchor="start">2|<tspan font-style="italic">b</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text><text x="196" y="99" class="t-math acc" text-anchor="start">|<tspan font-style="italic">V</tspan>⟩</text><text x="12" y="24" class="t-math" text-anchor="start">(나) |<tspan font-style="italic">V</tspan>⟩ = 1|<tspan font-style="italic">b</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>⟩ + 2|<tspan font-style="italic">b</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text><circle cx="40" cy="205" r="3" class="f-dim"/></svg><!--/fig:1-1b--></div>
+      <figcaption><b>그림 1-1.</b> 같은 벡터, 다른 성분. 같은 화살표 \(|V\rangle\)가 (가) 기저 \(\{|1\rangle, |2\rangle\}\)에서는 성분 \((3, 2)\)를, (나) 기저 \(\{|b_1\rangle, |b_2\rangle\}\)에서는 성분 \((1, 2)\)를 가진다. (나)의 두 기저 벡터는 서로 수직이 아니다. 기저에는 길이나 각도에 대한 조건이 없다.</figcaption>
+    </figure>
+
+    <div class="box ex" id="ex-pauli"><div class="box-h">행렬을 벡터로 보기</div>
+      <p>2×2 복소 행렬 공간은 4차원이다. 가장 단순한 기저는 한 자리만 1인 행렬 네 개다.</p>
+      <div class="formula">\[ \begin{aligned} E_{11} &= \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}, & E_{12} &= \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}, \\[4pt] E_{21} &= \begin{pmatrix} 0 & 0 \\ 1 & 0 \end{pmatrix}, & E_{22} &= \begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix} \end{aligned} \]</div>
+      <p>행렬 \(M = \begin{pmatrix} a & b \\ c & d \end{pmatrix} = aE_{11} + bE_{12} + cE_{21} + dE_{22}\)이므로 이 기저에서 \(M\)의 성분은 \((a, b, c, d)\)이다.</p>
+      <p>다른 기저로 단위행렬 \(I\)와 <span class="term">파울리 행렬</span> <span class="en">(Pauli matrices)</span>을 쓸 수 있다. 16장의 스핀에서 다시 만날 행렬들이다.</p>
+      <div class="formula">\[ \begin{aligned} I &= \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}, & \sigma_x &= \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}, \\[4pt] \sigma_y &= \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix}, & \sigma_z &= \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \end{aligned} \]</div>
+      <p>\(c_0 I + c_1\sigma_x + c_2\sigma_y + c_3\sigma_z\)를 계산하면 \(\begin{pmatrix} c_0 + c_3 & c_1 - i c_2 \\ c_1 + i c_2 & c_0 - c_3 \end{pmatrix}\)이다. 이것이 \(M\)과 같으려면 \(c_0 + c_3 = a\), \(c_0 - c_3 = d\), \(c_1 - ic_2 = b\), \(c_1 + ic_2 = c\)이어야 하고, 풀면</p>
+      <div class="formula">\[ \begin{aligned} c_0 &= \frac{a+d}{2}, & c_1 &= \frac{b+c}{2}, \\[4pt] c_2 &= \frac{i(b-c)}{2}, & c_3 &= \frac{a-d}{2} \end{aligned} \]</div>
+      <p>이다. 예를 들어 \(M = \begin{pmatrix} 1 & 2 \\ 0 & 3 \end{pmatrix}\)의 성분은 표준 기저에서 \((1, 2, 0, 3)\), 파울리 기저에서 \((2, 1, i, -1)\)이다. 직접 \(2I + \sigma_x + i\sigma_y - \sigma_z\)를 계산해 \(M\)이 되는지 확인해 보자. \(M\)의 원소가 모두 실수인데도 허수 성분 \(c_2 = i\)가 나왔다. \(\sigma_y\)가 허수 원소를 가지고 있어서, 대칭이 아닌 실수 행렬을 파울리 기저로 전개하려면 복소수 계수가 필요하다.</p>
+    </div>
   </section>
 
+  <!-- ============================================================ 1.2 -->
   <section id="s2">
     <h2>내적과 노름</h2>
-    <p class="slot" data-slot="1.2절">아직 쓰지 않은 절입니다.</p>
+    <p>1.1절의 공리에는 길이와 각도가 없었다. 화살표에서는 점곱이 둘을 함께 준다.</p>
+    <div class="formula">\[ \vec A \cdot \vec B = |\vec A|\,|\vec B| \cos\theta = A_x B_x + A_y B_y + A_z B_z \]</div>
+    <p>같은 벡터끼리의 점곱은 길이의 제곱이고, 점곱이 0이면 두 벡터는 수직이다. 점곱에는 세 성질이 있다. 순서를 바꿔도 같고(대칭), 자기 자신과의 점곱은 0 이상이며 영벡터일 때만 0이고(양의 정부호), 한쪽 벡터에 대해 선형이다.</p>
+    <p>이 공식을 복소 벡터에 그대로 쓰면 곤란해진다. \(\mathbb{C}^2\)의 벡터 \((1, i)\)를 보자. 성분끼리 곱해 더하면 \(1 \cdot 1 + i \cdot i = 1 - 1 = 0\)이다. 영벡터가 아닌데 '길이'가 0이 된다. 해결책은 한쪽 성분에 복소켤레를 씌우는 것이다. \(1^* \cdot 1 + i^* \cdot i = 1 + (-i)(i) = 2\). 켤레를 씌우면 각 항이 \(|a_i|^2\) 꼴이 되어 합이 언제나 0 이상이다. 그 대가로 대칭성이 '켤레 대칭'으로 바뀐다.</p>
+
+    <div class="box math" id="math-complex"><div class="box-h">복소수 다시 보기</div>
+      <p>복소수 \(z = x + iy\) (\(x, y\)는 실수, \(i^2 = -1\))에 대해 자주 쓰는 사실을 모았다.</p>
+      <ul>
+        <li><b>복소켤레</b> \(z^* = x - iy\). 켤레는 합과 곱을 그대로 통과한다: \((z+w)^* = z^* + w^*\), \((zw)^* = z^* w^*\), \((z^*)^* = z\).</li>
+        <li><b>절댓값</b> \(|z| = \sqrt{x^2 + y^2}\)이고 \(|z|^2 = z^* z\)이다. 그래서 \(z^* z\)는 언제나 0 이상의 실수이고, \(z = 0\)일 때만 0이다.</li>
+        <li><b>실수부와 허수부</b>: \(\mathrm{Re}\, z = (z + z^*)/2\), \(\mathrm{Im}\, z = (z - z^*)/2i\). \(z\)가 실수라는 것과 \(z = z^*\)라는 것은 같은 말이다.</li>
+        <li><b>극형식</b>: \(z = |z| e^{i\theta}\), \(e^{i\theta} = \cos\theta + i\sin\theta\). 켤레는 \(z^* = |z|e^{-i\theta}\)이다. 크기가 1인 복소수 \(e^{i\theta}\)를 <span class="term">위상 인자</span>라 하며 양자역학에 끊임없이 나온다.</li>
+        <li><b>부등식</b>: \(|\mathrm{Re}\, z| \le |z|\), \(|z + w| \le |z| + |w|\).</li>
+      </ul>
+    </div>
+
+    <div class="box def" id="def-inner-product"><div class="box-h">내적</div>
+      <p>벡터 공간의 두 벡터 \(|V\rangle, |W\rangle\)에 복소수 \(\langle V|W\rangle\)를 하나 대응시키는 규칙이 있어서, 모든 벡터와 스칼라에 대해 다음 세 성질을 만족하면 이를 <span class="term">내적</span> <span class="en">(inner product)</span>이라 한다.</p>
+      <ol>
+        <li><b>켤레 대칭</b>: \(\langle V|W\rangle = \langle W|V\rangle^*\)</li>
+        <li><b>양의 정부호</b>: \(\langle V|V\rangle \ge 0\)이고, 등호는 \(|V\rangle = 0\)일 때만 성립한다.</li>
+        <li><b>오른쪽 자리에 대해 선형</b>: \(\langle V|aW + bZ\rangle = a\langle V|W\rangle + b\langle V|Z\rangle\)</li>
+      </ol>
+      <p>여기서 \(|aW + bZ\rangle\)는 벡터 \(a|W\rangle + b|Z\rangle\)를 줄여 쓴 것이다. 내적이 정의된 벡터 공간을 <span class="term">내적 공간</span>이라 한다.</p>
+    </div>
+    <p>성질 2에서 \(\langle V|V\rangle \ge 0\)이라고 부등호를 쓸 수 있는 것은 성질 1 덕분이다. \(W = V\)로 두면 \(\langle V|V\rangle = \langle V|V\rangle^*\)이므로 \(\langle V|V\rangle\)는 실수다.</p>
+    <p>기호 \(\langle V|W\rangle\)는 지금으로서는 "\(|V\rangle\)와 \(|W\rangle\)의 내적"을 뜻하는 하나의 기호다. 1.4절에서 이것을 두 조각 \(\langle V|\)와 \(|W\rangle\)의 곱으로 다시 읽는다.</p>
+
+    <h3 id="s2-anti">왼쪽 자리는 켤레 선형</h3>
+    <p>성질 3은 오른쪽 자리에 대한 것이다. 왼쪽 자리에 선형결합이 오면 어떻게 될까? 성질 1, 3, 1을 차례로 쓰면 된다.</p>
+    <div class="formula" id="eq-antilinear">\[ \begin{aligned} \langle aW + bZ|V\rangle &= \langle V|aW + bZ\rangle^* \\ &= \big(a\langle V|W\rangle + b\langle V|Z\rangle\big)^* \\ &= a^*\langle V|W\rangle^* + b^*\langle V|Z\rangle^* \\ &= a^*\langle W|V\rangle + b^*\langle Z|V\rangle \end{aligned} \]</div>
+    <p>왼쪽 자리의 계수는 <b>켤레가 되어</b> 밖으로 나온다. 이런 성질을 <span class="term">켤레 선형</span> <span class="en">(antilinear)</span>이라 한다. 계수가 실수면 켤레가 아무 일도 하지 않으므로, 화살표의 점곱에서는 이 구별이 보이지 않았다.</p>
+    <div class="callout warn"><strong>관례 차이에 주의</strong><p>물리학에서는 내적이 오른쪽 자리에 대해 선형이고 왼쪽 자리에 대해 켤레 선형이다. 수학 교재 중에는 반대로 왼쪽 자리에 대해 선형으로 정의하는 책도 많다. 차이는 켤레를 어느 쪽에 씌우느냐뿐이지만, 두 관례를 섞어 쓰면 켤레가 엉뚱한 곳에 붙는다. 이 책은 처음부터 끝까지 물리학 관례를 쓴다.</p></div>
+
+    <div class="box def" id="def-norm"><div class="box-h">노름, 정규화, 직교</div>
+      <p>\(\lVert V\rVert = \sqrt{\langle V|V\rangle}\)를 \(|V\rangle\)의 <span class="term">노름</span> <span class="en">(norm)</span> 또는 길이라 한다. \(\lVert V\rVert = 1\)이면 \(|V\rangle\)는 <span class="term">정규화된</span> <span class="en">(normalized)</span> 벡터, 곧 단위 벡터다. \(\langle V|W\rangle = 0\)이면 두 벡터는 <span class="term">직교한다</span> <span class="en">(orthogonal)</span>.</p>
+    </div>
+    <p>왼쪽 켤레 선형성과 오른쪽 선형성을 함께 쓰면 \(\langle aV|aV\rangle = a^* a\langle V|V\rangle\)이므로 \(\lVert aV\rVert = |a|\,\lVert V\rVert\)이다. 그래서 영벡터가 아닌 벡터는 자기 노름으로 나누면 언제나 정규화된다: \(|V\rangle / \lVert V\rVert\). 양자역학의 상태 벡터는 보통 이렇게 정규화해서 쓴다(6장).</p>
+
+    <h3 id="s2-components">정규직교 기저에서 계산하기</h3>
+    <p>서로 직교하는 단위 벡터들로 된 기저를 <span class="term">정규직교 기저</span> <span class="en">(orthonormal basis)</span>라 한다. 기저 벡터 \(|1\rangle, \ldots, |n\rangle\)으로 쓰면</p>
+    <div class="formula" id="eq-orthonormal">\[ \langle i|j\rangle = \delta_{ij} \]</div>
+    <p>이다. \(\delta_{ij}\)는 크로네커 델타다(아래 수학 상자). 이런 기저가 언제나 존재한다는 것은 1.3절에서 보인다.</p>
+    <p>이제 \(|V\rangle = \sum_i v_i|i\rangle\)와 \(|W\rangle = \sum_j w_j|j\rangle\)를 내적에 넣어 보자. 오른쪽 자리는 선형이고 왼쪽 자리는 켤레 선형이므로</p>
+    <div class="formula" id="eq-inner-components">\[ \begin{aligned} \langle V|W\rangle &= \sum_{i}\sum_{j} v_i^*\, w_j \,\langle i|j\rangle \\ &= \sum_{i}\sum_{j} v_i^*\, w_j\, \delta_{ij} \\ &= \sum_{i} v_i^*\, w_i \end{aligned} \]</div>
+    <p>이다. 정규직교 기저에서 내적은 <b>왼쪽 벡터의 성분에 켤레를 씌워 성분끼리 곱해 더한 것</b>이다. 특히 노름의 제곱은</p>
+    <div class="formula" id="eq-norm-components">\[ \lVert V\rVert^2 = \langle V|V\rangle = \sum_{i} |v_i|^2 \]</div>
+    <p>로, 피타고라스 정리를 그대로 닮았다. 정규직교가 아닌 기저에서는 \(\langle i|j\rangle\) 값 \(n^2\)개를 모두 알아야 내적을 계산할 수 있다. 정규직교 기저를 즐겨 쓰는 첫째 이유다.</p>
+
+    <div class="box math" id="math-delta"><div class="box-h">크로네커 델타와 합 기호</div>
+      <p>크로네커 델타는 두 첨자가 같으면 1, 다르면 0이다.</p>
+      <div class="formula">\[ \delta_{ij} = \begin{cases} 1 & (i = j) \\ 0 & (i \neq j) \end{cases} \]</div>
+      <p>쓸모는 합 속에서 첨자 하나를 <b>골라내는</b> 데 있다. \(\sum_j w_j \delta_{ij} = w_i\)인데, \(j\)에 대해 더하는 동안 \(\delta_{ij}\)가 \(j = i\)인 항 하나만 살려 두기 때문이다. 이중 합 \(\sum_i\sum_j\) 안에 \(\delta_{ij}\)가 있으면 한쪽 합이 사라지고 두 첨자가 같아진다. 식 <a class="ref" href="#eq-inner-components"></a>의 마지막 단계가 바로 이것이다.</p>
+      <p>합의 첨자는 이름을 바꿔도 뜻이 같다(\(\sum_i v_i = \sum_j v_j\)). 그러나 서로 다른 합에 같은 첨자 이름을 쓰면 안 된다. 위에서 \(|W\rangle\)를 \(\sum_j w_j|j\rangle\)로 쓴 것은 \(|V\rangle\)의 합에서 이미 \(i\)를 썼기 때문이다.</p>
+    </div>
+
+    <div class="box ex" id="ex-inner"><div class="box-h">내적 계산</div>
+      <p>정규직교 기저에서 \(|V\rangle \to (1, i)\), \(|W\rangle \to (2, 1 - i)\)라 하자. 식 <a class="ref" href="#eq-inner-components"></a>에 따라</p>
+      <div class="formula">\[ \begin{aligned} \langle V|W\rangle &= 1^* \cdot 2 + i^* (1 - i) \\ &= 2 + (-i)(1 - i) = 2 - i + i^2 = 1 - i, \\[6pt] \langle W|V\rangle &= 2^* \cdot 1 + (1 - i)^*\, i \\ &= 2 + (1 + i)\,i = 2 + i - 1 = 1 + i. \end{aligned} \]</div>
+      <p>두 값은 서로 켤레다. 켤레 대칭과 맞는다. 노름은 \(\lVert V\rVert^2 = |1|^2 + |i|^2 = 2\), \(\lVert W\rVert^2 = |2|^2 + |1 - i|^2 = 4 + 2 = 6\)이다. 정규화된 벡터는 \(|V\rangle/\sqrt 2 \to (1, i)/\sqrt 2\)이다. 이 절의 처음에서 '길이 0'이 나왔던 바로 그 벡터가 이제 제대로 된 길이 \(\sqrt 2\)를 가진다.</p>
+    </div>
+
+    <h3 id="s2-schwarz">슈바르츠 부등식</h3>
+    <p>화살표에서는 \(|\vec A\cdot\vec B| = |\vec A||\vec B||\cos\theta| \le |\vec A||\vec B|\)이다. 각도를 정의할 수 없는 복소 공간에서도 같은 부등식이 성립한다. 9장에서 하이젠베르크의 불확정성 관계를 유도할 때 쓰는 핵심 도구이므로, 증명까지 꼼꼼히 따라가 두자.</p>
+    <div class="box thm" id="thm-schwarz"><div class="box-h">슈바르츠 부등식</div>
+      <p>모든 벡터 \(|V\rangle, |W\rangle\)에 대해</p>
+      <div class="formula" id="eq-schwarz">\[ |\langle V|W\rangle| \le \lVert V\rVert\, \lVert W\rVert \]</div>
+      <p>이고, 등호는 한 벡터가 다른 벡터의 상수배일 때만 성립한다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p>\(|W\rangle = 0\)이면 양변이 모두 0이다. \(|W\rangle \neq 0\)이라 하고, \(|V\rangle\)에서 \(|W\rangle\) 방향의 성분을 뺀 벡터를 만든다.</p>
+        <div class="formula">\[ \begin{gathered} |Z\rangle = |V\rangle - c\,|W\rangle, \\ c = \frac{\langle W|V\rangle}{\lVert W\rVert^2} \end{gathered} \]</div>
+        <p>이 벡터는 \(|W\rangle\)와 직교한다: \(\langle W|Z\rangle = \langle W|V\rangle - c\langle W|W\rangle = \langle W|V\rangle - \langle W|V\rangle = 0\). 화살표로 생각하면 \(|Z\rangle\)는 \(|V\rangle\)의 끝에서 \(|W\rangle\) 방향 직선에 내린 수선이다(1.3절의 그림 1-2와 같은 그림이다). 이제 \(\langle Z|Z\rangle \ge 0\)을 계산한다. 오른쪽 자리를 펼치면</p>
+        <div class="formula">\[ \begin{aligned} \langle Z|Z\rangle &= \langle Z|V\rangle - c\,\langle Z|W\rangle \\ &= \langle Z|V\rangle \end{aligned} \]</div>
+        <p>이다(\(\langle Z|W\rangle = \langle W|Z\rangle^* = 0\)). 남은 항의 왼쪽 자리를 켤레 선형성으로 펼치면</p>
+        <div class="formula">\[ \begin{aligned} \langle Z|V\rangle &= \langle V|V\rangle - c^*\langle W|V\rangle \\ &= \lVert V\rVert^2 - \frac{\langle W|V\rangle^*\langle W|V\rangle}{\lVert W\rVert^2} \\ &= \lVert V\rVert^2 - \frac{|\langle W|V\rangle|^2}{\lVert W\rVert^2} \end{aligned} \]</div>
+        <p>이다. 이것이 0 이상이므로 \(|\langle W|V\rangle|^2 \le \lVert V\rVert^2 \lVert W\rVert^2\)이고, \(|\langle W|V\rangle| = |\langle V|W\rangle^*| = |\langle V|W\rangle|\)이므로 식 <a class="ref" href="#eq-schwarz"></a>가 나온다. 등호는 \(\langle Z|Z\rangle = 0\), 곧 \(|Z\rangle = 0\), 곧 \(|V\rangle = c|W\rangle\)일 때만 성립한다.</p>
+      </details>
+    </div>
+    <p>예제 <a class="ref" href="#ex-inner"></a>의 벡터로 확인해 보면 \(|\langle V|W\rangle| = |1 - i| = \sqrt 2 \approx 1.41\)이고 \(\lVert V\rVert\,\lVert W\rVert = \sqrt 2 \cdot \sqrt 6 = \sqrt{12} \approx 3.46\)이다.</p>
+    <div class="box thm" id="thm-triangle"><div class="box-h">삼각 부등식</div>
+      <div class="formula" id="eq-triangle">\[ \lVert V + W\rVert \le \lVert V\rVert + \lVert W\rVert \]</div>
+      <details class="proof"><summary>증명</summary>
+        <p>\(\lVert V + W\rVert^2 = \langle V+W|V+W\rangle = \lVert V\rVert^2 + \langle V|W\rangle + \langle W|V\rangle + \lVert W\rVert^2\)이다. \(\langle W|V\rangle = \langle V|W\rangle^*\)이므로 가운데 두 항의 합은 \(2\,\mathrm{Re}\langle V|W\rangle\)이고, \(\mathrm{Re}\langle V|W\rangle \le |\langle V|W\rangle| \le \lVert V\rVert\,\lVert W\rVert\)이다(둘째 부등호가 슈바르츠). 따라서 \(\lVert V + W\rVert^2 \le \lVert V\rVert^2 + 2\lVert V\rVert\,\lVert W\rVert + \lVert W\rVert^2 = (\lVert V\rVert + \lVert W\rVert)^2\)이다.</p>
+      </details>
+    </div>
   </section>
 
+  <!-- ============================================================ 1.3 -->
   <section id="s3">
     <h2>정규직교 기저와 그람-슈미트</h2>
-    <p class="slot" data-slot="1.3절">아직 쓰지 않은 절입니다.</p>
+    <p>정규직교 기저의 둘째 장점은 성분을 구하기가 아주 쉽다는 것이다. \(|V\rangle = \sum_i v_i|i\rangle\)와 기저 벡터 \(|j\rangle\)의 내적을 취해 보자(\(|j\rangle\)를 왼쪽 자리에 둔다).</p>
+    <div class="formula" id="eq-component">\[ \langle j|V\rangle = \sum_{i} v_i\, \langle j|i\rangle = \sum_{i} v_i\, \delta_{ji} = v_j \]</div>
+    <p>성분 하나가 내적 하나로 끝난다. 이 결과를 전개식 <a class="ref" href="#eq-expansion"></a>에 다시 넣으면</p>
+    <div class="formula" id="eq-expansion-ip">\[ |V\rangle = \sum_{i} |i\rangle\langle i|V\rangle \]</div>
+    <p>이다. 이 식은 2장에서 '완비성 관계'라는 이름으로 다시 만난다. 비교를 위해, 직교하지 않는 기저에서 성분을 구하려면 연립방정식을 풀어야 한다. 그림 1-1 (나)의 성분은 \((3, 2) = v_1(1, 0) + v_2(1, 1)\)에서 \(v_2 = 2\), \(v_1 = 1\)을 풀어 얻은 것이다. 차원이 커질수록 이 차이는 엄청나게 벌어진다.</p>
+    <p>그렇다면 정규직교 기저는 언제나 있을까? 있다. 아무 기저에서 출발해 정규직교 기저를 만들어 내는 구체적인 절차가 있기 때문이다. 그것이 <span class="term">그람-슈미트 과정</span> <span class="en">(Gram-Schmidt process)</span>이다.</p>
+
+    <h3 id="s3-gs">그람-슈미트 과정</h3>
+    <p>선형 독립인 벡터 \(|u_1\rangle, |u_2\rangle, \ldots, |u_n\rangle\)이 주어졌다고 하자. 아이디어는 간단하다. 벡터를 하나씩 차례로 받으면서, <b>이미 만든 단위 벡터들 방향의 성분을 빼고, 남은 것을 정규화한다.</b></p>
+    <ol>
+      <li>첫 벡터는 정규화만 한다: \(\;|1\rangle = |u_1\rangle / \lVert u_1\rVert\)</li>
+      <li>\(|u_2\rangle\)에서 \(|1\rangle\) 방향 성분 \(|1\rangle\langle 1|u_2\rangle\)를 빼고 정규화한다: \(\;|2'\rangle = |u_2\rangle - |1\rangle\langle 1|u_2\rangle,\;\; |2\rangle = |2'\rangle/\lVert 2'\rVert\)</li>
+      <li>\(|u_3\rangle\)에서 \(|1\rangle\)과 \(|2\rangle\) 방향 성분을 모두 뺀다: \(\;|3'\rangle = |u_3\rangle - |1\rangle\langle 1|u_3\rangle - |2\rangle\langle 2|u_3\rangle,\;\; |3\rangle = |3'\rangle/\lVert 3'\rVert\)</li>
+    </ol>
+    <p>일반적으로 \(k\)번째 단계는 다음과 같다.</p>
+    <div class="formula" id="eq-gs">\[ |k'\rangle = |u_k\rangle - \sum_{j&lt;k} |j\rangle\langle j|u_k\rangle, \qquad |k\rangle = \frac{|k'\rangle}{\lVert k'\rVert} \]</div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-2--><svg viewBox="0 0 340 262" role="img" aria-label="그람-슈미트: u2에서 1 방향 투영을 빼면 1에 수직인 2′이 남는다"><defs><marker id="f12-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f12-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f12-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><path d="M229.6 165.5 L226.1 155 L236.5 151.6" class="s-line" stroke-width="1.2"/><line x1="78" y1="216" x2="258" y2="156" class="s-line" stroke-width="1.8" marker-end="url(#f12-dim)"/><line x1="78" y1="216" x2="198" y2="36" class="s-line" stroke-width="1.8" marker-end="url(#f12-dim)"/><line x1="78" y1="216" x2="36" y2="90" class="s-acc2" stroke-dasharray="4 4" stroke-width="1.5" opacity=".7" marker-end="url(#f12-acc2)"/><line x1="78" y1="216" x2="240" y2="162" class="s-acc2" stroke-width="4" opacity=".55" marker-end="url(#f12-acc2)"/><line x1="240" y1="162" x2="198" y2="36" class="s-acc2" stroke-width="2.4" marker-end="url(#f12-acc2)"/><line x1="78" y1="216" x2="134.9" y2="197" class="s-acc" stroke-width="3.2" marker-end="url(#f12-acc)"/><line x1="78" y1="216" x2="59" y2="159.1" class="s-acc" stroke-width="3.2" marker-end="url(#f12-acc)"/><circle cx="78" cy="216" r="3" class="f-dim"/><text x="264" y="160" class="t-math dim" text-anchor="start">|<tspan font-style="italic">u</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>⟩</text><text x="204" y="34" class="t-math dim" text-anchor="start">|<tspan font-style="italic">u</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text><text x="128.9" y="219" class="t-math acc" text-anchor="middle">|1⟩</text><text x="51" y="163.1" class="t-math acc" text-anchor="end">|2⟩</text><text x="227" y="103" class="t-math acc2" text-anchor="start">|2′⟩</text><text x="32" y="84" class="t-math acc2" text-anchor="middle">|2′⟩</text><text x="236" y="188" class="t-math acc2" text-anchor="middle">|1⟩⟨1|<tspan font-style="italic">u</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text></svg><!--/fig:1-2--></div>
+      <figcaption><b>그림 1-2.</b> 평면에서의 그람-슈미트 과정. \(|u_1\rangle \to (3, 1)\), \(|u_2\rangle \to (2, 3)\)에서 시작한다. \(|u_1\rangle\)를 정규화해 \(|1\rangle\)을 얻는다. \(|u_2\rangle\)에서 \(|1\rangle\) 방향의 그림자(투영) \(|1\rangle\langle 1|u_2\rangle \to (2.7, 0.9)\)를 빼면 \(|1\rangle\)에 수직인 \(|2'\rangle \to (-0.7, 2.1)\)이 남고, 이를 정규화한 것이 \(|2\rangle \to (-1, 3)/\sqrt{10}\)이다.</figcaption>
+    </figure>
+    <p>이 과정이 제대로 돌아가려면 두 가지를 확인해야 한다.</p>
+    <ul>
+      <li><b>직교성.</b> 새 벡터 \(|k'\rangle\)는 앞서 만든 단위 벡터 \(|m\rangle\) (\(m &lt; k\))과 모두 직교한다. 실제로 \(\langle m|k'\rangle = \langle m|u_k\rangle - \sum_{j&lt;k}\langle m|j\rangle\langle j|u_k\rangle = \langle m|u_k\rangle - \langle m|u_k\rangle = 0\)이다. 가운데 합에서 \(\langle m|j\rangle = \delta_{mj}\)가 \(j = m\)인 항 하나만 남기기 때문이다.</li>
+      <li><b>영벡터가 되지 않음.</b> 만약 \(|k'\rangle = 0\)이면 \(|u_k\rangle\)가 \(|1\rangle, \ldots, |k-1\rangle\)의 선형결합이 된다. 그런데 이 단위 벡터들은 \(|u_1\rangle, \ldots, |u_{k-1}\rangle\)의 선형결합이므로, \(|u_k\rangle\)가 앞의 \(u\)들의 선형결합이 되어 선형 독립이라는 가정에 어긋난다. 따라서 \(\lVert k'\rVert \neq 0\)이고 나눌 수 있다.</li>
+    </ul>
+    <p>마지막으로, 서로 직교하는 단위 벡터들은 자동으로 선형 독립이다. \(\sum_i a_i|i\rangle = 0\)에 \(\langle j|\)와의 내적을 취하면 \(a_j = 0\)이 되기 때문이다. 따라서 \(n\)차원 공간의 기저에 그람-슈미트 과정을 적용해 얻은 \(n\)개의 벡터는 정규직교 기저다.</p>
+    <div class="box thm" id="thm-gs"><div class="box-h">정규직교 기저의 존재</div>
+      <p>유한 차원 내적 공간에는 언제나 정규직교 기저가 있다. 아무 기저에 그람-슈미트 과정을 적용하면 된다.</p>
+    </div>
+
+    <div class="box ex" id="ex-gs"><div class="box-h">복소 벡터의 그람-슈미트</div>
+      <p>\(\mathbb{C}^3\)의 세 벡터 \(|u_1\rangle \to (1, i, 0)\), \(|u_2\rangle \to (1, 0, 1)\), \(|u_3\rangle \to (0, 0, 1)\)로 정규직교 기저를 만들자. 성분은 정규직교인 표준 기저에 대한 것이므로 내적은 식 <a class="ref" href="#eq-inner-components"></a>로 계산한다.</p>
+      <p><b>① 첫 벡터.</b> \(\lVert u_1\rVert^2 = |1|^2 + |i|^2 = 2\)이므로 \(|1\rangle \to (1, i, 0)/\sqrt 2\).</p>
+      <p><b>② 둘째 벡터.</b> \(\langle 1|u_2\rangle = \tfrac{1}{\sqrt 2}(1^*\cdot 1 + i^*\cdot 0 + 0) = \tfrac{1}{\sqrt 2}\)이므로</p>
+      <div class="formula">\[ \begin{aligned} |2'\rangle &\to (1, 0, 1) - \tfrac{1}{\sqrt 2}\cdot\tfrac{1}{\sqrt 2}(1, i, 0) \\ &= \left(\tfrac12, -\tfrac{i}{2}, 1\right), \\ \lVert 2'\rVert^2 &= \tfrac14 + \tfrac14 + 1 = \tfrac32 \end{aligned} \]</div>
+      <p>이고, 정규화하면 \(|2\rangle \to (1, -i, 2)/\sqrt 6\)이다.</p>
+      <p><b>③ 셋째 벡터.</b> \(\langle 1|u_3\rangle = 0\)이고 \(\langle 2|u_3\rangle = \tfrac{1}{\sqrt 6}(1\cdot 0 + (-i)^*\cdot 0 + 2\cdot 1) = \tfrac{2}{\sqrt 6}\)이므로</p>
+      <div class="formula">\[ \begin{aligned} |3'\rangle &\to (0, 0, 1) - \tfrac{2}{\sqrt 6}\cdot\tfrac{1}{\sqrt 6}(1, -i, 2) \\ &= \left(-\tfrac13, \tfrac{i}{3}, \tfrac13\right), \\ \lVert 3'\rVert^2 &= \tfrac19 + \tfrac19 + \tfrac19 = \tfrac13 \end{aligned} \]</div>
+      <p>이고, \(|3\rangle \to (-1, i, 1)/\sqrt 3\)이다.</p>
+      <p><b>검산.</b> 정규화 상수를 빼고 보면, \(\langle 1|2\rangle \propto 1\cdot 1 + (-i)(-i) = 1 - 1 = 0\), \(\langle 1|3\rangle \propto 1\cdot(-1) + (-i)(i) = -1 + 1 = 0\), \(\langle 2|3\rangle \propto 1\cdot(-1) + (i)(i) + 2\cdot 1 = -1 - 1 + 2 = 0\)이다. 각 식에서 왼쪽 벡터의 성분에는 켤레가 씌워져 있다.</p>
+    </div>
+    <div class="callout warn"><strong>켤레를 잊지 말 것</strong><p>복소 벡터의 그람-슈미트에서 가장 흔한 실수는 \(\langle j|u_k\rangle\)를 계산할 때 왼쪽 벡터의 켤레를 빠뜨리는 것이다. 그러면 빼는 양이 틀려서 결과가 직교하지 않는다(<a class="ref" href="#prob-gs-c2"></a>). 다 만든 뒤 \(\langle i|j\rangle = \delta_{ij}\)를 검산하는 습관을 들이자.</p></div>
   </section>
 
+  <!-- ============================================================ 1.4 -->
   <section id="s4">
     <h2>브라와 켓</h2>
-    <p class="slot" data-slot="1.4절">아직 쓰지 않은 절입니다.</p>
+    <p>이제 기호 \(\langle V|W\rangle\)를 두 조각으로 쪼갤 차례다. 정규직교 기저에서 식 <a class="ref" href="#eq-inner-components"></a>를 행렬의 곱으로 써 보자.</p>
+    <div class="formula" id="eq-row-col">\[ \begin{aligned} \langle V|W\rangle &= \sum_i v_i^* w_i \\ &= \begin{pmatrix} v_1^* & v_2^* & \cdots & v_n^* \end{pmatrix} \begin{pmatrix} w_1 \\ w_2 \\ \vdots \\ w_n \end{pmatrix} \end{aligned} \]</div>
+    <p>오른쪽의 열은 \(|W\rangle\)의 성분 그대로다. 왼쪽의 행은 \(|V\rangle\)의 성분에 켤레를 씌워 가로로 눕힌 것으로, \(|W\rangle\)와 상관없이 \(|V\rangle\)만으로 정해진다. 이 행을 하나의 독립된 대상으로 보고 \(\langle V|\)라 쓰자. 그러면 내적은 행 \(\langle V|\)와 열 \(|W\rangle\)의 곱이 된다.</p>
+    <div class="box def" id="def-bra"><div class="box-h">브라</div>
+      <p>각 켓 \(|V\rangle\)에 대해, 임의의 켓 \(|W\rangle\)를 복소수 \(\langle V|W\rangle\)로 보내는 대응을 <span class="term">브라</span> <span class="en">(bra)</span> \(\langle V|\)라 한다. 브라는 켓에 대해 선형이다: \(\langle V|\big(a|W\rangle + b|Z\rangle\big) = a\langle V|W\rangle + b\langle V|Z\rangle\).</p>
+    </div>
+    <p>이름은 디랙이 지었다. 괄호를 뜻하는 영어 bracket \(\langle\;|\;\rangle\)을 반으로 갈라 왼쪽을 bra, 오른쪽을 ket이라 불렀다. 브라와 켓이 만나 괄호가 닫히면 숫자 하나가 된다.</p>
+    <p>브라끼리도 더하고 숫자를 곱할 수 있다. 두 브라를 더한 것은 "어떤 켓에 각각 작용시킨 결과를 더하는 대응"으로 정의하면 된다. 그래서 브라들도 그 자체로 벡터 공간을 이루며, 이를 <span class="term">쌍대 공간</span> <span class="en">(dual space)</span> \(\mathbb{V}^*\)라 한다. 정규직교 기저에서 켓은 열로, 브라는 켤레를 씌운 행으로 표현된다.</p>
+    <div class="formula" id="eq-bra-row">\[ |V\rangle \to \begin{pmatrix} v_1 \\ \vdots \\ v_n \end{pmatrix}, \qquad \langle V| \to \begin{pmatrix} v_1^* & \cdots & v_n^* \end{pmatrix} \]</div>
+    <p>기저 켓 \(|i\rangle\)는 \(i\)번째 자리만 1인 열이고, 기저 브라 \(\langle i|\)는 \(i\)번째 자리만 1인 행이다. 따라서 \(\langle i|V\rangle = v_i\)(식 <a class="ref" href="#eq-component"></a>)이고 \(\langle V|i\rangle = v_i^*\)이다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:1-3a--><svg viewBox="0 0 320 214" role="img" aria-label="행벡터 브라와 열벡터 켓을 곱하면 숫자가 된다"><text x="20" y="24" class="t-b" text-anchor="start">(가) 브라 × 켓 = 숫자</text><rect x="20" y="62" width="50" height="36" class="f-acc2-soft"/><text x="45" y="85" class="t-math" text-anchor="middle"><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="70" y="62" width="50" height="36" class="f-acc2-soft"/><text x="95" y="85" class="t-math" text-anchor="middle"><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="120" y="62" width="50" height="36" class="f-acc2-soft"/><text x="145" y="85" class="t-math" text-anchor="middle"><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><text x="95" y="54" class="t-math acc2" text-anchor="middle">⟨<tspan font-style="italic">V</tspan>|</text><text x="184" y="86" class="t-math" text-anchor="middle">×</text><rect x="204" y="40" width="44" height="34" class="f-acc-soft"/><text x="226" y="62" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><rect x="204" y="74" width="44" height="34" class="f-acc-soft"/><text x="226" y="96" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><rect x="204" y="108" width="44" height="34" class="f-acc-soft"/><text x="226" y="130" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan></text><text x="258" y="96" class="t-math acc" text-anchor="start">|<tspan font-style="italic">W</tspan>⟩</text><text x="20" y="172" class="t-math" text-anchor="start">= <tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">*</tspan><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan> + <tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan baseline-shift="super" font-size="72%">*</tspan><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan> + <tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan baseline-shift="super" font-size="72%">*</tspan><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan></text><text x="20" y="196" class="t-dim" text-anchor="start">→ 1×1, 곧 숫자 하나 ⟨V|W⟩</text></svg><!--/fig:1-3a--><!--fig:1-3b--><svg viewBox="0 0 320 214" role="img" aria-label="열벡터 켓과 행벡터 브라를 곱하면 행렬이 된다"><text x="20" y="24" class="t-b" text-anchor="start">(나) 켓 × 브라 = 행렬</text><rect x="98" y="40" width="52" height="30" class="f-acc2-soft"/><text x="124" y="60" class="t-math" text-anchor="middle"><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="150" y="40" width="52" height="30" class="f-acc2-soft"/><text x="176" y="60" class="t-math" text-anchor="middle"><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="202" y="40" width="52" height="30" class="f-acc2-soft"/><text x="228" y="60" class="t-math" text-anchor="middle"><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><text x="262" y="60" class="t-math acc2" text-anchor="start">⟨<tspan font-style="italic">V</tspan>|</text><rect x="30" y="82" width="44" height="34" class="f-acc-soft"/><text x="52" y="104" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><rect x="30" y="116" width="44" height="34" class="f-acc-soft"/><text x="52" y="138" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><rect x="30" y="150" width="44" height="34" class="f-acc-soft"/><text x="52" y="172" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan></text><text x="52" y="206" class="t-math acc" text-anchor="middle">|<tspan font-style="italic">W</tspan>⟩</text><rect x="98" y="82" width="52" height="34" class="f-surface"/><text x="124" y="104" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="150" y="82" width="52" height="34" class="f-surface"/><text x="176" y="104" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="202" y="82" width="52" height="34" class="f-surface"/><text x="228" y="104" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="98" y="116" width="52" height="34" class="f-surface"/><text x="124" y="138" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="150" y="116" width="52" height="34" class="f-surface"/><text x="176" y="138" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="202" y="116" width="52" height="34" class="f-surface"/><text x="228" y="138" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="98" y="150" width="52" height="34" class="f-surface"/><text x="124" y="172" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="150" y="150" width="52" height="34" class="f-surface"/><text x="176" y="172" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><rect x="202" y="150" width="52" height="34" class="f-surface"/><text x="228" y="172" class="t-math" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan><tspan baseline-shift="super" font-size="72%">*</tspan></text><text x="262" y="140" class="t-dim" text-anchor="start">3×3</text><text x="262" y="158" class="t-dim" text-anchor="start">행렬</text></svg><!--/fig:1-3b--></div>
+      <figcaption><b>그림 1-3.</b> 브라는 행, 켓은 열. (가) 브라가 왼쪽, 켓이 오른쪽에 오면 행과 열의 곱으로 숫자 하나, 곧 내적이 된다. (나) 순서를 바꿔 켓을 왼쪽에 두면 열과 행의 곱으로 \(n \times n\) 행렬이 된다. 이 '켓브라'는 벡터를 벡터로 보내는 연산자이며, 2장의 주인공이다.</figcaption>
+    </figure>
+
+    <h3 id="s4-adjoint">수반: 켓 식을 브라 식으로</h3>
+    <p>켓 \(a|V\rangle\)에 대응하는 브라는 무엇일까? \(a|V\rangle\)의 성분은 \(a v_i\)이므로, 그 브라의 성분은 켤레를 씌운 \((a v_i)^* = a^* v_i^*\)이다. 따라서</p>
+    <div class="formula" id="eq-bra-scalar">\[ a|V\rangle \;\longleftrightarrow\; a^*\langle V|, \qquad \langle aV| = a^*\langle V| \]</div>
+    <p>이다. 켓에서 브라로 넘어갈 때 숫자는 켤레가 된다. 켓과 브라 사이의 이 대응을 <span class="term">수반</span> <span class="en">(adjoint)</span>이라 하고 기호 \(\dagger\)로 쓴다: \((|V\rangle)^\dagger = \langle V|\). 선형결합 전체에 대해서는</p>
+    <div class="formula" id="eq-adjoint">\[ \begin{gathered} |V\rangle = a|W\rangle + b|Z\rangle \\ \Big\Downarrow \\ \langle V| = a^*\langle W| + b^*\langle Z| \end{gathered} \]</div>
+    <p>이다. 규칙은 하나뿐이다. <b>켓을 브라로 바꾸고, 숫자는 켤레로 바꾼다.</b> 이것은 식 <a class="ref" href="#eq-antilinear"></a>의 왼쪽 켤레 선형성을 다른 말로 한 것이다. 성분 전개에 적용하면</p>
+    <div class="formula">\[ \begin{gathered} |V\rangle = \sum_i v_i|i\rangle \\ \Big\Downarrow \\ \langle V| = \sum_i v_i^*\langle i| = \sum_i \langle V|i\rangle\langle i| \end{gathered} \]</div>
+    <p>이다. 켓과 브라를 나란히 정리하면 다음과 같다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>켓</th><th>브라</th></tr></thead>
+      <tbody>
+        <tr><td>기호</td><td>\(|V\rangle\)</td><td>\(\langle V|\)</td></tr>
+        <tr><td>사는 공간</td><td>\(\mathbb{V}\)</td><td>쌍대 공간 \(\mathbb{V}^*\)</td></tr>
+        <tr><td>정규직교 기저에서</td><td>열 \((v_1, \ldots, v_n)^{T}\)</td><td>행 \((v_1^*, \ldots, v_n^*)\)</td></tr>
+        <tr><td>숫자 \(a\)를 곱하면</td><td>\(a|V\rangle\)</td><td>\(a^*\langle V|\)</td></tr>
+        <tr><td>기저에 대한 성분</td><td>\(\langle i|V\rangle = v_i\)</td><td>\(\langle V|i\rangle = v_i^*\)</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="box ex" id="ex-bra"><div class="box-h">브라로 노름 구하기</div>
+      <p>정규직교 기저 \(|1\rangle, |2\rangle\)에서 \(|\psi\rangle = 3i|1\rangle + (1 - 2i)|2\rangle\)의 브라와 노름을 구하자. 수반 규칙에 따라</p>
+      <div class="formula">\[ \langle\psi| = -3i\,\langle 1| + (1 + 2i)\,\langle 2| \]</div>
+      <p>이다. 브라와 켓을 곱하고 \(\langle i|j\rangle = \delta_{ij}\)를 쓰면 교차항 \(\langle 1|2\rangle\), \(\langle 2|1\rangle\)은 사라지고</p>
+      <div class="formula">\[ \begin{aligned} \langle\psi|\psi\rangle &= (-3i)(3i)\,\langle 1|1\rangle + (1 + 2i)(1 - 2i)\,\langle 2|2\rangle \\ &= 9 + 5 = 14 \end{aligned} \]</div>
+      <p>가 남는다. 정규화된 상태는 \(|\psi\rangle/\sqrt{14}\)이다. 만약 켤레를 빠뜨리고 \((3i)(3i) + (1 - 2i)^2\)을 계산하면 \(-12 - 4i\)라는, 실수조차 아닌 값이 나온다. 노름의 제곱은 언제나 0 이상의 실수여야 하므로, 이런 결과가 나오면 어딘가에서 켤레를 빠뜨린 것이다.</p>
+    </div>
+    <div class="callout warn"><strong>브라와 켓을 섞지 말 것</strong><p>브라와 켓은 다른 공간에 산다. \(|V\rangle + \langle W|\) 같은 식은 의미가 없다. \(\langle aV|\)는 \(a\langle V|\)가 아니라 \(a^*\langle V|\)이다. 그리고 순서가 뜻을 바꾼다. \(\langle V|W\rangle\)(브라가 왼쪽)는 숫자지만 \(|W\rangle\langle V|\)(켓이 왼쪽)는 연산자다.</p></div>
+    <div class="callout tip"><strong>앞으로의 쓰임</strong><p>6장에서 보겠지만, 정규화된 상태 \(|\psi\rangle\)를 측정해 정규화된 고유 상태 \(|\phi\rangle\)에 해당하는 결과를 얻을 확률은 \(|\langle\phi|\psi\rangle|^2\)이다(축퇴가 없는 경우). 브라 \(\langle\phi|\)는 "\(|\phi\rangle\) 방향의 성분을 읽어 내는 장치"로 생각하면 좋다. 식 <a class="ref" href="#eq-component"></a>의 \(\langle i|V\rangle\)가 바로 그런 읽기였다.</p></div>
   </section>
 
+  <!-- ============================================================ 1.5 -->
   <section id="s5">
     <h2>부분공간</h2>
-    <p class="slot" data-slot="1.5절">아직 쓰지 않은 절입니다.</p>
+    <p>3차원 공간 안에는 원점을 지나는 평면이나 직선처럼 그 자체로 벡터 공간인 작은 공간이 들어 있다. 양자역학에서도 '에너지가 같은 상태들'(2장의 고유 공간)이나 '스핀이 위를 향하는 상태들'처럼 전체 상태 공간의 일부만 따로 다룰 일이 많다.</p>
+    <div class="box def" id="def-subspace"><div class="box-h">부분공간</div>
+      <p>벡터 공간 \(\mathbb{V}\)의 부분집합 \(\mathbb{V}_1\)이 \(\mathbb{V}\)와 같은 덧셈과 스칼라배에 대해 그 자체로 벡터 공간이면, \(\mathbb{V}_1\)을 \(\mathbb{V}\)의 <span class="term">부분공간</span> <span class="en">(subspace)</span>이라 한다.</p>
+    </div>
+    <p>부분공간인지 판별하기는 생각보다 쉽다. 아홉 공리 가운데 교환법칙, 결합법칙, 분배법칙처럼 등식으로 된 것들은 큰 공간 \(\mathbb{V}\)에서 이미 성립하므로 부분집합에서도 저절로 성립한다. 영벡터와 역벡터도 정리 <a class="ref" href="#thm-zero"></a>에 따라 닫힘에서 따라 나온다(\(0 = 0|V\rangle\), \(-|V\rangle = (-1)|V\rangle\)). 따라서 <b>덧셈과 스칼라배에 닫혀 있는지만 확인하면 된다.</b> 특히 부분공간은 반드시 영벡터를 포함하므로, 원점을 지나지 않는 평면은 부분공간이 아니다.</p>
+    <p>벡터 몇 개의 모든 선형결합을 모은 집합은 언제나 부분공간이다. 선형결합끼리 더하거나 숫자를 곱해도 여전히 선형결합이기 때문이다. 이것을 그 벡터들이 <span class="term">생성하는</span> <span class="en">(span)</span> 부분공간이라 한다.</p>
+
+    <h3 id="s5-complement">직교 여공간과 직합</h3>
+    <p>내적이 있으면, 부분공간 하나가 주어졌을 때 그것과 '수직인' 부분공간을 짝지을 수 있다.</p>
+    <div class="box def" id="def-complement"><div class="box-h">직교 여공간</div>
+      <p>부분공간 \(\mathbb{V}_1\)의 모든 벡터와 직교하는 벡터들의 집합을 \(\mathbb{V}_1\)의 <span class="term">직교 여공간</span> <span class="en">(orthogonal complement)</span>이라 하고 \(\mathbb{V}_1^{\perp}\)로 쓴다.</p>
+    </div>
+    <p>\(\mathbb{V}_1^\perp\)는 부분공간이다. \(|W\rangle\)와 \(|W'\rangle\)이 \(\mathbb{V}_1\)의 모든 \(|V\rangle\)와 직교하면 \(\langle V|aW + bW'\rangle = a\langle V|W\rangle + b\langle V|W'\rangle = 0\)이기 때문이다.</p>
+    <p>\(\mathbb{V}\)가 \(n\)차원이고 \(\mathbb{V}_1\)이 \(m\)차원이라 하자. \(\mathbb{V}_1\)의 정규직교 기저 \(|1\rangle, \ldots, |m\rangle\)을 잡고, 여기에 벡터를 보태며 그람-슈미트를 계속하면 전체 공간의 정규직교 기저 \(|1\rangle, \ldots, |m\rangle, |m+1\rangle, \ldots, |n\rangle\)을 얻는다. 뒤쪽 \(n - m\)개가 바로 \(\mathbb{V}_1^\perp\)의 정규직교 기저다(<a class="ref" href="#prob-complement"></a>). 이제 아무 벡터나 이 기저로 전개하고 앞부분과 뒷부분으로 묶으면</p>
+    <div class="formula" id="eq-decomp">\[ |V\rangle = \underbrace{\sum_{i=1}^{m} |i\rangle\langle i|V\rangle}_{|V_\parallel\rangle \,\in\, \mathbb{V}_1} + \underbrace{\sum_{i=m+1}^{n} |i\rangle\langle i|V\rangle}_{|V_\perp\rangle \,\in\, \mathbb{V}_1^\perp} \]</div>
+    <p>이다. 이 분해는 하나뿐이다. \(|V\rangle = |A\rangle + |B\rangle = |A'\rangle + |B'\rangle\)처럼 두 가지로 나뉜다면(\(|A\rangle, |A'\rangle \in \mathbb{V}_1\), \(|B\rangle, |B'\rangle \in \mathbb{V}_1^\perp\)), \(|A\rangle - |A'\rangle = |B'\rangle - |B\rangle\)는 \(\mathbb{V}_1\)과 \(\mathbb{V}_1^\perp\)에 동시에 속하므로 자기 자신과 직교하고, 따라서 영벡터다.</p>
+    <p>모든 벡터가 이처럼 서로 직교하는 두 부분공간의 원소의 합으로 유일하게 나뉠 때, \(\mathbb{V}\)를 두 부분공간의 <span class="term">직합</span> <span class="en">(direct sum)</span>이라 하고 \(\mathbb{V} = \mathbb{V}_1 \oplus \mathbb{V}_1^\perp\)로 쓴다. 차원은 더해진다: \(n = m + (n - m)\). 일반적인 선형대수에서는 직교하지 않는 부분공간의 직합도 다루지만, 이 책에서 \(\oplus\)는 서로 직교하는 부분공간에만 쓴다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-4--><svg viewBox="0 0 360 220" role="img" aria-label="3차원 벡터 V를 평면 위 성분과 수직선 위 성분으로 나누기"><defs><marker id="f14-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f14-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f14-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><path d="M37.5 202.3 L252.5 202.3 L352.5 132.3 L137.5 132.3 Z" class="f-acc2-soft" stroke-width="1.2"/><line x1="150" y1="208" x2="150" y2="38" class="s-line" stroke-dasharray="6 5"/><line x1="275" y1="83.5" x2="275" y2="158.5" class="s-line" stroke-dasharray="3 4"/><line x1="275" y1="83.5" x2="150" y2="101" class="s-line" stroke-dasharray="3 4"/><line x1="150" y1="176" x2="275" y2="158.5" class="s-acc2" stroke-width="2.8" marker-end="url(#f14-acc2)"/><line x1="150" y1="176" x2="150" y2="101" class="s-acc2" stroke-width="2.8" marker-end="url(#f14-acc2)"/><line x1="150" y1="176" x2="275" y2="83.5" class="s-acc" stroke-width="3.2" marker-end="url(#f14-acc)"/><circle cx="150" cy="176" r="3" class="f-dim"/><text x="283" y="85.5" class="t-math acc" text-anchor="start">|<tspan font-style="italic">V</tspan>⟩</text><text x="283" y="170.5" class="t-math acc2" text-anchor="start">|<tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">∥</tspan>⟩</text><text x="142" y="105" class="t-math acc2" text-anchor="end">|<tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">⊥</tspan>⟩</text><text x="66" y="194" class="t-b" text-anchor="start">𝕍<tspan baseline-shift="sub" font-size="72%">1</tspan> (평면)</text><text x="158" y="50" class="t-b" text-anchor="start">𝕍<tspan baseline-shift="sub" font-size="72%">1</tspan><tspan baseline-shift="super" font-size="72%">⊥</tspan> (직선)</text></svg><!--/fig:1-4--></div>
+      <figcaption><b>그림 1-4.</b> 3차원 공간을 평면 \(\mathbb{V}_1\)과 그에 수직인 직선 \(\mathbb{V}_1^\perp\)로 나누기. 모든 벡터 \(|V\rangle\)는 평면 위의 \(|V_\parallel\rangle\)와 직선 위의 \(|V_\perp\rangle\)의 합으로 단 한 가지 방법으로 나뉜다.</figcaption>
+    </figure>
+
+    <div class="box ex" id="ex-subspace"><div class="box-h">평면과 그 수직선</div>
+      <p>\(\mathbb{R}^3\)에서 평면 \(x + y + z = 0\)을 \(\mathbb{V}_1\)이라 하자.</p>
+      <p><b>(가) 부분공간이다.</b> 두 점의 좌표 합이 각각 0이면 그 합과 상수배의 좌표 합도 0이다.</p>
+      <p><b>(나) 정규직교 기저.</b> 평면 위의 독립인 두 벡터 \(|u_1\rangle \to (1, -1, 0)\), \(|u_2\rangle \to (1, 0, -1)\)에 그람-슈미트를 쓰면 \(|1\rangle \to (1, -1, 0)/\sqrt 2\), \(\langle 1|u_2\rangle = 1/\sqrt 2\), \(|2'\rangle \to (1, 0, -1) - \tfrac12(1, -1, 0) = (\tfrac12, \tfrac12, -1)\), \(|2\rangle \to (1, 1, -2)/\sqrt 6\)이다. 따라서 \(\mathbb{V}_1\)은 2차원이다.</p>
+      <p><b>(다) 직교 여공간.</b> \(\mathbb{V}_1^\perp\)는 \(3 - 2 = 1\)차원이고, \(|1\rangle\)과 \(|2\rangle\)에 모두 직교하는 \(|3\rangle \to (1, 1, 1)/\sqrt 3\)이 기저다.</p>
+      <p><b>(라) 분해.</b> \(|V\rangle \to (3, 0, 0)\)을 나누어 보자. \(\langle 1|V\rangle = 3/\sqrt 2\), \(\langle 2|V\rangle = 3/\sqrt 6\), \(\langle 3|V\rangle = 3/\sqrt 3\)이므로 식 <a class="ref" href="#eq-decomp"></a>에 따라</p>
+      <div class="formula">\[ \begin{aligned} |V_\parallel\rangle &\to \tfrac{3}{\sqrt 2}\cdot\tfrac{1}{\sqrt 2}(1, -1, 0) + \tfrac{3}{\sqrt 6}\cdot\tfrac{1}{\sqrt 6}(1, 1, -2) \\ &= \tfrac32(1, -1, 0) + \tfrac12(1, 1, -2) = (2, -1, -1), \\[4pt] |V_\perp\rangle &\to \tfrac{3}{\sqrt 3}\cdot\tfrac{1}{\sqrt 3}(1, 1, 1) = (1, 1, 1) \end{aligned} \]</div>
+      <p>이다. 둘을 더하면 \((3, 0, 0)\)으로 돌아오고, \((2, -1, -1)\)은 좌표 합이 0이므로 실제로 평면 위에 있다.</p>
+    </div>
+    <div class="callout tip"><strong>앞으로의 쓰임</strong><p>6장에서 측정을 다룰 때, 측정은 상태 벡터를 어떤 부분공간 위로 '투영'하는 일로 표현된다. 식 <a class="ref" href="#eq-decomp"></a>의 \(|V_\parallel\rangle = \sum_{i\le m}|i\rangle\langle i|V\rangle\)가 바로 그 투영이고, 2장에서 이것을 투영 연산자로 정식화한다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>벡터 공간은 덧셈과 스칼라배가 아홉 공리를 만족하는 집합이다. 화살표뿐 아니라 복소수의 열, 행렬, 함수도 벡터다. 판별할 때는 닫힘부터 확인한다.</li>
+      <li>\(n\)차원 공간에서 독립인 벡터 \(n\)개(기저)를 고르면 모든 벡터가 \(|V\rangle = \sum_i v_i|i\rangle\)로 유일하게 전개된다. 성분 \(v_i\)는 기저에 따라 달라진다.</li>
+      <li>복소 내적은 켤레 대칭, 양의 정부호, 오른쪽 선형이다. 그 결과 왼쪽 자리의 계수는 켤레가 되어 나온다: \(\langle aW|V\rangle = a^*\langle W|V\rangle\).</li>
+      <li>정규직교 기저(\(\langle i|j\rangle = \delta_{ij}\))에서 성분은 \(v_i = \langle i|V\rangle\), 내적은 \(\langle V|W\rangle = \sum_i v_i^* w_i\), 노름은 \(\lVert V\rVert^2 = \sum_i |v_i|^2\)이다.</li>
+      <li>슈바르츠 부등식 \(|\langle V|W\rangle| \le \lVert V\rVert\,\lVert W\rVert\)는 9장 불확정성 관계의 뿌리다.</li>
+      <li>그람-슈미트 과정은 앞서 만든 단위 벡터 방향의 성분을 빼고 정규화하기를 반복한다. 그래서 정규직교 기저는 언제나 존재한다.</li>
+      <li>브라 \(\langle V|\)는 켓을 숫자로 보내는 선형 대응이며, 정규직교 기저에서 켤레를 씌운 행이다. 켓을 브라로 옮길 때는 숫자에 켤레를 씌운다: \(a|V\rangle \leftrightarrow a^*\langle V|\).</li>
+      <li>부분공간은 닫힘만 확인하면 된다. 내적 공간은 부분공간과 그 직교 여공간의 직합 \(\mathbb{V} = \mathbb{V}_1 \oplus \mathbb{V}_1^\perp\)로 나뉜다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 다음 중 벡터 공간이 <b>아닌</b> 것은?</p><div class="opts">
+        <button class="opt">2×2 복소 행렬 전체</button>
+        <button class="opt">\(0 \le x \le L\)에서 양 끝 값이 0인 함수 전체</button>
+        <button class="opt" data-correct>\(0 \le x \le L\)에서 양 끝 값이 1인 함수 전체</button>
+        <button class="opt">복소수 세 개의 열 전체 \(\mathbb{C}^3\)</button>
+      </div><div class="quiz-exp">양 끝 값이 1인 두 함수를 더하면 끝 값이 2가 되어 집합 밖으로 나간다. 닫힘이 깨지고, 영함수도 들어 있지 않다.</div></div>
+      <div class="quiz-q"><p>2. \(\langle V|W\rangle = 2 + 3i\)이면 \(\langle W|V\rangle\)는?</p><div class="opts">
+        <button class="opt">\(2 + 3i\)</button>
+        <button class="opt" data-correct>\(2 - 3i\)</button>
+        <button class="opt">\(-2 - 3i\)</button>
+        <button class="opt">\(3 + 2i\)</button>
+      </div><div class="quiz-exp">켤레 대칭 \(\langle W|V\rangle = \langle V|W\rangle^*\)에 따라 허수부의 부호만 바뀐다. 두 자리를 바꾼다고 값이 그대로인 것은 실벡터 공간에서뿐이다.</div></div>
+      <div class="quiz-q"><p>3. 켓 \(|\psi\rangle = 2i|1\rangle + 3|2\rangle\)에 대응하는 브라는?</p><div class="opts">
+        <button class="opt">\(2i\langle 1| + 3\langle 2|\)</button>
+        <button class="opt" data-correct>\(-2i\langle 1| + 3\langle 2|\)</button>
+        <button class="opt">\(2\langle 1| + 3\langle 2|\)</button>
+        <button class="opt">\(-2i\langle 1| - 3\langle 2|\)</button>
+      </div><div class="quiz-exp">켓을 브라로 바꾸고 숫자에는 켤레를 씌운다. \((2i)^* = -2i\)이고, 3은 실수라 그대로다.</div></div>
+      <div class="quiz-q"><p>4. 정규직교 기저 \(\{|i\rangle\}\)에서 \(|V\rangle\)의 \(i\)번째 성분 \(v_i\)는?</p><div class="opts">
+        <button class="opt">\(\langle V|i\rangle\)</button>
+        <button class="opt" data-correct>\(\langle i|V\rangle\)</button>
+        <button class="opt">\(\langle i|i\rangle\)</button>
+        <button class="opt">\(\lVert V\rVert\)</button>
+      </div><div class="quiz-exp">식 <a class="ref" href="#eq-component"></a>에 따라 \(v_i = \langle i|V\rangle\)이다. \(\langle V|i\rangle\)는 그 켤레 \(v_i^*\)이므로, 성분이 복소수일 때는 다른 값이다.</div></div>
+      <div class="quiz-q"><p>5. 그람-슈미트에서 \(|2'\rangle = |u_2\rangle - |1\rangle\langle 1|u_2\rangle\)가 영벡터가 되는 것은 언제인가?</p><div class="opts">
+        <button class="opt">\(|u_2\rangle\)가 \(|u_1\rangle\)과 직교할 때</button>
+        <button class="opt" data-correct>\(|u_2\rangle\)가 \(|u_1\rangle\)의 상수배일 때</button>
+        <button class="opt">\(|u_2\rangle\)가 정규화되어 있을 때</button>
+        <button class="opt">그런 경우는 없다</button>
+      </div><div class="quiz-exp">\(|2'\rangle = 0\)이면 \(|u_2\rangle = |1\rangle\langle 1|u_2\rangle\)로 \(|u_1\rangle\)에 비례한다. 곧 두 벡터가 선형 종속이다. 반대로 직교하면 \(\langle 1|u_2\rangle = 0\)이라 아무것도 빼지 않는다.</div></div>
+      <div class="quiz-q"><p>6. \(\mathbb{R}^3\)에서 평면 \(x + y + z = 1\)은 부분공간인가?</p><div class="opts">
+        <button class="opt">그렇다. 평면이므로 2차원 부분공간이다.</button>
+        <button class="opt" data-correct>아니다. 영벡터를 포함하지 않는다.</button>
+        <button class="opt">스칼라를 실수로 제한하면 부분공간이다.</button>
+      </div><div class="quiz-exp">원점 \((0,0,0)\)은 \(0 + 0 + 0 \neq 1\)이라 평면 위에 없다. 또 평면 위 두 점을 더하면 좌표 합이 2가 되어 평면을 벗어난다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-poly" data-level="1"><p>실수 계수를 가진 2차 이하의 다항식 \(p(x) = a_0 + a_1x + a_2x^2\) 전체가 보통의 덧셈과 실수배에 대해 실벡터 공간임을 보이고, 기저 하나와 차원을 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>2차 이하 다항식 둘의 합과 실수배도 2차 이하 다항식이므로 닫혀 있다. 나머지 공리는 실수의 덧셈과 곱셈의 성질에서 나온다. 영벡터는 \(p(x) = 0\)이다.</p>
+        <p>\(\{1, x, x^2\}\)이 기저다. 모든 다항식이 이들의 선형결합이고, \(a_0 + a_1x + a_2x^2 = 0\)이 모든 \(x\)에서 성립하면 \(x = 0\)을 넣어 \(a_0 = 0\), 한 번 미분하고 \(x = 0\)을 넣어 \(a_1 = 0\), 두 번 미분해 \(a_2 = 0\)이므로 독립이다. 다항식을 계수의 세 쌍 \((a_0, a_1, a_2)\)로 보면 계산이 \(\mathbb{R}^3\)과 똑같으므로 독립인 벡터는 최대 3개다. 미지수 4개, 방정식 3개인 동차 연립방정식은 언제나 0이 아닌 해를 가지기 때문이다. 따라서 3차원이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-which" data-level="1"><p>다음 집합이 주어진 스칼라에 대해 벡터 공간인지 판별하라. (가) 성분의 합이 0인 \(\mathbb{C}^3\)의 벡터, 스칼라는 복소수 (나) 성분의 합이 1인 \(\mathbb{C}^3\)의 벡터, 스칼라는 복소수 (다) 첫 성분이 실수인 \(\mathbb{C}^2\)의 벡터, 스칼라는 복소수 (라) (다)와 같은 집합, 스칼라는 실수</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 그렇다. 합과 복소수배의 성분 합도 0이므로 닫혀 있다. \(\mathbb{C}^3\)의 부분공간이다.</p>
+        <p>(나) 아니다. 두 벡터를 더하면 성분 합이 2가 된다. 영벡터도 없다.</p>
+        <p>(다) 아니다. \((1, 0)\)에 \(i\)를 곱하면 \((i, 0)\)이 되어 첫 성분이 실수가 아니다.</p>
+        <p>(라) 그렇다. 실수를 곱하거나 더해도 첫 성분은 실수로 남는다. 첫 성분(실수 하나)과 둘째 성분(실수부와 허수부)을 합쳐 3차원 실벡터 공간이며, \((1, 0), (0, 1), (0, i)\)가 기저다. 같은 집합이라도 스칼라를 무엇으로 하느냐에 따라 벡터 공간인지가 달라진다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-inner" data-level="1"><p>정규직교 기저에서 \(|V\rangle \to (1 + i, 2)\), \(|W\rangle \to (i, 1 - i)\)일 때 \(\langle V|W\rangle\), \(\langle W|V\rangle\), \(\lVert V\rVert\), \(\lVert W\rVert\)를 구하고 슈바르츠 부등식을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\langle V|W\rangle = (1+i)^*\, i + 2^*(1 - i) = (1 - i)\,i + 2 - 2i = i + 1 + 2 - 2i = 3 - i\), \(\langle W|V\rangle = 3 + i\).</p>
+        <p>\(\lVert V\rVert^2 = |1+i|^2 + |2|^2 = 2 + 4 = 6\), \(\lVert W\rVert^2 = |i|^2 + |1-i|^2 = 1 + 2 = 3\)이므로 \(\lVert V\rVert = \sqrt 6\), \(\lVert W\rVert = \sqrt 3\).</p>
+        <p>\(|\langle V|W\rangle| = \sqrt{10} \approx 3.16 \le \sqrt{18} \approx 4.24\)로 부등식이 성립한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-bra" data-level="1"><p>정규직교 기저에서 \(|\psi\rangle = (1 + i)|1\rangle - 2i|2\rangle + 3|3\rangle\), \(|\phi\rangle = |1\rangle + i|3\rangle\)이다. \(\langle\psi|\), \(\lVert\psi\rVert\), \(\langle\psi|\phi\rangle\), \(\langle\phi|\psi\rangle\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\langle\psi| = (1 - i)\langle 1| + 2i\langle 2| + 3\langle 3|\).</p>
+        <p>\(\lVert\psi\rVert^2 = |1+i|^2 + |-2i|^2 + |3|^2 = 2 + 4 + 9 = 15\)이므로 \(\lVert\psi\rVert = \sqrt{15}\).</p>
+        <p>\(\langle\psi|\phi\rangle = (1 - i)\cdot 1 + 3\cdot i = 1 + 2i\). \(\langle\phi| = \langle 1| - i\langle 3|\)이므로 \(\langle\phi|\psi\rangle = (1 + i) + (-i)\cdot 3 = 1 - 2i\)로, 앞의 값의 켤레다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-parallelogram" data-level="1"><p>임의의 두 벡터에 대해 \(\lVert V + W\rVert^2 + \lVert V - W\rVert^2 = 2\lVert V\rVert^2 + 2\lVert W\rVert^2\)임을 보여라. 화살표에서 이 식은 무엇을 말하는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\lVert V \pm W\rVert^2 = \lVert V\rVert^2 \pm \big(\langle V|W\rangle + \langle W|V\rangle\big) + \lVert W\rVert^2\)이다. 두 식을 더하면 괄호 항이 지워져 원하는 식이 된다. 평행사변형의 두 대각선 길이의 제곱의 합이 네 변 길이의 제곱의 합과 같다는 '평행사변형 법칙'이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-gs-r3" data-level="2"><p>\(\mathbb{R}^3\)의 \(|u_1\rangle \to (1, 1, 0)\), \(|u_2\rangle \to (1, 0, 1)\), \(|u_3\rangle \to (0, 1, 1)\)에 그람-슈미트 과정을 적용하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(|1\rangle \to (1, 1, 0)/\sqrt 2\).</p>
+        <p>\(\langle 1|u_2\rangle = 1/\sqrt 2\)이므로 \(|2'\rangle \to (1, 0, 1) - \tfrac12(1, 1, 0) = (\tfrac12, -\tfrac12, 1)\), \(\lVert 2'\rVert^2 = \tfrac32\), \(|2\rangle \to (1, -1, 2)/\sqrt 6\).</p>
+        <p>\(\langle 1|u_3\rangle = 1/\sqrt 2\), \(\langle 2|u_3\rangle = (0 - 1 + 2)/\sqrt 6 = 1/\sqrt 6\)이므로 \(|3'\rangle \to (0, 1, 1) - \tfrac12(1, 1, 0) - \tfrac16(1, -1, 2) = (-\tfrac23, \tfrac23, \tfrac23)\), \(\lVert 3'\rVert^2 = \tfrac43\), \(|3\rangle \to (-1, 1, 1)/\sqrt 3\).</p>
+        <p>검산: 세 쌍의 내적이 모두 0이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-gs-c2" data-level="2"><p>\(\mathbb{C}^2\)의 \(|u_1\rangle \to (1, i)\), \(|u_2\rangle \to (i, 2)\)로 정규직교 기저를 만들어라. 다음으로, \(\langle 1|u_2\rangle\)를 계산할 때 켤레를 빠뜨리면 어떤 벡터가 나오는지 구하고, 그 벡터가 \(|1\rangle\)과 직교하지 않음을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(|1\rangle \to (1, i)/\sqrt 2\). \(\langle 1|u_2\rangle = \tfrac{1}{\sqrt 2}\big(1\cdot i + (-i)\cdot 2\big) = -\tfrac{i}{\sqrt 2}\)이므로</p>
+        <div class="formula">\[ \begin{aligned} |2'\rangle &\to (i, 2) - \left(-\tfrac{i}{\sqrt 2}\right)\tfrac{1}{\sqrt 2}(1, i) \\ &= (i, 2) + \tfrac{i}{2}(1, i) = \left(\tfrac{3i}{2}, \tfrac32\right) \end{aligned} \]</div>
+        <p>이고 \(\lVert 2'\rVert^2 = \tfrac92\), \(|2\rangle \to (i, 1)/\sqrt 2\)이다. 검산: \(\langle 1|2\rangle = \tfrac12\big(1\cdot i + (-i)\cdot 1\big) = 0\).</p>
+        <p>켤레를 빠뜨리면 계수가 \(\tfrac{1}{\sqrt 2}(1\cdot i + i\cdot 2) = \tfrac{3i}{\sqrt 2}\)가 되어 \((i, 2) - \tfrac{3i}{2}(1, i) = (-\tfrac{i}{2}, \tfrac72)\)를 얻는다. 이것과 \(|1\rangle\)의 (올바른) 내적은 \(\tfrac{1}{\sqrt 2}\big(1\cdot(-\tfrac{i}{2}) + (-i)\tfrac72\big) = -\tfrac{4i}{\sqrt 2} \neq 0\)이므로 직교하지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-matrix-ip" data-level="2"><p>2×2 복소 행렬 공간에서 \(\langle A|B\rangle = \mathrm{Tr}(A^\dagger B)\)로 정의하자. \(A^\dagger\)는 \(A\)의 켤레 전치, \(\mathrm{Tr}\)은 대각합이다. (가) 이것이 내적의 세 성질을 만족함을 보여라. (나) 예제 <a class="ref" href="#ex-pauli"></a>의 \(I, \sigma_x, \sigma_y, \sigma_z\)가 서로 직교하고 각각의 노름이 \(\sqrt 2\)임을 보여라. (다) 예제의 성분 \(c_\mu\)를 내적으로 구하는 공식을 써라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\mathrm{Tr}(A^\dagger B) = \sum_i\sum_j (A^\dagger)_{ij} B_{ji} = \sum_{i,j} A_{ji}^* B_{ji}\)이다. 행렬 원소 네 개를 \(\mathbb{C}^4\)의 성분처럼 늘어놓고 계산한 보통의 내적(식 <a class="ref" href="#eq-inner-components"></a>)과 같으므로, 세 성질이 그대로 성립한다.</p>
+        <p>(나) 네 행렬은 모두 크기가 1인 원소를 정확히 두 개 가지므로 노름의 제곱은 \(1 + 1 = 2\)이다. 0이 아닌 원소의 자리가 겹치는 쌍은 \((I, \sigma_z)\)와 \((\sigma_x, \sigma_y)\)뿐이고, \(\langle I|\sigma_z\rangle = 1\cdot 1 + 1\cdot(-1) = 0\), \(\langle\sigma_x|\sigma_y\rangle = 1\cdot(-i) + 1\cdot i = 0\)이다. 나머지 쌍은 겹치는 자리가 없어 내적이 0이다.</p>
+        <p>(다) 서로 직교하므로 \(M = \sum_\mu c_\mu\sigma_\mu\)와 \(\sigma_\nu\)의 내적을 취하면 \(\langle\sigma_\nu|M\rangle = c_\nu\langle\sigma_\nu|\sigma_\nu\rangle = 2c_\nu\)이다(\(\sigma_0 = I\)). 따라서 \(c_\mu = \tfrac12\mathrm{Tr}(\sigma_\mu^\dagger M) = \tfrac12\mathrm{Tr}(\sigma_\mu M)\)이다(네 행렬 모두 \(\sigma_\mu^\dagger = \sigma_\mu\)). 예를 들어 \(c_0 = \tfrac12\mathrm{Tr} M = \tfrac{a+d}{2}\)로 예제와 같다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-polarization" data-level="2"><p>내적은 노름만으로 완전히 정해진다. 다음 <span class="term">편극 항등식</span>을 보여라.</p>
+      <div class="formula">\[ \begin{aligned} \langle V|W\rangle = \tfrac14\Big(&\lVert V + W\rVert^2 - \lVert V - W\rVert^2 \\ &- i\,\lVert V + iW\rVert^2 + i\,\lVert V - iW\rVert^2\Big) \end{aligned} \]</div>
+      <details class="sol"><summary>풀이</summary>
+        <p>복소수 \(c\)에 대해 \(\lVert V + cW\rVert^2 = \lVert V\rVert^2 + c\langle V|W\rangle + c^*\langle W|V\rangle + |c|^2\lVert W\rVert^2\)이다. \(c = 1, -1, i, -i\)를 넣고 \(N = \lVert V\rVert^2 + \lVert W\rVert^2\)로 두면</p>
+        <div class="formula">\[ \begin{aligned} \lVert V \pm W\rVert^2 &= N \pm \big(\langle V|W\rangle + \langle W|V\rangle\big), \\ \lVert V \pm iW\rVert^2 &= N \pm i\big(\langle V|W\rangle - \langle W|V\rangle\big) \end{aligned} \]</div>
+        <p>이다. 따라서 \(\lVert V+W\rVert^2 - \lVert V-W\rVert^2 = 2\langle V|W\rangle + 2\langle W|V\rangle\)이고, \(-i\lVert V+iW\rVert^2 + i\lVert V-iW\rVert^2 = -i\cdot 2i\big(\langle V|W\rangle - \langle W|V\rangle\big) = 2\langle V|W\rangle - 2\langle W|V\rangle\)이다. 둘을 더하면 \(4\langle V|W\rangle\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-schwarz-eq" data-level="2"><p>\(|V\rangle \neq 0\)이고 \(\langle V|W\rangle = \lVert V\rVert\,\lVert W\rVert\)(절댓값 없이 등호)이면 \(|W\rangle = c|V\rangle\)이고 \(c\)가 0 이상의 실수임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(|\langle V|W\rangle| = \lVert V\rVert\,\lVert W\rVert\)이므로 정리 <a class="ref" href="#thm-schwarz"></a>의 등호 조건에 따라 두 벡터는 서로의 상수배이고, \(|V\rangle \neq 0\)이므로 \(|W\rangle = c|V\rangle\)로 쓸 수 있다. 그러면 \(\langle V|W\rangle = c\lVert V\rVert^2\), \(\lVert V\rVert\,\lVert W\rVert = |c|\,\lVert V\rVert^2\)이다. 둘이 같으므로 \(c = |c|\), 곧 \(c\)는 0 이상의 실수다. 화살표로 말하면 두 벡터가 같은 방향을 향할 때다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-complement" data-level="3"><p>\(\mathbb{V}\)가 \(n\)차원 내적 공간이고 \(\mathbb{V}_1\)이 \(m\)차원 부분공간일 때, \(\mathbb{V}_1^\perp\)의 차원이 \(n - m\)임을 보여라. (힌트: \(\mathbb{V}_1\)의 정규직교 기저를 전체 공간의 정규직교 기저로 넓혀라.)</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\mathbb{V}_1\)의 정규직교 기저 \(|1\rangle, \ldots, |m\rangle\)을 잡는다(정리 <a class="ref" href="#thm-gs"></a>). \(m &lt; n\)이면 차원이 \(n\)이므로 이 벡터들의 선형결합이 아닌 벡터 \(|u\rangle\)가 있다. \(|u\rangle\)에 그람-슈미트 한 단계(식 <a class="ref" href="#eq-gs"></a>)를 적용하면 앞의 \(m\)개와 직교하는 단위 벡터 \(|m+1\rangle\)을 얻는다. 이를 반복해 정규직교 기저 \(|1\rangle, \ldots, |n\rangle\)을 만든다.</p>
+        <p>이제 \(\mathbb{V}_1^\perp\)가 \(|m+1\rangle, \ldots, |n\rangle\)이 생성하는 부분공간과 같음을 보인다. 이 벡터들은 \(|1\rangle, \ldots, |m\rangle\)과 직교하므로 그 선형결합은 \(\mathbb{V}_1\)의 모든 벡터와 직교한다. 거꾸로 \(|W\rangle \in \mathbb{V}_1^\perp\)이면 \(i \le m\)에서 \(\langle i|W\rangle = 0\)이므로 식 <a class="ref" href="#eq-expansion-ip"></a>에서 \(|W\rangle = \sum_{i>m}|i\rangle\langle i|W\rangle\)이다. 따라서 \(\mathbb{V}_1^\perp\)는 정규직교(따라서 독립)인 \(n - m\)개의 벡터가 생성하고, 차원은 \(n - m\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-legendre" data-level="3"><p>구간 \(-1 \le x \le 1\)의 실함수에 대해 내적을 \(\langle f|g\rangle = \int_{-1}^{1} f(x)\,g(x)\,dx\)로 정의한다. 함수 \(1, x, x^2\)에 그람-슈미트 과정을 적용하고, 결과를 르장드르 다항식 \(P_0 = 1\), \(P_1 = x\), \(P_2 = (3x^2 - 1)/2\)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\lVert 1\rVert^2 = 2\)이므로 \(e_0 = 1/\sqrt 2\). \(\langle e_0|x\rangle = 0\)(홀함수의 적분)이므로 \(x\)는 그대로 두고 \(\lVert x\rVert^2 = 2/3\)로 나누어 \(e_1 = \sqrt{3/2}\,x\).</p>
+        <p>\(\langle e_0|x^2\rangle = \tfrac{1}{\sqrt 2}\cdot\tfrac23 = \tfrac{\sqrt 2}{3}\), \(\langle e_1|x^2\rangle = 0\)(홀함수)이므로 \(x^2 - e_0\cdot\tfrac{\sqrt 2}{3} = x^2 - \tfrac13\)이다. \(\lVert x^2 - \tfrac13\rVert^2 = \int_{-1}^{1}\big(x^4 - \tfrac23 x^2 + \tfrac19\big)dx = \tfrac25 - \tfrac49 + \tfrac29 = \tfrac{8}{45}\)이므로 \(e_2 = \sqrt{45/8}\,\big(x^2 - \tfrac13\big) = \sqrt{5/8}\,(3x^2 - 1)\).</p>
+        <p>세 함수는 \(e_\ell = \sqrt{(2\ell + 1)/2}\;P_\ell\)로, 르장드르 다항식에 상수를 곱한 것이다. 르장드르 다항식은 14장에서 구면 조화 함수를 만들 때 다시 나온다. 함수를 벡터로 보는 이 관점이 3장의 출발점이다.</p>
+      </details>
+    </div>
   </section>
 </main>
 </body>
