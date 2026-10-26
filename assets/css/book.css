@@ -124,6 +124,7 @@ th { background: var(--surface); font-weight: 700; font-size: 14px; white-space:
 tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 tr.best td { background: var(--accent-soft); font-weight: 700; }
+td .note { margin-top: 3px; font-size: 13.5px; color: var(--text-dim); }
 /* 열이 많은 표: 줄바꿈 없이 가로 스크롤 */
 table.nowrap th, table.nowrap td { white-space: nowrap; padding: 9px 12px; font-size: 14px; }
 pre .copy { position: absolute; top: 8px; right: 8px; font: 11px var(--mono); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-elev); color: var(--text-dim); cursor: pointer; opacity: 0; transition: opacity .15s; }
@@ -163,6 +164,38 @@ pre:hover .copy, pre .copy:focus { opacity: 1; }
 .ls-pager a:hover { border-color: var(--accent); text-decoration: none; }
 .ls-pager small { display: block; color: var(--text-faint); font-size: 12px; }
 .ls-pager .next { text-align: right; grid-column: 2; }
+
+/* ------------------------------------------------------------------ 교과서 전용 (정의·정리·예제·수학 상자, 증명·풀이 접기, 연습문제) */
+.prereq { font-size: 15px; color: var(--text-dim); margin: 14px 0 0 !important; }
+.prereq b { color: var(--text); margin-right: 8px; }
+.box { margin: 24px 0; padding: 16px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--bg-elev); }
+.box > p:last-child, .box > :last-child { margin-bottom: 0; }
+.box-h { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-weight: 700; margin-bottom: 8px; }
+.box-n { font-family: var(--mono); font-size: 12.5px; font-weight: 700; padding: 1px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.box.thm { border-left-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--bg-elev)); }
+.box.thm .box-n { background: var(--accent-2-soft); color: var(--accent-2); }
+.box.ex { border-left-color: var(--ok); }
+.box.ex .box-n { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.box.math { border: 1.5px dashed color-mix(in srgb, var(--text-faint) 80%, transparent); background: var(--surface); }
+.box.math .box-n { background: var(--bg-elev); color: var(--text-dim); border: 1px solid var(--border); }
+details.proof, details.sol { margin: 14px 0; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.box details.proof, .box details.sol { background: var(--bg); }
+details.proof > summary, details.sol > summary { cursor: pointer; padding: 9px 0; font-weight: 700; font-size: 15px; color: var(--text-dim); }
+details.proof[open] > summary, details.sol[open] > summary { border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+details.proof[open]::after { content: "∎"; display: block; text-align: right; color: var(--text-dim); margin: -6px 0 10px; }
+details.sol[open] { padding-bottom: 4px; }
+.exercises .prob { margin: 18px 0; padding: 16px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-elev); }
+.prob-n { display: block; margin-bottom: 6px; font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent); }
+.prob-n .lv { color: var(--warn); letter-spacing: .05em; font-family: var(--font); font-weight: 400; }
+.katex .tag { color: var(--text-dim); }
+/* 부(part)로 묶은 목차: 책 홈 카드 그리드와 서랍 */
+.ch-grid.by-part .part-row { grid-column: 1 / -1; display: flex; gap: 14px; align-items: baseline; margin: 22px 0 -4px; padding-top: 18px; border-top: 1px solid var(--border); }
+.ch-grid.by-part .part-row:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.part-row .part-n { flex: none; font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent); padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); }
+.part-row h3 { margin: 0; font-size: 19px; }
+.part-row p { margin: 2px 0 0; color: var(--text-dim); font-size: 14.5px; }
+.ls-chlist .part-h { margin: 14px 10px 4px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--accent); }
+.ls-chlist .part-h:first-child { margin-top: 0; }
 
 /* ------------------------------------------------------------------ 논문 리뷰 전용 */
 .paper-card { margin: 26px 0 0; padding: 18px 20px; border-radius: var(--radius); background: var(--bg-elev); border: 1px solid var(--border); display: grid; gap: 10px; }

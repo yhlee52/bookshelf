@@ -4,7 +4,7 @@
 빌드 도구 없이 HTML · CSS · JavaScript 파일만으로 동작하므로 GitHub Pages에 그대로 올리면 됩니다.
 
 - 서재(허브): 홈 · 전체 책장 · 실험실(모든 실험 모음) · 실험 크게 보기
-- 책 3권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), 움직이는 물리학(챕터 슬롯 8개)
+- 책 4권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), 움직이는 물리학(챕터 슬롯 8개), 차근차근 양자역학(이론서, 6부 23장)
 - 집필 예정 책 2권: 물리 × 딥러닝, 딥러닝 기초 (표지만 있고 페이지는 없음)
 - 인터랙티브 실험 34개 (2D 캔버스 + 3D three.js), 책별 3D 첫 화면, 밝은/어두운 테마, 통합 검색
 
@@ -117,8 +117,10 @@ books/
   paper-review/         딥러닝 논문 리뷰  (index.html + chapters/p01~p06.html)
   timeseries-dl/        시계열 딥러닝     (index.html + chapters/ch01~ch08.html)
   physics/              움직이는 물리학   (index.html + chapters/ch01~ch08.html)
+  quantum/              차근차근 양자역학 (index.html + chapters/ch01~ch23.html + GUIDE.md 집필 가이드)
 templates/
-  chapter.html          새 교과서형 챕터 틀
+  chapter.html          새 교과서형 챕터 틀 (실험 중심 책)
+  textbook.html         새 이론서 장 틀 (정의·정리·예제·연습문제, 자동 번호)
   paper.html            새 논문 리뷰 틀
 assets/
   css/base.css          공통 디자인 (색·글꼴·실험 카드·표지)
@@ -187,6 +189,9 @@ assets/
 | 꺾은선 차트 | 위와 같고 `"type":"line"` |
 | 리뷰 평가 레이더 | `<div data-radar='{"신규성":4,"명확성":3,"재현성":2}' data-max="5"></div>` |
 | 강조 상자 | `<div class="callout tip"><strong>제목</strong><p>…</p></div>` (`tip` · `warn` · `deep`) |
+| 정의·정리·예제·수학 상자 (이론서) | `<div class="box def" id="def-…"><div class="box-h">이름</div>…</div>` (`def` · `thm` · `ex` · `math`, 번호 자동) |
+| 번호 식과 참조 (이론서) | `<div class="formula" id="eq-…">\[ … \]</div>`, 참조는 `<a class="ref" href="#eq-…"></a>` |
+| 증명·풀이 접기, 연습문제 | `<details class="proof">`, `<div class="prob" data-level="2">…<details class="sol">…</details></div>` — `templates/textbook.html` 참고 |
 | 퀴즈 | 챕터 맨 아래 예시 참고 — 정답 보기에 `data-correct` |
 | 그림 | `<figure class="diagram"><svg viewBox="0 0 800 300">…</svg><figcaption>…</figcaption></figure>` |
 
@@ -231,5 +236,5 @@ Lab.register({
 
 - 사이트 이름·소개·저자·GitHub 주소: `data/site.js`
 - 분야 색: `data/books.js`의 `fields[].color` (표지·칩) + `assets/css/base.css`의 `body[data-field]` (책 페이지 강조색)
-- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
+- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `levels` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
 - 서재 색(종이·책장): `assets/css/shelf.css` 맨 위

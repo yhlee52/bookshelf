@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>00 새 장 제목 · Series</title>
+<meta name="description" content="장 설명">
+<link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../../../assets/css/base.css">
+<link rel="stylesheet" href="../../../assets/css/book.css">
+<script defer src="../../../data/site.js"></script>
+<script defer src="../../../data/books.js"></script>
+<script defer src="../../../assets/js/viz.js"></script>
+<script defer src="../../../assets/js/core.js"></script>
+<script defer src="../../../assets/js/lab.js"></script>
+<script defer src="../../../assets/sims/dl.js"></script>
+<script defer src="../../../assets/sims/ts.js"></script>
+<script defer src="../../../assets/sims/phys.js"></script>
+<script defer src="../../../assets/js/widgets.js"></script>
+<script defer src="../../../assets/js/book.js"></script>
+</head>
+<body data-root="../../../" data-book="여기에-책-id" data-field="phys" data-chapter="여기에-챕터-slug">
+<!--
+  ✎ 교과서형 장 틀 (이론서용). 집필 규칙은 books/quantum/GUIDE.md에 있습니다.
+  순서: 머리(리드 · 학습 목표 · 선수 지식) → 절 n.1 … n.k → 핵심 정리 → 확인 퀴즈 → 연습문제
+  - 절 하나 = <section id="s1"><h2>절 제목</h2> … </section>. 절 번호(1.1, 1.2 …)는 자동으로 붙는다
+  - 소제목: <h3 id="…">. id가 있으면 오른쪽 목차에 들여 표시된다
+  - 정의·정리·예제·수학 상자: <div class="box def|thm|ex|math" id="def-…"><div class="box-h">이름</div> … </div>
+      → "정의 1.2"처럼 종류별 번호가 자동으로 붙는다
+  - 증명 접기:   <details class="proof"><summary>증명</summary> … </details>
+  - 번호 식:     <div class="formula" id="eq-…">\[ … \]</div> → (1.3). 번호가 필요 없으면 id를 뺀다
+  - 참조:        <a class="ref" href="#eq-…"></a> → "(1.3)" · "정의 1.2" · "문제 1.4"로 채워진다
+                 다른 장은 <a href="ch02.html#thm-…">정리 2.1</a>처럼 직접 쓴다
+  - 연습문제:    <div class="prob" id="prob-…" data-level="1|2|3"><p>…</p><details class="sol"><summary>풀이</summary>…</details></div>
+  - 콜아웃:      <div class="callout tip|warn|deep"><strong>제목</strong><p>…</p></div>  (tip 직관 · warn 흔한 실수 · deep 심화)
+  - 그림:        <figure class="diagram"><svg viewBox="0 0 800 300">…</svg><figcaption><b>그림 1-1.</b> …</figcaption></figure>
+  - 실험:        <div data-sim="실험-id"></div>  (이해에 꼭 필요한 곳에만)
+  - 수식(KaTeX): 인라인 \( … \), 블록 \[ … \]
+-->
+<!-- 이 파일을 books/<책-id>/chapters/<slug>.html 로 복사한 뒤 body의 data-book, data-field, data-chapter를 바꾸고 data/books.js에 장을 추가하세요. -->
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter <span data-fill="chapter-num">00</span></div>
+    <h1 data-fill="chapter-title">새 장 제목</h1>
+    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다. 앞 장과 어떻게 이어지는지도 한 문장.</p>
+    <ul class="objectives">
+      <li class="slot" data-slot="학습 목표">"…을 유도할 수 있다", "…을 계산할 수 있다" 꼴로 적습니다.</li>
+      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
+      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+    </ul>
+    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">예: 1장 (내적), 2장 (에르미트 연산자)</span></p>
+  </header>
+
+  <section id="s1">
+    <h2>절 제목</h2>
+    <p class="slot" data-slot="동기">이 절이 왜 필요한지, 무엇을 얻게 되는지로 시작합니다.</p>
+    <div class="box def" id="def-example"><div class="box-h">정의할 대상</div><p class="slot" data-slot="정의">정의 문장. 새 용어는 <span class="term">용어</span> <span class="en">(English term)</span>처럼 적습니다.</p></div>
+    <div class="formula" id="eq-example">\[ \langle \phi|\psi\rangle = \sum_i \phi_i^{*}\,\psi_i \]<div class="where">번호가 붙은 식의 예시입니다. 기호 설명은 이 줄에 적습니다.</div></div>
+    <p>번호가 붙은 식은 식 <a class="ref" href="#eq-example"></a>처럼, 정의는 <a class="ref" href="#def-example"></a>처럼 참조합니다.</p>
+    <div class="box thm" id="thm-example"><div class="box-h">정리 이름</div><p class="slot" data-slot="정리">정리의 내용.</p>
+      <details class="proof"><summary>증명</summary><p class="slot" data-slot="증명">곁가지 증명은 접어 둡니다. 장의 중심 유도는 접지 않고 본문에 씁니다.</p></details>
+    </div>
+    <div class="box ex" id="ex-example"><div class="box-h">예제 제목</div><p class="slot" data-slot="예제">문제를 적고, 바로 아래에 풀이를 펼쳐 둡니다.</p></div>
+    <div class="box math" id="math-example"><div class="box-h">수학 도구 이름</div><p class="slot" data-slot="수학 상자">이 장에서 처음 쓰는 수학 도구를 설명합니다. 아는 독자는 건너뛸 수 있게 본문 흐름과 독립적으로 씁니다.</p></div>
+    <div class="callout warn"><strong>흔한 실수</strong><p class="slot" data-slot="콜아웃">자주 틀리는 부호, 관례 차이 등을 적습니다.</p></div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li class="slot" data-slot="요점">요점 1</li>
+      <li class="slot" data-slot="요점">요점 2</li>
+      <li class="slot" data-slot="요점">요점 3</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. (퀴즈 슬롯) 질문을 적으세요. 정답 보기에는 <code>data-correct</code> 속성을 붙입니다.</p><div class="opts">
+        <button class="opt">보기 A</button>
+        <button class="opt" data-correct>보기 B (정답 예시)</button>
+        <button class="opt">보기 C</button>
+      </div><div class="quiz-exp">해설 슬롯 — 왜 이것이 정답인지 설명하세요.</div></div>
+    </div>
+  </section>
+
+  <section class="exercises" id="exercises">
+    <h2>연습문제</h2>
+    <div class="prob" id="prob-example" data-level="1"><p class="slot" data-slot="문제">문제. 난이도는 data-level 1~3 (★)으로 표시합니다.</p>
+      <details class="sol"><summary>풀이</summary><p class="slot" data-slot="풀이">풀이는 접어 둡니다.</p></details>
+    </div>
+  </section>
+</main>
+</body>
+</html>

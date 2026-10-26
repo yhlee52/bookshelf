@@ -3,6 +3,7 @@
      <div class="hero-stage" data-hero="network"></div>   3D 신경망 + 신호 펄스 (논문 리뷰)
      <div class="hero-stage" data-hero="ribbons"></div>   3D 시계열 폭포 (시계열)
      <div class="hero-stage" data-hero="orbits"></div>    3D 행성 궤도 (물리)
+     <div class="hero-stage" data-hero="orbital"></div>   3D 수소 오비탈 전자 구름 (양자역학)
      <canvas class="bg" data-hero="flow"></canvas>         2D 흐름장 입자 (서재 홈 배경)
    three.js를 못 불러오면 조용히 안내 문구만 남긴다.
    ========================================================================== */
@@ -144,6 +145,39 @@
     }).catch(() => fail(el));
   }
 
+  /* ------------------------------------------------------------ 수소 오비탈 (양자역학) */
+  // 3d_z² 오비탈 ψ ∝ e^{-r/3}(2z² − x² − y²) (보어 반지름 단위)의 |ψ|²에서 기각 표집한 점 구름. 색은 ψ의 부호
+  function orbital(el) {
+    VZ.three(el, { camera: [7, 4.5, 8], target: [0, 0, 0], fov: 40, autoRotate: !reduced, autoRotateSpeed: 0.5, pan: false, minDistance: 5, maxDistance: 24 }).then((T) => {
+      const { THREE, scene } = T;
+      const psi = (x, y, z) => Math.exp(-Math.hypot(x, y, z) / 3) * (2 * z * z - x * x - y * y);
+      const L = 22, N = 6000, S = 0.16;  // 표집 상자 [-L, L]³, 점 개수, 장면 축척
+      let max = 0;
+      for (let i = 0; i < 40000; i++) { const z = (Math.random() * 2 - 1) * L, v = psi(0, 0, z); max = Math.max(max, v * v); }
+      const pos = [], sign = [];
+      while (pos.length < N * 3) {
+        const x = (Math.random() * 2 - 1) * L, y = (Math.random() * 2 - 1) * L, z = (Math.random() * 2 - 1) * L, v = psi(x, y, z);
+        if (Math.random() * max < v * v) { pos.push(x * S, z * S, y * S); sign.push(v > 0); }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      const col = new Float32Array(N * 3);
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      const mat = new THREE.PointsMaterial({ size: 0.07, vertexColors: true, transparent: true, opacity: 0.75, depthWrite: false });
+      scene.add(new THREE.Points(geo, mat));
+      const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), new THREE.MeshBasicMaterial({ color: hexOf("text") }));
+      scene.add(nucleus);
+      const paint = () => {
+        const a = hexOf("accent"), b = hexOf("accent-2");
+        sign.forEach((s, i) => (s ? a : b).toArray(col, i * 3));
+        geo.attributes.color.needsUpdate = true;
+        nucleus.material.color = hexOf("text");
+      };
+      paint();
+      window.addEventListener("ls:theme", () => requestAnimationFrame(paint));
+    }).catch(() => fail(el));
+  }
+
   /* ------------------------------------------------------------ 2D 흐름장 (서재 배경) */
   function flow(canvas) {
     const ctx = canvas.getContext("2d");
@@ -183,7 +217,7 @@
     VZ.loop(canvas, frame);
   }
 
-  const HEROES = { network, ribbons, orbits, flow };
+  const HEROES = { network, ribbons, orbits, orbital, flow };
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-hero]").forEach((el) => {
       const fn = HEROES[el.dataset.hero];

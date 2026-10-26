@@ -69,6 +69,22 @@
       pts.flat().forEach((p, i) => (s += `<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="${W}"${i % 3 === 0 ? ` class="cv-pulse" style="animation-delay:${(i * 0.13).toFixed(2)}s"` : ""}/>`));
       return svg(s);
     },
+    // 조화 진동자 퍼텐셜 우물과 에너지 준위, 각 준위 위의 고유함수 ψ_n (에르미트 함수)
+    levels() {
+      const X = (x) => 100 + x * 21, Y = (E) => 120 - E * 26;
+      let d = "";
+      for (let x = -4.2; x <= 4.21; x += 0.1) d += (d ? "L" : "M") + X(x).toFixed(1) + " " + Math.max(4, Y((x * x) / 2)).toFixed(1);
+      let s = `<path d="${d}" fill="none" stroke="${W}" stroke-width="2" stroke-opacity=".55"/>`;
+      const herm = (n, x) => { let a = 1, b = 2 * x; if (n === 0) return a; for (let k = 1; k < n; k++) [a, b] = [b, 2 * x * b - 2 * k * a]; return b; };
+      range(4).forEach((n) => {
+        const E = n + 0.5, xt = Math.sqrt(2 * E), pts = [];
+        for (let x = -4; x <= 4.01; x += 0.08) pts.push([x, herm(n, x) * Math.exp((-x * x) / 2)]);
+        const m = Math.max(...pts.map((p) => Math.abs(p[1])));
+        s += `<line x1="${X(-xt).toFixed(1)}" y1="${Y(E)}" x2="${X(xt).toFixed(1)}" y2="${Y(E)}" stroke="${W}" stroke-opacity=".4" stroke-dasharray="3 3"/>`;
+        s += `<path d="${pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + (Y(E) - (p[1] / m) * 10).toFixed(1)).join("")}" fill="none" stroke="${W}" stroke-width="1.8"${n === 2 ? ' class="cv-pulse"' : ""}/>`;
+      });
+      return svg(s);
+    },
     // 빈 책: 점선 사각형과 +
     blank() {
       return svg(`<rect x="60" y="20" width="80" height="90" rx="8" fill="none" stroke="${W}" stroke-opacity=".6" stroke-dasharray="5 5"/><path d="M100 48v34M83 65h34" stroke="${W}" stroke-width="3" stroke-linecap="round"/>`);
