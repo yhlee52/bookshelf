@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuantumBook · 차근차근 양자역학</title>
+<meta name="description" content="샨카의 양자역학 교과서 순서를 따라, 필요한 수학부터 공준, 1차원 문제, 각운동량, 근사법, 산란까지 한 절씩 유도하며 쌓아 가는 이론서입니다.">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../../assets/css/base.css">
+<link rel="stylesheet" href="../../assets/css/book.css">
+<script defer src="../../data/site.js"></script>
+<script defer src="../../data/books.js"></script>
+<script defer src="../../assets/js/viz.js"></script>
+<script defer src="../../assets/js/core.js"></script>
+<script defer src="../../assets/js/lab.js"></script>
+<script defer src="../../assets/sims/dl.js"></script>
+<script defer src="../../assets/sims/ts.js"></script>
+<script defer src="../../assets/sims/phys.js"></script>
+<script defer src="../../assets/js/heroes.js"></script>
+<script defer src="../../assets/js/book.js"></script>
+</head>
+<body data-root="../../" data-book="quantum" data-field="phys" data-page="book-home">
+
+<section class="home-hero">
+  <div class="inner">
+    <div>
+      <div class="eyebrow" data-fill="book-en">Quantum Mechanics, Step by Step</div>
+      <h1>벡터 공간에서<br><span class="grad">디랙 방정식까지</span></h1>
+      <p data-fill="book-desc">샨카의 양자역학 교과서 순서를 따라, 필요한 수학부터 공준, 1차원 문제, 각운동량, 근사법, 산란까지 한 절씩 유도하며 쌓아 가는 이론서입니다.</p>
+      <div class="cta">
+        <a class="btn primary big" href="chapters/ch01.html">1장부터 시작하기 →</a>
+        <a class="btn ghost big" href="#chapters">전체 목차</a>
+      </div>
+      <div class="hero-badges"><span>6부 <b data-fill="chapter-count">23</b>장</span><span>정의 → 유도 → 예제 → 연습문제</span><span data-fill="book-status">집필 중</span></div>
+    </div>
+    <div class="hero-stage" data-hero="orbital"><span class="hint">드래그해서 돌려 보세요 · 수소 3d<sub>z²</sub> 오비탈, |ψ|²에서 뽑은 점 6,000개 (색은 ψ의 부호)</span></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>이 책의 지도</h2>
+  <p class="sub">앞의 두 부가 언어와 배경을 준비하고, 3부에서 양자역학의 구조를 세운 뒤 4부와 5부에서 실제 계를 풉니다. 6부는 골라 읽는 심화입니다. 상자를 누르면 그 부의 첫 장으로 갑니다.</p>
+  <figure class="diagram scroll">
+    <svg viewBox="0 0 1100 290" role="img" aria-label="이 책의 구성: 1부 수학적 준비와 2부 출발점이 3부 양자역학의 뼈대로, 이어서 4부 대칭과 각운동량, 5부 근사법, 6부 더 나아가로 이어진다">
+      <defs><marker id="qm-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+      <a href="chapters/ch01.html"><g transform="translate(20,24)">
+        <rect width="190" height="108" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">1부 · 1–3장</text>
+        <text x="16" y="54" class="t-b">수학적 준비</text>
+        <text x="16" y="78" class="t-dim">벡터 공간 · 연산자</text>
+        <text x="16" y="96" class="t-dim">무한 차원과 디랙 델타</text>
+      </g></a>
+      <a href="chapters/ch04.html"><g transform="translate(20,158)">
+        <rect width="190" height="108" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">2부 · 4–5장</text>
+        <text x="16" y="54" class="t-b">출발점</text>
+        <text x="16" y="78" class="t-dim">해밀턴 형식 역학</text>
+        <text x="16" y="96" class="t-dim">고전 물리의 한계</text>
+      </g></a>
+      <path d="M214 78 C 236 78, 238 120, 256 128" class="s-acc" marker-end="url(#qm-arr)"/>
+      <path d="M214 212 C 236 212, 238 170, 256 162" class="s-acc" marker-end="url(#qm-arr)"/>
+      <a href="chapters/ch06.html"><g transform="translate(262,70)">
+        <rect width="210" height="150" rx="14" class="f-acc-soft" stroke-width="2"/>
+        <text x="16" y="30" class="t-acc">3부 · 6–11장</text>
+        <text x="16" y="58" class="t-b">양자역학의 뼈대</text>
+        <text x="16" y="84" class="t-dim">공준 · 1차원 문제</text>
+        <text x="16" y="104" class="t-dim">조화 진동자 · 불확정성</text>
+        <text x="16" y="124" class="t-dim">세 가지 묘사 · 경로 적분</text>
+      </g></a>
+      <path d="M478 145 H506" class="s-acc flow-dash" marker-end="url(#qm-arr)"/>
+      <a href="chapters/ch12.html"><g transform="translate(512,70)">
+        <rect width="200" height="150" rx="14" class="f-surface"/>
+        <text x="16" y="30" class="t-acc">4부 · 12–17장</text>
+        <text x="16" y="58" class="t-b">대칭과 각운동량</text>
+        <text x="16" y="84" class="t-dim">동일 입자 · 대칭과 보존</text>
+        <text x="16" y="104" class="t-dim">각운동량 · 수소 원자</text>
+        <text x="16" y="124" class="t-dim">스핀 · 각운동량 합성</text>
+      </g></a>
+      <path d="M718 145 H746" class="s-acc flow-dash" marker-end="url(#qm-arr)"/>
+      <a href="chapters/ch18.html"><g transform="translate(752,70)">
+        <rect width="170" height="150" rx="14" class="f-surface"/>
+        <text x="16" y="30" class="t-acc">5부 · 18–21장</text>
+        <text x="16" y="58" class="t-b">근사법</text>
+        <text x="16" y="84" class="t-dim">변분법 · WKB</text>
+        <text x="16" y="104" class="t-dim">시간 무관·의존 섭동</text>
+        <text x="16" y="124" class="t-dim">산란 이론</text>
+      </g></a>
+      <path d="M928 145 H948" class="s-acc2" stroke-dasharray="5 5" marker-end="url(#qm-arr)"/>
+      <a href="chapters/ch22.html"><g transform="translate(954,70)">
+        <rect width="128" height="150" rx="14" class="f-acc2-soft" stroke-dasharray="6 5"/>
+        <text x="14" y="30" class="t-acc">6부 · 22–23장</text>
+        <text x="14" y="58" class="t-b">더 나아가</text>
+        <text x="14" y="84" class="t-dim">밀도 행렬</text>
+        <text x="14" y="104" class="t-dim">얽힘 · 벨 부등식</text>
+        <text x="14" y="124" class="t-dim">디랙 방정식</text>
+      </g></a>
+      <text x="1082" y="246" text-anchor="end" class="t-dim">점선 = 골라 읽는 심화</text>
+    </svg>
+    <figcaption><b>그림 0-1.</b> 여섯 부의 순서와 의존 관계. 화살표는 앞 부의 내용을 뒤 부에서 쓴다는 뜻입니다.</figcaption>
+  </figure>
+</section>
+
+<section class="home-section" id="chapters">
+  <h2>전체 목차</h2>
+  <p class="sub">카드 아래 줄이 그 장의 절입니다. 점선 카드는 아직 쓰지 않은 장이며, 한 장씩 채워 갑니다.</p>
+  <div class="ch-grid" data-chapter-grid></div>
+</section>
+
+<section class="home-section">
+  <h2>이 책을 읽는 법</h2>
+  <p class="sub">모든 장이 같은 순서로 짜여 있습니다. 유도는 중간 단계를 건너뛰지 않으니, 종이와 펜을 옆에 두고 따라 쓰며 읽기를 권합니다.</p>
+  <div class="flow">
+    <div><b>목표 확인</b>장 머리의 학습 목표와 선수 지식을 먼저 봅니다.</div>
+    <div><b>정의와 유도</b>절마다 정의를 세우고 결과를 한 줄씩 끌어냅니다.</div>
+    <div><b>예제</b>추상적인 결과를 구체적인 계와 숫자로 확인합니다.</div>
+    <div><b>핵심 정리 · 퀴즈</b>장을 덮기 전에 요점을 짚고 바로 점검합니다.</div>
+    <div><b>연습문제</b>스스로 풀어 본 뒤 접어 둔 풀이와 맞춰 봅니다.</div>
+  </div>
+  <div class="callout tip"><strong>수학 상자</strong><p>새 수학 도구(푸리에 변환, 에르미트·르장드르·라게르 다항식, 복소 적분 등)는 처음 필요한 자리에 점선 테두리의 <b>수학 상자</b>로 따로 설명합니다. 이미 아는 내용이면 건너뛰어도 흐름이 이어집니다.</p></div>
+</section>
+
+<section class="home-section" id="notation">
+  <h2>표기 규칙</h2>
+  <p class="sub">책 전체에서 같은 기호를 같은 뜻으로 씁니다. 처음 나오는 장과 참고 교재와 관례가 다른 점은 작은 글씨로 덧붙였습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>기호</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td>\(|\psi\rangle,\ \langle\psi|\)</td><td>켓(상태 벡터)과 그 쌍대인 브라<div class="note">1장</div></td></tr>
+      <tr><td>\(\langle\phi|\psi\rangle\)</td><td>내적. 왼쪽 자리에 대해 켤레 선형: \(\langle a\phi|\psi\rangle = a^*\langle\phi|\psi\rangle\)<div class="note">물리학 관례입니다. 수학 교재에는 반대 관례도 있습니다.</div></td></tr>
+      <tr><td>\(\hat\Omega\)</td><td>연산자에는 모자를 씌운다<div class="note">고유값과 숫자에는 씌우지 않는다: \(\hat\Omega|\omega\rangle = \omega|\omega\rangle\)</div></td></tr>
+      <tr><td>\(z^*,\ \hat\Omega^\dagger\)</td><td>복소켤레, 에르미트 수반<div class="note">\(\langle i|\hat\Omega^\dagger|j\rangle = \langle j|\hat\Omega|i\rangle^*\)</div></td></tr>
+      <tr><td>\([\hat A,\hat B],\ \{\hat A,\hat B\}\)</td><td>교환자 \(\hat A\hat B-\hat B\hat A\), 반교환자 \(\hat A\hat B+\hat B\hat A\)</td></tr>
+      <tr><td>\(\delta_{ij},\ \delta(x-x')\)</td><td>크로네커 델타, 디랙 델타<div class="note">3장</div></td></tr>
+      <tr><td>\(\hbar\)</td><td>\(h/2\pi = 1.054\,571\,817\ldots\times10^{-34}\ \mathrm{J\,s}\)<div class="note">SI 정의값</div></td></tr>
+      <tr><td>단위</td><td>SI. 수소의 쿨롱 퍼텐셜은 \(V(r) = -\dfrac{e^2}{4\pi\varepsilon_0 r}\)<div class="note">샨카는 가우스 단위 \(-e^2/r\)를 씁니다.</div></td></tr>
+      <tr><td>푸리에 변환</td><td>\(\psi(x)=\dfrac{1}{\sqrt{2\pi\hbar}}\displaystyle\int e^{ipx/\hbar}\,\phi(p)\,dp\)<div class="note">대칭 관례, 3장</div></td></tr>
+      <tr><td>번호</td><td>식 (n.k), 정의·정리·예제 n.k, 문제 n.k<div class="note">장마다 1부터 센다</div></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="home-section">
+  <h2>숫자로 보는 양자역학</h2>
+  <p class="sub">이 책을 끝내면 어디서 나오는지 직접 유도할 수 있게 될 숫자들입니다.</p>
+  <div class="numbers">
+    <div><b>−13.6 eV</b><span>수소 원자 바닥 상태의 에너지 (15장)</span></div>
+    <div><b>0.529 Å</b><span>보어 반지름, 수소 원자의 크기 (15장)</span></div>
+    <div><b>1/137.036</b><span>미세 구조 상수, 미세 구조의 크기 (19장)</span></div>
+    <div><b>2√2</b><span>CHSH 벨 부등식의 양자역학 최댓값, 고전 한계는 2 (22장)</span></div>
+    <div><b>g = 2</b><span>디랙 방정식이 내놓는 전자의 g 인자, 실측 2.0023 (23장)</span></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>참고 교재</h2>
+  <p class="sub">목차의 뼈대는 샨카를 따르고, 수학 상자는 보아스의 역할을 합니다. 같은 주제를 다른 각도로 보고 싶을 때는 그리피스와 사쿠라이를 함께 봅니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>교재</th><th>이 책에서의 역할</th></tr></thead>
+    <tbody>
+      <tr><td>R. Shankar, <i>Principles of Quantum Mechanics</i>, 2nd ed. (Plenum, 1994)</td><td>장의 순서와 다루는 범위</td></tr>
+      <tr><td>M. L. Boas, <i>Mathematical Methods in the Physical Sciences</i>, 3rd ed. (Wiley, 2006)</td><td>수학 상자 (선형대수, 푸리에 해석, 특수 함수)</td></tr>
+      <tr><td>D. J. Griffiths, D. F. Schroeter, <i>Introduction to Quantum Mechanics</i>, 3rd ed. (Cambridge, 2018)</td><td>파동함수 중심의 설명과 비교</td></tr>
+      <tr><td>J. J. Sakurai, J. Napolitano, <i>Modern Quantum Mechanics</i>, 3rd ed. (Cambridge, 2020)</td><td>슈테른-게를라흐에서 출발하는 접근, 밀도 행렬</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><strong>이 책을 쓰는 원칙</strong><p>위 교재의 순서와 주제를 따르되 문장, 예제, 연습문제, 그림은 새로 씁니다. 유도와 수치는 교재와 따로 계산해 검산합니다.</p></div>
+</section>
+</body>
+</html>

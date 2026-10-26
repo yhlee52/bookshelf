@@ -204,7 +204,7 @@
     const tag = b.href ? "a" : "div";
     return `<${tag} class="book-card" ${b.href ? `href="${esc(LS.url(b.href))}"` : 'aria-disabled="true" tabindex="0"'} title="${esc(b.desc)}">
       ${LS.cover(b)}
-      <span class="meta"><b>${esc(b.title)}</b><span>${esc(b.fieldObj.name)} · ${b.status === "planned" ? "집필 예정" : `${n}개 챕터 · 실험 ${sims}개`}</span></span>
+      <span class="meta"><b>${esc(b.title)}</b><span>${esc(b.fieldObj.name)} · ${b.status === "planned" ? "집필 예정" : `${n}개 챕터${sims ? ` · 실험 ${sims}개` : ""}`}</span></span>
     </${tag}>`;
   };
 })();

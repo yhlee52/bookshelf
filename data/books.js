@@ -6,7 +6,8 @@
    책 status:     "published"(출간) | "writing"(집필 중) | "planned"(집필 예정 — 페이지 없음)
    챕터 status:   "slot"(빈 템플릿) | "draft"(작성 중) | "done"(완성)
    chapter.sims:  그 챕터에 들어 있는 실험 id (assets/sims/*.js의 id). 카드에 칩으로 표시됨
-   motif:         표지 그림 (assets/js/covers.js): attention · waves · orbit · field · network · blank
+   book.parts:    (선택) 부 목록 [{title, desc}]. chapter.part(1부터)로 묶어 책 홈과 서랍에 부 제목을 단다
+   motif:         표지 그림 (assets/js/covers.js): attention · waves · orbit · field · network · levels · blank
    ========================================================================== */
 window.SHELF_DATA = {
   statusLabels: { published: "출간", writing: "집필 중", planned: "집필 예정" },
@@ -18,7 +19,7 @@ window.SHELF_DATA = {
     { id: "ts", name: "시계열", en: "Time Series", color: "#0d9488", colorDark: "#5eead4",
       desc: "시간 순서가 있는 데이터를 다루는 통계와 딥러닝 모델." },
     { id: "phys", name: "물리학", en: "Physics", color: "#ea580c", colorDark: "#fdba74",
-      desc: "운동·파동·장·통계역학을 시뮬레이션으로 체험합니다." },
+      desc: "운동·파동·장·통계역학을 시뮬레이션으로 체험하고, 양자역학을 기초부터 유도합니다." },
     { id: "bridge", name: "융합 연구", en: "Physics × AI", color: "#c026d3", colorDark: "#f0abfc",
       desc: "물리 법칙을 아는 신경망, 신경망으로 푸는 물리." },
   ],
@@ -76,6 +77,50 @@ window.SHELF_DATA = {
         { slug: "ch06", num: "06", status: "slot", title: "챕터 06 (제목 미정)", desc: "예시 실험: 랜덤 워크와 열 확산.", sims: ["random-walk", "heat"] },
         { slug: "ch07", num: "07", status: "slot", title: "챕터 07 (제목 미정)", desc: "예시 실험: 이징 모형의 상전이 (몬테카를로).", sims: ["ising"] },
         { slug: "ch08", num: "08", status: "slot", title: "챕터 08 (제목 미정)", desc: "예시 실험: 이중 진자와 로렌츠 끌개 — 카오스.", sims: ["double-pendulum", "lorenz3d"] },
+      ],
+    },
+
+    /* ------------------------------------------------------------ 양자역학 (이론서) */
+    // 집필 규칙: books/quantum/GUIDE.md · 슬롯 챕터의 desc는 그 장의 절 목록이다 (작성하면 한두 문장 요약으로 바꾼다)
+    {
+      id: "quantum", field: "phys", status: "writing", kind: "textbook", motif: "levels",
+      series: "QuantumBook", title: "차근차근 양자역학", en: "Quantum Mechanics, Step by Step",
+      tagline: "벡터 공간에서 디랙 방정식까지",
+      desc: "샨카의 양자역학 교과서 순서를 따라, 필요한 수학부터 공준, 1차원 문제, 각운동량, 근사법, 산란까지 한 절씩 유도하며 쌓아 가는 이론서입니다.",
+      path: "books/quantum/",
+      // 챕터의 part(1부터)가 이 배열을 가리킨다. 책 홈과 서랍에서 부별로 묶어 보여 준다.
+      parts: [
+        { title: "수학적 준비", desc: "양자역학의 언어인 선형대수를 디랙 표기법으로 익힙니다." },
+        { title: "출발점", desc: "고전역학을 해밀턴 형식으로 다시 보고, 그것이 설명하지 못한 실험을 살핍니다." },
+        { title: "양자역학의 뼈대", desc: "공준을 세우고 1차원 문제, 조화 진동자, 불확정성, 묘사, 경로 적분으로 구조를 다집니다." },
+        { title: "대칭과 각운동량", desc: "여러 입자, 대칭과 보존, 각운동량, 수소 원자, 스핀과 그 합성을 다룹니다." },
+        { title: "근사법", desc: "정확히 풀리지 않는 문제를 다루는 변분법, WKB, 섭동론, 산란 이론입니다." },
+        { title: "더 나아가", desc: "밀도 행렬과 얽힘, 그리고 상대론적 양자역학의 입구입니다." },
+      ],
+      chapters: [
+        { slug: "ch01", num: "01", part: 1, status: "slot", title: "벡터 공간과 디랙 표기법", desc: "선형 벡터 공간 · 내적과 노름 · 정규직교 기저와 그람-슈미트 · 브라와 켓 · 부분공간" },
+        { slug: "ch02", num: "02", part: 1, status: "slot", title: "선형 연산자", desc: "연산자와 행렬 원소 · 수반, 에르미트, 유니타리 연산자 · 고유값 문제 · 교환하는 연산자의 동시 대각화 · 연산자의 함수" },
+        { slug: "ch03", num: "03", part: 1, status: "slot", title: "무한 차원으로", desc: "함수를 벡터로 · 디랙 델타 · 위치와 운동량 연산자 · 푸리에 변환 · 연속 고유값의 정규화" },
+        { slug: "ch04", num: "04", part: 2, status: "slot", title: "고전역학 다시 보기", desc: "최소 작용과 라그랑지안 · 해밀턴 형식 · 푸아송 괄호 · 정준 변환 · 대칭과 보존 법칙" },
+        { slug: "ch05", num: "05", part: 2, status: "slot", title: "고전 물리가 막힌 곳", desc: "흑체 복사와 광전 효과 · 원자의 안정성과 선 스펙트럼 · 이중 슬릿 · 드브로이 파장 · 슈테른-게를라흐 실험" },
+        { slug: "ch06", num: "06", part: 3, status: "slot", title: "양자역학의 공준", desc: "상태는 벡터 · 관측량은 에르미트 연산자 · 측정과 보른 규칙 · 기댓값과 분산 · 슈뢰딩거 방정식 · 정상 상태" },
+        { slug: "ch07", num: "07", part: 3, status: "slot", title: "1차원 문제", desc: "자유 입자와 파속의 퍼짐 · 무한 우물 · 확률 흐름 · 계단 퍼텐셜의 반사와 투과 · 장벽과 터널링 · 유한 우물 · 1차원의 일반 정리" },
+        { slug: "ch08", num: "08", part: 3, status: "slot", title: "조화 진동자", desc: "좌표 표현과 에르미트 다항식 · 사다리 연산자 · 수 연산자 기저 · 결맞음 상태" },
+        { slug: "ch09", num: "09", part: 3, status: "slot", title: "불확정성과 고전 극한", desc: "일반 불확정성 관계 · 최소 불확정 파속 · 에너지-시간 관계 · 에렌페스트 정리" },
+        { slug: "ch10", num: "10", part: 3, status: "slot", title: "세 가지 묘사", desc: "유니타리 변환 · 슈뢰딩거 묘사 · 하이젠베르크 묘사 · 상호작용 묘사" },
+        { slug: "ch11", num: "11", part: 3, status: "slot", title: "경로 적분", desc: "전파 함수 · 파인만의 처방 · 자유 입자 계산 · 고전 극한과 정류 위상" },
+        { slug: "ch12", num: "12", part: 4, status: "slot", title: "여러 입자와 동일 입자", desc: "텐서곱 공간 · 두 입자계 · 보손과 페르미온 · 파울리 배타 원리" },
+        { slug: "ch13", num: "13", part: 4, status: "slot", title: "대칭과 보존", desc: "병진과 운동량 · 시간 병진과 에너지 · 패리티 · 시간 반전" },
+        { slug: "ch14", num: "14", part: 4, status: "slot", title: "각운동량", desc: "2차원 회전 · 교환 관계 · 사다리 연산자로 푸는 고유값 문제 · 구면 조화 함수 · 중심력 문제" },
+        { slug: "ch15", num: "15", part: 4, status: "slot", title: "수소 원자", desc: "2체 문제의 분리 · 지름 방정식과 라게르 다항식 · 에너지 준위와 축퇴 · 오비탈의 모양" },
+        { slug: "ch16", num: "16", part: 4, status: "slot", title: "스핀", desc: "스핀 1/2와 파울리 행렬 · 슈테른-게를라흐 다시 보기 · 자기장 속 세차 운동 · 자기 공명" },
+        { slug: "ch17", num: "17", part: 4, status: "slot", title: "각운동량의 합성", desc: "두 스핀의 삼중항과 단일항 · 클렙시-고든 계수 · 텐서 연산자" },
+        { slug: "ch18", num: "18", part: 5, status: "slot", title: "변분법과 WKB", desc: "변분 원리 · 헬륨 바닥 상태 · WKB 근사 · 연결 공식 · 보어-좀머펠트 양자화" },
+        { slug: "ch19", num: "19", part: 5, status: "slot", title: "시간 무관 섭동론", desc: "비축퇴 섭동 · 축퇴 섭동 · 슈타르크 효과 · 미세 구조 · 제이만 효과" },
+        { slug: "ch20", num: "20", part: 5, status: "slot", title: "시간 의존 섭동론", desc: "상호작용 묘사에서의 전개 · 페르미 황금률 · 빛의 흡수와 방출 · 선택 규칙 · 단열 정리와 베리 위상" },
+        { slug: "ch21", num: "21", part: 5, status: "slot", title: "산란", desc: "단면적 · 보른 근사 · 부분파 전개 · 위상 이동과 공명" },
+        { slug: "ch22", num: "22", part: 6, status: "slot", title: "밀도 행렬과 얽힘", desc: "순수 상태와 혼합 상태 · 축약 밀도 행렬 · 얽힘 · EPR과 벨 부등식" },
+        { slug: "ch23", num: "23", part: 6, status: "slot", title: "디랙 방정식", desc: "클라인-고든 방정식 · 디랙 방정식 · 스핀의 등장 · 수소 미세 구조 다시 보기" },
       ],
     },
 
