@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>02 선형 연산자 · QuantumBook</title>
-<meta name="description" content="연산자와 행렬 원소 · 수반, 에르미트, 유니타리 연산자 · 고유값 문제 · 교환하는 연산자의 동시 대각화 · 연산자의 함수">
+<meta name="description" content="벡터를 벡터로 바꾸는 선형 연산자를 행렬로 다루고, 완비성 관계와 투영 연산자, 수반·에르미트·유니타리 연산자, 고유값 문제와 스펙트럼 정리, 동시 대각화, 연산자의 함수를 익힌다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,61 +24,489 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch02">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">02</span></div>
     <h1 data-fill="chapter-title">선형 연산자</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">1장에서는 상태가 사는 공간을 세웠다. 이 장에서는 그 공간의 벡터를 다른 벡터로 바꾸는 <b>연산자</b>를 다룬다. 양자역학에서 위치, 운동량, 에너지처럼 측정할 수 있는 양은 모두 연산자로 표현되고, 측정에서 나올 수 있는 값은 그 연산자의 고유값이다. 연산자를 행렬로 다루는 법, 에르미트 연산자와 유니타리 연산자, 고유값 문제와 대각화, 연산자의 함수를 익히고 나면 6장의 공준을 받아들일 준비가 끝난다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>선형 연산자를 정규직교 기저에서 행렬로 나타내고, 완비성 관계와 투영 연산자를 쓸 수 있다.</li>
+      <li>연산자의 수반을 구하고, 에르미트 연산자와 유니타리 연산자를 판별할 수 있다.</li>
+      <li>특성 방정식으로 고유값과 고유벡터를 구하고, 에르미트 연산자의 고유값이 실수이며 고유벡터가 직교함을 증명할 수 있다.</li>
+      <li>스펙트럼 정리를 이용해 에르미트 행렬을 대각화하고, 교환하는 두 연산자를 동시에 대각화할 수 있다.</li>
+      <li>연산자의 함수, 특히 지수 함수를 고유 기저에서 계산할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>1장 전체(특히 정규직교 기저, 브라·켓, 수반 규칙), 2×2·3×3 행렬식 계산(2.3절의 수학 상자에서 정리한다)</p>
   </header>
 
+  <!-- ============================================================ 2.1 -->
   <section id="s1">
     <h2>연산자와 행렬 원소</h2>
-    <p class="slot" data-slot="2.1절">아직 쓰지 않은 절입니다.</p>
+    <p>평면의 화살표를 원점을 중심으로 \(\theta\)만큼 돌리는 일을 생각해 보자. 어떤 화살표를 넣든 돌아간 화살표 하나가 나온다. 이처럼 벡터 하나를 받아 벡터 하나를 내놓는 규칙을 <span class="term">연산자</span> <span class="en">(operator)</span>라 한다. 연산자에는 모자를 씌워 \(\hat\Omega\)로 쓰고, \(|V\rangle\)에 작용한 결과를 \(\hat\Omega|V\rangle\)로 쓴다.</p>
+    <div class="box def" id="def-linear-op"><div class="box-h">선형 연산자</div>
+      <p>모든 벡터 \(|V\rangle, |W\rangle\)와 스칼라 \(a, b\)에 대해</p>
+      <div class="formula">\[ \hat\Omega\big(a|V\rangle + b|W\rangle\big) = a\,\hat\Omega|V\rangle + b\,\hat\Omega|W\rangle \]</div>
+      <p>이면 \(\hat\Omega\)를 <span class="term">선형 연산자</span> <span class="en">(linear operator)</span>라 한다.</p>
+    </div>
+    <p>양자역학에 나오는 연산자는 13장의 시간 반전 같은 예외를 빼면 모두 선형이므로, 앞으로 '연산자'는 선형 연산자를 뜻한다. 선형 연산자는 영벡터를 영벡터로 보낸다. 위 식에 \(a = b = 0\)을 넣으면 된다.</p>
+    <div class="box ex" id="ex-operators"><div class="box-h">연산자의 예</div>
+      <p><b>(가) 항등 연산자</b> \(\hat I\): 모든 벡터를 그대로 둔다. \(\hat I|V\rangle = |V\rangle\).</p>
+      <p><b>(나) 평면의 회전</b> \(\hat R(\theta)\): 두 화살표를 더한 뒤 돌리나, 각각 돌린 뒤 더하나 결과가 같다(평행사변형이 통째로 돌아간다). 그래서 선형이다.</p>
+      <p><b>(다) 미분</b> \(\hat D = d/dx\): <a href="ch01.html#prob-poly">1장 문제 1.1</a>의 다항식 공간에서 \((af + bg)' = af' + bg'\)이므로 선형이다. 3장에서 무한 차원 공간의 미분 연산자가 운동량 연산자가 된다.</p>
+      <p><b>(라) 선형이 아닌 예</b>: 고정된 벡터 \(|W_0\rangle \neq 0\)을 더하는 규칙 \(|V\rangle \mapsto |V\rangle + |W_0\rangle\). 영벡터를 \(|W_0\rangle\)로 보내므로 선형이 아니다.</p>
+    </div>
+
+    <h3 id="s1-matrix">기저에서 행렬로</h3>
+    <p>선형 연산자는 기저 벡터에 무엇을 하는지만 알면 완전히 정해진다. \(|V\rangle = \sum_j v_j|j\rangle\)이면 선형성에 따라 \(\hat\Omega|V\rangle = \sum_j v_j\,\hat\Omega|j\rangle\)이기 때문이다. 정규직교 기저에서 \(\hat\Omega|j\rangle\)의 \(i\)번째 성분은 \(\langle i|\hat\Omega|j\rangle\)이다(<a href="ch01.html#eq-component">1장 식 (1.8)</a>). 이 \(n^2\)개의 숫자를 모은 것이 연산자의 행렬이다.</p>
+    <div class="box def" id="def-matrix-element"><div class="box-h">행렬 원소</div>
+      <p>정규직교 기저 \(\{|i\rangle\}\)에서</p>
+      <div class="formula" id="eq-matrix-element">\[ \Omega_{ij} = \langle i|\hat\Omega|j\rangle \]</div>
+      <p>를 연산자 \(\hat\Omega\)의 <span class="term">행렬 원소</span> <span class="en">(matrix element)</span>라 한다.</p>
+    </div>
+    <p>\(|V'\rangle = \hat\Omega|V\rangle\)의 성분을 구해 보자.</p>
+    <div class="formula" id="eq-matrix-action">\[ \begin{aligned} v'_i = \langle i|\hat\Omega|V\rangle &= \sum_j \langle i|\hat\Omega|j\rangle\, v_j \\ &= \sum_j \Omega_{ij}\, v_j \end{aligned} \]</div>
+    <p>연산자의 작용은 <b>행렬과 열벡터의 곱</b>이다. 행렬의 열이 무엇을 뜻하는지 기억해 두면 편하다. \(\Omega_{ij}\)에서 \(j\)를 고정하고 \(i\)를 움직이면 \(\hat\Omega|j\rangle\)의 성분들이 나온다. 곧 <b>\(j\)번째 열은 \(j\)번째 기저 벡터가 옮겨 간 곳</b>이다. 연산자의 행렬을 만들 때는 기저 벡터를 하나씩 넣어 보고 그 결과를 열에 차례로 적으면 된다.</p>
+    <div class="box ex" id="ex-rotation"><div class="box-h">회전의 행렬</div>
+      <p>평면의 정규직교 기저 \(|1\rangle\)(\(x\) 방향), \(|2\rangle\)(\(y\) 방향)에서 \(\theta\)만큼의 회전 \(\hat R(\theta)\)를 행렬로 쓰자. 그림 2-1처럼</p>
+      <div class="formula">\[ \begin{aligned} \hat R|1\rangle &= \cos\theta\,|1\rangle + \sin\theta\,|2\rangle, \\ \hat R|2\rangle &= -\sin\theta\,|1\rangle + \cos\theta\,|2\rangle \end{aligned} \]</div>
+      <p>이다. 이 두 결과의 성분을 차례로 열에 넣으면</p>
+      <div class="formula">\[ R(\theta) = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix} \]</div>
+      <p>이다. 예를 들어 \(\theta = 90^\circ\)이면 \(R = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}\)이고, \(|V\rangle \to (3, 2)\)는 \((-2, 3)\)으로 간다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:2-1--><svg viewBox="0 0 330 192" role="img" aria-label="회전 R이 기저 벡터 1과 2를 각도 세타만큼 돌린다"><defs><marker id="f21-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f21-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f21-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><path d="M279.5 171.3 L279.9 165.7 L280 160 L279.9 154.3 L279.5 148.7 L278.9 143 L278 137.4 L276.9 131.9 L275.6 126.4 L274 120.9 L272.2 115.5 L270.1 110.3 L267.8 105.1 L265.3 100 L262.6 95 L259.6 90.2 L256.5 85.4 L253.1 80.9 L249.6 76.4 L245.8 72.2 L241.9 68.1 L237.8 64.2 L233.6 60.4 L229.1 56.9 L224.6 53.5 L219.8 50.4 L215 47.4 L210 44.7 L204.9 42.2 L199.7 39.9 L194.5 37.8 L189.1 36 L183.6 34.4 L178.1 33.1 L172.6 32 L167 31.1 L161.3 30.5 L155.7 30.1 L150 30 L144.3 30.1 L138.7 30.5 L133 31.1 L127.4 32 L121.9 33.1 L116.4 34.4 L110.9 36 L105.5 37.8 L100.3 39.9 L95.1 42.2 L90 44.7 L85 47.4 L80.2 50.4 L75.4 53.5" class="s-grid" stroke-dasharray="3 4"/><path d="M190 160 A40 40 0 0 0 184.6 140" class="s-acc2" stroke-width="1.4"/><path d="M150 120 A40 40 0 0 0 130 125.4" class="s-acc2" stroke-width="1.4"/><text x="202.2" y="151" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">θ</tspan></text><text x="136" y="112.8" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">θ</tspan></text><line x1="262.6" y1="95" x2="262.6" y2="160" class="s-line" stroke-dasharray="4 4"/><line x1="85" y1="47.4" x2="150" y2="47.4" class="s-line" stroke-dasharray="4 4"/><text x="206.3" y="180" class="t-math dim" text-anchor="middle">cos <tspan font-style="italic">θ</tspan></text><text x="268.6" y="132.5" class="t-math dim" text-anchor="start">sin <tspan font-style="italic">θ</tspan></text><text x="117.5" y="67.4" class="t-math dim" text-anchor="middle">−sin <tspan font-style="italic">θ</tspan></text><line x1="150" y1="160" x2="280" y2="160" class="s-line" stroke-width="1.8" marker-end="url(#f21-dim)"/><line x1="150" y1="160" x2="150" y2="30" class="s-line" stroke-width="1.8" marker-end="url(#f21-dim)"/><line x1="150" y1="160" x2="262.6" y2="95" class="s-acc" stroke-width="3" marker-end="url(#f21-acc)"/><line x1="150" y1="160" x2="85" y2="47.4" class="s-acc" stroke-width="3" marker-end="url(#f21-acc)"/><circle cx="150" cy="160" r="3" class="f-dim"/><text x="286" y="165" class="t-math dim" text-anchor="start">|1⟩</text><text x="158" y="34" class="t-math dim" text-anchor="start">|2⟩</text><text x="268.6" y="89" class="t-math acc" text-anchor="start"><tspan font-style="italic">R̂</tspan>|1⟩</text><text x="79" y="41.4" class="t-math acc" text-anchor="end"><tspan font-style="italic">R̂</tspan>|2⟩</text></svg><!--/fig:2-1--></div>
+      <figcaption><b>그림 2-1.</b> 회전 \(\hat R(\theta)\)의 행렬(\(\theta = 30^\circ\)). 기저 벡터 \(|1\rangle\)은 \((\cos\theta, \sin\theta)\)로, \(|2\rangle\)는 \((-\sin\theta, \cos\theta)\)로 옮겨 간다. 이 두 성분 열이 그대로 행렬의 첫째 열과 둘째 열이 된다.</figcaption>
+    </figure>
+
+    <h3 id="s1-complete">켓브라, 완비성 관계, 투영 연산자</h3>
+    <p><a href="ch01.html#s4">1장 그림 1-3</a>에서 켓을 왼쪽에, 브라를 오른쪽에 두면 행렬이 된다고 했다. 실제로 \(|W\rangle\langle V|\)는 벡터를 받아 벡터를 내놓는다.</p>
+    <div class="formula">\[ \big(|W\rangle\langle V|\big)|U\rangle = |W\rangle\,\langle V|U\rangle \]</div>
+    <p>곧 \(|W\rangle\)에 숫자 \(\langle V|U\rangle\)를 곱한 것이다. 이 규칙은 \(|U\rangle\)에 대해 선형이므로 연산자다.</p>
+    <p>이제 <a href="ch01.html#eq-expansion-ip">1장 식 (1.9)</a> \(|V\rangle = \sum_i |i\rangle\langle i|V\rangle\)을 다시 보자. 오른쪽은 연산자 \(\sum_i |i\rangle\langle i|\)를 \(|V\rangle\)에 작용한 것으로 읽을 수 있다. 이 연산자는 모든 \(|V\rangle\)를 그대로 돌려주므로 항등 연산자다.</p>
+    <div class="box thm" id="thm-completeness"><div class="box-h">완비성 관계</div>
+      <p>정규직교 기저 \(\{|i\rangle\}\)에 대해</p>
+      <div class="formula" id="eq-completeness">\[ \sum_i |i\rangle\langle i| = \hat I \]</div>
+    </div>
+    <p>이 식은 이 책 전체에서 가장 자주 쓰는 도구다. 어떤 식이든 가운데에 \(\hat I\)를 끼워 넣고 그것을 \(\sum_i |i\rangle\langle i|\)로 바꾸면, 추상적인 식이 성분의 계산으로 바뀐다. 예를 들어 내적 \(\langle V|W\rangle\)의 가운데에 끼우면 \(\langle V|W\rangle = \sum_i \langle V|i\rangle\langle i|W\rangle = \sum_i v_i^* w_i\)로, <a href="ch01.html#eq-inner-components">1장 식 (1.4)</a>가 한 줄에 나온다. 식 <a class="ref" href="#eq-matrix-action"></a>의 첫 등호도 \(\hat\Omega\)와 \(|V\rangle\) 사이에 완비성 관계를 끼운 것이다.</p>
+    <p>합의 한 항 \(|i\rangle\langle i|\)은 \(|V\rangle\)에서 \(|i\rangle\) 방향의 성분만 남긴다: \(|i\rangle\langle i|V\rangle = v_i|i\rangle\). 이런 연산자를 투영 연산자라 한다.</p>
+    <div class="box def" id="def-projector"><div class="box-h">투영 연산자</div>
+      <p>단위 벡터 \(|n\rangle\)에 대해 \(\hat P_n = |n\rangle\langle n|\)을 \(|n\rangle\) 위로의 <span class="term">투영 연산자</span> <span class="en">(projection operator)</span>라 한다. 정규직교 벡터 \(|1\rangle, \ldots, |m\rangle\)이 생성하는 부분공간 \(\mathbb{V}_1\) 위로의 투영 연산자는 \(\hat P_{\mathbb{V}_1} = \sum_{i=1}^{m} |i\rangle\langle i|\)이다.</p>
+    </div>
+    <p><a href="ch01.html#eq-decomp">1장 식 (1.15)</a>의 \(|V_\parallel\rangle\)가 바로 \(\hat P_{\mathbb{V}_1}|V\rangle\)이다. 투영 연산자에는 두 가지 중요한 성질이 있다.</p>
+    <ul>
+      <li><b>두 번 투영해도 한 번과 같다</b>: \(\hat P_n^2 = |n\rangle\langle n|n\rangle\langle n| = |n\rangle\langle n| = \hat P_n\).</li>
+      <li><b>서로 직교하는 방향의 투영은 곱하면 0이다</b>: \(\hat P_i\hat P_j = |i\rangle\langle i|j\rangle\langle j| = \delta_{ij}\hat P_i\).</li>
+    </ul>
+    <p>완비성 관계는 "모든 방향의 투영을 더하면 아무것도 버리지 않는다"는 말이다.</p>
+    <div class="box ex" id="ex-projector"><div class="box-h">대각선 위로의 투영</div>
+      <p>평면에서 대각선 방향 \(|n\rangle \to (1, 1)/\sqrt 2\) 위로의 투영 연산자를 행렬로 쓰자. 켓은 열, 브라는 행이므로 열 곱하기 행이다.</p>
+      <div class="formula">\[ P_n = \frac{1}{2}\begin{pmatrix} 1 \\ 1 \end{pmatrix}\begin{pmatrix} 1 & 1 \end{pmatrix} = \frac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix} \]</div>
+      <p>\(|V\rangle \to (3, 1)\)에 작용시키면 \((2, 2)\)이다. 남은 부분 \((\hat I - \hat P_n)|V\rangle \to (1, -1)\)은 \(|n\rangle\)에 수직이다. \(\hat I - \hat P_n\)은 \(|n\rangle\)에 수직인 방향 위로의 투영 연산자다.</p>
+    </div>
+
+    <h3 id="s1-product">곱과 교환자</h3>
+    <p>두 연산자를 잇달아 작용하는 것을 곱이라 한다: \((\hat\Omega\hat\Lambda)|V\rangle = \hat\Omega\big(\hat\Lambda|V\rangle\big)\). <b>오른쪽에 쓴 연산자가 먼저 작용한다.</b> 곱의 행렬 원소는 두 연산자 사이에 완비성 관계를 끼워 구한다.</p>
+    <div class="formula" id="eq-product">\[ \begin{aligned} (\Omega\Lambda)_{ij} = \langle i|\hat\Omega\,\hat I\,\hat\Lambda|j\rangle &= \sum_k \langle i|\hat\Omega|k\rangle\langle k|\hat\Lambda|j\rangle \\ &= \sum_k \Omega_{ik}\Lambda_{kj} \end{aligned} \]</div>
+    <p>연산자의 곱은 행렬의 곱이다. 그리고 행렬의 곱처럼 연산자의 곱도 순서를 바꾸면 결과가 달라질 수 있다. 그 차이를 <span class="term">교환자</span> <span class="en">(commutator)</span>라 한다.</p>
+    <div class="formula" id="eq-commutator">\[ [\hat\Omega, \hat\Lambda] = \hat\Omega\hat\Lambda - \hat\Lambda\hat\Omega \]</div>
+    <p>\([\hat\Omega, \hat\Lambda] = 0\)이면 두 연산자는 <span class="term">교환한다</span> <span class="en">(commute)</span>고 한다. 두 연산자가 교환하는지는 양자역학에서 결정적이다. 위치와 운동량은 교환하지 않으며(\([\hat x, \hat p] = i\hbar\), 3장과 6장), 이것이 불확정성 관계(9장)의 뿌리다.</p>
+    <div class="box ex" id="ex-commutator"><div class="box-h">파울리 행렬의 교환자</div>
+      <p><a href="ch01.html#ex-pauli">1장 예제 1.3</a>의 \(\sigma_x\)와 \(\sigma_z\)를 두 순서로 곱해 보자.</p>
+      <div class="formula">\[ \sigma_x\sigma_z = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}, \qquad \sigma_z\sigma_x = \begin{pmatrix} 0 & 1 \\ -1 & 0 \end{pmatrix} \]</div>
+      <p>순서만 바꿨는데 부호가 뒤집혔다. 차이는 \(\begin{pmatrix} 0 & -2 \\ 2 & 0 \end{pmatrix}\)이고, \(\sigma_y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix}\)에 \(-2i\)를 곱한 것과 같다. 곧 \([\sigma_x, \sigma_z] = -2i\,\sigma_y\)이다. 16장에서 이런 관계들이 스핀의 성질을 결정한다.</p>
+    </div>
+    <div class="box thm" id="thm-comm-product"><div class="box-h">곱의 교환자</div>
+      <div class="formula" id="eq-comm-product">\[ [\hat A, \hat B\hat C] = \hat B\,[\hat A, \hat C] + [\hat A, \hat B]\,\hat C \]</div>
+      <details class="proof"><summary>증명</summary>
+        <p>오른쪽을 펼치면 \(\hat B\hat A\hat C - \hat B\hat C\hat A + \hat A\hat B\hat C - \hat B\hat A\hat C = \hat A\hat B\hat C - \hat B\hat C\hat A\)이고, 이것이 왼쪽이다.</p>
+      </details>
+    </div>
+    <p>곱의 미분 규칙 \((fg)' = f g' + f' g\)를 닮았다. 8장의 사다리 연산자와 14장의 각운동량 계산에서 쉴 새 없이 쓴다.</p>
   </section>
 
+  <!-- ============================================================ 2.2 -->
   <section id="s2">
     <h2>수반, 에르미트, 유니타리 연산자</h2>
-    <p class="slot" data-slot="2.2절">아직 쓰지 않은 절입니다.</p>
+    <p>1장에서 켓 \(a|V\rangle\)에 대응하는 브라가 \(a^*\langle V|\)임을 보았다. 이제 켓 \(\hat\Omega|V\rangle\)에 대응하는 브라를 구할 차례다.</p>
+    <p>먼저 연산자를 브라에 작용시키는 법을 정하자. \(\langle V|\hat\Omega\)는 켓 \(|W\rangle\)를 숫자 \(\langle V|\hat\Omega|W\rangle\)로 보내는 브라로 정의한다. 곧 \(\langle V|\hat\Omega|W\rangle\)는 \(\hat\Omega\)를 오른쪽 켓에 먼저 작용시키든 왼쪽 브라에 먼저 작용시키든 같은 값이다. 행렬로는 행벡터에 행렬을 오른쪽에서 곱하는 것이다.</p>
+    <div class="box def" id="def-adjoint"><div class="box-h">수반 연산자</div>
+      <p>켓 \(\hat\Omega|V\rangle\)에 대응하는 브라를 \(\langle V|\hat\Omega^\dagger\)로 쓰고, \(\hat\Omega^\dagger\)를 \(\hat\Omega\)의 <span class="term">수반 연산자</span> <span class="en">(adjoint)</span>라 한다.</p>
+      <div class="formula" id="eq-adjoint-def">\[ \hat\Omega|V\rangle \;\longleftrightarrow\; \langle V|\hat\Omega^\dagger \]</div>
+    </div>
+    <p>행렬 원소를 구해 보자. \(\langle i|\hat\Omega^\dagger|j\rangle\)는 켓 \(\hat\Omega|i\rangle\)에 대응하는 브라와 켓 \(|j\rangle\)의 내적이다. 내적의 켤레 대칭(<a href="ch01.html#def-inner-product">1장 정의 1.5</a>)에 따라 이것은 \(|j\rangle\)의 브라와 \(\hat\Omega|i\rangle\)의 내적의 켤레다.</p>
+    <div class="formula" id="eq-adjoint-matrix">\[ (\Omega^\dagger)_{ij} = \langle i|\hat\Omega^\dagger|j\rangle = \langle j|\hat\Omega|i\rangle^* = \Omega_{ji}^* \]</div>
+    <p>수반의 행렬은 원래 행렬의 <b>행과 열을 바꾸고(전치) 켤레를 씌운 것</b>, 곧 켤레 전치다. 같은 계산을 아무 벡터로 하면 모든 \(|V\rangle, |W\rangle\)에 대해 \(\langle V|\hat\Omega^\dagger|W\rangle = \langle W|\hat\Omega|V\rangle^*\)이다.</p>
+    <p>수반에는 다음 성질이 있다. 모두 켤레 전치로 확인할 수 있다.</p>
+    <div class="formula">\[ \begin{gathered} (\hat\Omega^\dagger)^\dagger = \hat\Omega, \qquad (a\hat\Omega)^\dagger = a^*\hat\Omega^\dagger, \\ (\hat\Omega + \hat\Lambda)^\dagger = \hat\Omega^\dagger + \hat\Lambda^\dagger, \\ (\hat\Omega\hat\Lambda)^\dagger = \hat\Lambda^\dagger\hat\Omega^\dagger, \\ \big(|W\rangle\langle V|\big)^\dagger = |V\rangle\langle W| \end{gathered} \]</div>
+    <p>곱의 수반에서 순서가 뒤집히는 이유는 정의에서 바로 보인다. \(\hat\Omega\hat\Lambda|V\rangle = \hat\Omega\big(\hat\Lambda|V\rangle\big)\)에서 먼저 켓 \(\hat\Lambda|V\rangle\)의 브라는 \(\langle V|\hat\Lambda^\dagger\)이고, 여기에 \(\hat\Omega\)를 작용한 켓의 브라는 \(\langle V|\hat\Lambda^\dagger\hat\Omega^\dagger\)이다.</p>
+    <div class="callout tip"><strong>수반을 취하는 요령</strong><p>식 전체의 수반을 취하려면 (1) 순서를 거꾸로 뒤집고, (2) 켓은 브라로, 브라는 켓으로 바꾸고, (3) 숫자는 켤레로, (4) 연산자에는 \(\dagger\)를 붙인다. 예를 들어 켓 \(a\,\hat\Omega\hat\Lambda|V\rangle\)의 브라는 \(a^*\langle V|\hat\Lambda^\dagger\hat\Omega^\dagger\)이다. 숫자 \(\langle V|\hat\Omega|W\rangle\)의 켤레도 같은 규칙으로 \(\langle W|\hat\Omega^\dagger|V\rangle\)가 된다.</p></div>
+
+    <h3 id="s2-hu">에르미트 연산자와 유니타리 연산자</h3>
+    <div class="box def" id="def-hermitian"><div class="box-h">에르미트, 반에르미트, 유니타리 연산자</div>
+      <ul>
+        <li>\(\hat\Omega^\dagger = \hat\Omega\)이면 <span class="term">에르미트</span> <span class="en">(Hermitian)</span> 연산자라 한다.</li>
+        <li>\(\hat\Omega^\dagger = -\hat\Omega\)이면 <span class="term">반에르미트</span> <span class="en">(anti-Hermitian)</span> 연산자라 한다.</li>
+        <li>\(\hat U^\dagger\hat U = \hat U\hat U^\dagger = \hat I\)이면 <span class="term">유니타리</span> <span class="en">(unitary)</span> 연산자라 한다.</li>
+      </ul>
+      <p>유한 차원에서는 \(\hat U^\dagger\hat U = \hat I\) 하나만 확인하면 된다. 정사각 행렬의 왼쪽 역행렬은 오른쪽 역행렬이기도 하기 때문이다.</p>
+    </div>
+    <p>이 세 종류는 복소수의 세 종류와 짝을 이룬다. 수반 \(\dagger\)를 복소켤레 \(*\)에 대응시키면 다음 표가 된다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>복소수</th><th>연산자</th></tr></thead>
+      <tbody>
+        <tr><td>실수: \(z = z^*\)</td><td>에르미트: \(\hat\Omega = \hat\Omega^\dagger\)</td></tr>
+        <tr><td>순허수: \(z = -z^*\)</td><td>반에르미트: \(\hat\Omega = -\hat\Omega^\dagger\)</td></tr>
+        <tr><td>크기 1: \(z^* z = 1\)</td><td>유니타리: \(\hat U^\dagger\hat U = \hat I\)</td></tr>
+        <tr><td>\(z = \mathrm{Re}\,z + i\,\mathrm{Im}\,z\)</td><td>\(\hat\Omega = \frac{\hat\Omega + \hat\Omega^\dagger}{2} + \frac{\hat\Omega - \hat\Omega^\dagger}{2}\) (에르미트 + 반에르미트)</td></tr>
+      </tbody>
+    </table></div>
+    <p>이 대응은 단순한 비유가 아니다. 곧 보겠지만 에르미트 연산자의 고유값은 실수이고, 유니타리 연산자의 고유값은 크기가 1이다(<a class="ref" href="#prob-unitary-eigen"></a>). 6장에서 측정할 수 있는 양을 에르미트 연산자로 나타내는 것은 측정값이 실수이기 때문이다.</p>
+    <p>행렬로 판별할 때는 식 <a class="ref" href="#eq-adjoint-matrix"></a>를 쓴다. 에르미트이면 \(\Omega_{ij} = \Omega_{ji}^*\)이므로 <b>대각 원소는 실수이고, 대각선을 사이에 두고 마주 보는 원소는 서로 켤레</b>다. <a href="ch01.html#ex-pauli">1장 예제 1.3</a>의 파울리 행렬 네 개는 모두 에르미트이고, \(\begin{pmatrix} 2 & 1-i \\ 1+i & 3 \end{pmatrix}\)도 에르미트다. 에르미트 연산자에서는 \(\langle V|\hat\Omega|V\rangle^* = \langle V|\hat\Omega^\dagger|V\rangle = \langle V|\hat\Omega|V\rangle\)이므로 \(\langle V|\hat\Omega|V\rangle\)가 언제나 실수다. 6장에서 이것이 측정의 평균값, 곧 기댓값이 된다.</p>
+    <p>유니타리 연산자는 내적을 바꾸지 않는다. \(\hat U|V\rangle\)의 브라는 \(\langle V|\hat U^\dagger\)이므로</p>
+    <div class="formula" id="eq-unitary-ip">\[ \big(\langle V|\hat U^\dagger\big)\big(\hat U|W\rangle\big) = \langle V|\hat U^\dagger\hat U|W\rangle = \langle V|W\rangle \]</div>
+    <p>이다. 길이와 직교성이 그대로이므로, 정규직교 기저를 유니타리 연산자로 옮기면 다시 정규직교 기저가 된다. 화살표의 회전이 대표적인 예다. 행렬로는 \(U^\dagger U = I\)가 <b>\(U\)의 열들이 정규직교</b>라는 뜻이다. \((U^\dagger U)_{ij} = \sum_k U_{ki}^* U_{kj}\)는 \(i\)번째 열과 \(j\)번째 열의 내적이기 때문이다.</p>
+    <div class="box ex" id="ex-unitary"><div class="box-h">유니타리 행렬 알아보기</div>
+      <div class="formula">\[ U = \frac{1}{\sqrt 2}\begin{pmatrix} 1 & 1 \\ i & -i \end{pmatrix} \]</div>
+      <p>의 두 열 \((1, i)/\sqrt 2\)와 \((1, -i)/\sqrt 2\)는 1장에서 본 벡터들이다. 각각 길이가 1이고, 내적은 \(\tfrac12\big(1\cdot 1 + (-i)(-i)\big) = \tfrac12(1 - 1) = 0\)이다. 따라서 \(U\)는 유니타리다. 회전 행렬 \(R(\theta)\)도 두 열 \((\cos\theta, \sin\theta)\), \((-\sin\theta, \cos\theta)\)가 정규직교이므로 유니타리다.</p>
+    </div>
+
+    <h3 id="s2-basis">기저 바꾸기</h3>
+    <p>같은 벡터와 연산자라도 다른 정규직교 기저에서 보면 성분과 행렬이 바뀐다. 새 기저가 \(|i'\rangle = \hat U|i\rangle\)로 주어졌다고 하자(\(\hat U\)는 유니타리). 옛 기저에서 \(U_{ij} = \langle i|\hat U|j\rangle = \langle i|j'\rangle\)이므로, <b>\(U\)의 \(j\)번째 열은 새 기저 벡터 \(|j'\rangle\)의 옛 성분</b>이다. 새 기저에서 벡터의 성분과 연산자의 행렬 원소는</p>
+    <div class="formula">\[ \begin{aligned} v'_i &= \langle i'|V\rangle = \langle i|\hat U^\dagger|V\rangle, \\ \Omega'_{ij} &= \langle i'|\hat\Omega|j'\rangle = \langle i|\hat U^\dagger\hat\Omega\hat U|j\rangle \end{aligned} \]</div>
+    <p>이다. \(\langle i'|\)는 켓 \(\hat U|i\rangle\)의 브라이므로 \(\langle i|\hat U^\dagger\)이다. 행렬로 쓰면 다음과 같다.</p>
+    <div class="formula" id="eq-basis-change">\[ v' = U^\dagger v, \qquad \Omega' = U^\dagger\,\Omega\,U \]</div>
+    <p>다음 절에서는 이 공식으로 행렬을 대각화한다. 고유벡터들로 새 기저를 잡으면 \(\Omega'\)이 대각 행렬이 된다.</p>
   </section>
 
+  <!-- ============================================================ 2.3 -->
   <section id="s3">
     <h2>고유값 문제</h2>
-    <p class="slot" data-slot="2.3절">아직 쓰지 않은 절입니다.</p>
+    <p>대부분의 벡터는 연산자를 거치면 방향이 바뀐다. 그런데 어떤 특별한 벡터는 방향은 그대로 두고 숫자배만 된다.</p>
+    <div class="box def" id="def-eigen"><div class="box-h">고유값과 고유벡터</div>
+      <div class="formula" id="eq-eigen">\[ \hat\Omega|\omega\rangle = \omega\,|\omega\rangle, \qquad |\omega\rangle \neq 0 \]</div>
+      <p>이면 숫자 \(\omega\)를 \(\hat\Omega\)의 <span class="term">고유값</span> <span class="en">(eigenvalue)</span>, \(|\omega\rangle\)를 그에 속한 <span class="term">고유벡터</span> <span class="en">(eigenvector, eigenket)</span>라 한다. 고유벡터에는 고유값을 이름으로 붙여 쓴다.</p>
+    </div>
+    <p>고유벡터에 0이 아닌 숫자를 곱해도 같은 고유값의 고유벡터이므로, 보통 정규화해서 쓴다. 그림 2-2는 한 행렬이 여러 방향의 단위 벡터를 어디로 보내는지 보여 준다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:2-2a--><svg viewBox="0 0 280 282" role="img" aria-label="단위원 위의 여러 단위 벡터"><defs><marker id="f22a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f22a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f22a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="46.7" y1="235.3" x2="233.3" y2="48.7" class="s-grid" stroke-dasharray="5 5"/><line x1="233.3" y1="235.3" x2="46.7" y2="48.7" class="s-grid" stroke-dasharray="5 5"/><path d="M188 142 L187.9 138.7 L187.5 135.3 L187 132 L186.1 128.8 L185.1 125.6 L183.9 122.5 L182.4 119.5 L180.7 116.6 L178.8 113.8 L176.8 111.1 L174.5 108.7 L172.1 106.3 L169.6 104.2 L166.8 102.2 L164 100.4 L161 98.9 L158 97.5 L154.8 96.3 L151.6 95.4 L148.3 94.7 L145 94.3 L141.7 94 L138.3 94 L135 94.3 L131.7 94.7 L128.4 95.4 L125.2 96.3 L122 97.5 L119 98.9 L116 100.4 L113.2 102.2 L110.4 104.2 L107.9 106.3 L105.5 108.7 L103.2 111.1 L101.2 113.8 L99.3 116.6 L97.6 119.5 L96.1 122.5 L94.9 125.6 L93.9 128.8 L93 132 L92.5 135.3 L92.1 138.7 L92 142 L92.1 145.3 L92.5 148.7 L93 152 L93.9 155.2 L94.9 158.4 L96.1 161.5 L97.6 164.5 L99.3 167.4 L101.2 170.2 L103.2 172.9 L105.5 175.3 L107.9 177.7 L110.4 179.8 L113.2 181.8 L116 183.6 L119 185.1 L122 186.5 L125.2 187.7 L128.4 188.6 L131.7 189.3 L135 189.7 L138.3 190 L141.7 190 L145 189.7 L148.3 189.3 L151.6 188.6 L154.8 187.7 L158 186.5 L161 185.1 L164 183.6 L166.8 181.8 L169.6 179.8 L172.1 177.7 L174.5 175.3 L176.8 172.9 L178.8 170.2 L180.7 167.4 L182.4 164.5 L183.9 161.5 L185.1 158.4 L186.1 155.2 L187 152 L187.5 148.7 L187.9 145.3 L188 142" class="s-line" fill="none" stroke-dasharray="3 4" stroke-width="1.2"/><line x1="140" y1="142" x2="188" y2="142" class="s-line" stroke-width="1.6" marker-end="url(#f22a-dim)"/><text x="201" y="147" class="t-dim" text-anchor="middle">a</text><line x1="140" y1="142" x2="140" y2="94" class="s-line" stroke-width="1.6" marker-end="url(#f22a-dim)"/><text x="140" y="86" class="t-dim" text-anchor="middle">b</text><line x1="140" y1="142" x2="94.9" y2="125.6" class="s-line" stroke-width="1.6" marker-end="url(#f22a-dim)"/><text x="82.7" y="126.1" class="t-dim" text-anchor="middle">c</text><line x1="140" y1="142" x2="173.9" y2="108.1" class="s-acc" stroke-width="3" marker-end="url(#f22a-acc)"/><line x1="140" y1="142" x2="106.1" y2="108.1" class="s-acc2" stroke-width="3" marker-end="url(#f22a-acc2)"/><circle cx="140" cy="142" r="3" class="f-dim"/><text x="12" y="22" class="t-b" text-anchor="start">(가) 작용 전</text></svg><!--/fig:2-2a--><!--fig:2-2b--><svg viewBox="0 0 280 282" role="img" aria-label="행렬 A를 작용한 뒤: 대각선 방향 벡터만 방향을 유지한다"><defs><marker id="f22b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f22b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f22b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="46.7" y1="235.3" x2="233.3" y2="48.7" class="s-grid" stroke-dasharray="5 5"/><line x1="233.3" y1="235.3" x2="46.7" y2="48.7" class="s-grid" stroke-dasharray="5 5"/><path d="M236 94 L239.1 87.4 L241.7 81.1 L243.9 75.1 L245.5 69.4 L246.6 64.1 L247.2 59.1 L247.3 54.5 L246.8 50.4 L245.9 46.7 L244.4 43.5 L242.4 40.8 L239.9 38.5 L236.9 36.8 L233.5 35.6 L229.6 34.9 L225.2 34.7 L220.5 35 L215.3 35.9 L209.8 37.2 L203.9 39.1 L197.8 41.5 L191.3 44.4 L184.6 47.7 L177.7 51.5 L170.6 55.8 L163.3 60.5 L156 65.5 L148.5 71 L141.1 76.8 L133.6 82.9 L126.1 89.3 L118.7 95.9 L111.4 102.8 L104.3 109.8 L97.3 117.1 L90.5 124.4 L84 131.8 L77.8 139.3 L71.8 146.8 L66.2 154.3 L60.9 161.7 L56.1 169 L51.6 176.2 L47.6 183.2 L44 190 L40.9 196.6 L38.3 202.9 L36.1 208.9 L34.5 214.6 L33.4 219.9 L32.8 224.9 L32.7 229.5 L33.2 233.6 L34.1 237.3 L35.6 240.5 L37.6 243.2 L40.1 245.5 L43.1 247.2 L46.5 248.4 L50.4 249.1 L54.8 249.3 L59.5 249 L64.7 248.1 L70.2 246.8 L76.1 244.9 L82.2 242.5 L88.7 239.6 L95.4 236.3 L102.3 232.5 L109.4 228.2 L116.7 223.5 L124 218.5 L131.5 213 L138.9 207.2 L146.4 201.1 L153.9 194.7 L161.3 188.1 L168.6 181.2 L175.7 174.2 L182.7 166.9 L189.5 159.6 L196 152.2 L202.2 144.7 L208.2 137.2 L213.8 129.7 L219.1 122.3 L223.9 115 L228.4 107.8 L232.4 100.8 L236 94" class="s-line" fill="none" stroke-dasharray="3 4" stroke-width="1.2"/><line x1="140" y1="142" x2="236" y2="94" class="s-line" stroke-width="1.6" marker-end="url(#f22b-dim)"/><text x="247.6" y="93.2" class="t-dim" text-anchor="middle">a</text><line x1="140" y1="142" x2="188" y2="46" class="s-line" stroke-width="1.6" marker-end="url(#f22b-dim)"/><text x="193.8" y="39.4" class="t-dim" text-anchor="middle">b</text><line x1="140" y1="142" x2="66.2" y2="154.3" class="s-line" stroke-width="1.6" marker-end="url(#f22b-dim)"/><text x="53.4" y="161.4" class="t-dim" text-anchor="middle">c</text><line x1="140" y1="142" x2="241.8" y2="40.2" class="s-acc" stroke-width="3" marker-end="url(#f22b-acc)"/><line x1="140" y1="142" x2="106.1" y2="108.1" class="s-acc2" stroke-width="3" marker-end="url(#f22b-acc2)"/><circle cx="140" cy="142" r="3" class="f-dim"/><text x="245.8" y="58.2" class="t-math acc" text-anchor="start">×3</text><text x="100.1" y="104.1" class="t-math acc2" text-anchor="end">×1</text><text x="12" y="22" class="t-b" text-anchor="start">(나) <tspan font-style="italic">A</tspan>를 작용한 뒤</text></svg><!--/fig:2-2b--></div>
+      <figcaption><b>그림 2-2.</b> 행렬 \(A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\)가 단위 벡터들을 보내는 곳. (가) 작용 전, (나) 작용 후. 회색 벡터들은 방향이 바뀌지만, 대각선 방향 \((1, 1)/\sqrt 2\)는 방향을 유지한 채 3배가 되고 \((-1, 1)/\sqrt 2\)는 그대로(1배)다. 이 두 방향이 고유벡터이고 3과 1이 고유값이다. 단위원은 고유벡터 방향을 축으로 하는 타원이 된다.</figcaption>
+    </figure>
+    <div class="callout tip"><strong>양자역학에서의 뜻</strong><p>6장에서 보겠지만, 측정에서 나올 수 있는 값은 측정량을 나타내는 연산자의 고유값뿐이고, 측정값이 확정된 상태는 그 고유벡터다. 그래서 양자역학 계산의 대부분은 고유값 문제를 푸는 일이다.</p></div>
+
+    <h3 id="s3-char">특성 방정식</h3>
+    <p>고유값 방정식의 오른쪽을 \(\omega\hat I|\omega\rangle\)로 쓰고 옮기면 \((\hat\Omega - \omega\hat I)|\omega\rangle = 0\)이다. 연산자 \(\hat\Omega - \omega\hat I\)가 영벡터 아닌 벡터를 영벡터로 보낸다는 뜻이다. 이런 일은 행렬 \(\Omega - \omega I\)의 행렬식이 0일 때, 그리고 그때만 일어난다(아래 수학 상자).</p>
+    <div class="formula" id="eq-characteristic">\[ \det(\Omega - \omega I) = 0 \]</div>
+    <p>이 식을 <span class="term">특성 방정식</span> <span class="en">(characteristic equation)</span>이라 한다. \(n \times n\) 행렬이면 \(\omega\)에 대한 \(n\)차 다항식이고, 대수학의 기본 정리에 따라 복소수 범위에서 중복을 세어 정확히 \(n\)개의 근이 있다. 고유값을 구한 뒤에는 각 \(\omega\)마다 \((\Omega - \omega I)v = 0\)을 풀어 고유벡터를 얻는다.</p>
+    <p>특성 다항식은 기저와 상관이 없다. \(\Omega' = U^\dagger\Omega U\)이면</p>
+    <div class="formula">\[ \begin{aligned} \det(\Omega' - \omega I) &= \det\big(U^\dagger(\Omega - \omega I)\,U\big) \\ &= \det U^\dagger\,\det(\Omega - \omega I)\,\det U \\ &= \det(\Omega - \omega I) \end{aligned} \]</div>
+    <p>이다(\(\det U^\dagger \det U = \det(U^\dagger U) = 1\)). 따라서 고유값은 행렬이 아니라 연산자 자체의 성질이다.</p>
+    <div class="box math" id="math-det"><div class="box-h">행렬식</div>
+      <ul>
+        <li><b>2×2</b>: \(\det\begin{pmatrix} a & b \\ c & d \end{pmatrix} = ad - bc\)</li>
+        <li><b>3×3</b>: 첫 행을 따라 펼친다(여인수 전개). 각 원소에 그 행과 열을 지운 2×2 행렬식을 곱하고, 부호를 \(+, -, +\)로 번갈아 붙인다.
+          <div class="formula">\[ \begin{aligned} \det A = \;& a_{11}(a_{22}a_{33} - a_{23}a_{32}) \\ &- a_{12}(a_{21}a_{33} - a_{23}a_{31}) \\ &+ a_{13}(a_{21}a_{32} - a_{22}a_{31}) \end{aligned} \]</div></li>
+        <li><b>성질</b>: \(\det(AB) = \det A\,\det B\), \(\det A^T = \det A\), \(\det A^\dagger = (\det A)^*\). 삼각 행렬의 행렬식은 대각 원소의 곱이다.</li>
+        <li><b>핵심 사실</b>: 다음 넷은 모두 같은 말이다. \(\det A \neq 0\) ⟺ \(A\)의 역행렬이 있다 ⟺ \(A\)의 열들이 선형 독립이다 ⟺ \(Av = 0\)의 해는 \(v = 0\)뿐이다. 따라서 \(Av = 0\)이 영벡터 아닌 해를 가질 조건은 \(\det A = 0\)이다.</li>
+        <li><b>대수학의 기본 정리</b>: 복소 계수 \(n\)차 다항식은 복소수 범위에서 중복을 세어 정확히 \(n\)개의 근을 가진다.</li>
+      </ul>
+    </div>
+    <div class="box ex" id="ex-eigen-2x2"><div class="box-h">2×2 대칭 행렬</div>
+      <p>그림 2-2의 \(A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\)이다. 특성 방정식은 \((2 - \omega)^2 - 1 = 0\), 곧 \(2 - \omega = \pm 1\)이므로 \(\omega = 1, 3\)이다.</p>
+      <p>\(\omega = 3\): \(\begin{pmatrix} -1 & 1 \\ 1 & -1 \end{pmatrix}v = 0\)에서 \(v_1 = v_2\)이므로 \(|\omega{=}3\rangle \to (1, 1)/\sqrt 2\).</p>
+      <p>\(\omega = 1\): \(\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}v = 0\)에서 \(v_1 = -v_2\)이므로 \(|\omega{=}1\rangle \to (1, -1)/\sqrt 2\).</p>
+      <p>두 고유벡터는 서로 직교한다. 그림 2-2의 두 대각선이다(\((-1, 1)\)은 \((1, -1)\)에 \(-1\)을 곱한 것이다). 고유벡터를 \(|3\rangle\)처럼 고유값만으로 쓰면 기저 벡터 \(|1\rangle, |2\rangle, \ldots\)와 헷갈리므로, 이 장에서는 \(|\omega{=}3\rangle\)처럼 적는다.</p>
+    </div>
+    <div class="box ex" id="ex-eigen-rotation"><div class="box-h">회전의 고유값</div>
+      <p>평면의 회전 \(R(\theta)\)(\(0 &lt; \theta &lt; \pi\))는 모든 화살표의 방향을 바꾸므로 실수 고유값을 가질 수 없다. 실제로 특성 방정식은 \((\cos\theta - \omega)^2 + \sin^2\theta = 0\)이고, \(\cos\theta - \omega = \pm i\sin\theta\)에서</p>
+      <div class="formula">\[ \omega = \cos\theta \mp i\sin\theta = e^{\mp i\theta} \]</div>
+      <p>로 고유값은 복소수다. 고유벡터는 \(\omega = e^{i\theta}\)에 \((1, -i)/\sqrt 2\), \(\omega = e^{-i\theta}\)에 \((1, i)/\sqrt 2\)이다. 첫째를 확인해 보면 \(R(\theta)(1, -i) = (\cos\theta + i\sin\theta,\; \sin\theta - i\cos\theta) = e^{i\theta}(1, -i)\)이다.</p>
+      <p>실수만으로는 풀리지 않던 문제가 복소수로 넓히자 풀렸다. 양자역학이 복소 벡터 공간을 쓰는 이유 가운데 하나다. 고유값의 크기가 1인 것은 \(R\)이 유니타리이기 때문이다.</p>
+    </div>
+
+    <h3 id="s3-hermitian">에르미트 연산자의 고유값과 고유벡터</h3>
+    <div class="box thm" id="thm-hermitian-eigen"><div class="box-h">에르미트 연산자의 고유값과 고유벡터</div>
+      <p>에르미트 연산자의 (가) 고유값은 모두 실수이고, (나) 서로 다른 고유값에 속한 고유벡터는 직교한다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p><b>(가)</b> \(\hat\Omega|\omega\rangle = \omega|\omega\rangle\)에 왼쪽에서 \(\langle\omega|\)를 곱하면 \(\langle\omega|\hat\Omega|\omega\rangle = \omega\langle\omega|\omega\rangle\)이다. 한편 고유값 방정식의 수반은 \(\langle\omega|\hat\Omega^\dagger = \omega^*\langle\omega|\)이고, \(\hat\Omega^\dagger = \hat\Omega\)이므로 \(\langle\omega|\hat\Omega = \omega^*\langle\omega|\)이다. 오른쪽에 \(|\omega\rangle\)를 곱하면 \(\langle\omega|\hat\Omega|\omega\rangle = \omega^*\langle\omega|\omega\rangle\)이다. 두 식을 빼면 \((\omega - \omega^*)\langle\omega|\omega\rangle = 0\)이고, \(\langle\omega|\omega\rangle \neq 0\)이므로 \(\omega = \omega^*\)이다.</p>
+        <p><b>(나)</b> \(\hat\Omega|\omega_1\rangle = \omega_1|\omega_1\rangle\), \(\hat\Omega|\omega_2\rangle = \omega_2|\omega_2\rangle\), \(\omega_1 \neq \omega_2\)라 하자. 첫 식에 \(\langle\omega_2|\)를 곱하면 \(\langle\omega_2|\hat\Omega|\omega_1\rangle = \omega_1\langle\omega_2|\omega_1\rangle\)이다. 둘째 식의 수반은 (\(\omega_2\)가 실수이므로) \(\langle\omega_2|\hat\Omega = \omega_2\langle\omega_2|\)이고, 여기에 \(|\omega_1\rangle\)을 곱하면 \(\langle\omega_2|\hat\Omega|\omega_1\rangle = \omega_2\langle\omega_2|\omega_1\rangle\)이다. 빼면 \((\omega_1 - \omega_2)\langle\omega_2|\omega_1\rangle = 0\)이므로 \(\langle\omega_2|\omega_1\rangle = 0\)이다.</p>
+      </details>
+    </div>
+    <p>이제 이 장의 가장 중요한 정리다. 에르미트 연산자는 언제나 '고유벡터의 정규직교 기저'를 가진다.</p>
+    <div class="box thm" id="thm-spectral"><div class="box-h">스펙트럼 정리</div>
+      <p>유한 차원 공간의 에르미트 연산자 \(\hat\Omega\)에는 고유벡터들로 된 정규직교 기저가 있다. 이 기저에서 \(\hat\Omega\)의 행렬은 대각 행렬이고, 대각 원소는 (실수인) 고유값이다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p>특성 방정식은 근을 적어도 하나 가지므로, 고유값 \(\omega_1\)과 정규화된 고유벡터 \(|\omega_1\rangle\)이 있다. \(|\omega_1\rangle\)에 직교하는 벡터들의 부분공간 \(\mathbb{V}_\perp\)(\(n - 1\)차원, <a href="ch01.html#prob-complement">1장 문제 1.11</a>)을 생각하자. \(|V\rangle\)가 \(\mathbb{V}_\perp\)에 있으면 \(\hat\Omega|V\rangle\)도 \(\mathbb{V}_\perp\)에 있다.</p>
+        <div class="formula">\[ \langle\omega_1|\hat\Omega|V\rangle = \omega_1\langle\omega_1|V\rangle = 0 \]</div>
+        <p>(\(\langle\omega_1|\hat\Omega = \omega_1\langle\omega_1|\)을 썼다.) 따라서 \(\hat\Omega\)는 \(\mathbb{V}_\perp\) 안에서 \(n-1\)차원 공간의 에르미트 연산자로 작용하고, 같은 논리로 그 안에서 고유벡터 \(|\omega_2\rangle\)를 찾을 수 있다. 이것은 처음부터 \(\mathbb{V}_\perp\)에 있으므로 \(|\omega_1\rangle\)과 직교한다. 이를 \(n\)번 되풀이하면 서로 직교하는 정규화된 고유벡터 \(n\)개, 곧 정규직교 기저를 얻는다. 이 기저에서 \(\langle\omega_i|\hat\Omega|\omega_j\rangle = \omega_j\langle\omega_i|\omega_j\rangle = \omega_j\delta_{ij}\)이므로 행렬은 대각이다.</p>
+      </details>
+    </div>
+    <p>고유벡터 기저의 완비성 관계 \(\sum_i |\omega_i\rangle\langle\omega_i| = \hat I\)를 \(\hat\Omega\) 뒤에 붙이면, 에르미트 연산자를 고유값과 고유벡터로 다시 쓸 수 있다.</p>
+    <div class="formula" id="eq-spectral">\[ \hat\Omega = \hat\Omega\sum_i |\omega_i\rangle\langle\omega_i| = \sum_i \omega_i\,|\omega_i\rangle\langle\omega_i| \]</div>
+    <p>이것을 <span class="term">스펙트럼 분해</span> <span class="en">(spectral decomposition)</span>라 한다. 에르미트 연산자는 "각 고유 방향으로의 투영에 고유값을 곱해 더한 것"이다. 예제 <a class="ref" href="#ex-eigen-2x2"></a>의 \(A\)라면 \(A = 3\cdot\tfrac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix} + 1\cdot\tfrac12\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix}\)이고, 더해 보면 \(\begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\)로 돌아온다.</p>
+
+    <h3 id="s3-diag">대각화와 축퇴</h3>
+    <p>고유벡터의 성분을 열로 늘어놓은 행렬 \(U\)를 만들면, 열들이 정규직교이므로 \(U\)는 유니타리다. 식 <a class="ref" href="#eq-basis-change"></a>에 따라 고유벡터 기저에서 본 행렬은 \(U^\dagger\Omega U = \mathrm{diag}(\omega_1, \ldots, \omega_n)\)이다. 이것을 <span class="term">대각화</span> <span class="en">(diagonalization)</span>라 한다. 예제 <a class="ref" href="#ex-eigen-2x2"></a>라면</p>
+    <div class="formula">\[ U = \frac{1}{\sqrt 2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}, \qquad U^\dagger A\, U = \begin{pmatrix} 3 & 0 \\ 0 & 1 \end{pmatrix} \]</div>
+    <p>이다. 특성 방정식이 중근을 가지면 같은 고유값에 독립인 고유벡터가 여럿 있다. 이를 <span class="term">축퇴</span> <span class="en">(degeneracy)</span>라 하고, 한 고유값에 속한 고유벡터 전체(와 영벡터)가 이루는 부분공간을 <span class="term">고유 공간</span> <span class="en">(eigenspace)</span>이라 한다. 에르미트 연산자에서는 스펙트럼 정리에 따라, 고유값이 \(m\)중근이면 그 고유 공간은 정확히 \(m\)차원이다. 대각 행렬에서 그 고유값이 \(m\)번 나오기 때문이다.</p>
+    <div class="box ex" id="ex-degenerate"><div class="box-h">축퇴가 있는 3×3 행렬</div>
+      <div class="formula">\[ \Omega = \begin{pmatrix} 2 & 1 & 1 \\ 1 & 2 & 1 \\ 1 & 1 & 2 \end{pmatrix} \]</div>
+      <p>\(x = 2 - \omega\)로 두고 첫 행을 따라 펼치면</p>
+      <div class="formula">\[ \begin{aligned} \det(\Omega - \omega I) &= x(x^2 - 1) - (x - 1) + (1 - x) \\ &= x^3 - 3x + 2 \\ &= (x - 1)^2(x + 2) \end{aligned} \]</div>
+      <p>이다. \(x = 1\)(중근), \(x = -2\)이므로 \(\omega = 1\)(중근), \(\omega = 4\)이다.</p>
+      <p><b>\(\omega = 4\)</b>: \((\Omega - 4I)v = 0\)을 풀면 \(v_1 = v_2 = v_3\)이므로 \(|\omega{=}4\rangle \to (1, 1, 1)/\sqrt 3\).</p>
+      <p><b>\(\omega = 1\)</b>: \(\Omega - I\)는 모든 원소가 1인 행렬이어서, 방정식이 \(v_1 + v_2 + v_3 = 0\) 하나뿐이다. <a href="ch01.html#ex-subspace">1장 예제 1.7</a>의 평면 전체가 고유 공간이다(2차원). 이 평면 안의 어떤 벡터든 고유값 1의 고유벡터다. 정규직교 기저로 1장에서 구한 \((1, -1, 0)/\sqrt 2\)와 \((1, 1, -2)/\sqrt 6\)을 쓸 수 있지만, 평면 안에서 이 두 벡터를 함께 돌린 쌍도 똑같이 좋은 답이다.</p>
+      <p>두 고유 공간은 1장의 \(\mathbb{V}_1\)(평면)과 \(\mathbb{V}_1^\perp\)(직선)이고, 스펙트럼 분해는 \(\hat\Omega = 1\cdot\hat P_{\text{평면}} + 4\cdot\hat P_{\text{직선}}\)이다.</p>
+    </div>
+    <div class="callout warn"><strong>축퇴가 남기는 모호함</strong><p>축퇴가 있으면 '고유값 1의 고유벡터'라는 말로는 상태가 하나로 정해지지 않는다. 다음 절에서 이 모호함을 두 번째 연산자로 푼다.</p></div>
   </section>
 
+  <!-- ============================================================ 2.4 -->
   <section id="s4">
     <h2>교환하는 연산자의 동시 대각화</h2>
-    <p class="slot" data-slot="2.4절">아직 쓰지 않은 절입니다.</p>
+    <p>축퇴는 양자역학에서 흔하다. 수소 원자에는 에너지가 같은 상태가 여럿 있다(15장). 이때 상태를 하나로 지정하려면 에너지 말고 다른 양(각운동량 등)의 값도 함께 말해야 한다. 그런데 두 양의 값을 함께 지정하려면 두 연산자가 공통의 고유벡터를 가져야 한다. 언제 그럴까? 답은 교환자에 있다.</p>
+    <div class="box thm" id="thm-simultaneous"><div class="box-h">동시 대각화</div>
+      <p>두 에르미트 연산자 \(\hat\Omega, \hat\Lambda\)가 교환하면(\([\hat\Omega, \hat\Lambda] = 0\)), 두 연산자의 공통 고유벡터로 된 정규직교 기저가 있다. 거꾸로 공통 고유벡터로 된 기저가 있으면 두 연산자는 교환한다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p><b>거꾸로 방향</b>이 쉽다. 공통 고유벡터 기저에서 두 행렬은 모두 대각이고, 대각 행렬끼리는 곱하는 순서와 상관이 없다.</p>
+        <p><b>앞 방향.</b> \(\hat\Omega|\omega\rangle = \omega|\omega\rangle\)이라 하자. 두 연산자가 교환하므로</p>
+        <div class="formula">\[ \hat\Omega\big(\hat\Lambda|\omega\rangle\big) = \hat\Lambda\hat\Omega|\omega\rangle = \omega\,\big(\hat\Lambda|\omega\rangle\big) \]</div>
+        <p>이다. 곧 \(\hat\Lambda|\omega\rangle\)도 \(\hat\Omega\)의 같은 고유값 \(\omega\)의 고유 공간 \(\mathbb{V}_\omega\)에 들어 있다. \(\hat\Lambda\)는 \(\hat\Omega\)의 각 고유 공간을 그 자신으로 보낸다.</p>
+        <ul>
+          <li>\(\omega\)가 축퇴되지 않았으면 \(\mathbb{V}_\omega\)는 1차원이므로 \(\hat\Lambda|\omega\rangle = \lambda|\omega\rangle\)이다. 곧 \(|\omega\rangle\)는 \(\hat\Lambda\)의 고유벡터이기도 하다.</li>
+          <li>\(\omega\)가 축퇴되어 \(\mathbb{V}_\omega\)가 \(m\)차원이면, \(\hat\Lambda\)는 이 \(m\)차원 공간 안의 에르미트 연산자로 작용한다. 스펙트럼 정리를 이 공간 안에서 쓰면 \(\mathbb{V}_\omega\) 안에 \(\hat\Lambda\)의 고유벡터로 된 정규직교 기저가 있고, 이들은 여전히 \(\hat\Omega\)의 고유값 \(\omega\)의 고유벡터다.</li>
+        </ul>
+        <p>모든 고유 공간에서 이렇게 고르면 전체 공간의 공통 고유벡터 기저가 된다. 서로 다른 고유 공간은 정리 <a class="ref" href="#thm-hermitian-eigen"></a>에 따라 서로 직교한다.</p>
+      </details>
+    </div>
+    <p>공통 고유벡터에는 두 고유값을 함께 이름으로 붙여 \(|\omega, \lambda\rangle\)로 쓴다.</p>
+    <div class="box ex" id="ex-simultaneous"><div class="box-h">축퇴를 푸는 두 번째 연산자</div>
+      <p>예제 <a class="ref" href="#ex-degenerate"></a>의 \(\Omega\)와, \(x\) 성분과 \(y\) 성분을 맞바꾸는 연산자</p>
+      <div class="formula">\[ P = \begin{pmatrix} 0 & 1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1 \end{pmatrix} \]</div>
+      <p>을 보자. \(P\)는 실대칭이므로 에르미트다. \(\Omega P\)는 \(\Omega\)의 첫째·둘째 열을, \(P\Omega\)는 첫째·둘째 행을 맞바꾼 것인데, 둘 다 \(\begin{pmatrix} 1 & 2 & 1 \\ 2 & 1 & 1 \\ 1 & 1 & 2 \end{pmatrix}\)로 같다. 따라서 \([\Omega, P] = 0\)이다.</p>
+      <p>\(P\)의 고유값은 \(\pm 1\)이다. \(x\)와 \(y\)를 바꿔도 그대로인 벡터는 \(+1\), 부호만 바뀌는 벡터는 \(-1\)이다. 이제 \(\Omega\)의 고유 공간마다 \(P\)를 대각화한다.</p>
+      <ul>
+        <li><b>\(\omega = 4\)</b>(축퇴 없음): \((1, 1, 1)\)은 \(x, y\)를 바꿔도 그대로이므로 \(\lambda = +1\).</li>
+        <li><b>\(\omega = 1\)</b>(2차원 평면): 평면 안에서 \(P\)의 고유벡터를 찾는다. \((1, -1, 0)\)은 \(x, y\)를 바꾸면 \((-1, 1, 0) = -(1, -1, 0)\)이므로 \(\lambda = -1\), \((1, 1, -2)\)는 그대로이므로 \(\lambda = +1\).</li>
+      </ul>
+      <div class="table-wrap"><table>
+        <thead><tr><th>상태</th><th>성분</th><th>\(\omega\)</th><th>\(\lambda\)</th></tr></thead>
+        <tbody>
+          <tr><td>\(|4, +1\rangle\)</td><td>\((1, 1, 1)/\sqrt 3\)</td><td class="num">4</td><td class="num">+1</td></tr>
+          <tr><td>\(|1, +1\rangle\)</td><td>\((1, 1, -2)/\sqrt 6\)</td><td class="num">1</td><td class="num">+1</td></tr>
+          <tr><td>\(|1, -1\rangle\)</td><td>\((1, -1, 0)/\sqrt 2\)</td><td class="num">1</td><td class="num">−1</td></tr>
+        </tbody>
+      </table></div>
+      <p>\(\Omega\)만으로는 아래 두 상태를 구별할 수 없고(\(\omega = 1\)로 같다), \(P\)만으로는 위의 두 상태를 구별할 수 없다(\(\lambda = +1\)로 같다). 두 고유값을 함께 말하면 세 상태가 모두 하나씩 정해진다. 1장에서 그람-슈미트로 '우연히' 얻었던 \((1, 1, -2)/\sqrt 6\)은 사실 \(P\)의 고유벡터였다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:2-3--><svg viewBox="0 0 360 246" role="img" aria-label="3차원 공간을 오메가의 고유값으로 나누고, 축퇴된 2차원 부분을 P의 고유값으로 다시 나누어 세 상태를 구별한다"><line x1="180" y1="44" x2="75" y2="76" class="s-line"/><line x1="180" y1="44" x2="245" y2="76" class="s-line"/><line x1="75" y1="116" x2="75" y2="149" class="s-line"/><line x1="245" y1="116" x2="195" y2="149" class="s-line"/><line x1="245" y1="116" x2="305" y2="149" class="s-line"/><rect x="115" y="12" width="130" height="32" rx="9" class="f-surface"/><text x="180" y="33" class="t-b" text-anchor="middle">3차원 공간</text><text x="262" y="62" class="t-math dim" text-anchor="start">Ω로 나눔</text><text x="267.5" y="54" class="t-math dim" text-anchor="middle">ˆ</text><rect x="17" y="75" width="116" height="42" rx="9" class="f-surface"/><text x="75" y="92.5" class="t-math" text-anchor="middle"><tspan font-style="italic">ω</tspan> = 4</text><text x="75" y="109.5" class="t-dim" text-anchor="middle">1차원</text><rect x="187" y="75" width="116" height="42" rx="9" class="f-surface"/><text x="245" y="92.5" class="t-math" text-anchor="middle"><tspan font-style="italic">ω</tspan> = 1</text><text x="245" y="109.5" class="t-dim" text-anchor="middle">2차원 (축퇴)</text><text x="88" y="138" class="t-math dim" text-anchor="start"><tspan font-style="italic">P̂</tspan>로 나눔</text><rect x="29" y="150" width="92" height="32" rx="9" class="f-acc-soft"/><text x="75" y="171" class="t-math acc" text-anchor="middle"><tspan font-style="italic">λ</tspan> = +1</text><rect x="149" y="150" width="92" height="32" rx="9" class="f-acc-soft"/><text x="195" y="171" class="t-math acc" text-anchor="middle"><tspan font-style="italic">λ</tspan> = +1</text><rect x="259" y="150" width="92" height="32" rx="9" class="f-acc2-soft"/><text x="305" y="171" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">λ</tspan> = −1</text><text x="75" y="212" class="t-math" text-anchor="middle">(1, 1, 1)/√3</text><text x="195" y="212" class="t-math" text-anchor="middle">(1, 1, −2)/√6</text><text x="305" y="212" class="t-math" text-anchor="middle">(1, −1, 0)/√2</text><text x="75" y="234" class="t-math dim" text-anchor="middle">|4, +1⟩</text><text x="195" y="234" class="t-math dim" text-anchor="middle">|1, +1⟩</text><text x="305" y="234" class="t-math dim" text-anchor="middle">|1, −1⟩</text></svg><!--/fig:2-3--></div>
+      <figcaption><b>그림 2-3.</b> 두 연산자로 상태에 이름 붙이기. \(\hat\Omega\)의 고유값은 3차원 공간을 1차원(\(\omega = 4\))과 2차원(\(\omega = 1\))으로 나눈다. 교환하는 \(\hat P\)가 2차원 부분을 다시 \(\lambda = \pm 1\)로 나누어, 세 상태가 \((\omega, \lambda)\) 쌍으로 하나씩 구별된다.</figcaption>
+    </figure>
+    <div class="box def" id="def-csco"><div class="box-h">완전한 교환 연산자 집합</div>
+      <p>서로 교환하는 에르미트 연산자들의 모음이 있어서, 그 고유값을 모두 지정하면 공통 고유벡터가 (상수배를 빼고) 하나로 정해질 때, 이 모음을 <span class="term">완전한 교환 연산자 집합</span> <span class="en">(complete set of commuting observables, CSCO)</span>이라 한다.</p>
+    </div>
+    <p>위 예에서 \(\{\hat\Omega, \hat P\}\)가 완전한 교환 연산자 집합이다. 수소 원자의 상태를 세 양자수 \((n, \ell, m)\)으로 부르는 것(15장)이 바로 이것이다.</p>
+    <div class="callout warn"><strong>교환하지 않으면</strong><p>\(\sigma_x\)와 \(\sigma_z\)는 교환하지 않는다(\([\sigma_x, \sigma_z] = -2i\sigma_y\)). \(\sigma_z\)의 고유벡터 \((1, 0)\)은 \(\sigma_x\)의 고유벡터가 아니고(\(\sigma_x(1, 0) = (0, 1)\)), \(\sigma_x\)의 고유벡터 \((1, \pm 1)/\sqrt 2\)는 \(\sigma_z\)의 고유벡터가 아니다. 두 양의 값을 함께 확정할 수 있는 상태가 없다는 뜻이고, 이것이 9장 불확정성 관계의 행렬판이다.</p></div>
   </section>
 
+  <!-- ============================================================ 2.5 -->
   <section id="s5">
     <h2>연산자의 함수</h2>
-    <p class="slot" data-slot="2.5절">아직 쓰지 않은 절입니다.</p>
+    <p>연산자는 더하고 곱할 수 있으므로 다항식에 넣을 수 있다. \(\hat\Omega^2 - 3\hat\Omega + 2\hat I\) 같은 식이다. 나아가 거듭제곱 급수로 정의되는 함수도 연산자에 쓸 수 있다. \(f(x) = \sum_n a_n x^n\)이면</p>
+    <div class="formula" id="eq-power-series">\[ f(\hat\Omega) = \sum_{n=0}^{\infty} a_n\,\hat\Omega^n \]</div>
+    <p>로 정의한다. 가장 중요한 것은 지수 함수 \(e^{\hat\Omega} = \sum_n \hat\Omega^n/n!\)이다. 6장에서 시간에 따른 상태 변화가 \(e^{-i\hat H t/\hbar}\)로 주어진다.</p>
+    <div class="box math" id="math-series"><div class="box-h">거듭제곱 급수와 오일러 공식</div>
+      <div class="formula">\[ \begin{aligned} e^x &= \sum_{n=0}^{\infty} \frac{x^n}{n!}, \\ \cos x &= \sum_{k=0}^{\infty} \frac{(-1)^k x^{2k}}{(2k)!}, \\ \sin x &= \sum_{k=0}^{\infty} \frac{(-1)^k x^{2k+1}}{(2k+1)!} \end{aligned} \]</div>
+      <p>세 급수는 모든 \(x\)(복소수 포함)에서 수렴한다. \(\cosh x\)와 \(\sinh x\)는 \(\cos\), \(\sin\)의 급수에서 \((-1)^k\)를 뺀 것이다. \(e^{ix}\)의 급수를 짝수 차수와 홀수 차수로 나누면 \(i^{2k} = (-1)^k\)이므로 \(e^{ix} = \cos x + i\sin x\)(오일러 공식)를 얻는다. 아래 예제 2.11에서 같은 계산을 행렬로 한다.</p>
+    </div>
+
+    <h3 id="s5-eigen">고유 기저에서 계산하기</h3>
+    <p>에르미트 연산자 \(\hat\Omega\)를 고유 기저에서 쓰면 \(\hat\Omega^n|\omega_i\rangle = \omega_i^n|\omega_i\rangle\)이므로 \(\hat\Omega^n\)도 대각이고, 대각 원소는 \(\omega_i^n\)이다. 급수를 항별로 모으면</p>
+    <div class="formula" id="eq-function">\[ f(\hat\Omega) = \sum_i f(\omega_i)\,|\omega_i\rangle\langle\omega_i| \]</div>
+    <p>이다. 연산자의 함수는 <b>고유 방향은 그대로 두고 고유값에만 함수를 씌운 것</b>이다. 급수는 모든 고유값에서 \(f\)의 급수가 수렴하면 수렴한다.</p>
+    <div class="box ex" id="ex-exp-diag"><div class="box-h">대각화로 지수 함수 구하기</div>
+      <p>예제 <a class="ref" href="#ex-eigen-2x2"></a>의 \(A\)에 대해, 식 <a class="ref" href="#eq-function"></a>에 고유값 3, 1과 투영 행렬을 넣으면</p>
+      <div class="formula">\[ \begin{aligned} e^{tA} &= e^{3t}\cdot\frac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix} + e^{t}\cdot\frac12\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix} \\ &= \frac12\begin{pmatrix} e^{3t} + e^{t} & e^{3t} - e^{t} \\ e^{3t} - e^{t} & e^{3t} + e^{t} \end{pmatrix} \end{aligned} \]</div>
+      <p>이다. \(t = 0\)을 넣으면 단위행렬이 되는 것으로 검산할 수 있다. 급수를 직접 더하는 것보다 훨씬 쉽다.</p>
+    </div>
+
+    <h3 id="s5-rotation">지수 함수와 회전</h3>
+    <div class="box ex" id="ex-exp-pauli"><div class="box-h">\(\sigma_y\)의 지수 함수</div>
+      <p>\(\sigma_y^2 = I\)이다(직접 곱해 확인해 보자). 그러면 급수에서 짝수 차수 항은 \(I\)에, 홀수 차수 항은 \(\sigma_y\)에 비례한다. \((-i\theta)^{2k} = (-1)^k\theta^{2k}\), \((-i\theta)^{2k+1} = -i(-1)^k\theta^{2k+1}\)이므로</p>
+      <div class="formula">\[ \begin{aligned} e^{-i\theta\sigma_y} &= \sum_{k} \frac{(-1)^k\theta^{2k}}{(2k)!}\, I \\ &\quad - i\sum_{k} \frac{(-1)^k\theta^{2k+1}}{(2k+1)!}\,\sigma_y \\ &= \cos\theta\, I - i\sin\theta\,\sigma_y \end{aligned} \]</div>
+      <p>이다. \(-i\sigma_y = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix}\)이므로</p>
+      <div class="formula">\[ e^{-i\theta\sigma_y} = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix} = R(\theta) \]</div>
+      <p>평면의 회전은 에르미트 행렬 \(\sigma_y\)의 지수 함수다. 이런 \(\sigma_y\)를 회전의 <span class="term">생성자</span> <span class="en">(generator)</span>라 한다. 대칭 변환을 에르미트 생성자의 지수 함수로 쓰는 것이 13장(대칭)과 14장(각운동량)의 핵심 아이디어다.</p>
+    </div>
+    <div class="box thm" id="thm-exp-unitary"><div class="box-h">에르미트 연산자의 지수 함수는 유니타리</div>
+      <p>\(\hat\Omega\)가 에르미트이면 \(e^{i\hat\Omega}\)는 유니타리다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>급수의 각 항에 수반을 취하면 \((e^{i\hat\Omega})^\dagger = e^{-i\hat\Omega^\dagger} = e^{-i\hat\Omega}\)이다. 식 <a class="ref" href="#eq-function"></a>로 쓰면 \(e^{-i\hat\Omega}e^{i\hat\Omega} = \sum_i e^{-i\omega_i}e^{i\omega_i}|\omega_i\rangle\langle\omega_i| = \sum_i |\omega_i\rangle\langle\omega_i| = \hat I\)이다(\(\omega_i\)가 실수이므로 \(|e^{i\omega_i}| = 1\)).</p>
+      </details>
+    </div>
+    <div class="callout warn"><strong>지수 법칙은 교환할 때만 성립한다</strong><p>숫자에서는 \(e^a e^b = e^{a+b}\)이지만, 연산자에서는 \([\hat A, \hat B] = 0\)일 때만 \(e^{\hat A}e^{\hat B} = e^{\hat A + \hat B}\)가 보장된다. 급수를 펼쳐 2차 항을 비교하면 왼쪽에는 \(\tfrac12\hat A^2 + \hat A\hat B + \tfrac12\hat B^2\)이, 오른쪽에는 \(\tfrac12(\hat A + \hat B)^2 = \tfrac12(\hat A^2 + \hat A\hat B + \hat B\hat A + \hat B^2)\)이 나와, 차이가 \(\tfrac12[\hat A, \hat B]\)이다(<a class="ref" href="#prob-bch"></a>).</p></div>
+
+    <h3 id="s5-derivative">연산자의 미분</h3>
+    <p>매개변수 \(t\)에 따라 달라지는 연산자 \(e^{t\hat\Omega}\)를 \(t\)로 미분해 보자. 급수를 항별로 미분하면 \(\frac{d}{dt}\sum_n \frac{t^n\hat\Omega^n}{n!} = \sum_{n\ge1} \frac{t^{n-1}\hat\Omega^n}{(n-1)!} = \hat\Omega\sum_{m} \frac{t^m\hat\Omega^m}{m!}\)이므로</p>
+    <div class="formula" id="eq-derivative">\[ \frac{d}{dt}\, e^{t\hat\Omega} = \hat\Omega\, e^{t\hat\Omega} = e^{t\hat\Omega}\,\hat\Omega \]</div>
+    <p>이다. 숫자의 지수 함수와 같은 규칙이다(\(\hat\Omega\)와 \(e^{t\hat\Omega}\)는 교환하므로 어느 쪽에 써도 된다). 따라서 \(|V(t)\rangle = e^{t\hat\Omega}|V(0)\rangle\)은 미분 방정식 \(\frac{d}{dt}|V(t)\rangle = \hat\Omega|V(t)\rangle\)의 해다. 6장에서 슈뢰딩거 방정식 \(i\hbar\frac{d}{dt}|\psi(t)\rangle = \hat H|\psi(t)\rangle\)의 해를 \(|\psi(t)\rangle = e^{-i\hat H t/\hbar}|\psi(0)\rangle\)로 쓰는 것이 바로 이 결과다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>선형 연산자는 정규직교 기저에서 행렬 \(\Omega_{ij} = \langle i|\hat\Omega|j\rangle\)로 표현된다. \(j\)번째 열은 \(\hat\Omega|j\rangle\)의 성분이다. 연산자의 곱은 행렬의 곱이며, 순서를 바꾼 차이가 교환자 \([\hat\Omega, \hat\Lambda]\)이다.</li>
+      <li>완비성 관계 \(\sum_i |i\rangle\langle i| = \hat I\)를 식 가운데에 끼우면 추상적인 식이 성분 계산이 된다. \(|n\rangle\langle n|\)은 투영 연산자이고 \(\hat P^2 = \hat P\)이다.</li>
+      <li>수반의 행렬은 켤레 전치 \((\Omega^\dagger)_{ij} = \Omega_{ji}^*\)이다. 식의 수반은 순서를 뒤집고, 켓과 브라를 바꾸고, 숫자는 켤레로, 연산자에는 \(\dagger\)를 붙인다.</li>
+      <li>에르미트(\(\hat\Omega^\dagger = \hat\Omega\))는 실수, 유니타리(\(\hat U^\dagger\hat U = \hat I\))는 크기 1인 복소수에 대응한다. 유니타리 연산자는 내적을 보존하며, 기저를 바꾸면 \(\Omega' = U^\dagger\Omega U\)이다.</li>
+      <li>고유값은 특성 방정식 \(\det(\Omega - \omega I) = 0\)의 근이다. 에르미트 연산자의 고유값은 실수이고, 다른 고유값의 고유벡터는 직교한다.</li>
+      <li>스펙트럼 정리: 에르미트 연산자는 고유벡터의 정규직교 기저에서 대각이고, \(\hat\Omega = \sum_i \omega_i|\omega_i\rangle\langle\omega_i|\)로 쓸 수 있다. 축퇴된 고유값의 고유 공간은 중복도만큼의 차원을 가진다.</li>
+      <li>교환하는 에르미트 연산자는 동시에 대각화된다. 두 번째 연산자의 고유값으로 축퇴를 풀어 상태에 \(|\omega, \lambda\rangle\)처럼 이름을 붙인다.</li>
+      <li>연산자의 함수는 \(f(\hat\Omega) = \sum_i f(\omega_i)|\omega_i\rangle\langle\omega_i|\)이다. 에르미트 \(\hat\Omega\)에 대해 \(e^{i\hat\Omega}\)는 유니타리이고, \(e^{\hat A}e^{\hat B} = e^{\hat A + \hat B}\)는 \([\hat A, \hat B] = 0\)일 때만 보장된다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 연산자 \(\hat\Omega\)의 행렬에서 \(j\)번째 열은 무엇인가?</p><div class="opts">
+        <button class="opt">\(\langle j|\hat\Omega\)의 성분</button>
+        <button class="opt" data-correct>\(\hat\Omega|j\rangle\)의 성분</button>
+        <button class="opt">\(\hat\Omega\)의 \(j\)번째 고유벡터</button>
+        <button class="opt">\(\hat\Omega^\dagger|j\rangle\)의 성분</button>
+      </div><div class="quiz-exp">\(\Omega_{ij} = \langle i|\hat\Omega|j\rangle\)에서 \(j\)를 고정하면 \(\hat\Omega|j\rangle\)의 \(i\)번째 성분들이 늘어선다. 기저 벡터를 하나씩 넣어 보고 결과를 열에 적으면 행렬이 된다.</div></div>
+      <div class="quiz-q"><p>2. \((\hat A\hat B)^\dagger\)는?</p><div class="opts">
+        <button class="opt">\(\hat A^\dagger\hat B^\dagger\)</button>
+        <button class="opt" data-correct>\(\hat B^\dagger\hat A^\dagger\)</button>
+        <button class="opt">\(\hat A\hat B\)</button>
+        <button class="opt">\(\hat B\hat A\)</button>
+      </div><div class="quiz-exp">수반을 취하면 순서가 뒤집힌다. 행렬의 전치에서 \((AB)^T = B^T A^T\)인 것과 같은 이유다.</div></div>
+      <div class="quiz-q"><p>3. 다음 중 유니타리 행렬은?</p><div class="opts">
+        <button class="opt" data-correct>\(\frac{1}{\sqrt 2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}\)</button>
+        <button class="opt">\(\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\)</button>
+        <button class="opt">\(\begin{pmatrix} 2 & 0 \\ 0 & 1/2 \end{pmatrix}\)</button>
+        <button class="opt">\(\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}\)</button>
+      </div><div class="quiz-exp">유니타리 행렬은 열들이 정규직교다. 첫째 행렬의 두 열 \((1, 1)/\sqrt 2\), \((1, -1)/\sqrt 2\)는 길이 1이고 서로 직교한다. 셋째는 열이 직교하지만 길이가 1이 아니다.</div></div>
+      <div class="quiz-q"><p>4. 에르미트 연산자에 대해 <b>항상</b> 옳은 것은?</p><div class="opts">
+        <button class="opt">고유값이 모두 다르다.</button>
+        <button class="opt" data-correct>고유값이 실수이고, 고유벡터로 된 정규직교 기저가 있다.</button>
+        <button class="opt">고유값의 크기가 1이다.</button>
+        <button class="opt">행렬 원소가 모두 실수다.</button>
+      </div><div class="quiz-exp">정리 <a class="ref" href="#thm-hermitian-eigen"></a>와 스펙트럼 정리다. 축퇴는 있을 수 있고, \(\sigma_y\)처럼 허수 원소를 가진 에르미트 행렬도 있다. 크기 1인 고유값은 유니타리 연산자의 성질이다.</div></div>
+      <div class="quiz-q"><p>5. 두 에르미트 연산자가 공통 고유벡터로 된 정규직교 기저를 가질 필요충분조건은?</p><div class="opts">
+        <button class="opt">두 연산자의 고유값이 같다.</button>
+        <button class="opt" data-correct>두 연산자가 교환한다.</button>
+        <button class="opt">한 연산자가 축퇴를 가지지 않는다.</button>
+        <button class="opt">두 연산자의 행렬식이 같다.</button>
+      </div><div class="quiz-exp">정리 <a class="ref" href="#thm-simultaneous"></a>다. \([\hat\Omega, \hat\Lambda] = 0\)이면 동시에 대각화되고, 거꾸로 공통 고유 기저에서는 둘 다 대각이라 교환한다.</div></div>
+      <div class="quiz-q"><p>6. \(e^{\hat A}e^{\hat B} = e^{\hat A + \hat B}\)가 보장되는 경우는?</p><div class="opts">
+        <button class="opt">\(\hat A\)와 \(\hat B\)가 모두 에르미트일 때</button>
+        <button class="opt">\(\hat A\)와 \(\hat B\)가 모두 유니타리일 때</button>
+        <button class="opt" data-correct>\([\hat A, \hat B] = 0\)일 때</button>
+        <button class="opt">언제나</button>
+      </div><div class="quiz-exp">2차 항부터 \(\tfrac12[\hat A, \hat B]\)만큼 차이가 난다. 교환하면 숫자처럼 다룰 수 있어 지수 법칙이 성립한다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-linear" data-level="1"><p>다음 규칙이 \(\mathbb{C}^2\)의 선형 연산자인지 판별하라. (가) \(|V\rangle \mapsto 2|V\rangle\) (나) \(|V\rangle \mapsto |V\rangle + |W_0\rangle\) (\(|W_0\rangle \neq 0\)) (다) 성분에 켤레를 씌우는 규칙 \((v_1, v_2) \mapsto (v_1^*, v_2^*)\) (라) \((v_1, v_2) \mapsto (v_2, v_1)\)</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 선형이다(\(2\hat I\)). (나) 아니다. 영벡터가 \(|W_0\rangle\)로 간다.</p>
+        <p>(다) 아니다. 덧셈은 지키지만, \(i|V\rangle\)를 넣으면 \((iv_1)^* = -i\,v_1^*\)이므로 결과가 '\(i\) 곱하기 원래 결과'가 아니라 '\(-i\) 곱하기 원래 결과'다. 숫자 곱에서 켤레가 튀어나오는 이런 규칙을 반선형이라 하며, 13장의 시간 반전이 이런 연산자다.</p>
+        <p>(라) 선형이다. 행렬은 \(\sigma_x\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-derivative" data-level="1"><p>2차 이하 다항식 공간에서 기저 \(1, x, x^2\)를 쓰자. 기저 벡터가 옮겨 간 곳의 성분을 열에 적는 방식으로 미분 연산자 \(\hat D = d/dx\)의 행렬을 구하고, \(3 + 2x + 5x^2\)에 작용시켜 확인하라. \(\hat D\)의 고유값과 고유벡터는 무엇인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\hat D\,1 = 0\), \(\hat D\,x = 1\), \(\hat D\,x^2 = 2x\)이므로 열은 차례로 \((0, 0, 0)\), \((1, 0, 0)\), \((0, 2, 0)\)이다.</p>
+        <div class="formula">\[ \begin{gathered} D = \begin{pmatrix} 0 & 1 & 0 \\ 0 & 0 & 2 \\ 0 & 0 & 0 \end{pmatrix}, \\[4pt] D\begin{pmatrix} 3 \\ 2 \\ 5 \end{pmatrix} = \begin{pmatrix} 2 \\ 10 \\ 0 \end{pmatrix} \end{gathered} \]</div>
+        <p>로 \(2 + 10x\)이고, 직접 미분한 결과와 같다. 특성 방정식은 \(\det(D - \omega I) = -\omega^3 = 0\)이므로 고유값은 0뿐이고, 고유벡터는 상수 함수뿐이다(미분해서 자기 자신의 상수배가 되는 2차 이하 다항식은 상수뿐이다). 3차원 공간에 고유벡터 방향이 하나뿐이라 대각화할 수 없다. \(D\)는 에르미트가 아니므로 스펙트럼 정리가 적용되지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-classify" data-level="1"><p>다음 행렬이 에르미트, 반에르미트, 유니타리 가운데 무엇인지(여럿일 수 있다) 판별하라.</p>
+      <div class="formula">\[ \begin{gathered} A = \begin{pmatrix} 1 & 2i \\ -2i & 3 \end{pmatrix}, \quad B = \begin{pmatrix} 0 & 1 \\ -1 & 0 \end{pmatrix}, \\[4pt] C = \frac{1}{\sqrt 2}\begin{pmatrix} 1 & i \\ i & 1 \end{pmatrix} \end{gathered} \]</div>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(A\): 대각 원소가 실수이고 \((1,2)\) 원소 \(2i\)와 \((2,1)\) 원소 \(-2i\)가 서로 켤레이므로 에르미트다.</p>
+        <p>\(B\): 실수 행렬이라 \(B^\dagger = B^T = \begin{pmatrix} 0 & -1 \\ 1 & 0 \end{pmatrix} = -B\)이므로 반에르미트다. 또 \(B^T B = I\)이므로 유니타리이기도 하다(\(-90^\circ\) 회전).</p>
+        <p>\(C\): 두 열 \((1, i)/\sqrt 2\), \((i, 1)/\sqrt 2\)는 길이가 1이고 내적이 \(\tfrac12(1\cdot i + (-i)\cdot 1) = 0\)이므로 유니타리다. \(C^\dagger = \tfrac{1}{\sqrt 2}\begin{pmatrix} 1 & -i \\ -i & 1 \end{pmatrix} \neq \pm C\)이므로 에르미트도 반에르미트도 아니다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-comm-identity" data-level="1"><p>\([\hat A\hat B, \hat C] = \hat A[\hat B, \hat C] + [\hat A, \hat C]\hat B\)를 보이고, 이를 써서 \([\hat A^2, \hat B]\)를 \([\hat A, \hat B]\)로 나타내라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>오른쪽을 펼치면 \(\hat A\hat B\hat C - \hat A\hat C\hat B + \hat A\hat C\hat B - \hat C\hat A\hat B = \hat A\hat B\hat C - \hat C\hat A\hat B\)이고, 이것이 왼쪽이다. \(\hat B \to \hat A\), \(\hat C \to \hat B\)로 바꾸어 넣으면 \([\hat A^2, \hat B] = \hat A[\hat A, \hat B] + [\hat A, \hat B]\hat A\)이다. \([\hat A, \hat B]\)가 \(\hat A\)와 교환하지 않을 수 있으므로 \(2\hat A[\hat A, \hat B]\)로 합칠 수는 없다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-projector" data-level="2"><p>단위 벡터 \(|n\rangle \to (\cos\varphi, \sin\varphi)\)에 대해 \(\hat P_n\)의 행렬을 구하고, \(P^2 = P\), \(P^\dagger = P\)이며 고유값이 0과 1임을 보여라. 일반적으로 \(\hat P^2 = \hat P\)인 연산자의 고유값은 0 또는 1뿐임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <div class="formula">\[ \begin{aligned} P_n &= \begin{pmatrix} \cos\varphi \\ \sin\varphi \end{pmatrix}\begin{pmatrix} \cos\varphi & \sin\varphi \end{pmatrix} \\ &= \begin{pmatrix} \cos^2\varphi & \cos\varphi\sin\varphi \\ \cos\varphi\sin\varphi & \sin^2\varphi \end{pmatrix} \end{aligned} \]</div>
+        <p>\(P^2 = |n\rangle\langle n|n\rangle\langle n| = P\)이고, 실대칭이므로 에르미트다. \(P|n\rangle = |n\rangle\)(고유값 1), \(|n_\perp\rangle \to (-\sin\varphi, \cos\varphi)\)에 대해 \(P|n_\perp\rangle = |n\rangle\langle n|n_\perp\rangle = 0\)(고유값 0)이다.</p>
+        <p>일반적으로 \(\hat P|p\rangle = p|p\rangle\)이면 \(\hat P^2|p\rangle = p^2|p\rangle\)이고, 이것이 \(\hat P|p\rangle = p|p\rangle\)과 같으므로 \(p^2 = p\), 곧 \(p = 0\) 또는 \(1\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-diag" data-level="2"><p>\(B = \begin{pmatrix} 1 & i \\ -i & 1 \end{pmatrix}\)이 에르미트임을 확인하고, 고유값과 정규화된 고유벡터를 구한 뒤, \(U^\dagger B U\)가 대각 행렬이 되는 유니타리 행렬 \(U\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>대각 원소가 실수이고 \(i\)와 \(-i\)가 켤레이므로 에르미트다. 특성 방정식 \((1 - \omega)^2 - (i)(-i) = (1 - \omega)^2 - 1 = 0\)에서 \(\omega = 0, 2\)이다.</p>
+        <p>\(\omega = 2\): \(-v_1 + iv_2 = 0\)에서 \(v_1 = iv_2\)이고, \((i, 1)\)에 \(-i\)를 곱하면 \((1, -i)\)이므로 \(|\omega{=}2\rangle \to (1, -i)/\sqrt 2\). \(\omega = 0\): \(v_1 + iv_2 = 0\)에서 \(|\omega{=}0\rangle \to (1, i)/\sqrt 2\). 두 벡터는 직교한다.</p>
+        <div class="formula">\[ \begin{gathered} U = \frac{1}{\sqrt 2}\begin{pmatrix} 1 & 1 \\ -i & i \end{pmatrix}, \\[4pt] U^\dagger B\, U = \begin{pmatrix} 2 & 0 \\ 0 & 0 \end{pmatrix} \end{gathered} \]</div>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-unitary-eigen" data-level="2"><p>유니타리 연산자의 고유값은 크기가 1이고, 서로 다른 고유값에 속한 고유벡터는 직교함을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\hat U|u\rangle = u|u\rangle\)의 수반은 \(\langle u|\hat U^\dagger = u^*\langle u|\)이다. 두 식을 곱하면 \(\langle u|\hat U^\dagger\hat U|u\rangle = |u|^2\langle u|u\rangle\)이고, 왼쪽은 \(\langle u|u\rangle\)이므로 \(|u| = 1\)이다.</p>
+        <p>\(\hat U|u_1\rangle = u_1|u_1\rangle\), \(\hat U|u_2\rangle = u_2|u_2\rangle\)이면 같은 방식으로 \(\langle u_2|u_1\rangle = \langle u_2|\hat U^\dagger\hat U|u_1\rangle = u_2^* u_1\langle u_2|u_1\rangle\)이다. \(|u_2| = 1\)이므로 \(u_2^* = 1/u_2\)이고, \(u_1 \neq u_2\)이면 \(u_2^* u_1 = u_1/u_2 \neq 1\)이다. 따라서 \(\langle u_2|u_1\rangle = 0\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-trace" data-level="2"><p>대각합 \(\mathrm{Tr}\,\Omega = \sum_i \Omega_{ii}\)에 대해 (가) \(\mathrm{Tr}(\Omega\Lambda) = \mathrm{Tr}(\Lambda\Omega)\), (나) 대각합과 행렬식은 기저를 바꿔도(\(\Omega \to U^\dagger\Omega U\)) 그대로임을 보여라. (다) 에르미트 행렬의 대각합은 고유값의 합, 행렬식은 고유값의 곱임을 보이고, (라) 예제 <a class="ref" href="#ex-degenerate"></a>의 \(\Omega\)로 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\mathrm{Tr}(\Omega\Lambda) = \sum_i\sum_k \Omega_{ik}\Lambda_{ki} = \sum_k\sum_i \Lambda_{ki}\Omega_{ik} = \mathrm{Tr}(\Lambda\Omega)\).</p>
+        <p>(나) (가)로 \(\mathrm{Tr}(U^\dagger\Omega U) = \mathrm{Tr}(\Omega UU^\dagger) = \mathrm{Tr}\,\Omega\). 행렬식은 \(\det(U^\dagger\Omega U) = \det U^\dagger\,\det\Omega\,\det U = \det\Omega\).</p>
+        <p>(다) 고유 기저에서 행렬은 대각 \(\mathrm{diag}(\omega_1, \ldots, \omega_n)\)이므로 대각합은 \(\sum\omega_i\), 행렬식은 \(\prod\omega_i\)이고, (나)에 따라 어느 기저에서 계산해도 같다.</p>
+        <p>(라) \(\mathrm{Tr}\,\Omega = 2 + 2 + 2 = 6 = 4 + 1 + 1\)이고, \(\det\Omega = 2(4 - 1) - 1(2 - 1) + 1(1 - 2) = 4 = 4\cdot 1\cdot 1\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-spinor" data-level="2"><p>\(e^{-i\theta\sigma_z/2}\)를 구하라. \(\theta = 2\pi\)와 \(\theta = 4\pi\)에서의 값은 무엇인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\sigma_z\)는 이미 대각(고유값 \(\pm1\))이므로 식 <a class="ref" href="#eq-function"></a>에 따라</p>
+        <div class="formula">\[ e^{-i\theta\sigma_z/2} = \begin{pmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{pmatrix} \]</div>
+        <p>이다. \(\theta = 2\pi\)이면 \(e^{\mp i\pi} = -1\)이므로 \(-I\), \(\theta = 4\pi\)이면 \(I\)이다. 16장에서 이 행렬이 스핀 1/2의 회전이 되는데, 한 바퀴(\(2\pi\)) 돌리면 상태 벡터의 부호가 바뀌고 두 바퀴를 돌려야 원래대로 돌아온다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-bch" data-level="2"><p>\(A = \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}\), \(B = \begin{pmatrix} 0 & 0 \\ 1 & 0 \end{pmatrix}\)이다. (가) \(A^2 = B^2 = 0\)을 써서 \(e^A\), \(e^B\)를 구하라. (나) \(e^A e^B\)를 구하라. (다) \(A + B = \sigma_x\)이고 \(\sigma_x^2 = I\)임을 써서 \(e^{A+B}\)를 구하라. (라) 둘을 비교하고 \([A, B]\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 급수가 1차에서 끝나므로 \(e^A = I + A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\), \(e^B = I + B = \begin{pmatrix} 1 & 0 \\ 1 & 1 \end{pmatrix}\).</p>
+        <p>(나) \(e^A e^B = \begin{pmatrix} 2 & 1 \\ 1 & 1 \end{pmatrix}\).</p>
+        <p>(다) 예제 <a class="ref" href="#ex-exp-pauli"></a>와 같은 계산으로 \(e^{\sigma_x} = \cosh 1\, I + \sinh 1\,\sigma_x \approx \begin{pmatrix} 1.543 & 1.175 \\ 1.175 & 1.543 \end{pmatrix}\).</p>
+        <p>(라) 둘은 다르다. \(AB = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}\), \(BA = \begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}\)이므로 \([A, B] = \sigma_z \neq 0\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-nondiag" data-level="2"><p>\(N = \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}\)은 어떤 기저에서도 대각 행렬이 될 수 없음을 보여라. 스펙트럼 정리와 어긋나지 않는 이유는?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>특성 방정식은 \(\omega^2 = 0\)이므로 고유값은 0(중근)뿐이다. \(Nv = 0\)에서 \(v_2 = 0\)이므로 고유벡터는 \((1, 0)\)의 상수배뿐이다. 2차원 공간에서 고유벡터 방향이 하나뿐이니 고유벡터로 된 기저가 없고, 대각화할 수 없다. (만약 대각화된다면 대각 원소가 모두 0이어서 \(N\)이 영행렬이어야 한다.) \(N^\dagger = \begin{pmatrix} 0 & 0 \\ 1 & 0 \end{pmatrix} \neq N\)으로 에르미트가 아니므로 스펙트럼 정리가 적용되지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-simultaneous" data-level="3"><p>다음 두 행렬이 교환함을 보이고, 공통 고유벡터로 된 정규직교 기저를 구하라. 각 행렬 하나만으로는 기저가 하나로 정해지지 않는 이유를 설명하라.</p>
+      <div class="formula">\[ \Omega = \begin{pmatrix} 0 & 0 & 1 \\ 0 & 1 & 0 \\ 1 & 0 & 0 \end{pmatrix}, \qquad \Lambda = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 2 & 0 \\ 0 & 0 & 1 \end{pmatrix} \]</div>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\Omega\)는 \(x\)와 \(z\) 성분을 맞바꾸고, \(\Lambda\)는 \(x\)와 \(z\)에 같은 수(1)를 곱한다. 계산하면 \(\Omega\Lambda = \Lambda\Omega = \begin{pmatrix} 0 & 0 & 1 \\ 0 & 2 & 0 \\ 1 & 0 & 0 \end{pmatrix}\)이므로 교환한다.</p>
+        <p>\(\Omega\)의 고유값은 \(+1\)(고유 공간: \((1, 0, 1)\)과 \((0, 1, 0)\)이 생성하는 2차원)과 \(-1\)(\((1, 0, -1)\))이다. \(\Lambda\)의 고유값은 1(\((1, 0, 0)\)과 \((0, 0, 1)\)이 생성하는 2차원)과 2(\((0, 1, 0)\))이다. \(\Omega\)의 \(+1\) 고유 공간 안에서 \(\Lambda\)를 대각화하면 \((1, 0, 1)\)은 \(\Lambda\)에 대해 1, \((0, 1, 0)\)은 2이다. 따라서 공통 고유 기저는</p>
+        <div class="formula">\[ \begin{aligned} |{+1}, 1\rangle &\to (1, 0, 1)/\sqrt 2, \\ |{+1}, 2\rangle &\to (0, 1, 0), \\ |{-1}, 1\rangle &\to (1, 0, -1)/\sqrt 2 \end{aligned} \]</div>
+        <p>이다. \(\Omega\)만으로는 \(+1\) 고유 공간 안에서 기저를 돌리는 자유가 남고, \(\Lambda\)만으로는 고유값 1의 공간(\(xz\) 평면) 안에서 기저를 돌리는 자유가 남는다. 두 고유값을 함께 지정하면 세 벡터가 하나씩 정해진다.</p>
+      </details>
+    </div>
   </section>
 </main>
 </body>
