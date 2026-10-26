@@ -3,6 +3,8 @@
    nn-playground · optimizers · landscape3d · activations · init-depth
    attention-qk · attention-matrix · posenc · conv2d · softmax-temp
    diffusion2d · overfit · lr-schedule
+   charm-gating · charm-jepa (논문 리뷰 p01)
+   tslm-tokens · flamingo-xattn · tslm-noise (논문 리뷰 p03)
    ========================================================================== */
 (function () {
   "use strict";
@@ -1576,6 +1578,342 @@
       S.range({ label: "예측 잡음 (무작위 오차)", min: 0, max: 1.5, step: 0.05, value: st.noise, fmt: (v) => v.toFixed(2), onInput: (v) => { st.noise = v; upd(false); } });
       S.range({ label: "예측 편향 (계통 오차)", min: -1, max: 1, step: 0.05, value: st.bias, fmt: (v) => v.toFixed(2), onInput: (v) => { st.bias = v; upd(false); } });
       upd(false);
+    },
+  });
+
+  /* ======================================================================
+     16. OpenTSLM — 시계열을 LLM에 넣는 세 가지 방법 (논문 리뷰 p03)
+     토큰 수는 공개 코드의 패치 크기(4)와 논문의 서술(12리드 심전도 ≈ 텍스트 8만 토큰)에 맞춘 추정이고,
+     메모리는 논문 부록 표 14의 실측값이다.
+     ====================================================================== */
+  // 논문 표 14: 시뮬레이션 데이터 학습 시 최대 VRAM(GB). 키 = 길이 L, 배열 = 계열 수 N 1..5, null = 메모리 부족
+  const TSLM_VRAM = {
+    sp: {
+      "Llama-3.2-1B": { 10: [2.6, 2.6, 2.7, 2.7, 2.8], 100: [2.7, 2.8, 2.9, 3.0, 3.2], 1000: [3.6, 5.0, 6.9, 9.2, 12.0], 10000: [29.5, 93.3, null, null, null] },
+      "Llama-3.2-3B": { 10: [6.3, 6.4, 6.4, 6.5, 6.7], 100: [6.4, 6.6, 6.8, 7.0, 7.3], 1000: [8.0, 9.8, 12.3, 15.4, 19.1], 10000: [42.7, 191.4, null, null, null] },
+      "Gemma-3-270M": { 10: [2.3, 2.3, 2.3, 2.3, 2.3], 100: [2.3, 2.3, 2.3, 2.4, 2.4], 1000: [2.4, 3.4, 4.8, 5.5, 7.0], 10000: [13.7, 32.1, 56.1, 85.6, 118.4] },
+      "Gemma-3-1B": { 10: [5.0, 5.0, 4.9, 5.0, 5.0], 100: [4.9, 5.0, 5.0, 5.0, 5.0], 1000: [5.0, 4.9, 7.4, 8.7, 10.2], 10000: [19.2, 43.6, 76.0, 116.4, 164.5] },
+    },
+    fl: {
+      "Llama-3.2-1B": { 10: [20.4, 20.4, 20.4, 20.5, 20.5], 100: [20.4, 20.4, 20.5, 20.5, 20.5], 1000: [20.4, 20.4, 20.4, 20.5, 20.6], 10000: [20.4, 20.4, 20.6, 20.8, 21.0] },
+      "Llama-3.2-3B": { 10: [61.0, 60.9, 60.7, 60.7, 60.8], 100: [61.0, 60.9, 60.7, 60.7, 60.8], 1000: [61.0, 61.0, 60.7, 60.7, 60.7], 10000: [61.0, 61.0, 60.7, 60.8, 61.1] },
+      "Gemma-3-270M": { 10: [5.7, 5.7, 5.8, 5.8, 5.8], 100: [5.7, 5.7, 5.8, 5.8, 5.7], 1000: [5.7, 5.7, 5.8, 5.8, 5.7], 10000: [5.7, 5.7, 5.8, 6.4, 6.4] },
+      "Gemma-3-1B": { 10: [15.4, 15.5, 15.5, 15.5, 15.6], 100: [15.4, 15.5, 15.5, 15.5, 15.5], 1000: [15.4, 15.4, 15.5, 15.6, 15.6], 10000: [15.4, 15.4, 15.5, 15.5, 15.5] },
+    },
+  };
+  const TSLM_CTX = { "Llama-3.2-1B": 131072, "Llama-3.2-3B": 131072, "Gemma-3-270M": 32768, "Gemma-3-1B": 32768 };
+  Lab.register({
+    id: "tslm-tokens", field: "dl", thumb: "bars",
+    title: "시계열을 LLM에 넣는 세 가지 방법 — 토큰 수와 메모리 (OpenTSLM)",
+    desc: "숫자를 글자로 적는 토큰화, 패치 임베딩을 끼워 넣는 소프트 프롬프트, 교차 어텐션으로 따로 읽는 Flamingo가 LLM 문맥을 얼마나 쓰는지 비교하고, 논문이 잰 학습 메모리를 겹쳐 봅니다.",
+    tags: ["OpenTSLM", "소프트 프롬프트", "교차 어텐션", "토큰화", "메모리"],
+    note: "위 그림은 LLM의 <b>자기 어텐션 문맥</b>에 들어가는 토큰 수입니다(로그 축). 텍스트 토큰화는 값 하나를 숫자 글자 여러 개로 적고(기본 6.7토큰 — 논문의 '12리드 10초 심전도 ≈ 8만 토큰'에 맞춘 값), 소프트 프롬프트는 패치 4개마다 토큰 1개(공개 코드의 패치 크기), Flamingo는 계열마다 표시 토큰 두 개만 문맥에 남기고 시계열은 64개 잠재 벡터로 압축해 교차 어텐션으로 읽습니다. 아래 그림의 점은 <b>논문 부록 표 14의 실측 메모리</b>이고, ✕는 메모리 부족입니다. <b>해볼 것</b> ① '심전도'를 고르면 텍스트 토큰화가 Gemma의 문맥(32k)을 넘습니다. ② 길이를 10,000으로 올리면 소프트 프롬프트의 메모리가 급격히 늘지만 Flamingo는 거의 그대로입니다. ③ 반대로 짧은 입력에서는 Flamingo가 더 무겁습니다(Llama-3B 약 61GB) — 공개 코드가 LLM의 <b>모든 층</b>에 교차 어텐션을 붙이기 때문입니다.",
+    mount(S) {
+      const PRE = 150, DESC = 25, NLAT = 64;
+      const PRESETS = { har: ["HAR 가속도 (3 × 128)", 3, 128], sleep: ["수면 EEG (1 × 3,000)", 1, 3000], ecg: ["심전도 12리드 (12 × 1,000)", 12, 1000], sim: ["시뮬레이션 최대 (5 × 10,000)", 5, 10000] };
+      const st = { N: 3, L: 128, p: 4, tpv: 6.7, llm: "Llama-3.2-1B" };
+      const counts = () => ({
+        text: PRE + st.N * (DESC + st.tpv * st.L),
+        sp: PRE + st.N * (DESC + Math.ceil(st.L / st.p)),
+        fl: PRE + st.N * (DESC + 2),
+      });
+      const fmtK = (v) => (v >= 1e4 ? (v / 1000).toFixed(v >= 1e5 ? 0 : 1) + "k" : Math.round(v).toLocaleString());
+      const cvT = S.canvas({ aspect: 0.36, minHeight: 190, maxHeight: 250 }, (ctx, w, h) => {
+        const P = VZ.palette(), c = counts(), ctxLen = TSLM_CTX[st.llm], lo = 1, hi = 6.3, m = { l: 132, r: 16, t: 26, b: 26 };
+        const X = (v) => m.l + ((Math.log10(Math.max(10, v)) - lo) / (hi - lo)) * (w - m.l - m.r);
+        const rows = [["텍스트 토큰화", c.text, P.warn], ["소프트 프롬프트", c.sp, P.accent2], ["Flamingo (문맥)", c.fl, P.accent]];
+        const bh = (h - m.t - m.b) / rows.length;
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("LLM 자기 어텐션 문맥에 들어가는 토큰 수 (로그 축)", 8, 4);
+        for (let e = 1; e <= 6; e++) {
+          const x = X(10 ** e);
+          ctx.strokeStyle = P.grid; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, h - m.b); ctx.stroke();
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(10.5); ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(fmtK(10 ** e), x, h - m.b + 4);
+        }
+        rows.forEach(([name, v, col], i) => {
+          const y = m.t + i * bh;
+          ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 600); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(name, m.l - 10, y + bh / 2);
+          ctx.fillStyle = v > ctxLen ? P.bad : col; ctx.fillRect(m.l, y + bh * 0.22, X(v) - m.l, bh * 0.56);
+          ctx.fillStyle = P.text; ctx.font = VZ.font(11, true, 700); ctx.textAlign = "left";
+          const label = fmtK(v) + (v > ctxLen ? "  문맥 초과" : "");
+          ctx.fillText(label, Math.min(X(v) + 6, w - m.r - ctx.measureText(label).width), y + bh / 2);
+        });
+        const xc = X(ctxLen);
+        ctx.strokeStyle = P.bad; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xc, m.t - 4); ctx.lineTo(xc, h - m.b); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = P.bad; ctx.font = VZ.font(10.5, false, 600); ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText(`${st.llm} 문맥 ${fmtK(ctxLen)}`, xc - 4, m.t + 10);
+      });
+      const cvM = S.canvas({ aspect: 0.48, minHeight: 230, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), sp = TSLM_VRAM.sp[st.llm], fl = TSLM_VRAM.fl[st.llm], TOP = 300;
+        const Ls = [10, 100, 1000, 10000];
+        const snapL = Ls.reduce((a, b) => (Math.abs(Math.log10(b / st.L)) < Math.abs(Math.log10(a / st.L)) ? b : a)), snapN = VZ.clamp(st.N, 1, 5);
+        const line = (tab, n) => Ls.map((L) => [n * L, tab[L][n - 1] == null ? NaN : tab[L][n - 1]]);
+        const series = [];
+        for (let n = 1; n <= 5; n++) {
+          series.push({ data: line(sp, n), color: VZ.alpha(P.accent2, 0.25 + 0.15 * n), width: 1.4 });
+          series.push({ data: line(fl, n), color: VZ.alpha(P.accent, 0.25 + 0.15 * n), width: 1.4 });
+        }
+        const pts = [];
+        for (let n = 1; n <= 5; n++) Ls.forEach((L) => {
+          const a = sp[L][n - 1], b = fl[L][n - 1];
+          pts.push({ x: n * L, y: a == null ? TOP : a, color: a == null ? P.bad : P.accent2, r: 3.2 });
+          pts.push({ x: n * L, y: b, color: P.accent, r: 3.2 });
+        });
+        const C = VZ.chart(ctx, null, {
+          x: [8, 70000], y: [1, TOP * 1.15], logX: true, logY: true, title: `학습 시 최대 VRAM (GB) — 논문 표 14 실측, ${st.llm}`, xLabel: "총 시계열 길이 N × L", yLabel: "GB",
+          series, points: pts, hlines: [{ y: 80, color: P.faint, label: "GPU 80GB" }],
+        });
+        // 메모리 부족 표시와 현재 설정 강조
+        for (let n = 1; n <= 5; n++) Ls.forEach((L) => { if (sp[L][n - 1] == null) { ctx.fillStyle = P.bad; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("✕", C.X(n * L), C.Y(TOP)); } });
+        const v1 = sp[snapL][snapN - 1], v2 = fl[snapL][snapN - 1], xs = C.X(snapN * snapL);
+        ctx.lineWidth = 2.5;
+        [[v1 == null ? TOP : v1, P.accent2], [v2, P.accent]].forEach(([v, col]) => { ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(xs, C.Y(v), 8, 0, 7); ctx.stroke(); });
+        ctx.lineWidth = 1;
+      });
+      S.legend([{ label: "소프트 프롬프트", color: (P) => P.accent2 }, { label: "Flamingo", color: (P) => P.accent }, { label: "메모리 부족 / 문맥 초과", color: (P) => P.bad }]);
+      const set = S.stats([{ k: "t", label: "텍스트 토큰화" }, { k: "s", label: "소프트 프롬프트 토큰" }, { k: "f", label: "Flamingo 문맥 토큰" }, { k: "x", label: "Flamingo 교차 어텐션 키" }, { k: "m", label: "가장 가까운 실측점 (SP / FL)" }]);
+      let lCtl, nCtl;
+      function upd() {
+        cvT.redraw(); cvM.redraw();
+        const c = counts(), Ls = [10, 100, 1000, 10000];
+        const snapL = Ls.reduce((a, b) => (Math.abs(Math.log10(b / st.L)) < Math.abs(Math.log10(a / st.L)) ? b : a)), snapN = VZ.clamp(st.N, 1, 5);
+        const v1 = TSLM_VRAM.sp[st.llm][snapL][snapN - 1], v2 = TSLM_VRAM.fl[st.llm][snapL][snapN - 1];
+        set("t", fmtK(c.text)); set("s", fmtK(c.sp)); set("f", fmtK(c.fl)); set("x", NLAT + "<small>개 (길이와 무관)</small>");
+        set("m", `<small>N=${snapN}, L=${snapL.toLocaleString()}</small> ${v1 == null ? "OOM" : v1} / ${v2}<small> GB</small>`);
+      }
+      S.select({ label: "예시 데이터", options: [["custom", "직접 설정"], ...Object.entries(PRESETS).map(([k, [n]]) => [k, n])], value: "har", onChange: (v) => { if (PRESETS[v]) { const [, n, l] = PRESETS[v]; st.N = n; st.L = l; nCtl.set(n, false); lCtl.set(Math.log10(l), false); } upd(); } });
+      // 로그 슬라이더: 예시 데이터로 정한 길이는 반올림 오차 없이 그대로 보여 준다
+      lCtl = S.range({ label: "계열 길이 L", min: 1, max: 4, step: 0.01, value: Math.log10(st.L), fmt: (v) => (Math.abs(Math.log10(st.L) - v) < 0.006 ? st.L : Math.round(10 ** v)).toLocaleString(), onInput: (v) => { st.L = Math.round(10 ** v); upd(); } });
+      nCtl = S.range({ label: "계열 수 N", min: 1, max: 12, step: 1, value: st.N, onInput: (v) => { st.N = v; upd(); } });
+      S.range({ label: "패치 크기 p (공개 코드 = 4)", min: 1, max: 32, step: 1, value: st.p, onInput: (v) => { st.p = v; upd(); } });
+      S.range({ label: "값 하나당 텍스트 토큰", min: 2, max: 10, step: 0.1, value: st.tpv, fmt: (v) => v.toFixed(1), onInput: (v) => { st.tpv = v; upd(); } });
+      S.select({ label: "LLM 백본", options: Object.keys(TSLM_CTX).map((k) => [k, k]), value: st.llm, onChange: (v) => { st.llm = v; upd(); } });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     17. OpenTSLM — Perceiver 압축과 게이트 교차 어텐션 (논문 리뷰 p03)
+     공개 코드(OpenTSLMFlamingo + open_flamingo)의 데이터 배치와 마스크 규칙을 따른 장난감 계산
+     ====================================================================== */
+  Lab.register({
+    id: "flamingo-xattn", field: "dl", thumb: "arcs", layout: "stack",
+    title: "Perceiver 압축과 게이트 교차 어텐션 (OpenTSLM-Flamingo)",
+    desc: "여러 계열의 패치를 64개 잠재 벡터로 압축하고 텍스트 토큰이 교차 어텐션으로 읽는 과정을 봅니다. 논문 식 (7)의 설명과 공개 코드의 실제 배치·마스크를 나란히 비교합니다.",
+    tags: ["OpenTSLM", "Flamingo", "Perceiver", "교차 어텐션", "마스크"],
+    note: "맨 위 띠는 LLM에 들어가는 텍스트 토큰입니다(주황 = 계열 표시 토큰 &lt;TS&gt;, 숫자 = 몇 번째 &lt;TS&gt; 뒤인지). 토큰을 클릭하면 오른쪽 격자에 그 토큰이 64개 잠재 벡터에 주는 교차 어텐션 가중치가, 격자의 칸을 클릭하면 왼쪽에 그 잠재 벡터가 어느 패치를 요약했는지가 나옵니다. 띠 아래의 작은 막대는 어텐션이 얼마나 <b>균등</b>한지(엔트로피)입니다. <b>두 모드</b> — '논문 설명'은 식 (7)처럼 각 &lt;TS&gt; 뒤의 텍스트가 자기 계열의 잠재 벡터를 읽는 경우이고, '공개 코드 동작'은 리뷰어가 코드를 읽어 정리한 실제 경로입니다: 한 샘플의 계열들이 <b>미디어 하나</b>로 쌓여 계열 구분 없이 64개 잠재 벡터로 합쳐지고, open_flamingo의 기본 마스크(직전 미디어만 보기) 때문에 두 번째 &lt;TS&gt; 뒤의 토큰은 모든 키가 가려져 <b>균등 가중</b>이 됩니다(빨간 막대). 이 토큰들도 LLM의 자기 어텐션으로 첫 덩어리 토큰을 읽을 수 있으므로 정보가 완전히 끊기지는 않습니다. 실행으로 확인한 것이 아니라 코드를 읽은 결과이며, 벡터 값은 장난감입니다. 게이트 \\(\\tanh(\\gamma)\\)는 학습 시작 때 0이라 처음에는 LLM이 원래대로 동작합니다.",
+    mount(S) {
+      const PRESETS = {
+        har: { name: "HAR 가속도 3축", L: 128, labels: ["x축", "y축", "z축"] },
+        ecg: { name: "심전도 12리드", L: 1000, labels: ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"] },
+        sleep: { name: "수면 EEG 1채널", L: 1500, labels: ["Fpz-Cz"] },
+      };
+      const PS = 4, NLAT = 64, D = 6;
+      const st = { preset: "har", mode: "code", gamma: 0.5, tok: null, lat: 0 };
+      let series = [], feats = [], toks = [], media = [];
+      const softmax = (a) => { const m = Math.max(...a), e = a.map((v) => Math.exp(v - m)), s = e.reduce((x, y) => x + y, 0); return e.map((v) => v / s); };
+      const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+      const randVec = (seed) => { const r = VZ.rng(seed); return Array.from({ length: D }, () => VZ.randn(r)); };
+      const LQ = Array.from({ length: NLAT }, (_, k) => randVec(1000 + k));
+      function makeSeries() {
+        const pr = PRESETS[st.preset], r = VZ.rng(5);
+        series = pr.labels.map((_, s) => Array.from({ length: pr.L }, (_, t) => {
+          if (st.preset === "har") return Math.sin((2 * Math.PI * t) / (22 + 4 * s) + s) * (1 + 0.4 * s) + 0.3 * VZ.randn(r);
+          if (st.preset === "sleep") return Math.sin(t / 0.8) * 0.6 + Math.sin(t / 9) * 1.2 + 0.4 * VZ.randn(r);
+          const ph = (t % 80) / 80, amp = [1, 1.3, 0.4, -0.9, 0.5, 0.8, -0.6, 0.3, 0.9, 1.4, 1.2, 1][s];
+          return amp * (Math.exp(-(((ph - 0.32) / 0.012) ** 2)) * 1.2 - Math.exp(-(((ph - 0.3) / 0.02) ** 2)) * 0.25) + 0.25 * Math.exp(-(((ph - 0.6) / 0.06) ** 2)) + 0.12 * Math.exp(-(((ph - 0.15) / 0.04) ** 2)) + 0.03 * VZ.randn(r);
+        }));
+        // 계열마다 z-정규화 (공개 코드와 같음) 후 패치 특징 [평균, 표준편차, 범위, 기울기, 위치 sin, 위치 cos]
+        series = series.map((x) => { const m = VZ.mean(x), s = VZ.std(x) || 1; return x.map((v) => (v - m) / s); });
+        feats = series.map((x) => {
+          const np = Math.floor(x.length / PS);
+          return Array.from({ length: np }, (_, i) => {
+            const seg = x.slice(i * PS, i * PS + PS), mean = VZ.mean(seg);
+            return [mean, VZ.std(seg) * 2, (Math.max(...seg) - Math.min(...seg)), (seg[seg.length - 1] - seg[0]) * 1.5, Math.sin((2 * Math.PI * i) / np), Math.cos((2 * Math.PI * i) / np)];
+          });
+        });
+      }
+      /** Perceiver(1층짜리 장난감): 잠재 질의 64개가 패치 전체에 어텐션 → 잠재 벡터 = 가중 평균 */
+      function perceive(patches) {
+        return LQ.map((q) => { const a = softmax(patches.map((f) => (dot(q, f) * 1.6) / Math.sqrt(D))); return { att: a, z: Array.from({ length: D }, (_, d) => patches.reduce((s, f, i) => s + a[i] * f[d], 0)) }; });
+      }
+      function build() {
+        makeSeries();
+        // 공개 코드: 계열들을 (B, 1, K, L)로 쌓아 미디어 1개 → Perceiver가 모든 계열의 패치를 한 집합으로 본다 (계열 임베딩 없음)
+        // 논문 식 (7): <TS>마다 자기 계열의 잠재 표현
+        media = st.mode === "code" ? [{ src: feats.map((_, s) => s), lat: perceive(feats.flat()) }] : feats.map((f, s) => ({ src: [s], lat: perceive(f) }));
+        const labels = PRESETS[st.preset].labels;
+        toks = [];
+        const push = (kind, text, seed) => toks.push({ kind, text, q: randVec(seed) });
+        ["지시", "문", "작업", "설명"].forEach((t, i) => push("pre", t, 10 + i));
+        labels.forEach((lb, s) => { push("ts", "<TS>", 100 + s); push("desc", lb, 200 + s); push("desc", "μ σ", 300 + s); push("eoc", "</>", 400 + s); });
+        ["가능한", "답", "목록"].forEach((t, i) => push("post", t, 500 + i));
+        ["근거", "근거", "근거", "Answer:", "답"].forEach((t, i) => push("ans", t, 600 + i));
+        let tt = 0;
+        toks.forEach((t) => { if (t.kind === "ts") tt++; t.time = tt; });
+        toks.forEach((t) => {
+          if (t.time === 0) { t.att = null; t.mode = "none"; return; }
+          if (st.mode === "code") {
+            if (t.time === 1) { t.att = softmax(media[0].lat.map((l) => dot(t.q, l.z) * 2)); t.m = 0; t.mode = "ok"; }
+            else { t.att = new Array(NLAT).fill(1 / NLAT); t.m = 0; t.mode = "uniform"; } // 모든 키가 가려져 softmax가 균등해진다
+          } else { t.m = t.time - 1; t.att = softmax(media[t.m].lat.map((l) => dot(t.q, l.z) * 2)); t.mode = "ok"; }
+          t.ent = -t.att.reduce((s, p) => s + (p > 0 ? p * Math.log(p) : 0), 0) / Math.log(NLAT);
+        });
+        if (st.tok == null || st.tok >= toks.length) st.tok = toks.length - 1;
+      }
+      build();
+      let geoT = null, geoG = null;
+      const cvTok = S.canvas({ height: 122 }, (ctx, w) => {
+        const P = VZ.palette(), n = toks.length, ox = 8, cw = (w - 16) / n, y0 = 30, th = 34;
+        geoT = { ox, cw, y0, th };
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("LLM에 들어가는 텍스트 토큰 — 클릭해서 선택", 8, 6);
+        const col = { pre: VZ.alpha(P.dim, 0.25), ts: P.warn, desc: VZ.alpha(P.accent2, 0.45), eoc: VZ.alpha(P.dim, 0.15), post: VZ.alpha(P.dim, 0.25), ans: VZ.alpha(P.accent, 0.55) };
+        toks.forEach((t, i) => {
+          const x = ox + i * cw;
+          ctx.fillStyle = col[t.kind]; ctx.fillRect(x + 0.5, y0, cw - 1, th);
+          if (t.kind === "ts" && cw > 9) { ctx.fillStyle = "#fff"; ctx.font = VZ.font(Math.min(11, cw * 0.7), true, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(t.time), x + cw / 2, y0 + th / 2); }
+          else if (cw > 26) { ctx.fillStyle = P.text; ctx.font = VZ.font(10, false); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t.text.slice(0, 4), x + cw / 2, y0 + th / 2); }
+          // 균등도 막대
+          const bh = 26, by = y0 + th + 8;
+          if (t.att) { ctx.fillStyle = t.mode === "uniform" ? P.bad : P.accent; ctx.fillRect(x + cw * 0.2, by + bh * (1 - t.ent), cw * 0.6, bh * t.ent); }
+          else { ctx.fillStyle = P.faint; ctx.fillRect(x + cw * 0.2, by + bh - 2, cw * 0.6, 2); }
+          if (i === st.tok) { ctx.strokeStyle = P.text; ctx.lineWidth = 2.5; ctx.strokeRect(x + 0.5, y0 - 1, cw - 1, th + 2); ctx.lineWidth = 1; }
+        });
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(10, false); ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+        ctx.fillText("막대 = 교차 어텐션 균등도 (가득 = 64개에 똑같이)", w - 8, 120);
+      });
+      const [left, right] = S.split(2);
+      const cvSer = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx, w, h) => {
+        const P = VZ.palette(), t = toks[st.tok], K = series.length, top = 26, rh = (h - top - 8) / K;
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`잠재 벡터 #${st.lat + 1}이 요약한 패치 (진할수록 큼)`, 8, 4);
+        const med = t.att ? media[t.m] : media[0], lat = med.lat[st.lat];
+        let off = 0; const offs = {};
+        med.src.forEach((s) => { offs[s] = off; off += feats[s].length; });
+        const mx = Math.max(...lat.att);
+        const lw = Math.min(46, w * 0.12);
+        series.forEach((x, s) => {
+          const y = top + s * rh, inMedia = offs[s] != null;
+          ctx.fillStyle = inMedia ? P.text : P.faint; ctx.font = VZ.font(Math.min(11, rh * 0.8), false, 600); ctx.textAlign = "right"; ctx.textBaseline = "middle";
+          ctx.fillText(PRESETS[st.preset].labels[s], lw - 4, y + rh / 2);
+          const np = feats[s].length, pw = (w - lw - 8) / np;
+          if (inMedia) for (let i = 0; i < np; i++) { const a = lat.att[offs[s] + i] / mx; ctx.fillStyle = VZ.alpha(P.accent, 0.08 + 0.8 * a); ctx.fillRect(lw + i * pw, y + 1, pw + 0.3, rh - 2); }
+          const lo = Math.min(...x), hi = Math.max(...x);
+          ctx.strokeStyle = inMedia ? VZ.alpha(P.text, 0.75) : VZ.alpha(P.dim, 0.35); ctx.lineWidth = 1; ctx.beginPath();
+          x.forEach((v, j) => { const px = lw + (j / x.length) * (w - lw - 8), py = y + rh - 2 - ((v - lo) / (hi - lo || 1)) * (rh - 4); j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+          ctx.stroke();
+        });
+      });
+      const cvGrid = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx, w, h) => {
+        const P = VZ.palette(), t = toks[st.tok], cell = Math.min((w - 16) / 8, (h - 64) / 8), ox = (w - cell * 8) / 2, oy = 30;
+        geoG = { ox, oy, cell };
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`선택 토큰 '${t.text}'의 교차 어텐션 → 잠재 벡터 64개`, 8, 4);
+        const att = t.att || new Array(NLAT).fill(0), mx = Math.max(1e-9, ...att);
+        for (let k = 0; k < NLAT; k++) {
+          const r = Math.floor(k / 8), c = k % 8, v = att[k] / mx;
+          ctx.fillStyle = t.att ? VZ.alpha(t.mode === "uniform" ? P.bad : P.accent, 0.08 + 0.85 * v) : VZ.alpha(P.dim, 0.08);
+          ctx.fillRect(ox + c * cell + 1, oy + r * cell + 1, cell - 2, cell - 2);
+          if (k === st.lat) { ctx.strokeStyle = P.text; ctx.lineWidth = 2; ctx.strokeRect(ox + c * cell + 1, oy + r * cell + 1, cell - 2, cell - 2); ctx.lineWidth = 1; }
+        }
+        ctx.fillStyle = t.mode === "uniform" ? P.bad : P.dim; ctx.font = VZ.font(11, false, 600); ctx.textAlign = "center"; ctx.textBaseline = "top";
+        const msg = t.mode === "none" ? "교차 어텐션 없음 — 아직 <TS>가 나오지 않음"
+          : t.mode === "uniform" ? `균등 가중 1/64 — ${t.time}번째 <TS> 뒤라 미디어 1개뿐인 키가 모두 가려짐`
+          : st.mode === "code" ? "질의에 따라 골라 읽음 (모든 계열이 섞인 64개)" : `${PRESETS[st.preset].labels[t.m]} 계열의 잠재 벡터만 읽음`;
+        ctx.fillText(msg, w / 2, oy + cell * 8 + 6);
+      });
+      const set = S.stats([{ k: "ctx", label: "LLM 문맥 토큰" }, { k: "keys", label: "교차 어텐션 키" }, { k: "time", label: "선택 토큰의 미디어 순번" }, { k: "uni", label: "균등 가중이 된 토큰" }, { k: "g", label: "게이트 tanh(γ)" }]);
+      function upd(rebuild) {
+        if (rebuild) build();
+        cvTok.redraw(); cvSer.redraw(); cvGrid.redraw();
+        const t = toks[st.tok], nu = toks.filter((x) => x.mode === "uniform").length, na = toks.filter((x) => x.att).length;
+        set("ctx", toks.length + "<small>개</small>");
+        set("keys", st.mode === "code" ? "64<small> (계열 전체 합쳐서)</small>" : `64 × ${series.length}<small> (계열마다)</small>`);
+        set("time", t.time ? t.time + "<small>번째 &lt;TS&gt; 뒤</small>" : "—");
+        set("uni", nu ? `<span style="color:var(--bad)">${nu} / ${na}</span>` : "0");
+        set("g", Math.tanh(st.gamma).toFixed(3) + (st.gamma === 0 ? "<small> (학습 시작: LLM 그대로)</small>" : ""));
+      }
+      S.seg({ label: "어떤 경로를 볼까", options: [["code", "공개 코드 동작"], ["paper", "논문 설명 (식 7)"]], value: st.mode, onChange: (v) => { st.mode = v; upd(true); } });
+      S.select({ label: "예시 데이터", options: Object.entries(PRESETS).map(([k, v]) => [k, v.name]), value: st.preset, onChange: (v) => { st.preset = v; st.tok = null; st.lat = 0; upd(true); } });
+      S.range({ label: "게이트 γ (tanh를 거쳐 출력에 곱해짐)", min: 0, max: 3, step: 0.05, value: st.gamma, fmt: (v) => v.toFixed(2), onInput: (v) => { st.gamma = v; upd(false); } });
+      S.button("답변 토큰 선택", () => { st.tok = toks.length - 1; upd(false); }, { primary: true });
+      S.button("첫 계열 설명 토큰 선택", () => { st.tok = toks.findIndex((x) => x.kind === "desc"); upd(false); });
+      VZ.drag(cvTok.canvas, { down(p) { if (!geoT) return false; const i = Math.floor((p.x - geoT.ox) / geoT.cw); if (i >= 0 && i < toks.length) { st.tok = i; upd(false); } return false; } });
+      VZ.drag(cvGrid.canvas, { down(p) { if (!geoG) return false; const c = Math.floor((p.x - geoG.ox) / geoG.cell), r = Math.floor((p.y - geoG.oy) / geoG.cell); if (c >= 0 && c < 8 && r >= 0 && r < 8) { st.lat = r * 8 + c; upd(false); } return false; } });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     18. OpenTSLM — 잡음 섞기 실험: 모델은 신호를 보고 있나 (논문 리뷰 p03)
+     수치는 논문 표 5 (OpenTSLM-Flamingo)
+     ====================================================================== */
+  Lab.register({
+    id: "tslm-noise", field: "dl", thumb: "curve",
+    title: "잡음 섞기 실험 — 모델은 신호를 보고 있나 (OpenTSLM)",
+    desc: "입력 시계열을 x̃ = (1−α)x + αε로 망가뜨렸을 때 과제별 F1이 어떻게 변하는지 논문 표 5의 실측값으로 보고, 점수 중 얼마가 신호에서 오는지 가늠합니다.",
+    tags: ["OpenTSLM", "강건성", "잡음", "평가"],
+    note: "숫자는 논문 표 5(OpenTSLM-Flamingo)의 실측값이고, 측정점 사이는 직선으로 이었습니다. '센서 고장'은 입력 전체를 잡음으로 바꾼 경우입니다. <b>신호 의존도</b>는 리뷰어가 계산한 값으로, (깨끗한 입력 F1 − 센서 고장 F1) ÷ (깨끗한 입력 F1 − 무작위 F1)입니다. 1에 가까우면 무작위 이상의 점수가 전부 신호에서 나온다는 뜻입니다. <b>해볼 것</b> ① 심전도 QA를 고르세요 — 잡음을 70% 섞어도 F1이 거의 그대로이고, 신호가 아예 없어도 무작위(16.5)보다 훨씬 높은 28.3입니다. 질문과 함께 주어지는 임상 정보(나이, 기록 상태 등)와 질문 유형의 분포만으로 상당한 점수가 나온다는 뜻입니다. ② 수면 단계는 잡음 50%에서 이미 무작위 아래로 떨어집니다. (표 5의 '잡음 없음' 심전도 점수 41.58은 표 2의 같은 모델 점수 34.62와 다릅니다.)",
+    mount(S) {
+      const LV = [0, 0.1, 0.3, 0.5, 0.7];
+      const TASKS = {
+        tsqa: { name: "TSQA (추세 문답)", f1: [94.08, 91.55, 77.11, 50.82, 35.28], fail: 32.48, rnd: 33.33 },
+        har: { name: "HAR-CoT (행동)", f1: [62.93, 62.91, 55.56, 43.1, 34.15], fail: 10.59, rnd: 11.49 },
+        sleep: { name: "Sleep-CoT (수면)", f1: [49.33, 43.74, 31.27, 12.76, 12.46], fail: 16.5, rnd: 17.48 },
+        ecg: { name: "ECG-QA-CoT (심전도)", f1: [41.58, 40.27, 39.8, 39.92, 39.46], fail: 28.31, rnd: 16.47 },
+      };
+      const st = { task: "ecg", a: 0.3, fail: false, seed: 1 };
+      const interp = (arr, a) => { if (a >= LV[LV.length - 1]) return arr[arr.length - 1]; let i = 0; while (a > LV[i + 1]) i++; const f = (a - LV[i]) / (LV[i + 1] - LV[i]); return arr[i] + (arr[i + 1] - arr[i]) * f; };
+      function signal(task, n) {
+        return Array.from({ length: n }, (_, t) => {
+          if (task === "tsqa") return (t / n) * 2 - 1 + 0.15 * Math.sin(t / 5);
+          if (task === "har") return Math.sin((2 * Math.PI * t) / 25) + 0.4 * Math.sin((2 * Math.PI * t) / 12.5 + 1);
+          if (task === "sleep") return 0.5 * Math.sin(t / 1.6) + Math.sin(t / 14) * 0.9 + 0.3 * Math.sin(t / 3.1);
+          const ph = (t % 80) / 80;
+          return Math.exp(-(((ph - 0.32) / 0.012) ** 2)) * 1.4 - Math.exp(-(((ph - 0.3) / 0.02) ** 2)) * 0.3 + 0.3 * Math.exp(-(((ph - 0.6) / 0.06) ** 2)) + 0.15 * Math.exp(-(((ph - 0.15) / 0.04) ** 2));
+        });
+      }
+      const n = 240;
+      let x = [], eps = [];
+      function gen() {
+        const raw = signal(st.task, n), m = VZ.mean(raw), s = VZ.std(raw) || 1;
+        x = raw.map((v) => (v - m) / s);
+        const r = VZ.rng(st.seed * 13 + 1);
+        eps = x.map(() => VZ.randn(r));
+      }
+      gen();
+      const cvS = S.canvas({ aspect: 0.32, minHeight: 170, maxHeight: 230 }, (ctx) => {
+        const P = VZ.palette(), a = st.fail ? 1 : st.a, xt = x.map((v, i) => (1 - a) * v + a * eps[i]);
+        const lim = Math.max(3, ...xt.map(Math.abs)) * 1.05;
+        VZ.chart(ctx, null, {
+          x: [0, n - 1], y: [-lim, lim], title: st.fail ? "센서 고장: 입력 전체가 잡음 ε" : `입력 x̃ = (1 − ${a.toFixed(2)})·x + ${a.toFixed(2)}·ε`, yTicks: [0],
+          series: [{ data: x.map((v, i) => [i, v]), color: VZ.alpha(P.dim, 0.5), width: 1.2, dash: [4, 3] }, { data: xt.map((v, i) => [i, v]), color: P.accent, width: 1.5 }],
+        });
+      });
+      const cvF = S.canvas({ aspect: 0.42, minHeight: 220, maxHeight: 320 }, (ctx) => {
+        const P = VZ.palette(), keys = Object.keys(TASKS), cols = [P.series[0], P.series[1], P.series[2], P.series[3]];
+        const series = keys.map((k, i) => ({ data: LV.map((l, j) => [l, TASKS[k].f1[j]]), color: k === st.task ? cols[i] : VZ.alpha(cols[i], 0.3), width: k === st.task ? 3 : 1.5 }));
+        const points = keys.flatMap((k, i) => [...LV.map((l, j) => ({ x: l, y: TASKS[k].f1[j], color: k === st.task ? cols[i] : VZ.alpha(cols[i], 0.35), r: k === st.task ? 4 : 2.5 })), { x: 0.9, y: TASKS[k].fail, color: k === st.task ? cols[i] : VZ.alpha(cols[i], 0.35), r: k === st.task ? 5 : 3 }]);
+        const T = TASKS[st.task], i = keys.indexOf(st.task);
+        VZ.chart(ctx, null, {
+          x: [0, 1], y: [0, 100], title: "잡음 비율에 따른 F1 — 논문 표 5", xLabel: "잡음 비율 α (오른쪽 끝 점 = 센서 고장)", yLabel: "F1",
+          xTicks: [0, 0.1, 0.3, 0.5, 0.7, 0.9], xFmt: (v) => (v === 0.9 ? "고장" : v.toFixed(1)),
+          series, points, hlines: [{ y: T.rnd, color: cols[i], label: `무작위 ${T.rnd}` }],
+          vlines: [{ x: st.fail ? 0.9 : st.a, color: P.text, dash: [3, 3] }], bands: [{ x0: 0.78, x1: 1, color: VZ.alpha(P.bad, 0.06) }],
+        });
+      });
+      const set = S.stats([{ k: "c", label: "잡음 없음 F1" }, { k: "n", label: "현재 F1 (보간)" }, { k: "f", label: "센서 고장 F1" }, { k: "r", label: "무작위 F1" }, { k: "d", label: "신호 의존도" }]);
+      function upd() {
+        cvS.redraw(); cvF.redraw();
+        const T = TASKS[st.task], dep = (T.f1[0] - T.fail) / (T.f1[0] - T.rnd);
+        set("c", T.f1[0].toFixed(2)); set("n", (st.fail ? T.fail : interp(T.f1, st.a)).toFixed(2)); set("f", T.fail.toFixed(2)); set("r", T.rnd.toFixed(2));
+        set("d", `<span style="color:var(--${dep < 0.8 ? "bad" : "ok"})">${dep.toFixed(2)}</span>`);
+      }
+      S.seg({ label: "과제", options: Object.entries(TASKS).map(([k, v]) => [k, v.name.split(" ")[0]]), value: st.task, onChange: (v) => { st.task = v; gen(); upd(); } });
+      S.range({ label: "잡음 비율 α", min: 0, max: 0.7, step: 0.01, value: st.a, fmt: (v) => v.toFixed(2), onInput: (v) => { st.a = v; upd(); } });
+      S.check({ label: "센서 고장 (입력 전체를 잡음으로)", value: false, onChange: (v) => { st.fail = v; upd(); } });
+      S.button("잡음 다시 뽑기", () => { st.seed++; gen(); upd(); }, { primary: true });
+      upd();
     },
   });
 })();
