@@ -33,7 +33,7 @@ window.SHELF_DATA = {
       path: "books/paper-review/",
       chapters: [
         { slug: "p01", num: "01", status: "draft", title: "CHARM: 센서 설명을 읽는 시계열 임베딩 모델", desc: "채널별 텍스트 설명으로 합성곱 커널과 어텐션 게이트를 만들고 JEPA로 학습하는 7.1M 파라미터 시계열 표현 모델.", sims: ["charm-gating", "charm-jepa", "tcn-receptive"], paper: { year: 2026, venue: "ICML 2026", tags: ["시계열 표현학습", "JEPA", "멀티모달"] } },
-        { slug: "p02", num: "02", status: "slot", title: "논문 리뷰 슬롯 02", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 위치 인코딩·디코딩)", sims: ["posenc", "softmax-temp"], paper: { year: null, venue: "", tags: [] } },
+        { slug: "p02", num: "02", status: "draft", title: "Timestral: 미스트랄의 시계열 예측 파운데이션 모델", desc: "값 토큰과 예측 토큰을 나눈 DHF, 공변량 방화벽 마스크, 단조 분위수 헤드. 논문 대신 공개 코드와 세 벤치마크 원자료로 검증한 5M–209M 확률 예측 모델.", sims: ["timestral-flow", "timestral-quantile", "timestral-scaler", "timestral-symavg", "patching"], paper: { year: 2026, venue: "Mistral AI 모델 공개", tags: ["시계열 예측", "파운데이션 모델", "확률 예측"] } },
         { slug: "p03", num: "03", status: "slot", title: "논문 리뷰 슬롯 03", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 합성곱·초기화)", sims: ["conv2d", "init-depth"], paper: { year: null, venue: "", tags: [] } },
         { slug: "p04", num: "04", status: "slot", title: "논문 리뷰 슬롯 04", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 확산 모델)", sims: ["diffusion2d"], paper: { year: null, venue: "", tags: [] } },
         { slug: "p05", num: "05", status: "slot", title: "논문 리뷰 슬롯 05", desc: "리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 옵티마이저)", sims: ["optimizers", "lr-schedule", "landscape3d"], paper: { year: null, venue: "", tags: [] } },

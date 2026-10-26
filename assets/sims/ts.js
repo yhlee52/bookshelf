@@ -2,6 +2,7 @@
    시계열 실험 모음 (field: "ts")
    ts-decompose · acf · fft · windowing · patching · forecast
    rnn-memory · tcn-receptive · anomaly
+   timestral-flow · timestral-quantile · timestral-scaler · timestral-symavg (논문 리뷰 p02)
    ========================================================================== */
 (function () {
   "use strict";
@@ -671,6 +672,590 @@
       S.check({ label: "순간 튐 (스파이크)", value: true, onChange: (v) => { st.spikes = v; gen(); upd(); } });
       S.check({ label: "레벨 이동", value: true, onChange: (v) => { st.shift = v; gen(); upd(); } });
       S.check({ label: "변동성 폭증 구간", value: true, onChange: (v) => { st.burst = v; gen(); upd(); } });
+      S.button("새 데이터", () => { st.seed++; gen(); upd(); }, { primary: true });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     10. Timestral — DHF 두 줄기 어텐션과 공변량 방화벽 (논문 리뷰 p02)
+     mistralai/timestral의 masks.py 규칙(시간 마스크 · 변량 마스크 · 방화벽)을 옮겨
+     "이 토큰의 출력에 어느 칸의 값이 섞여 들어오는가"를 층마다 추적한다.
+     ====================================================================== */
+  Lab.register({
+    id: "timestral-flow", field: "ts", thumb: "grid", layout: "stack",
+    title: "DHF 어텐션과 공변량 방화벽 — 정보 흐름 추적 (Timestral)",
+    desc: "값을 담은 인코더 토큰과 값 없는 예측 토큰을 나눈 DHF 구조에서, 공개 코드의 마스크 규칙대로 정보를 흘려 어떤 값이 예측에 닿는지, 방화벽을 끄면 미래가 어떻게 새는지 봅니다.",
+    tags: ["Timestral", "DHF", "어텐션 마스크", "공변량", "정보 누출"],
+    note: "<b>읽는 법</b> — 행마다 위 칸은 <b>인코더 토큰</b>(그 패치의 실제 값과 결측 표시를 임베딩), 아래 칸은 <b>예측 토큰</b>(값 없이 학습된 질의 벡터)입니다. 칸을 클릭하면 그 토큰의 출력에 <em>어느 칸의 값이</em> 섞여 들어오는지 칠해집니다: 강조색 = 타깃 값, 보조색 = 과거 공변량, 초록 = 미래 공변량, <b>빨강 ✕ = 새어 들어온 미래 값</b>. 규칙은 공개 코드 <code>masks.py</code>와 같고, 층 구성은 Timestral-5M(8층)을 따릅니다.<br><b>해볼 것</b> ① 방화벽 ②를 끄면 과거 공변량의 미래 값(추론 때는 존재하지 않는 값)이 미래 공변량을 거쳐 예측 토큰으로 샙니다(빨간 화살표가 경로). 이 경로는 변량 → 시간 → 시간 → 변량 순서가 필요해서 <b>8층째에야</b> 처음 열립니다. ② 방화벽 ①까지 끄면 타깃 자신의 미래(정답)도 샙니다. ③ 방화벽 ①만 끄면 누출이 없습니다 — ②가 미래 공변량의 읽기를 막고, 과거 공변량은 인과적이라 미래를 들고 있지 않습니다. ④ 미래 공변량의 양방향 시간 어텐션을 끄면 미래 공변량의 미래 값(초록)이 예측에 닿지 않습니다. ⑤ 학습 모드에서는 모든 패치가 값 줄에서는 맥락으로, 예측 줄에서는 정답으로 동시에 쓰입니다.",
+    mount(S) {
+      const N = 12;
+      const ROWS = [
+        { name: "타깃 A", role: "target" }, { name: "타깃 B", role: "target" },
+        { name: "과거 공변량", role: "past" }, { name: "미래 공변량", role: "known" },
+      ];
+      const R = ROWS.length, NS = R * N, NT = 2 * NS;
+      // Timestral-5M의 block_schedule: 시간 어텐션 3층 다음에 시간+변량 1층, 두 번 반복
+      const SCHED = ["time", "time", "time", "time_variate", "time", "time", "time", "time_variate"];
+      const SUB = [];
+      SCHED.forEach((k, li) => { SUB.push({ layer: li, axis: "t" }); if (k === "time_variate") SUB.push({ layer: li, axis: "v" }); });
+      const st = { mode: "train", s: 6, K: 3, layers: 8, fw1: true, fw2: true, kBi: true, sel: null, hover: null };
+      const tid = (str, r, p) => (str * R + r) * N + p;
+      const untid = (id) => [Math.floor(id / NS), Math.floor((id % NS) / N), id % N];
+      let len = N, hist = [], via = [], info = null;
+      const horizon = () => Math.min(st.K, N - st.s);
+      /** 예측 토큰이 속한 블록의 시작 패치 (compute_block_layout). 맥락 구간이면 −1 */
+      function anchorOf(p) {
+        if (p < st.s || p >= len) return -1;
+        return st.mode === "train" ? st.s + st.K * Math.floor((p - st.s) / st.K) : st.s;
+      }
+      // 학습: 창 전체가 관측값 / 추론: 예측 구간에는 미래 공변량 값만 있다
+      const hasVal = (r, p) => p < len && (st.mode === "train" || p < st.s || ROWS[r].role === "known");
+      const exists = (str, r, p) => p < len && (str === 0 || anchorOf(p) >= 0);
+      /** variate_firewall: 공변량은 타깃을, 양방향(미래 공변량) 행은 인과 행을 읽지 못한다 */
+      function allowed(q, k) {
+        const a = ROWS[q].role, b = ROWS[k].role;
+        if (st.fw1 && a !== "target" && b === "target") return false;
+        if (st.fw2 && st.kBi && a === "known" && b !== "known") return false;
+        return true;
+      }
+      function reads(id, axis) {
+        const [str, r, p] = untid(id), out = [];
+        if (axis === "t") {
+          if (str === 0) {
+            const bi = ROWS[r].role === "known" && st.kBi;
+            for (let j = 0; j < len; j++) if (bi || j <= p) out.push(tid(0, r, j));
+          } else {
+            // 예측 토큰: 블록 시작 이전의 인코더 토큰 + 같은 블록 안의 앞선 예측 토큰
+            const b = anchorOf(p);
+            for (let j = 0; j < b; j++) out.push(tid(0, r, j));
+            for (let q = b; q <= p; q++) if (anchorOf(q) === b) out.push(tid(1, r, q));
+          }
+        } else {
+          for (let k = 0; k < R; k++) if (k !== r && allowed(r, k) && exists(str, k, p)) out.push(tid(str, k, p));
+        }
+        // 가까운 패치부터: 누출 경로를 되짚을 때 가장 짧은 경유지가 잡히도록
+        return out.sort((a, b) => Math.abs((a % N) - p) - Math.abs((b % N) - p));
+      }
+      function propagate() {
+        len = st.mode === "train" ? N : st.s + horizon();
+        const cur = Array.from({ length: NT }, () => new Uint8Array(NS));
+        for (let r = 0; r < R; r++) for (let p = 0; p < N; p++) if (hasVal(r, p)) cur[tid(0, r, p)][r * N + p] = 1;
+        hist = [cur]; via = [null];
+        SUB.forEach((sub) => {
+          const prev = hist[hist.length - 1], next = prev.map((a) => a.slice()), v = new Int16Array(NT * NS).fill(-1);
+          for (let id = 0; id < NT; id++) {
+            const [str, r, p] = untid(id);
+            if (!exists(str, r, p)) continue;
+            for (const y of reads(id, sub.axis)) {
+              const src = prev[y], dst = next[id];
+              for (let s = 0; s < NS; s++) if (src[s] && !dst[s]) { dst[s] = 1; v[id * NS + s] = y; }
+            }
+          }
+          hist.push(next); via.push(v);
+        });
+      }
+      const nSub = (L) => SUB.filter((x) => x.layer < L).length;
+      /** 선택한 토큰 기준의 '미래' 경계: 예측 토큰은 블록 시작, 인코더 토큰은 자기 다음 패치 */
+      const cutoff = (id) => { const [str, , p] = untid(id); return str === 1 ? anchorOf(p) : p + 1; };
+      const isLeak = (id, s) => { const r = Math.floor(s / N), j = s % N; return j >= cutoff(id) && ROWS[r].role !== "known"; };
+      function pathTo(id, s, depth) {
+        const hops = [];
+        let x = id;
+        for (let k = depth; k >= 1; k--) {
+          if (hist[k - 1][x][s]) continue;
+          const y = via[k][x * NS + s];
+          if (y < 0) break;
+          hops.push({ from: y, to: x, k });
+          x = y;
+        }
+        return hops.reverse();
+      }
+      let geo = null, hops = [];
+      const cv = S.canvas({ aspect: 0.62, minHeight: 380, maxHeight: 560 }, (ctx, w, h) => {
+        const P = VZ.palette(), lw = Math.min(112, w * 0.22), top = 66, bottom = 26, gap = 10;
+        const cw = (w - lw - 8) / N, ch = (h - top - bottom - gap * (R - 1)) / (2 * R);
+        const X = (p) => lw + p * cw, Y = (str, r) => top + r * (2 * ch + gap) + str * ch;
+        geo = { X, Y, cw, ch, lw, top, gap };
+        const rowCol = (r) => ({ target: P.accent, past: P.accent2, known: P.ok })[ROWS[r].role];
+        // 층 구성 띠
+        const nL = SCHED.length, bw = (w - lw - 8) / nL;
+        ctx.font = VZ.font(11, false); ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+        ctx.fillText("층 구성", lw - 10, 17);
+        SCHED.forEach((k, li) => {
+          const x = lw + li * bw, on = li < st.layers;
+          ctx.fillStyle = on ? VZ.alpha(k === "time" ? P.accent : P.warn, 0.85) : VZ.alpha(P.dim, 0.12);
+          ctx.fillRect(x + 2, 6, bw - 4, 22);
+          ctx.fillStyle = on ? "#fff" : P.dim; ctx.font = VZ.font(10.5, false, 600); ctx.textAlign = "center";
+          ctx.fillText(bw > 62 ? (k === "time" ? `${li + 1} 시간` : `${li + 1} 시간+변량`) : `${li + 1}${k === "time" ? "T" : "TV"}`, x + bw / 2, 17);
+        });
+        // 열 머리: 맥락 / 블록
+        ctx.font = VZ.font(10.5, false); ctx.textBaseline = "middle";
+        const head = (a, b, label, col) => {
+          if (b <= a) return;
+          ctx.fillStyle = col; ctx.fillRect(X(a) + 1, 36, X(b) - X(a) - 2, 18);
+          ctx.fillStyle = P.text; ctx.textAlign = "center"; ctx.fillText(label, (X(a) + X(b)) / 2, 45);
+        };
+        head(0, st.s, st.mode === "train" ? `최소 맥락 (s = ${st.s})` : `맥락 ${st.s}패치`, VZ.alpha(P.dim, 0.12));
+        if (st.mode === "train") for (let b = st.s, k = 1; b < N; b += st.K, k++) head(b, Math.min(N, b + st.K), cw * Math.min(st.K, N - b) > 60 ? `블록 ${k}` : `${k}`, VZ.alpha(k % 2 ? P.warn : P.accent2, 0.16));
+        else { head(st.s, len, "예측 블록", VZ.alpha(P.warn, 0.18)); head(len, N, cw * (N - len) > 90 ? "다음 호출" : "…", VZ.alpha(P.dim, 0.06)); }
+        ctx.fillStyle = P.faint; ctx.font = VZ.font(9.5); ctx.textAlign = "center";
+        for (let p = 0; p < N; p++) ctx.fillText(p + 1, X(p) + cw / 2, 60);
+        const src = info, selCut = st.sel != null ? cutoff(st.sel) : 99;
+        for (let r = 0; r < R; r++) {
+          // 칸이 낮으면(좁은 화면) 보조 라벨을 줄여 겹치지 않게 한다
+          const roomy = ch >= 30;
+          ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "right"; ctx.textBaseline = "middle";
+          ctx.fillText(ROWS[r].name, lw - 10, Y(0, r) + (roomy ? ch * 0.38 : ch * 0.5));
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(10, false);
+          if (roomy) ctx.fillText("값 토큰", lw - 10, Y(0, r) + ch * 0.38 + 14);
+          ctx.fillText(roomy ? "예측 토큰" : "예측", lw - 10, Y(1, r) + ch * 0.5);
+          for (let str = 0; str < 2; str++) for (let p = 0; p < N; p++) {
+            const x = X(p) + 1.5, y = Y(str, r) + 1.5, cww = cw - 3, chh = ch - 3, id = tid(str, r, p);
+            if (!exists(str, r, p)) {
+              if (p >= len) { ctx.strokeStyle = VZ.alpha(P.dim, 0.35); ctx.setLineDash([3, 3]); ctx.strokeRect(x, y, cww, chh); ctx.setLineDash([]); }
+              continue;
+            }
+            if (str === 0) {
+              const s = r * N + p, hit = src && src[s];
+              if (hit) {
+                const leak = isLeak(st.sel, s), knownFut = ROWS[r].role === "known" && p >= selCut;
+                ctx.fillStyle = leak ? P.bad : VZ.alpha(rowCol(r), knownFut ? 1 : 0.78);
+                ctx.fillRect(x, y, cww, chh);
+                if (leak || knownFut) {
+                  ctx.fillStyle = "#fff"; ctx.font = VZ.font(Math.min(14, chh * 0.6), false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                  ctx.fillText(leak ? "✕" : "→", x + cww / 2, y + chh / 2 + 0.5);
+                }
+              } else if (hasVal(r, p)) { ctx.fillStyle = VZ.alpha(rowCol(r), 0.13); ctx.fillRect(x, y, cww, chh); }
+              else {
+                ctx.strokeStyle = VZ.alpha(P.dim, 0.5); ctx.setLineDash([3, 3]); ctx.strokeRect(x, y, cww, chh); ctx.setLineDash([]);
+                ctx.fillStyle = P.faint; ctx.font = VZ.font(10); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("∅", x + cww / 2, y + chh / 2);
+              }
+            } else {
+              ctx.fillStyle = VZ.alpha(P.warn, 0.2); ctx.fillRect(x, y, cww, chh);
+              ctx.fillStyle = VZ.alpha(P.warn, 0.9); ctx.font = VZ.font(10, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("q", x + cww / 2, y + chh / 2);
+            }
+            if (id === st.hover) { ctx.strokeStyle = P.dim; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, cww, chh); }
+            if (id === st.sel) { ctx.strokeStyle = P.text; ctx.lineWidth = 3; ctx.strokeRect(x - 1, y - 1, cww + 2, chh + 2); }
+          }
+          ctx.lineWidth = 1;
+        }
+        // 맥락/예측 경계
+        ctx.strokeStyle = VZ.alpha(P.text, 0.45); ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(X(st.s), 34); ctx.lineTo(X(st.s), h - bottom + 4); ctx.stroke(); ctx.setLineDash([]);
+        // 누출 경로
+        const cen = (id) => { const [str, r, p] = untid(id); return [X(p) + cw / 2, Y(str, r) + ch / 2]; };
+        ctx.strokeStyle = P.bad; ctx.fillStyle = P.bad; ctx.lineWidth = 2.2;
+        hops.forEach((hp, i) => {
+          let [x0, y0] = cen(hp.from), [x1, y1] = cen(hp.to);
+          const sameRow = Math.abs(y1 - y0) < 1, vertical = Math.abs(x1 - x0) < 1;
+          // 변량 단계(세로 이동)는 값 줄이면 왼쪽, 예측 줄이면 오른쪽으로 비켜 그려 겹치지 않게
+          if (vertical) { const dx = (untid(hp.to)[0] ? 1 : -1) * cw * 0.24; x0 += dx; x1 += dx; }
+          const mx = (x0 + x1) / 2, my = sameRow ? y0 - ch * 0.9 : (y0 + y1) / 2;
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+          const a = Math.atan2(y1 - my, x1 - mx);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 9 * Math.cos(a - 0.4), y1 - 9 * Math.sin(a - 0.4)); ctx.lineTo(x1 - 9 * Math.cos(a + 0.4), y1 - 9 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+          const sub = SUB[hp.k - 1], lx = sameRow ? mx : mx + 6, ly = sameRow ? (y0 + my) / 2 - 2 : my;
+          const label = `${i + 1}. ${sub.layer + 1}층 ${sub.axis === "t" ? "시간" : "변량"}`;
+          ctx.font = VZ.font(10, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "middle";
+          const tw = ctx.measureText(label).width;
+          ctx.fillStyle = VZ.alpha(P.bg, 0.9); ctx.fillRect(lx - 2, ly - 8, tw + 4, 16);
+          ctx.fillStyle = P.bad; ctx.fillText(label, lx, ly);
+        });
+        // 아래 설명줄
+        const show = st.hover != null ? st.hover : st.sel;
+        if (show != null) {
+          const [str, r, p] = untid(show), b = str === 1 ? anchorOf(p) : -1;
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+          ctx.fillText(`${ROWS[r].name} · 패치 ${p + 1} · ${str ? `예측 토큰 (블록 시작 ${b + 1}, 그 앞의 값 토큰만 읽음)` : ROWS[r].role === "known" && st.kBi ? "값 토큰 (시간축 양방향)" : "값 토큰 (시간축 인과)"}`, lw, h - 6);
+        }
+      });
+      const set = S.stats([{ k: "n", label: "섞여 든 값 칸" }, { k: "kf", label: "미래 공변량 값" }, { k: "leak", label: "누출된 미래 값" }, { k: "first", label: "누출이 처음 생기는 층" }]);
+      function upd() {
+        propagate();
+        if (st.sel == null || !exists(...untid(st.sel))) st.sel = tid(1, 0, st.s);
+        const depth = nSub(st.layers);
+        info = hist[depth][st.sel];
+        let n = 0, kf = 0, leaks = [];
+        for (let s = 0; s < NS; s++) if (info[s]) { n++; if (isLeak(st.sel, s)) leaks.push(s); else if (ROWS[Math.floor(s / N)].role === "known" && s % N >= cutoff(st.sel)) kf++; }
+        // 다른 타깃의 미래 → 자기 미래 순으로 대표 경로 하나
+        leaks.sort((a, b) => (Math.floor(b / N) !== untid(st.sel)[1]) - (Math.floor(a / N) !== untid(st.sel)[1]) || (a % N) - (b % N));
+        hops = leaks.length ? pathTo(st.sel, leaks[0], depth) : [];
+        let first = 0;
+        for (let L = 1; L <= SCHED.length && !first; L++) { const a = hist[nSub(L)][st.sel]; for (let s = 0; s < NS; s++) if (a[s] && isLeak(st.sel, s)) { first = L; break; } }
+        set("n", n + "<small>칸</small>"); set("kf", kf + "<small>칸</small>");
+        set("leak", leaks.length ? `<span style="color:var(--bad)">${leaks.length}<small>칸</small></span>` : `<span style="color:var(--ok)">없음</span>`);
+        set("first", first ? first + "<small>층째</small>" : "8층까지 없음");
+        cv.redraw();
+      }
+      S.legend([
+        { label: "타깃 값", color: (P) => P.accent }, { label: "과거 공변량 값", color: (P) => P.accent2 },
+        { label: "미래 공변량 값", color: (P) => P.ok }, { label: "새어 든 미래 값", color: (P) => P.bad }, { label: "예측 토큰", color: (P) => VZ.alpha(P.warn, 0.6) },
+      ]);
+      S.seg({ label: "상황", options: [["train", "학습 (DHF: 창 전체가 관측값)"], ["infer", "추론 (미래 칸은 비어 있음)"]], value: st.mode, onChange: (v) => { st.mode = v; st.sel = null; upd(); } });
+      S.range({ label: "맥락 패치 s", min: 2, max: 10, step: 1, value: st.s, onInput: (v) => { st.s = v; st.sel = null; upd(); } });
+      S.range({ label: "블록 크기 K (패치)", min: 1, max: 6, step: 1, value: st.K, onInput: (v) => { st.K = v; upd(); } });
+      const layerCtl = S.range({ label: "통과한 층 수", min: 0, max: 8, step: 1, value: st.layers, onInput: (v) => { st.layers = v; upd(); } });
+      S.check({ label: "방화벽 ① 공변량 행은 타깃 행을 읽지 않음", value: true, onChange: (v) => { st.fw1 = v; upd(); } });
+      S.check({ label: "방화벽 ② 미래 공변량 행은 인과 행을 읽지 않음", value: true, onChange: (v) => { st.fw2 = v; upd(); } });
+      S.check({ label: "미래 공변량의 시간 어텐션을 양방향으로", value: true, onChange: (v) => { st.kBi = v; upd(); } });
+      let timer = 0;
+      S.button("층 하나씩 재생", () => {
+        clearInterval(timer);
+        layerCtl.set(0);
+        timer = setInterval(() => { if (st.layers >= SCHED.length) { clearInterval(timer); return; } layerCtl.set(st.layers + 1); }, 700);
+      }, { primary: true });
+      S.button("방화벽 모두 켜기", () => {
+        clearInterval(timer);
+        st.fw1 = st.fw2 = st.kBi = true;
+        S.controls.querySelectorAll(".check input").forEach((c) => (c.checked = true));
+        layerCtl.set(8);
+      });
+      const hit = (p) => {
+        if (!geo) return null;
+        const col = Math.floor((p.x - geo.lw) / geo.cw);
+        if (col < 0 || col >= N) return null;
+        for (let r = 0; r < R; r++) for (let str = 0; str < 2; str++) {
+          const y = geo.Y(str, r);
+          if (p.y >= y && p.y < y + geo.ch) return exists(str, r, col) ? tid(str, r, col) : null;
+        }
+        return null;
+      };
+      VZ.drag(cv.canvas, {
+        down(p) { const id = hit(p); if (id != null) { st.sel = id; upd(); } return false; },
+        hover(p) { const id = hit(p); if (id !== st.hover) { st.hover = id; cv.redraw(); } },
+        leave() { st.hover = null; cv.redraw(); },
+      });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     11. Timestral — 단조 분위수 헤드와 핀볼 손실 (논문 리뷰 p02)
+     ====================================================================== */
+  const LV21 = [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99];
+  const LV9 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+  const softplus = (x) => (x > 20 ? x : Math.log1p(Math.exp(x)));
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  const pinball = (y, q, tau) => (y >= q ? tau * (y - q) : (1 - tau) * (q - y));
+  /** timestral/model.py monotone_quantiles: 중앙값은 자유, 나머지는 중앙값 ± 누적(폭 계수 × 확률 간격 × softplus) */
+  function monotoneQ(raw, lv, wf) {
+    const m = lv.indexOf(0.5), q = new Array(lv.length);
+    q[m] = raw[m];
+    for (let i = m + 1; i < lv.length; i++) q[i] = q[i - 1] + wf * (lv[i] - lv[i - 1]) * softplus(raw[i]);
+    for (let i = m - 1; i >= 0; i--) q[i] = q[i + 1] - wf * (lv[i + 1] - lv[i]) * softplus(raw[i]);
+    return q;
+  }
+  Lab.register({
+    id: "timestral-quantile", field: "ts", thumb: "curve",
+    title: "단조 분위수 헤드와 핀볼 손실 (Timestral)",
+    desc: "21개 분위수를 '중앙값 ± softplus 증분의 누적합'으로 만들어 교차를 막고, 핀볼 손실로 학습하면 참 분포의 분위수로 모이는 과정을 봅니다.",
+    tags: ["Timestral", "분위수 회귀", "핀볼 손실", "CRPS", "확률 예측"],
+    note: "왼쪽은 참 분포(막대)와 예측 분위수(세로선, 굵은 선 = 중앙값), 오른쪽은 분위수 함수 \\(q(\\tau)\\)입니다(회색 곡선 = 참값, 점 = 예측). <b>해볼 것</b> ① 분포를 바꿔 보세요 — 핀볼 손실만으로 비대칭·두 봉우리 분포의 분위수도 찾아갑니다. ② 헤드를 <b>독립 출력</b>으로 바꾸고 배치를 작게, 학습률을 크게 하면 이웃 분위수가 서로 뒤집히는(교차) 순간이 생깁니다(빨간 구간). 단조 헤드는 증분이 softplus라서 구조적으로 교차가 불가능합니다. ③ 21개 분위수의 평균 핀볼 손실은 CRPS를 이산적으로 근사합니다(블로그 설명). 폭 계수는 공개 설정값 3.0을 씁니다.",
+    mount(S) {
+      const DISTS = {
+        normal: ["정규분포", (r) => VZ.randn(r)],
+        skew: ["오른쪽 꼬리 (로그정규)", (r) => (Math.exp(0.75 * VZ.randn(r)) - 1) * 1.6],
+        bimodal: ["두 봉우리", (r) => (r() < 0.6 ? -1.6 + 0.5 * VZ.randn(r) : 2 + 0.7 * VZ.randn(r))],
+        heavy: ["두꺼운 꼬리 (t 분포, ν = 3)", (r) => { const z = VZ.randn(r); let c = 0; for (let i = 0; i < 3; i++) { const g = VZ.randn(r); c += g * g; } return z / Math.sqrt(c / 3); }],
+        intermittent: ["간헐 수요 (55%가 0)", (r) => (r() < 0.55 ? 0 : -Math.log(1 - r()) * 2.5)],
+      };
+      const WF = 3.0;
+      const st = { dist: "skew", head: "mono", nq: 21, lr: 0.03, batch: 32, run: true, step: 0, crossEver: 0 };
+      let lv = LV21, raw = [], mom = [], vel = [], big = [], evalSet = [], rng = VZ.rng(5), lossHist = [], opt = 0, q = [], tq = [];
+      const quant = (sorted, tau) => { const x = tau * (sorted.length - 1), i = Math.floor(x), f = x - i; return sorted[i] + (sorted[Math.min(sorted.length - 1, i + 1)] - sorted[i]) * f; };
+      function data() {
+        const r = VZ.rng(101), f = DISTS[st.dist][1];
+        big = Array.from({ length: 20000 }, () => f(r)).sort((a, b) => a - b);
+        const r2 = VZ.rng(202);
+        evalSet = Array.from({ length: 3000 }, () => f(r2));
+      }
+      const evalLoss = (qq) => { let s = 0; for (const y of evalSet) for (let k = 0; k < lv.length; k++) s += pinball(y, qq[k], lv[k]); return s / (evalSet.length * lv.length); };
+      function reset() {
+        lv = st.nq === 21 ? LV21 : LV9;
+        const r = VZ.rng(7);
+        raw = lv.map(() => 0.6 * VZ.randn(r));
+        mom = lv.map(() => 0); vel = lv.map(() => 0);
+        st.step = 0; st.crossEver = 0; lossHist = []; rng = VZ.rng(9);
+        tq = lv.map((t) => quant(big, t)); opt = evalLoss(tq);
+        q = qOf(raw); lossHist.push([0, evalLoss(q)]);
+      }
+      const qOf = (rw) => (st.head === "mono" ? monotoneQ(rw, lv, WF) : rw.slice());
+      function trainStep() {
+        const f = DISTS[st.dist][1], K = lv.length, g = new Array(K).fill(0);
+        for (let b = 0; b < st.batch; b++) { const y = f(rng); for (let k = 0; k < K; k++) g[k] += (y > q[k] ? -lv[k] : 1 - lv[k]) / (st.batch * K); }
+        let gr;
+        if (st.head === "mono") {
+          const m = lv.indexOf(0.5);
+          gr = new Array(K).fill(0);
+          gr[m] = g.reduce((a, v) => a + v, 0);
+          let acc = 0;
+          for (let i = K - 1; i > m; i--) { acc += g[i]; gr[i] = acc * WF * (lv[i] - lv[i - 1]) * sigmoid(raw[i]); }
+          acc = 0;
+          for (let i = 0; i < m; i++) { acc += g[i]; gr[i] = -acc * WF * (lv[i + 1] - lv[i]) * sigmoid(raw[i]); }
+        } else gr = g;
+        st.step++;
+        const b1 = 0.9, b2 = 0.999, c1 = 1 - b1 ** st.step, c2 = 1 - b2 ** st.step;
+        for (let k = 0; k < K; k++) {
+          const gk = gr[k] * K; // 수준 평균으로 작아진 기울기를 수준 합 기준으로 되돌린다
+          mom[k] = b1 * mom[k] + (1 - b1) * gk; vel[k] = b2 * vel[k] + (1 - b2) * gk * gk;
+          raw[k] -= (st.lr * mom[k] / c1) / (Math.sqrt(vel[k] / c2) + 1e-8);
+        }
+        q = qOf(raw);
+        if (crossings() > 0) st.crossEver++;
+      }
+      const crossings = () => { let c = 0; for (let k = 1; k < q.length; k++) if (q[k] < q[k - 1]) c++; return c; };
+      data(); reset();
+      const xr = () => { const lo = quant(big, 0.005), hi = quant(big, 0.995), pad = (hi - lo) * 0.12 + 0.2; return [lo - pad, hi + pad]; };
+      const levelCol = (P, t) => (t === 0.5 ? P.text : t < 0.5 ? VZ.mix(P.accent2, P.faint, (0.5 - t) * 1.2) : VZ.mix(P.accent, P.faint, (t - 0.5) * 1.2));
+      const [left, right] = S.split(2);
+      const cvD = S.canvas({ parent: left, aspect: 0.8, maxHeight: 340 }, (ctx) => {
+        const P = VZ.palette(), [a, b] = xr(), nb = 48, bins = new Array(nb).fill(0);
+        big.forEach((v) => { const i = Math.floor(((v - a) / (b - a)) * nb); if (i >= 0 && i < nb) bins[i]++; });
+        const top = Math.max(...bins), bw = (b - a) / nb;
+        const C = VZ.chart(ctx, null, {
+          x: [a, b], y: [0, 1.08], title: "참 분포와 예측 분위수", xLabel: "값", yTicks: [],
+          series: [{ type: "bar", data: bins.map((c, i) => [a + (i + 0.5) * bw, c / top]), color: VZ.alpha(P.dim, 0.28), barWidth: bw * 0.92 }],
+        });
+        const i10 = lv.indexOf(0.1), i90 = lv.indexOf(0.9);
+        ctx.fillStyle = VZ.alpha(P.accent, 0.1); ctx.fillRect(C.X(Math.min(q[i10], q[i90])), C.box.y, Math.abs(C.X(q[i90]) - C.X(q[i10])), C.box.h);
+        lv.forEach((t, k) => {
+          const x = C.X(VZ.clamp(q[k], a, b));
+          ctx.strokeStyle = levelCol(P, t); ctx.lineWidth = t === 0.5 ? 2.6 : 1.3;
+          ctx.beginPath(); ctx.moveTo(x, C.box.y + 4); ctx.lineTo(x, C.box.y + C.box.h); ctx.stroke();
+          ctx.fillStyle = P.dim; ctx.beginPath(); const tx = C.X(VZ.clamp(tq[k], a, b)), ty = C.box.y + C.box.h;
+          ctx.moveTo(tx, ty - 6); ctx.lineTo(tx - 3.5, ty); ctx.lineTo(tx + 3.5, ty); ctx.closePath(); ctx.fill();
+        });
+        ctx.fillStyle = P.faint; ctx.font = VZ.font(10, false); ctx.textAlign = "right"; ctx.textBaseline = "top";
+        ctx.fillText("▲ 참 분위수 · 음영 = 10~90% 구간", C.box.x + C.box.w - 2, C.box.y + 2);
+      });
+      const cvQ = S.canvas({ parent: right, aspect: 0.8, maxHeight: 340 }, (ctx) => {
+        const P = VZ.palette(), [a, b] = xr();
+        const qs = q.map((v) => VZ.clamp(v, a, b));
+        const C = VZ.chart(ctx, null, {
+          x: [0, 1], y: [a, b], title: "분위수 함수 q(τ)", xLabel: "분위수 수준 τ",
+          series: [{ data: VZ.linspace(0.005, 0.995, 120).map((t) => [t, quant(big, t)]), color: VZ.alpha(P.dim, 0.7), width: 2 }],
+        });
+        for (let k = 1; k < lv.length; k++) {
+          ctx.strokeStyle = qs[k] < qs[k - 1] ? P.bad : P.accent; ctx.lineWidth = qs[k] < qs[k - 1] ? 3 : 1.8;
+          ctx.beginPath(); ctx.moveTo(C.X(lv[k - 1]), C.Y(qs[k - 1])); ctx.lineTo(C.X(lv[k]), C.Y(qs[k])); ctx.stroke();
+        }
+        lv.forEach((t, k) => { ctx.fillStyle = levelCol(P, t); ctx.beginPath(); ctx.arc(C.X(t), C.Y(qs[k]), t === 0.5 ? 4.5 : 3.2, 0, 7); ctx.fill(); });
+      });
+      const cvL = S.canvas({ height: 130 }, (ctx) => {
+        const P = VZ.palette(), last = lossHist[lossHist.length - 1][0] || 1, hi = Math.max(...lossHist.map((d) => d[1]), opt * 1.2);
+        VZ.chart(ctx, null, {
+          x: [0, Math.max(200, last)], y: [opt * 0.9, hi * 1.05], title: "평가용 표본의 평균 핀볼 손실", xLabel: "학습 단계",
+          series: [{ data: lossHist, color: P.accent, width: 2 }], hlines: [{ y: opt, color: P.ok, label: "참 분위수일 때 (최저)" }],
+        });
+      });
+      const set = S.stats([{ k: "l", label: "평균 핀볼 손실" }, { k: "o", label: "최저 가능값" }, { k: "cov", label: "10~90% 구간 실제 포함률" }, { k: "x", label: "지금 교차한 이웃 쌍" }, { k: "xe", label: "교차가 있었던 단계" }]);
+      function stats() {
+        const lo = q[lv.indexOf(0.1)], hi = q[lv.indexOf(0.9)];
+        let inn = 0; for (const v of big) if (v >= Math.min(lo, hi) && v <= Math.max(lo, hi)) inn++;
+        set("l", lossHist[lossHist.length - 1][1].toFixed(4)); set("o", opt.toFixed(4));
+        set("cov", ((inn / big.length) * 100).toFixed(1) + "<small>% (목표 80%)</small>");
+        const c = crossings();
+        set("x", c ? `<span style="color:var(--bad)">${c}</span>` : "0"); set("xe", st.crossEver + `<small> / ${st.step}</small>`);
+      }
+      const redraw = () => { cvD.redraw(); cvQ.redraw(); cvL.redraw(); stats(); };
+      S.loop(() => {
+        if (!st.run) return;
+        for (let i = 0; i < 4; i++) trainStep();
+        if (st.step % 20 < 4) lossHist.push([st.step, evalLoss(q)]);
+        if (st.step >= 3000) { st.run = false; playBtn.textContent = "▶ 재생"; }
+        redraw();
+      });
+      S.select({ label: "참 분포", options: Object.entries(DISTS).map(([k, [n]]) => [k, n]), value: st.dist, onChange: (v) => { st.dist = v; data(); reset(); start(); } });
+      S.seg({ label: "출력 헤드", options: [["mono", "단조 (Timestral)"], ["free", "독립 출력"]], value: st.head, onChange: (v) => { st.head = v; reset(); start(); } });
+      S.seg({ label: "분위수 개수", options: [["21", "21개 (Timestral)"], ["9", "9개 (평가 지표)"]], value: "21", onChange: (v) => { st.nq = Number(v); reset(); start(); } });
+      S.range({ label: "학습률", min: 0.002, max: 0.2, step: 0.002, value: st.lr, fmt: (v) => v.toFixed(3), onInput: (v) => { st.lr = v; } });
+      S.range({ label: "배치 크기", min: 2, max: 256, step: 2, value: st.batch, onInput: (v) => { st.batch = v; } });
+      const start = () => { st.run = true; playBtn.textContent = "❚❚ 정지"; redraw(); };
+      const playBtn = S.button("❚❚ 정지", () => { st.run = !st.run; playBtn.textContent = st.run ? "❚❚ 정지" : "▶ 재생"; }, { primary: true });
+      S.button("처음부터", () => { reset(); start(); });
+      redraw();
+    },
+  });
+
+  /* ======================================================================
+     12. Timestral — 인과 패치 정규화와 asinh 압축 (논문 리뷰 p02)
+     ====================================================================== */
+  /** timestral/scaler.py compute_causal_statistics: 관측값만 쓰는 누적 평균·표준편차 (Welford, Bessel 보정, 최소 스케일) */
+  function causalStats(x, obs, minScale = 1e-6) {
+    const n = x.length, mean = new Float64Array(n), sd = new Float64Array(n);
+    let w = 0, m = 0, m2 = 0;
+    for (let t = 0; t < n; t++) {
+      if (obs[t]) { w += 1; const d = x[t] - m; m += d / w; m2 += d * (x[t] - m); }
+      mean[t] = m; sd[t] = Math.max(minScale, Math.sqrt(m2 / Math.max(1, w - 1)));
+    }
+    return { mean, sd };
+  }
+  Lab.register({
+    id: "timestral-scaler", field: "ts", thumb: "wave",
+    title: "인과 패치 정규화와 asinh 압축 (Timestral)",
+    desc: "패치마다 '그 패치 끝까지 관측된 값'만으로 평균·표준편차를 구해 정규화하고 asinh로 큰 값을 눌러, 미래 정보 없이 스파이크와 레벨 이동을 다루는 방식을 봅니다.",
+    tags: ["Timestral", "정규화", "asinh", "결측값", "패칭"],
+    note: "위 그림의 음영 띠는 패치마다 쓰는 기준(평균 ± 표준편차)입니다. 각 패치는 <b>그 패치의 끝까지</b> 관측된 값만으로 통계를 내므로 미래를 보지 않습니다. 아래 그림은 모델에 실제로 들어가는 값 \\(\\operatorname{asinh}((x-\\mu_p)/\\sigma_p)\\)입니다. <b>해볼 것</b> ① 스파이크를 키워 보세요 — asinh가 없으면 입력이 수십까지 튀지만, asinh는 큰 값을 로그처럼 눌러 줍니다. ② <b>전역 정규화와 비교</b>를 켜면 창 전체(미래 포함)의 평균·표준편차를 쓰는 흔한 방식이 겹쳐 보입니다. 레벨 이동 이전 구간까지 이동 이후의 값에 영향을 받습니다. ③ 결측 구간의 값은 통계에서 빠지고 입력은 0이 되며, 결측 여부는 별도 채널(주황 막대)로 함께 임베딩됩니다. 커서를 올리면 그 패치의 기준값이 아래 판독 칸에 나옵니다.",
+    mount(S) {
+      const N = 320;
+      const st = { P: 32, spike: 60, shift: 22, slope: 0.03, asinh: true, gap: true, global: false, hp: null };
+      let x = [], obs = [], loc = [], sc = [], zC = [], zRaw = [], zG = [];
+      function compute() {
+        const r = VZ.rng(17);
+        x = Array.from({ length: N }, (_, t) => 40 + st.slope * t + 6 * Math.sin((TAU * t) / 40) + VZ.randn(r) * 1.2 + (t === 120 ? st.spike : 0) + (t >= 210 ? st.shift : 0));
+        obs = x.map((_, t) => !(st.gap && t >= 150 && t < 172));
+        const cs = causalStats(x, obs), nP = N / st.P;
+        loc = []; sc = [];
+        for (let p = 0; p < nP; p++) { const e = (p + 1) * st.P - 1; loc.push(cs.mean[e]); sc.push(cs.sd[e]); }
+        const ob = x.filter((_, t) => obs[t]), gm = VZ.mean(ob), gs = Math.max(1e-6, VZ.std(ob));
+        zRaw = x.map((v, t) => (obs[t] ? (v - loc[Math.floor(t / st.P)]) / sc[Math.floor(t / st.P)] : 0));
+        zC = zRaw.map((z, t) => (obs[t] && st.asinh ? Math.asinh(z) : z));
+        zG = x.map((v, t) => { const z = obs[t] ? (v - gm) / gs : 0; return st.asinh ? Math.asinh(z) : z; });
+        st.gm = gm; st.gs = gs;
+      }
+      compute();
+      let C1 = null, C2 = null;
+      const cvRaw = S.canvas({ aspect: 0.36, minHeight: 190, maxHeight: 280 }, (ctx) => {
+        const P = VZ.palette(), ob = x.filter((_, t) => obs[t]), lo = Math.min(...ob, ...loc.map((l, p) => l - sc[p])), hi = Math.max(...ob, ...loc.map((l, p) => l + sc[p]));
+        const pad = (hi - lo) * 0.08;
+        C1 = VZ.chart(ctx, null, {
+          x: [0, N], y: [lo - pad, hi + pad], title: `원래 값과 패치별 기준 μ_p ± σ_p (패치 ${st.P}스텝)`,
+          series: [{ data: x.map((v, t) => [t, obs[t] ? v : NaN]), color: P.text, width: 1.3 }],
+          bands: st.gap ? [{ x0: 150, x1: 172, color: VZ.alpha(P.warn, 0.12) }] : [],
+          hlines: st.global ? [{ y: st.gm, color: P.accent2, label: "전역 평균 (미래 포함)" }, { y: st.gm + st.gs, color: VZ.alpha(P.accent2, 0.6) }, { y: st.gm - st.gs, color: VZ.alpha(P.accent2, 0.6) }] : [],
+        });
+        loc.forEach((l, p) => {
+          const x0 = C1.X(p * st.P), x1 = C1.X((p + 1) * st.P);
+          ctx.fillStyle = VZ.alpha(P.accent, p === st.hp ? 0.3 : 0.13); ctx.fillRect(x0, C1.Y(l + sc[p]), x1 - x0, C1.Y(l - sc[p]) - C1.Y(l + sc[p]));
+          ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, C1.Y(l)); ctx.lineTo(x1, C1.Y(l)); ctx.stroke();
+          ctx.strokeStyle = VZ.alpha(P.dim, 0.25); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x1, C1.box.y); ctx.lineTo(x1, C1.box.y + C1.box.h); ctx.stroke();
+        });
+      });
+      const cvIn = S.canvas({ aspect: 0.3, minHeight: 170, maxHeight: 240 }, (ctx) => {
+        const P = VZ.palette();
+        const all = [...zC, ...(st.global ? zG : []), ...(st.asinh ? zRaw : [])].map(Math.abs);
+        const lim = Math.min(80, Math.max(3, ...all)) * 1.08;
+        C2 = VZ.chart(ctx, null, {
+          x: [0, N], y: [-lim, lim], title: "모델 입력 (패치 임베딩에 들어가는 값)", xLabel: "시간",
+          series: [
+            ...(st.asinh ? [{ data: zRaw.map((z, t) => [t, obs[t] ? VZ.clamp(z, -lim, lim) : NaN]), color: VZ.alpha(P.dim, 0.55), width: 1, dash: [3, 3] }] : []),
+            ...(st.global ? [{ data: zG.map((z, t) => [t, obs[t] ? z : NaN]), color: P.accent2, width: 1.3, dash: [5, 3] }] : []),
+            { data: zC.map((z, t) => [t, obs[t] ? z : NaN]), color: P.accent, width: 1.6 },
+          ],
+          hlines: [{ y: 0, color: P.faint, dash: [] }],
+        });
+        if (st.gap) { ctx.fillStyle = VZ.alpha(P.warn, 0.85); for (let t = 150; t < 172; t++) ctx.fillRect(C2.X(t), C2.box.y + C2.box.h - 6, C2.X(t + 1) - C2.X(t) + 0.5, 6); }
+      });
+      S.legend([
+        { label: "인과 정규화", color: (P) => P.accent }, { label: "asinh 적용 전", color: (P) => P.dim, dash: true },
+        { label: "전역 정규화 (미래 포함)", color: (P) => P.accent2, dash: true }, { label: "결측 표시 채널", color: (P) => P.warn },
+      ]);
+      const set = S.stats([{ k: "mx", label: "모델 입력 최대 |값|" }, { k: "mr", label: "asinh 없을 때 최대 |값|" }, { k: "n", label: "패치(토큰) 수" }, { k: "p", label: "가리킨 패치의 μ · σ" }]);
+      function upd() {
+        compute(); cvRaw.redraw(); cvIn.redraw();
+        set("mx", Math.max(...zC.map(Math.abs)).toFixed(2)); set("mr", Math.max(...zRaw.map(Math.abs)).toFixed(1));
+        set("n", N / st.P);
+        const p = st.hp != null ? st.hp : N / st.P - 1;
+        set("p", `<small>#${p + 1}</small> ${loc[p].toFixed(1)} · ${sc[p].toFixed(2)}`);
+      }
+      S.seg({ label: "패치 길이 (Timestral = 32)", options: [["8", "8"], ["16", "16"], ["32", "32"]], value: "32", onChange: (v) => { st.P = Number(v); st.hp = null; upd(); } });
+      S.range({ label: "스파이크 크기 (t = 120)", min: 0, max: 200, step: 5, value: st.spike, onInput: (v) => { st.spike = v; upd(); } });
+      S.range({ label: "레벨 이동 (t ≥ 210)", min: -40, max: 40, step: 1, value: st.shift, onInput: (v) => { st.shift = v; upd(); } });
+      S.range({ label: "추세 기울기", min: -0.15, max: 0.15, step: 0.005, value: st.slope, fmt: (v) => v.toFixed(3), onInput: (v) => { st.slope = v; upd(); } });
+      S.check({ label: "asinh 압축", value: true, onChange: (v) => { st.asinh = v; upd(); } });
+      S.check({ label: "결측 구간 (t = 150–171)", value: true, onChange: (v) => { st.gap = v; upd(); } });
+      S.check({ label: "전역 정규화와 비교", value: false, onChange: (v) => { st.global = v; upd(); } });
+      const probe = (C) => (p) => { if (!C) return; const t = C.iX(p.x); const hp = t >= 0 && t < N ? Math.floor(t / st.P) : null; if (hp !== st.hp) { st.hp = hp; upd(); } };
+      VZ.drag(cvRaw.canvas, { hover: (p) => probe(C1)(p), leave: () => { st.hp = null; upd(); } });
+      VZ.drag(cvIn.canvas, { hover: (p) => probe(C2)(p), leave: () => { st.hp = null; upd(); } });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     13. Timestral — 반전 평균(clampsym)과 비음수 클리핑 (논문 리뷰 p02)
+     forecaster.py의 기본값 symmetric_averaging=True, clip_nonnegative=True
+     ====================================================================== */
+  Lab.register({
+    id: "timestral-symavg", field: "ts", thumb: "windows",
+    title: "반전 평균과 비음수 클리핑 — Timestral의 기본 추론 설정",
+    desc: "입력 x와 −x를 각각 예측한 뒤 두 번째를 뒤집어 평균하는 테스트 시간 증강이, 입력 부호와 무관한 모델 편향을 어떻게 지우는지와 그 비용(순전파 2배)을 봅니다.",
+    tags: ["Timestral", "테스트 시간 증강", "분위수 예측", "WQL", "추론"],
+    note: "장난감 '사전학습 모델'은 계절 나이브 예측에 과거 잔차의 분위수를 붙이고, 일부러 <b>입력과 무관하게 위로 치우친 편향 β</b>와 <b>오른쪽 꼬리를 늘리는 습관 γ</b>를 넣었습니다. 반전 패스는 \\(-x\\)를 예측한 뒤 \\(-q_{1-\\tau}(-x)\\)로 되돌린 것이고, 최종 출력은 두 패스의 평균입니다. <b>해볼 것</b> ① β·γ를 키우면 단일 패스의 WQL은 나빠지지만 반전 평균은 거의 그대로입니다 — 부호를 뒤집어도 바뀌지 않는 오차 성분은 평균에서 상쇄됩니다. ② β = γ = 0이면 장난감 모델이 이미 부호에 대칭이라 평균이 아무것도 바꾸지 않습니다. ③ 간헐 수요에서는 비음수 클리핑이 0 아래로 내려간 분위수를 잘라 줍니다. 공개 코드는 이 두 설정이 <b>기본으로 켜져</b> 있고, 세 벤치마크 제출도 이 기본값으로 계산되었습니다.",
+    mount(S) {
+      const per = 24, Lc = 168, H = 48, SHOW = 72;
+      const st = { series: "season", beta: 0.5, gamma: 0.5, sym: true, clip: true, show: "all", seed: 4 };
+      let y = [], fut = [], F1 = [], F2 = [], FA = [], FF = [];
+      function gen() {
+        const r = VZ.rng(st.seed * 31 + 7), n = Lc + H;
+        if (st.series === "season") y = Array.from({ length: n }, (_, t) => 20 + 0.03 * t + 4 * Math.sin((TAU * t) / per) + 1.5 * Math.sin((2 * TAU * t) / per + 1) + VZ.randn(r) * 0.9);
+        else if (st.series === "inter") y = Array.from({ length: n }, (_, t) => { const p = 0.28 + 0.22 * Math.sin((TAU * t) / per); return r() < p ? Math.round(-Math.log(1 - r()) * 3 + 1) : 0; });
+        else y = Array.from({ length: n }, (_, t) => 12 + (t > 130 ? -5 : 0) + 3 * Math.sin((TAU * t) / per) + VZ.randn(r));
+        fut = y.slice(Lc); y = y.slice(0, Lc);
+      }
+      /** 장난감 사전학습 모델: 계절 나이브 + 계절 차분 잔차의 분위수 + (입력 부호와 무관한) β·스케일 편향과 γ 꼬리 습관 */
+      function toyForecast(x) {
+        const n = x.length, res = [];
+        for (let t = per; t < n; t++) res.push(x[t] - x[t - per]);
+        res.sort((a, b) => a - b);
+        const qr = (tau) => { const v = tau * (res.length - 1), i = Math.floor(v); return res[i] + (res[Math.min(res.length - 1, i + 1)] - res[i]) * (v - i); };
+        const scale = Math.max(1e-6, VZ.std(res)), med = qr(0.5);
+        return Array.from({ length: H }, (_, h) => {
+          const base = x[n - per + (h % per)], grow = Math.sqrt(1 + Math.floor(h / per));
+          return LV9.map((tau) => { let off = (qr(tau) - med) * grow; off *= off > 0 ? 1 + st.gamma : 1 - st.gamma; return base + med + st.beta * scale + off; });
+        });
+      }
+      const nonneg = () => y.every((v) => v >= 0);
+      const clip = (F) => (st.clip && nonneg() ? F.map((row) => row.map((v) => Math.max(0, v))) : F);
+      const wql = (F) => { let s = 0; F.forEach((row, h) => row.forEach((q, k) => (s += pinball(fut[h], q, LV9[k])))); const d = fut.reduce((a, v) => a + Math.abs(v), 0) || 1; return (2 * s) / (LV9.length * d); };
+      function compute() {
+        F1 = toyForecast(y);
+        const m = toyForecast(y.map((v) => -v));
+        F2 = m.map((row) => row.map((_, k) => -row[LV9.length - 1 - k]));
+        FA = F1.map((row, h) => row.map((v, k) => 0.5 * (v + F2[h][k])));
+        F1 = clip(F1); F2 = clip(F2); FA = clip(FA);
+        FF = st.sym ? FA : F1;
+      }
+      gen(); compute();
+      const cv = S.canvas({ aspect: 0.5, minHeight: 240, maxHeight: 380 }, (ctx) => {
+        const P = VZ.palette(), ctxPart = y.slice(Lc - SHOW);
+        const all = [...ctxPart, ...fut, ...F1.flat(), ...F2.flat(), ...FA.flat()], lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.06;
+        const C = VZ.chart(ctx, null, {
+          x: [Lc - SHOW, Lc + H], y: [lo - pad, hi + pad], xLabel: "시간", title: "맥락 · 실제 미래 · 예측 분위수 (10~90% 띠와 중앙값)",
+          series: [{ data: ctxPart.map((v, i) => [Lc - SHOW + i, v]), color: P.dim, width: 1.4 }, { data: fut.map((v, h) => [Lc + h, v]), color: P.text, width: 1.6, dash: [4, 3] }],
+          vlines: [{ x: Lc, color: P.faint, label: "예측 시작" }],
+        });
+        const band = (F, col, a) => {
+          ctx.fillStyle = VZ.alpha(col, a); ctx.beginPath();
+          F.forEach((row, h) => (h ? ctx.lineTo : ctx.moveTo).call(ctx, C.X(Lc + h), C.Y(row[0])));
+          for (let h = F.length - 1; h >= 0; h--) ctx.lineTo(C.X(Lc + h), C.Y(F[h][LV9.length - 1]));
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+          F.forEach((row, h) => (h ? ctx.lineTo : ctx.moveTo).call(ctx, C.X(Lc + h), C.Y(row[4])));
+          ctx.stroke();
+        };
+        if (st.show === "all") { band(F1, P.accent2, 0.12); band(F2, P.warn, 0.12); band(FA, P.accent, 0.22); }
+        else band(FF, P.accent, 0.22);
+      });
+      S.legend([
+        { label: "단일 패스 f(x)", color: (P) => P.accent2 }, { label: "반전 패스 −f(−x)", color: (P) => P.warn },
+        { label: "평균 (기본 출력)", color: (P) => P.accent }, { label: "실제 미래", color: (P) => P.text, dash: true },
+      ]);
+      const set = S.stats([{ k: "w1", label: "단일 패스 WQL" }, { k: "w2", label: "반전 패스 WQL" }, { k: "wa", label: "반전 평균 WQL" }, { k: "c", label: "최종 출력 · 순전파 횟수" }]);
+      function upd() {
+        compute(); cv.redraw();
+        const a = wql(F1), b = wql(F2), c = wql(FA);
+        set("w1", a.toFixed(3)); set("w2", b.toFixed(3));
+        set("wa", c.toFixed(3) + `<small> (${c <= a ? "−" : "+"}${Math.abs(((c - a) / a) * 100).toFixed(0)}%)</small>`);
+        set("c", st.sym ? "평균 · 2×" : "단일 · 1×");
+      }
+      S.select({ label: "시계열", options: [["season", "계절 + 추세"], ["inter", "간헐 수요 (음수 없음)"], ["shift", "레벨 하락 이후"]], value: st.series, onChange: (v) => { st.series = v; gen(); upd(); } });
+      S.range({ label: "모델 편향 β (× 스케일)", min: -1, max: 1, step: 0.05, value: st.beta, fmt: (v) => v.toFixed(2), onInput: (v) => { st.beta = v; upd(); } });
+      S.range({ label: "꼬리 습관 γ", min: -0.8, max: 0.8, step: 0.05, value: st.gamma, fmt: (v) => v.toFixed(2), onInput: (v) => { st.gamma = v; upd(); } });
+      S.check({ label: "반전 평균 (symmetric_averaging)", value: true, onChange: (v) => { st.sym = v; upd(); } });
+      S.check({ label: "비음수 클리핑 (clip_nonnegative)", value: true, onChange: (v) => { st.clip = v; upd(); } });
+      S.seg({ label: "보기", options: [["all", "세 가지 모두"], ["final", "최종 출력만"]], value: st.show, onChange: (v) => { st.show = v; upd(); } });
       S.button("새 데이터", () => { st.seed++; gen(); upd(); }, { primary: true });
       upd();
     },
