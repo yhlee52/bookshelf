@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>03 무한 차원으로 · QuantumBook</title>
-<meta name="description" content="함수를 벡터로 · 디랙 델타 · 위치와 운동량 연산자 · 푸리에 변환 · 연속 고유값의 정규화">
+<meta name="description" content="함수를 성분이 연속적으로 많은 벡터로 보고 내적과 위치 기저를 세운 뒤, 디랙 델타, 위치·운동량 연산자와 정준 교환 관계, 기저 바꾸기로서의 푸리에 변환, 연속 고유값의 델타 정규화와 상자 정규화를 익힌다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,61 +24,541 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch03">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">03</span></div>
     <h1 data-fill="chapter-title">무한 차원으로</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">1·2장의 벡터는 성분이 \(n\)개인 열이었다. 그런데 양자역학에서 입자의 상태는 대개 파동함수 \(\psi(x)\), 곧 모든 위치 \(x\)에서 값을 가지는 함수로 주어진다. 이 장에서는 함수를 '성분이 연속적으로 무한히 많은 벡터'로 보고, 1·2장의 도구를 무한 차원으로 넓힌다. 합은 적분이 되고 크로네커 델타는 디랙 델타가 된다. 그 과정에서 위치 연산자와 운동량 연산자, 그리고 둘을 잇는 푸리에 변환이 자연스럽게 나온다. 이 장으로 1부의 수학적 준비가 끝난다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>함수를 연속 성분을 가진 벡터로 보고, 함수의 내적과 위치 기저의 완비성 관계 \(\int |x\rangle\langle x|\,dx = \hat I\)를 쓸 수 있다.</li>
+      <li>디랙 델타의 정의와 성질(척도 변환, 도함수, 푸리에 표현)을 써서 델타가 들어간 적분을 계산할 수 있다.</li>
+      <li>위치 연산자와 운동량 연산자의 작용을 쓰고, 운동량 연산자가 에르미트가 되는 경계 조건을 따지며, \([\hat x, \hat p] = i\hbar\)를 유도할 수 있다.</li>
+      <li>푸리에 변환을 위치 기저에서 운동량 기저로 기저를 바꾸는 일로 이해하고, 가우스 파속의 변환을 계산할 수 있다.</li>
+      <li>연속 고유값의 고유벡터를 델타 함수로 정규화하고, 상자 정규화로 이산 스펙트럼과 연결할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>1장(내적, 정규직교 기저, 브라·켓), 2장(완비성 관계, 에르미트 연산자, 스펙트럼 정리, 연산자의 함수), 미적분(부분 적분, 치환 적분, 테일러 급수), 오일러 공식 \(e^{i\theta} = \cos\theta + i\sin\theta\)</p>
   </header>
 
+  <!-- ============================================================ 3.1 -->
   <section id="s1">
     <h2>함수를 벡터로</h2>
-    <p class="slot" data-slot="3.1절">아직 쓰지 않은 절입니다.</p>
+    <p><a href="ch01.html#ex-spaces">1장 예제 1.1</a> (다)에서 양 끝이 0인 함수들이 벡터 공간을 이룬다는 것을 보았고, <a href="ch01.html#prob-legendre">1장 문제 1.12</a>에서는 적분으로 정의한 내적으로 함수에 그람-슈미트 과정을 적용했다. 함수가 벡터라면 그 성분은 무엇이고, 차원은 얼마일까? 이 절에서는 함수를 촘촘하게 찍은 숫자의 열로 보아 답을 찾는다.</p>
+
+    <h3 id="s1-grid">함숫값이 성분이다</h3>
+    <p>구간 \(0 \le x \le L\)에서 정의된 함수 \(f(x)\)를 생각하자. 구간을 폭 \(\Delta = L/N\)인 \(N\)개의 칸으로 나누고, 각 칸의 가운데 \(x_i = (i - \tfrac12)\Delta\)에서 함숫값을 읽는다. 그러면 함수 하나가 숫자 \(N\)개의 열이 된다.</p>
+    <div class="formula">\[ f \;\longrightarrow\; \begin{pmatrix} f(x_1) \\ f(x_2) \\ \vdots \\ f(x_N) \end{pmatrix} \]</div>
+    <p>두 함수의 합 \((f + g)(x) = f(x) + g(x)\)와 상수배 \((cf)(x) = c\,f(x)\)는 칸마다 따로 계산되므로, 이 열의 합과 상수배와 정확히 같다. 곧 함수를 \(\mathbb{C}^N\)의 벡터처럼 다룰 수 있다. \(N\)을 늘릴수록 열은 함수를 더 충실하게 담고(그림 3-1), \(N \to \infty\)의 극한에서는 점 \(x\)마다 성분이 하나씩 있다. <b>함수는 성분의 번호가 연속 변수 \(x\)이고, \(x\)번째 성분이 \(f(x)\)인 벡터다.</b></p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:3-1a--><svg viewBox="0 0 280 214" role="img" aria-label="구간을 8칸으로 나누어 칸 가운데의 함숫값을 막대로 나타낸 그림"><defs><marker id="f318-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="18" y1="134.9" x2="264" y2="134.9" class="s-line" stroke-width="1.2" marker-end="url(#f318-dim)"/><line x1="18" y1="134.9" x2="18" y2="138.9" class="s-line" stroke-width="1.2"/><text x="18" y="151.9" class="t-dim" text-anchor="middle">0</text><line x1="254" y1="134.9" x2="254" y2="138.9" class="s-line" stroke-width="1.2"/><text font-size="14" x="254" y="152.9" class="t-math dim" text-anchor="middle"><tspan font-style="italic">L</tspan></text><text x="266" y="127.9" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><line x1="32.8" y1="134.9" x2="32.8" y2="103.5" class="s-acc" stroke-width="2.4"/><circle cx="32.8" cy="103.5" r="3.2" class="f-acc"/><line x1="62.3" y1="134.9" x2="62.3" y2="56.3" class="s-acc" stroke-width="2.4"/><circle cx="62.3" cy="56.3" r="3.2" class="f-acc"/><line x1="91.8" y1="134.9" x2="91.8" y2="47.2" class="s-acc" stroke-width="2.4"/><circle cx="91.8" cy="47.2" r="3.2" class="f-acc"/><line x1="121.3" y1="134.9" x2="121.3" y2="77.8" class="s-acc" stroke-width="2.4"/><circle cx="121.3" cy="77.8" r="3.2" class="f-acc"/><line x1="150.8" y1="134.9" x2="150.8" y2="127.9" class="s-acc" stroke-width="2.4"/><circle cx="150.8" cy="127.9" r="3.2" class="f-acc"/><line x1="180.3" y1="134.9" x2="180.3" y2="168.2" class="s-acc" stroke-width="2.4"/><circle cx="180.3" cy="168.2" r="3.2" class="f-acc"/><line x1="209.8" y1="134.9" x2="209.8" y2="177.2" class="s-acc" stroke-width="2.4"/><circle cx="209.8" cy="177.2" r="3.2" class="f-acc"/><line x1="239.3" y1="134.9" x2="239.3" y2="153.6" class="s-acc" stroke-width="2.4"/><circle cx="239.3" cy="153.6" r="3.2" class="f-acc"/><path d="M18 134.9 L29.8 109.6 L38.7 91.8 L47.5 76.1 L54.9 65.1 L62.3 56.3 L69.6 50 L77 46.3 L82.9 45.4 L88.8 46.2 L96.2 49.6 L103.6 55.4 L110.9 63.5 L116.8 71.3 L124.2 82.4 L153.7 132.8 L165.5 151 L172.9 160.5 L178.8 166.8 L184.7 171.8 L190.6 175.4 L196.5 177.6 L203.9 178.3 L211.2 176.7 L218.6 173 L226 167.4 L233.4 160.2 L242.2 150 L254 134.9" class="s-line" stroke-width="1.5"/><text x="99.9" y="43.9" class="t-math dim" text-anchor="start"><tspan font-style="italic">f</tspan>(<tspan font-style="italic">x</tspan>)</text><text x="12" y="22" class="t-b" text-anchor="start">(가) <tspan font-style="italic">N</tspan> = 8</text></svg><!--/fig:3-1a--><!--fig:3-1b--><svg viewBox="0 0 280 214" role="img" aria-label="구간을 32칸으로 나누어 칸 가운데의 함숫값을 막대로 나타낸 그림"><defs><marker id="f3132-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="18" y1="134.9" x2="264" y2="134.9" class="s-line" stroke-width="1.2" marker-end="url(#f3132-dim)"/><line x1="18" y1="134.9" x2="18" y2="138.9" class="s-line" stroke-width="1.2"/><text x="18" y="151.9" class="t-dim" text-anchor="middle">0</text><line x1="254" y1="134.9" x2="254" y2="138.9" class="s-line" stroke-width="1.2"/><text font-size="14" x="254" y="152.9" class="t-math dim" text-anchor="middle"><tspan font-style="italic">L</tspan></text><text x="266" y="127.9" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><line x1="21.7" y1="134.9" x2="21.7" y2="126.9" class="s-acc" stroke-width="1.5"/><circle cx="21.7" cy="126.9" r="2.1" class="f-acc"/><line x1="29.1" y1="134.9" x2="29.1" y2="111.1" class="s-acc" stroke-width="1.5"/><circle cx="29.1" cy="111.1" r="2.1" class="f-acc"/><line x1="36.4" y1="134.9" x2="36.4" y2="96.1" class="s-acc" stroke-width="1.5"/><circle cx="36.4" cy="96.1" r="2.1" class="f-acc"/><line x1="43.8" y1="134.9" x2="43.8" y2="82.4" class="s-acc" stroke-width="1.5"/><circle cx="43.8" cy="82.4" r="2.1" class="f-acc"/><line x1="51.2" y1="134.9" x2="51.2" y2="70.3" class="s-acc" stroke-width="1.5"/><circle cx="51.2" cy="70.3" r="2.1" class="f-acc"/><line x1="58.6" y1="134.9" x2="58.6" y2="60.4" class="s-acc" stroke-width="1.5"/><circle cx="58.6" cy="60.4" r="2.1" class="f-acc"/><line x1="65.9" y1="134.9" x2="65.9" y2="52.8" class="s-acc" stroke-width="1.5"/><circle cx="65.9" cy="52.8" r="2.1" class="f-acc"/><line x1="73.3" y1="134.9" x2="73.3" y2="47.8" class="s-acc" stroke-width="1.5"/><circle cx="73.3" cy="47.8" r="2.1" class="f-acc"/><line x1="80.7" y1="134.9" x2="80.7" y2="45.5" class="s-acc" stroke-width="1.5"/><circle cx="80.7" cy="45.5" r="2.1" class="f-acc"/><line x1="88.1" y1="134.9" x2="88.1" y2="46" class="s-acc" stroke-width="1.5"/><circle cx="88.1" cy="46" r="2.1" class="f-acc"/><line x1="95.4" y1="134.9" x2="95.4" y2="49.1" class="s-acc" stroke-width="1.5"/><circle cx="95.4" cy="49.1" r="2.1" class="f-acc"/><line x1="102.8" y1="134.9" x2="102.8" y2="54.7" class="s-acc" stroke-width="1.5"/><circle cx="102.8" cy="54.7" r="2.1" class="f-acc"/><line x1="110.2" y1="134.9" x2="110.2" y2="62.6" class="s-acc" stroke-width="1.5"/><circle cx="110.2" cy="62.6" r="2.1" class="f-acc"/><line x1="117.6" y1="134.9" x2="117.6" y2="72.3" class="s-acc" stroke-width="1.5"/><circle cx="117.6" cy="72.3" r="2.1" class="f-acc"/><line x1="124.9" y1="134.9" x2="124.9" y2="83.5" class="s-acc" stroke-width="1.5"/><circle cx="124.9" cy="83.5" r="2.1" class="f-acc"/><line x1="132.3" y1="134.9" x2="132.3" y2="95.8" class="s-acc" stroke-width="1.5"/><circle cx="132.3" cy="95.8" r="2.1" class="f-acc"/><line x1="139.7" y1="134.9" x2="139.7" y2="108.6" class="s-acc" stroke-width="1.5"/><circle cx="139.7" cy="108.6" r="2.1" class="f-acc"/><line x1="147.1" y1="134.9" x2="147.1" y2="121.5" class="s-acc" stroke-width="1.5"/><circle cx="147.1" cy="121.5" r="2.1" class="f-acc"/><line x1="154.4" y1="134.9" x2="154.4" y2="134" class="s-acc" stroke-width="1.5"/><circle cx="154.4" cy="134" r="2.1" class="f-acc"/><line x1="161.8" y1="134.9" x2="161.8" y2="145.6" class="s-acc" stroke-width="1.5"/><circle cx="161.8" cy="145.6" r="2.1" class="f-acc"/><line x1="169.2" y1="134.9" x2="169.2" y2="155.9" class="s-acc" stroke-width="1.5"/><circle cx="169.2" cy="155.9" r="2.1" class="f-acc"/><line x1="176.6" y1="134.9" x2="176.6" y2="164.6" class="s-acc" stroke-width="1.5"/><circle cx="176.6" cy="164.6" r="2.1" class="f-acc"/><line x1="183.9" y1="134.9" x2="183.9" y2="171.3" class="s-acc" stroke-width="1.5"/><circle cx="183.9" cy="171.3" r="2.1" class="f-acc"/><line x1="191.3" y1="134.9" x2="191.3" y2="175.8" class="s-acc" stroke-width="1.5"/><circle cx="191.3" cy="175.8" r="2.1" class="f-acc"/><line x1="198.7" y1="134.9" x2="198.7" y2="178.1" class="s-acc" stroke-width="1.5"/><circle cx="198.7" cy="178.1" r="2.1" class="f-acc"/><line x1="206.1" y1="134.9" x2="206.1" y2="178" class="s-acc" stroke-width="1.5"/><circle cx="206.1" cy="178" r="2.1" class="f-acc"/><line x1="213.4" y1="134.9" x2="213.4" y2="175.8" class="s-acc" stroke-width="1.5"/><circle cx="213.4" cy="175.8" r="2.1" class="f-acc"/><line x1="220.8" y1="134.9" x2="220.8" y2="171.5" class="s-acc" stroke-width="1.5"/><circle cx="220.8" cy="171.5" r="2.1" class="f-acc"/><line x1="228.2" y1="134.9" x2="228.2" y2="165.4" class="s-acc" stroke-width="1.5"/><circle cx="228.2" cy="165.4" r="2.1" class="f-acc"/><line x1="235.6" y1="134.9" x2="235.6" y2="157.8" class="s-acc" stroke-width="1.5"/><circle cx="235.6" cy="157.8" r="2.1" class="f-acc"/><line x1="242.9" y1="134.9" x2="242.9" y2="149.1" class="s-acc" stroke-width="1.5"/><circle cx="242.9" cy="149.1" r="2.1" class="f-acc"/><line x1="250.3" y1="134.9" x2="250.3" y2="139.7" class="s-acc" stroke-width="1.5"/><circle cx="250.3" cy="139.7" r="2.1" class="f-acc"/><path d="M18 134.9 L29.8 109.6 L38.7 91.8 L47.5 76.1 L54.9 65.1 L62.3 56.3 L69.6 50 L77 46.3 L82.9 45.4 L88.8 46.2 L96.2 49.6 L103.6 55.4 L110.9 63.5 L116.8 71.3 L124.2 82.4 L153.7 132.8 L165.5 151 L172.9 160.5 L178.8 166.8 L184.7 171.8 L190.6 175.4 L196.5 177.6 L203.9 178.3 L211.2 176.7 L218.6 173 L226 167.4 L233.4 160.2 L242.2 150 L254 134.9" class="s-line" stroke-width="1.5"/><text x="99.9" y="43.9" class="t-math dim" text-anchor="start"><tspan font-style="italic">f</tspan>(<tspan font-style="italic">x</tspan>)</text><text x="12" y="22" class="t-b" text-anchor="start">(나) <tspan font-style="italic">N</tspan> = 32</text></svg><!--/fig:3-1b--></div>
+      <figcaption><b>그림 3-1.</b> 함수를 성분의 열로 보기. 곡선 \(f(x)\)를 \(N\)개 칸의 가운데에서 읽은 값(막대)이 벡터의 성분이다. (가) \(N = 8\), (나) \(N = 32\). 칸이 촘촘해질수록 성분의 열이 곡선 자체에 가까워진다.</figcaption>
+    </figure>
+    <p>내적은 어떻게 될까? <a href="ch01.html#eq-inner-components">1장 식 (1.4)</a>를 그대로 쓰면 \(\sum_i f(x_i)^*\,g(x_i)\)이다. 그런데 이 합은 \(N\)을 늘리면 대개 커지기만 한다. 칸이 두 배가 되면 더하는 항도 두 배가 되기 때문이다. 예를 들어 \(f = g = 1\)이면 합은 그냥 \(N\)이다. 각 항에 칸의 폭 \(\Delta\)를 곱하면 이 문제가 사라진다. \(\sum_i f(x_i)^*\,g(x_i)\,\Delta\)는 적분을 정의할 때 쓰는 리만 합이므로, \(N \to \infty\)에서 적분으로 수렴한다.</p>
+    <div class="box ex" id="ex-grid-ip"><div class="box-h">칸의 폭을 곱해야 하는 이유</div>
+      <p>구간 \([0, 1]\)에서 \(f(x) = x\), \(g(x) = x^2\)이라 하자. \(N = 4\)이면 칸의 가운데는 \(\tfrac18, \tfrac38, \tfrac58, \tfrac78\)이고</p>
+      <div class="formula">\[ \begin{aligned} \sum_i f(x_i)\,g(x_i) &= \sum_i x_i^3 \\ &= \frac{1 + 27 + 125 + 343}{512} = 0.969 \end{aligned} \]</div>
+      <p>이다. 여기에 \(\Delta = \tfrac14\)을 곱하면 0.242이다. \(N\)을 늘려 가며 같은 계산을 하면 다음과 같다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>\(N\)</th><th>\(\sum_i f_i\, g_i\)</th><th>\(\sum_i f_i\, g_i\,\Delta\)</th></tr></thead>
+        <tbody>
+          <tr><td class="num">4</td><td class="num">0.969</td><td class="num">0.2422</td></tr>
+          <tr><td class="num">16</td><td class="num">3.992</td><td class="num">0.2495</td></tr>
+          <tr><td class="num">64</td><td class="num">15.998</td><td class="num">0.2500</td></tr>
+        </tbody>
+      </table></div>
+      <p>\(\Delta\)를 곱하지 않은 합은 \(N\)에 비례해 커지지만, \(\Delta\)를 곱한 합은 \(\int_0^1 x \cdot x^2\,dx = \tfrac14\)로 다가간다.</p>
+    </div>
+    <div class="box def" id="def-func-ip"><div class="box-h">함수의 내적</div>
+      <p>구간 \(a \le x \le b\)의 함수들에 대해</p>
+      <div class="formula" id="eq-func-ip">\[ \langle f|g\rangle = \int_a^b f^*(x)\,g(x)\,dx \]</div>
+      <p>를 함수의 내적이라 한다. 노름은 \(\lVert f\rVert^2 = \int_a^b |f(x)|^2\,dx\)이다.</p>
+    </div>
+    <p>이것이 <a href="ch01.html#def-inner-product">1장 정의 1.5</a>의 세 공리를 만족하는지 확인하자. 켤레 대칭은 \(\langle g|f\rangle = \int g^* f\,dx = \big(\int f^* g\,dx\big)^* = \langle f|g\rangle^*\)이다. 오른쪽 자리에 대한 선형성은 적분의 선형성이다. 양의 정부호는 \(\langle f|f\rangle = \int |f|^2\,dx \ge 0\)이고, 연속 함수라면 이 값이 0인 것은 \(f\)가 어디서나 0일 때뿐이다.</p>
+    <p>이 내적이 뜻을 가지려면 노름이 유한해야 한다. 그래서 상태를 나타내는 함수에는 다음 조건을 둔다.</p>
+    <div class="box def" id="def-hilbert"><div class="box-h">제곱 적분 가능 함수와 힐베르트 공간</div>
+      <p>\(\int |f(x)|^2\,dx &lt; \infty\)인 함수를 <span class="term">제곱 적분 가능</span> <span class="en">(square-integrable)</span>한 함수라 한다. 제곱 적분 가능한 함수 전체는 식 <a class="ref" href="#eq-func-ip"></a>의 내적과 함께 벡터 공간을 이루며, 이것을 \(L^2\) 공간이라 한다. \(L^2\)처럼 내적이 있는 무한 차원 벡터 공간을 <span class="term">힐베르트 공간</span> <span class="en">(Hilbert space)</span>이라 한다.</p>
+    </div>
+    <p>두 함수의 합도 제곱 적분 가능하다. \(|f + g|^2 \le (|f| + |g|)^2 \le 2|f|^2 + 2|g|^2\)이기 때문이다. 수학에서는 힐베르트 공간에 '수렴하는 수열의 극한이 공간 밖으로 나가지 않는다'는 조건이 하나 더 붙고, \(L^2\)는 이 조건도 만족한다. 이 책에서는 이 조건을 따로 쓰지 않는다. 6장에서 보겠지만 \(|\psi(x)|^2\)은 입자를 \(x\) 근처에서 발견할 확률 밀도이고, 전체 확률이 1이 되려면 \(\int |\psi|^2\,dx = 1\)이어야 한다. 물리적인 파동함수가 힐베르트 공간에 살아야 하는 이유다.</p>
+
+    <h3 id="s1-basis">무한 차원의 정규직교 기저</h3>
+    <p>함수 공간의 차원은 얼마일까? 1장 예제 1.1 (다)의 공간, 곧 \(0 \le x \le L\)에서 정의되고 양 끝에서 0인 함수들을 보자. 다음 함수들은 모두 이 공간에 있다(그림 3-2).</p>
+    <div class="formula" id="eq-sine-basis">\[ e_n(x) = \sqrt{\frac{2}{L}}\,\sin\frac{n\pi x}{L}, \qquad n = 1, 2, 3, \ldots \]</div>
+    <p>이들이 정규직교임을 확인하자. 곱을 합으로 바꾸는 공식 \(\sin A\sin B = \tfrac12[\cos(A - B) - \cos(A + B)]\)를 쓰면</p>
+    <div class="formula">\[ \begin{aligned} \langle e_m|e_n\rangle &= \frac{2}{L}\int_0^L \sin\frac{m\pi x}{L}\,\sin\frac{n\pi x}{L}\,dx \\ &= \frac{1}{L}\int_0^L \Big[\cos\frac{(m - n)\pi x}{L} - \cos\frac{(m + n)\pi x}{L}\Big]dx \end{aligned} \]</div>
+    <p>이다. 0이 아닌 정수 \(k\)에 대해 \(\int_0^L \cos(k\pi x/L)\,dx = \frac{L}{k\pi}\sin k\pi = 0\)이다. 둘째 항은 \(m + n \ge 2\)이므로 언제나 0이고, 첫째 항은 \(m \neq n\)이면 0, \(m = n\)이면 \(\frac1L \cdot L = 1\)이다. 따라서 \(\langle e_m|e_n\rangle = \delta_{mn}\)이다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:3-2--><svg viewBox="0 0 360 226" role="img" aria-label="사인 기저 함수 e1, e2, e3의 그래프"><defs><marker id="f32-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="18" y1="40.6" x2="332" y2="40.6" class="s-grid" stroke-dasharray="3 4"/><line x1="18" y1="185.5" x2="332" y2="185.5" class="s-grid" stroke-dasharray="3 4"/><line x1="18" y1="113" x2="342" y2="113" class="s-line" stroke-width="1.2" marker-end="url(#f32-dim)"/><line x1="18" y1="113" x2="18" y2="117" class="s-line" stroke-width="1.2"/><text x="18" y="130" class="t-dim" text-anchor="middle">0</text><line x1="175" y1="113" x2="175" y2="117" class="s-line" stroke-width="1.2"/><text font-size="14" x="172" y="131" class="t-math dim" text-anchor="end"><tspan font-style="italic">L</tspan>/2</text><line x1="332" y1="113" x2="332" y2="117" class="s-line" stroke-width="1.2"/><text font-size="14" x="332" y="131" class="t-math dim" text-anchor="middle"><tspan font-style="italic">L</tspan></text><text x="344" y="106" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M18 113 L28.5 90.7 L37.2 73.6 L44.2 61.8 L51.1 52.3 L58.1 45.4 L61.6 43.1 L65.1 41.5 L70.3 40.6 L73.8 41 L77.3 42.2 L82.5 45.4 L87.8 50.3 L93 56.8 L100 67.5 L110.5 87.1 L136.6 142.5 L143.6 155.6 L150.6 166.9 L157.6 175.8 L162.8 180.7 L166.3 183 L169.8 184.6 L175 185.5 L180.2 184.6 L183.7 183 L187.2 180.7 L192.4 175.8 L199.4 166.9 L206.4 155.6 L213.4 142.5 L239.5 87.1 L250 67.5 L257 56.8 L262.2 50.3 L267.5 45.4 L272.7 42.2 L276.2 41 L279.7 40.6 L284.9 41.5 L288.4 43.1 L291.9 45.4 L298.9 52.3 L305.8 61.8 L312.8 73.6 L321.5 90.7 L332 113" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M18 113 L32 93.1 L42.4 79.1 L52.9 66.5 L61.6 57.6 L70.3 50.3 L79.1 45 L87.8 41.7 L96.5 40.6 L105.2 41.7 L113.9 45 L122.7 50.3 L133.1 59.2 L141.9 68.5 L152.3 81.3 L192.4 137.8 L208.1 157.6 L216.9 166.9 L225.6 174.5 L234.3 180.2 L243 183.9 L248.3 185.1 L253.5 185.5 L262.2 184.4 L267.5 182.7 L272.7 180.2 L283.2 173.1 L293.6 163.4 L304.1 151.4 L316.3 135.4 L332 113" class="s-acc2" stroke-width="2.2"/><path d="M18 113 L47.7 91.9 L68.6 77.9 L87.8 66.5 L105.2 57.6 L122.7 50.3 L140.1 45 L157.6 41.7 L175 40.6 L192.4 41.7 L209.9 45 L227.3 50.3 L244.8 57.6 L262.2 66.5 L281.4 77.9 L302.3 91.9 L332 113" class="s-acc" stroke-width="2.4"/><text x="175" y="32.6" class="t-math acc" text-anchor="middle"><tspan font-style="italic">e</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="253.5" y="205.5" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">e</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text x="279.7" y="32.6" class="t-math dim" text-anchor="middle"><tspan font-style="italic">e</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan></text><text x="20" y="34.6" class="t-dim" text-anchor="start">√(2/<tspan font-style="italic">L</tspan>)</text></svg><!--/fig:3-2--></div>
+      <figcaption><b>그림 3-2.</b> 양 끝이 0인 함수 공간의 정규직교 기저 \(e_n(x) = \sqrt{2/L}\,\sin(n\pi x/L)\) 가운데 처음 셋. 7장에서 이 함수들은 상자에 갇힌 입자의 에너지 고유 상태로 다시 나온다.</figcaption>
+    </figure>
+    <p>서로 직교하는 영 아닌 벡터들은 선형 독립이다. 이들의 일차 결합이 0이라고 놓고 각 벡터와 내적하면 계수가 하나씩 0으로 나오기 때문이다. 이 공간에는 선형 독립인 벡터가 무한히 많으므로 유한한 기저가 있을 수 없다. <b>함수 공간은 무한 차원이다.</b></p>
+    <p>1장에서처럼 함수를 이 기저로 전개할 수 있다. 계수는 <a href="ch01.html#eq-component">1장 식 (1.8)</a>대로 기저 벡터와의 내적이다.</p>
+    <div class="formula" id="eq-sine-series">\[ f(x) = \sum_{n=1}^{\infty} c_n\,e_n(x), \qquad c_n = \langle e_n|f\rangle = \int_0^L e_n(x)\,f(x)\,dx \]</div>
+    <p>이것이 <span class="term">푸리에 사인 급수</span> <span class="en">(Fourier sine series)</span>다. 이 공간의 함수는 모두 이렇게 전개된다는 것이 알려져 있다. 정확히 말하면, 앞의 \(N\)항까지 더한 합과 \(f\)의 차이의 노름이 \(N \to \infty\)에서 0으로 간다. 증명은 이 책의 범위를 넘으므로 받아들이고 쓴다(보아스 7장).</p>
+    <div class="callout warn"><strong>무한히 많다고 기저인 것은 아니다</strong><p>유한 차원에서는 정규직교 벡터를 차원 수만큼 모으면 반드시 기저가 되었다. 무한 차원에서는 개수로 이를 판단할 수 없다. 위의 \(e_n\)에서 \(e_1\) 하나를 빼도 정규직교 벡터는 여전히 무한히 많지만, \(e_1\)은 나머지 모두와 직교하므로 나머지로 전개할 수 없다. 무한 차원에서는 정규직교 집합으로 모든 벡터를 전개할 수 있는지, 곧 그 집합이 <span class="term">완비</span> <span class="en">(complete)</span>한지를 따로 확인해야 한다.</p></div>
+    <div class="box ex" id="ex-sine-series"><div class="box-h">포물선을 사인으로 전개하기</div>
+      <p>\(f(x) = x(L - x)\)를 사인 기저로 전개하자. \(k = n\pi/L\)로 두고 \(J = \int_0^L x(L - x)\sin kx\,dx\)를 부분 적분을 두 번 해서 구하면</p>
+      <div class="formula">\[ \begin{aligned} J &= \frac{1}{k}\int_0^L (L - 2x)\cos kx\,dx \\ &= \frac{2}{k^2}\int_0^L \sin kx\,dx \\ &= \frac{2}{k^3}\,(1 - \cos kL) \end{aligned} \]</div>
+      <p>이다. 첫 부분 적분의 경계 항은 \(x(L - x)\)가 양 끝에서 0이어서, 둘째 부분 적분의 경계 항은 \(\sin kx\)가 양 끝에서 0이어서 사라진다. \(\cos kL = \cos n\pi = (-1)^n\)이므로 짝수 \(n\)에서는 0이고, 홀수 \(n\)에서는 \(4/k^3 = 4L^3/(n\pi)^3\)이다. 여기에 \(\sqrt{2/L}\)을 곱하면</p>
+      <div class="formula">\[ c_n = \frac{4\sqrt2\,L^{5/2}}{n^3\pi^3} \quad (n \text{ 홀수}), \qquad c_n = 0 \quad (n \text{ 짝수}) \]</div>
+      <p>이다. 짝수 항이 없는 것은 \(f\)가 가운데 \(x = L/2\)를 기준으로 좌우 대칭이고, 짝수 \(n\)의 \(e_n\)은 반대칭이기 때문이다(그림 3-2의 \(e_2\)).</p>
+      <p><a href="ch01.html#eq-norm-components">1장 식 (1.5)</a>의 노름 공식 \(\lVert f\rVert^2 = \sum_n |c_n|^2\)도 확인해 보자. 왼쪽은 \(\int_0^L x^2(L - x)^2\,dx = L^5/30\)이다. 오른쪽은</p>
+      <div class="formula">\[ \sum_n |c_n|^2 = \frac{32L^5}{\pi^6}\Big(1 + \frac{1}{3^6} + \frac{1}{5^6} + \cdots\Big) \]</div>
+      <p>이고, 괄호 안의 합은 \(\pi^6/960 = 1.00145\ldots\)로 알려져 있으므로 오른쪽도 \(L^5/30\)이다. 괄호의 첫 세 항만 더해도 1.00144이다. 첫째 항 하나가 노름 제곱의 \(960/\pi^6 = 99.86\%\)를 차지한다는 뜻이다. 포물선은 반 파장짜리 사인 곡선과 거의 같은 모양이다.</p>
+    </div>
+
+    <h3 id="s1-xbasis">위치 기저</h3>
+    <p>사인 기저에서 성분 \(c_n\)의 번호는 띄엄띄엄한 정수다. 그런데 이 절 처음의 그림에서는 함숫값 \(f(x)\) 자체가 성분이었고, 번호는 연속 변수 \(x\)였다. 이 관점을 디랙 표기로 옮겨 보자. 위치 \(x\)마다 기저 켓 \(|x\rangle\)를 하나씩 두고, \(|f\rangle\)의 \(x\) 성분이 함숫값이 되게 한다.</p>
+    <div class="formula" id="eq-x-component">\[ \langle x|f\rangle = f(x) \]</div>
+    <p>유한 차원의 완비성 관계 \(\sum_i |i\rangle\langle i| = \hat I\)(<a href="ch02.html#eq-completeness">2장 식 (2.3)</a>)에서 번호가 연속이 되면 합은 적분이 되어야 한다.</p>
+    <div class="formula" id="eq-x-complete">\[ \int |x\rangle\langle x|\,dx = \hat I \]</div>
+    <p>이 두 식이 내적의 정의와 맞는지 보자. \(\langle f|g\rangle\)의 가운데에 식 <a class="ref" href="#eq-x-complete"></a>를 끼우면, \(\langle f|x\rangle = \langle x|f\rangle^* = f^*(x)\)이므로</p>
+    <div class="formula">\[ \langle f|g\rangle = \int \langle f|x\rangle\langle x|g\rangle\,dx = \int f^*(x)\,g(x)\,dx \]</div>
+    <p>로 식 <a class="ref" href="#eq-func-ip"></a>이 나온다. 2장에서 완비성 관계를 끼워 1장 식 (1.4)를 얻은 것과 똑같은 계산이다.</p>
+    <p>그렇다면 기저 켓끼리의 내적 \(\langle x|x'\rangle\)은 무엇일까? \(|f\rangle\) 앞에 식 <a class="ref" href="#eq-x-complete"></a>를 끼우고 왼쪽에서 \(\langle x|\)를 곱하면</p>
+    <div class="formula" id="eq-xx">\[ f(x) = \int \langle x|x'\rangle\, f(x')\,dx' \]</div>
+    <p>이다. 이것이 모든 함수 \(f\)에 대해 성립하려면 \(\langle x|x'\rangle\)은 \(x' \neq x\)인 곳에서 0이어야 한다. 다른 점의 함숫값이 섞여 들면 안 되기 때문이다. 그러면서도 \(x' = x\) 근처에서 적분하면 1이 되어야 한다. 폭은 0인데 넓이는 1이다. 보통의 함수로는 불가능하다.</p>
+    <p>격자에서 보면 무슨 일이 일어나는지 알 수 있다. 격자에서 적분은 \(\sum_j \Delta\)이므로, 식 <a class="ref" href="#eq-xx"></a>은 \(f_i = \sum_j \Delta\,\langle x_i|x_j\rangle\,f_j\)가 된다. 이것이 성립하려면 \(\langle x_i|x_j\rangle = \delta_{ij}/\Delta\)여야 한다. 폭이 \(\Delta\)이고 높이가 \(1/\Delta\)인 막대, 곧 넓이가 1인 막대다. \(\Delta \to 0\)이면 막대는 한없이 좁고 높아지지만 넓이는 1로 남는다. 이 극한이 다음 절의 디랙 델타다.</p>
   </section>
 
+  <!-- ============================================================ 3.2 -->
   <section id="s2">
     <h2>디랙 델타</h2>
-    <p class="slot" data-slot="3.2절">아직 쓰지 않은 절입니다.</p>
+    <p>크로네커 델타 \(\delta_{ij}\)(<a href="ch01.html#math-delta">1장 수학 상자 1.2</a>)는 합 안에서 한 항만 골라낸다: \(\sum_j \delta_{ij}\,f_j = f_i\). 적분 안에서 같은 일을 하는 것이 디랙 델타다.</p>
+    <div class="box def" id="def-delta"><div class="box-h">디랙 델타</div>
+      <p>모든 매끄러운 함수 \(f\)에 대해</p>
+      <div class="formula" id="eq-delta-def">\[ \int_{-\infty}^{\infty} \delta(x - a)\,f(x)\,dx = f(a) \]</div>
+      <p>가 되는 \(\delta(x - a)\)를 <span class="term">디랙 델타</span> <span class="en">(Dirac delta)</span>라 한다. 적분 구간이 \(a\)를 포함하지 않으면 적분은 0이다.</p>
+    </div>
+    <p>그림으로는 '\(x = a\)에서만 무한히 높고 나머지에서는 0이며, 넓이가 1인 봉우리'다. 그러나 이런 보통의 함수는 없다. 델타는 적분 안에 넣었을 때 무엇을 하는지로 정의되는 대상이고, 델타가 들어간 등식은 모두 '양변에 매끄러운 함수를 곱해 적분하면 같다'는 뜻이다. 이 정의로 3.1절의 결론을 쓰면</p>
+    <div class="formula" id="eq-xx-delta">\[ \langle x|x'\rangle = \delta(x - x') \]</div>
+    <p>이다. 유한 차원의 \(\langle i|j\rangle = \delta_{ij}\)(<a href="ch01.html#eq-orthonormal">1장 식 (1.3)</a>)와 같은 꼴이다.</p>
+    <div class="callout deep"><strong>델타는 함수가 아니라 분포다</strong><p>수학에서는 매끄러운 함수 \(f\)를 숫자 \(f(a)\)로 보내는 규칙 자체를 델타라 부르고, 이런 대상을 <span class="term">분포</span> <span class="en">(distribution)</span> 또는 일반화 함수라 한다. 분포 이론은 델타의 도함수나 델타의 푸리에 변환 같은 계산이 왜 정당한지를 보장해 준다. 이 책에서는 아래의 델타 수열로 직관을 잡고, 계산은 적분 안에서만 한다.</p></div>
+
+    <h3 id="s2-seq">델타 수열</h3>
+    <p>델타를 손에 잡히게 하는 방법은, 넓이가 1이면서 점점 좁아지는 보통 함수들의 극한으로 보는 것이다. 3.1절의 막대(폭 \(\Delta\), 높이 \(1/\Delta\))가 그런 예다. 미분할 수 있어 더 편리한 예는 가우스 함수다.</p>
+    <div class="formula" id="eq-gauss-seq">\[ g_\varepsilon(x) = \frac{1}{\sqrt{2\pi}\,\varepsilon}\,e^{-x^2/2\varepsilon^2} \]</div>
+    <p>\(\varepsilon\)은 봉우리의 폭이고, 높이는 \(1/(\sqrt{2\pi}\,\varepsilon)\)이다. 아래 수학 상자의 가우스 적분으로 계산하면 넓이는 \(\varepsilon\)과 상관없이 1이다. 그림 3-3 (가)처럼 \(\varepsilon\)을 줄이면 봉우리가 좁고 높아진다.</p>
+    <div class="box math" id="math-gauss"><div class="box-h">가우스 적분</div>
+      <ul>
+        <li><b>기본형</b>: \(a > 0\)이면
+          <div class="formula">\[ \int_{-\infty}^{\infty} e^{-ax^2}\,dx = \sqrt{\frac{\pi}{a}} \]</div>
+          적분을 \(G\)라 하면 \(G^2 = \iint e^{-a(x^2 + y^2)}\,dx\,dy\)이다. 극좌표(\(dx\,dy = r\,dr\,d\theta\))로 바꾸면 \(G^2 = \int_0^{2\pi} d\theta \int_0^\infty e^{-ar^2}\,r\,dr = 2\pi \cdot \frac{1}{2a} = \frac{\pi}{a}\)이다.</li>
+        <li><b>완전제곱</b>: \(-ax^2 + bx = -a\big(x - \frac{b}{2a}\big)^2 + \frac{b^2}{4a}\)이므로, 적분 변수를 \(b/2a\)만큼 옮기면
+          <div class="formula" id="eq-gauss-shift">\[ \int_{-\infty}^{\infty} e^{-ax^2 + bx}\,dx = \sqrt{\frac{\pi}{a}}\;e^{b^2/4a} \]</div>
+          이다. 이 식은 \(b\)가 복소수여도 성립한다(적분 변수를 복소수만큼 옮겨도 적분값이 바뀌지 않는다는 것은 복소 함수론의 결과다). 푸리에 변환에서는 \(b\)가 순허수인 경우를 쓴다.</li>
+        <li><b>모멘트</b>: \(x\,e^{-ax^2}\)은 홀함수이므로 적분이 0이다. 기본형을 \(a\)로 미분하면 \(\int x^2 e^{-ax^2}\,dx = \dfrac{\sqrt\pi}{2a^{3/2}}\)이다.</li>
+      </ul>
+    </div>
+    <p>가우스 수열이 정말 델타처럼 작동하는지 확인하자. \(\varepsilon\)이 작으면 \(g_\varepsilon\)은 \(x = 0\) 근처에서만 값을 가지므로, 그 근처에서 \(f\)를 테일러 전개해 넣을 수 있다.</p>
+    <div class="formula">\[ \begin{aligned} \int g_\varepsilon\,f\,dx &\approx \int g_\varepsilon(x)\Big[f(0) + f'(0)\,x \\ &\qquad\qquad + \tfrac12 f''(0)\,x^2\Big]dx \\ &= f(0) + \tfrac12 f''(0)\,\varepsilon^2 \end{aligned} \]</div>
+    <p>넓이가 1이므로 첫 항은 \(f(0)\)이고, 둘째 항은 홀함수의 적분이라 0이다. 셋째 항에는 수학 상자의 모멘트 공식(\(a = 1/2\varepsilon^2\))으로 \(\int x^2 g_\varepsilon\,dx = \varepsilon^2\)을 썼다. \(\varepsilon \to 0\)이면 \(f(0)\)만 남는다. 예를 들어 \(f(x) = \cos x\)이면, 식 <a class="ref" href="#eq-gauss-shift"></a>에 \(b = i\)를 넣고 실수부를 취해 적분이 정확히 \(e^{-\varepsilon^2/2}\)임을 얻는다. \(\varepsilon = 0.1\)이면 0.99501로 \(f(0) = 1\)에 가깝고, 위 근사식의 \(1 - \varepsilon^2/2 = 0.995\)와도 맞는다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:3-3a--><svg viewBox="0 0 280 236" role="img" aria-label="폭이 0.4, 0.2, 0.1인 가우스 함수. 좁을수록 높다"><defs><marker id="f33a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="16" y1="206" x2="264" y2="206" class="s-line" stroke-width="1.2" marker-end="url(#f33a-dim)"/><line x1="35.8" y1="206" x2="35.8" y2="210" class="s-line" stroke-width="1.2"/><text x="35.8" y="223" class="t-dim" text-anchor="middle">−1</text><line x1="135" y1="206" x2="135" y2="210" class="s-line" stroke-width="1.2"/><text x="135" y="223" class="t-dim" text-anchor="middle">0</text><line x1="234.2" y1="206" x2="234.2" y2="210" class="s-line" stroke-width="1.2"/><text x="234.2" y="223" class="t-dim" text-anchor="middle">1</text><text x="266" y="199" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 205.6 L29.9 204.9 L41.8 203.6 L51.7 201.8 L61.6 199 L69.6 196.1 L78.5 192.1 L105.3 176.9 L115.2 172 L125.1 168.7 L135 167.5 L144.9 168.7 L154.8 172 L164.8 176.9 L191.5 192.1 L200.5 196.1 L208.4 199 L218.3 201.8 L228.2 203.6 L240.1 204.9 L254 205.6" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M16 206 L58.6 206 L71.5 205.5 L81.5 204 L85.4 202.6 L89.4 200.5 L93.4 197.5 L96.3 194.5 L103.3 184.6 L109.2 172.9 L121.1 145.7 L126.1 136.4 L129.1 132.4 L131 130.5 L133 129.4 L135 129 L137 129.4 L139 130.5 L141 132.4 L143.9 136.4 L148.9 145.7 L160.8 172.9 L166.7 184.6 L173.7 194.5 L176.7 197.5 L180.6 200.5 L184.6 202.6 L188.5 204 L198.5 205.5 L211.4 206 L254 206" class="s-acc2" stroke-width="2.2"/><path d="M16 206 L97.7 205.9 L104.1 204.8 L106.4 203.6 L108.8 201.3 L111.2 197.4 L113.6 191.1 L117.5 173.3 L121.5 144.9 L130.2 68.7 L132.6 56.4 L134.2 52.5 L135 52 L135.8 52.5 L137.4 56.4 L139.8 68.7 L148.5 144.9 L152.5 173.3 L156.4 191.1 L158.8 197.4 L161.2 201.3 L163.6 203.6 L165.9 204.8 L172.3 205.9 L254 206" class="s-acc" stroke-width="2.4"/><text x="150.9" y="63.2" class="t-math acc" text-anchor="start"><tspan font-style="italic">ε</tspan> = 0.1</text><text x="162.8" y="157.7" class="t-math acc2" text-anchor="start"><tspan font-style="italic">ε</tspan> = 0.2</text><text x="194.5" y="182.1" class="t-math dim" text-anchor="start"><tspan font-style="italic">ε</tspan> = 0.4</text><text x="12" y="22" class="t-b" text-anchor="start">(가) 가우스 수열 <tspan font-style="italic">g</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">ε</tspan></tspan></text></svg><!--/fig:3-3a--><!--fig:3-3b--><svg viewBox="0 0 280 236" role="img" aria-label="K가 4와 12일 때 sin(Kx)/(pi x)의 그래프"><defs><marker id="f33b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="16" y1="177.3" x2="264" y2="177.3" class="s-line" stroke-width="1.2" marker-end="url(#f33b-dim)"/><line x1="55.7" y1="177.3" x2="55.7" y2="181.3" class="s-line" stroke-width="1.2"/><text x="55.7" y="194.3" class="t-dim" text-anchor="middle">−2</text><line x1="135" y1="177.3" x2="135" y2="181.3" class="s-line" stroke-width="1.2"/><text x="135" y="194.3" class="t-dim" text-anchor="middle">0</text><line x1="214.3" y1="177.3" x2="214.3" y2="181.3" class="s-line" stroke-width="1.2"/><text x="214.3" y="194.3" class="t-dim" text-anchor="middle">2</text><text x="266" y="170.3" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 179.1 L23.9 180.8 L31.1 180.6 L37.4 178.9 L51.7 173.1 L55.7 172.2 L59.6 172.1 L63.6 172.8 L68.4 174.7 L81.1 182.8 L85.8 185.2 L90.6 186.1 L94.5 185.3 L99.3 182.3 L104.9 175.9 L109.6 168.5 L119.9 150.6 L125.5 142.6 L130.2 138.2 L132.6 137 L135 136.6 L137.4 137 L139.8 138.2 L144.5 142.6 L150.1 150.6 L160.4 168.5 L165.1 175.9 L170.7 182.3 L175.5 185.3 L179.4 186.1 L184.2 185.2 L188.9 182.8 L201.6 174.7 L206.4 172.8 L210.4 172.1 L214.3 172.2 L218.3 173.1 L232.6 178.9 L238.9 180.6 L246.1 180.8 L254 179.1" class="s-acc2" stroke-width="2"/><path d="M16 180.6 L18.6 179.3 L23.9 174.3 L26.2 173.6 L28.9 174.9 L34.5 180.7 L35.8 181.3 L37.2 181.3 L39.5 179.7 L44.4 173.9 L45.8 173 L47.1 172.7 L49.7 174.3 L55 181.3 L56.3 182.2 L57.7 182.4 L60.3 180.4 L65.6 172.4 L66.9 171.4 L67.9 171.3 L69.2 172 L70.5 173.5 L75.8 182.8 L77.2 184.1 L78.5 184.3 L79.8 183.4 L81.1 181.4 L86.4 170.3 L87.7 168.9 L88.7 168.6 L90 169.6 L91.4 171.8 L97 186.6 L98.3 188.2 L99.3 188.3 L100.6 187 L101.9 183.9 L107.2 164.9 L108.6 162.2 L109.5 161.6 L110.9 163.1 L112.2 167 L117.8 198 L119.1 202.6 L119.8 203.6 L120.5 203.6 L122.1 198.8 L124.1 183.1 L131.4 78.5 L133.3 60.3 L134.3 56.1 L135 55.3 L135.7 56.1 L136.7 60.3 L138.6 78.5 L145.9 183.1 L147.9 198.8 L149.5 203.6 L150.2 203.6 L150.9 202.6 L152.2 198 L157.8 167 L159.1 163.1 L160.5 161.6 L161.4 162.2 L162.8 164.9 L168.1 183.9 L169.4 187 L170.7 188.3 L171.7 188.2 L173 186.6 L178.6 171.8 L180 169.6 L181.3 168.6 L182.3 168.9 L183.6 170.3 L188.9 181.4 L190.2 183.4 L191.5 184.3 L192.8 184.1 L194.2 182.8 L199.5 173.5 L200.8 172 L202.1 171.3 L203.1 171.4 L204.4 172.4 L209.7 180.4 L212.4 182.4 L213.7 182.2 L215 181.3 L220.3 174.3 L222.9 172.7 L224.3 173 L225.6 173.9 L230.5 179.7 L232.8 181.3 L234.2 181.3 L235.5 180.7 L241.1 174.9 L243.8 173.6 L246.1 174.3 L251.4 179.3 L254 180.6" class="s-acc" stroke-width="1.8"/><text x="144.6" y="60.8" class="t-math acc" text-anchor="start"><tspan font-style="italic">K</tspan> = 12</text><text x="163.6" y="140.6" class="t-math acc2" text-anchor="start"><tspan font-style="italic">K</tspan> = 4</text><text x="12" y="22" class="t-b" text-anchor="start">(나) sin(<tspan font-style="italic">K</tspan><tspan font-style="italic">x</tspan>)/π<tspan font-style="italic">x</tspan></text></svg><!--/fig:3-3b--></div>
+      <figcaption><b>그림 3-3.</b> 델타 수열. (가) 가우스 함수 \(g_\varepsilon(x)\), \(\varepsilon = 0.4, 0.2, 0.1\). 폭이 반으로 줄 때마다 높이가 두 배가 되어 넓이는 늘 1이다. (나) \(\sin(Kx)/\pi x\), \(K = 4, 12\). 봉우리의 높이는 \(K/\pi\)이고, 봉우리 밖에서는 0으로 가지 않고 진동하지만 \(K\)가 커질수록 진동이 빨라진다.</figcaption>
+    </figure>
+
+    <h3 id="s2-props">델타의 성질</h3>
+    <div class="box thm" id="thm-delta-props"><div class="box-h">델타의 성질</div>
+      <p><b>(가)</b> \(\delta(-x) = \delta(x)\)</p>
+      <p><b>(나)</b> \(a \neq 0\)이면</p>
+      <div class="formula" id="eq-delta-scale">\[ \delta(ax) = \frac{\delta(x)}{|a|} \]</div>
+      <p><b>(다)</b> \(g(x)\)가 단순근 \(x_1, x_2, \ldots\)을 가지면</p>
+      <div class="formula" id="eq-delta-compose">\[ \delta\big(g(x)\big) = \sum_i \frac{\delta(x - x_i)}{|g'(x_i)|} \]</div>
+      <p><b>(라)</b> \(f(x)\,\delta(x - a) = f(a)\,\delta(x - a)\). 특히 \(x\,\delta(x) = 0\)이다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p><b>(나)</b> 양변에 \(f\)를 곱해 적분한다. \(a > 0\)이면 \(u = ax\)로 치환해 \(\int \delta(ax)\,f(x)\,dx = \int \delta(u)\,f(u/a)\,\frac{du}{a} = \frac{f(0)}{a}\)이다. \(a &lt; 0\)이면 치환할 때 적분의 위아래 끝이 뒤바뀌어 부호가 하나 더 붙으므로 \(-f(0)/a = f(0)/|a|\)이다. <b>(가)</b>는 \(a = -1\)인 경우다.</p>
+        <p><b>(다)</b> \(\delta(g(x))\)는 \(g(x) = 0\)인 점, 곧 \(x_i\) 근처에서만 0이 아니다. \(x_i\) 근처에서 \(g(x) \approx g'(x_i)(x - x_i)\)이므로 (나)에 따라 \(\delta\big(g'(x_i)(x - x_i)\big) = \delta(x - x_i)/|g'(x_i)|\)이다. 근마다 이런 봉우리가 하나씩 있다.</p>
+        <p><b>(라)</b> 양변에 \(h(x)\)를 곱해 적분하면 둘 다 \(f(a)\,h(a)\)이다.</p>
+      </details>
+    </div>
+    <p>(나)는 그림으로 이해할 수 있다. \(\delta(ax)\)는 봉우리의 폭을 \(1/|a|\)배로 줄인 것이므로 넓이도 \(1/|a|\)배가 된다. 델타의 '높이'는 무한대라 말할 수 없지만 '넓이'는 늘 추적할 수 있다.</p>
+    <div class="box ex" id="ex-delta-calc"><div class="box-h">델타가 들어간 적분</div>
+      <p><b>(가)</b> \(\int_{-\infty}^{\infty} \delta(3x - 6)\,x^2\,dx\). \(\delta(3x - 6) = \delta\big(3(x - 2)\big) = \tfrac13\,\delta(x - 2)\)이므로 답은 \(\tfrac13 \cdot 2^2 = \tfrac43\)이다.</p>
+      <p><b>(나)</b> \(\int_{-\infty}^{\infty} \delta(x^2 - 4)\,e^x\,dx\). \(g(x) = x^2 - 4\)의 근은 \(\pm 2\)이고 \(|g'(\pm 2)| = 4\)이다. 식 <a class="ref" href="#eq-delta-compose"></a>에 따라 \(\delta(x^2 - 4) = \tfrac14\big[\delta(x - 2) + \delta(x + 2)\big]\)이므로 답은 \(\tfrac14(e^2 + e^{-2}) = \tfrac12\cosh 2 \approx 1.881\)이다.</p>
+      <p><b>(다)</b> 같은 적분을 \(0\)에서 \(\infty\)까지 하면 \(x = 2\)의 봉우리만 구간에 들어가므로 답은 \(e^2/4 \approx 1.847\)이다.</p>
+    </div>
+
+    <h3 id="s2-deriv">계단 함수와 델타의 도함수</h3>
+    <p>헤비사이드 <span class="term">계단 함수</span> <span class="en">(step function)</span> \(\theta(x)\)는 \(x &lt; 0\)에서 0, \(x > 0\)에서 1이다. \(x = 0\)에서 갑자기 1만큼 뛰고 나머지에서는 평평하니, 도함수는 '0에서만 무한하고 넓이가 1'일 것이다. 실제로 무한히 먼 곳에서 0이 되는 매끄러운 \(f\)에 대해 부분 적분하면</p>
+    <div class="formula">\[ \begin{aligned} \int_{-\infty}^{\infty} \theta'(x)\,f(x)\,dx &= \Big[\theta f\Big]_{-\infty}^{\infty} - \int_0^\infty f'(x)\,dx \\ &= 0 - \big[f(\infty) - f(0)\big] = f(0) \end{aligned} \]</div>
+    <p>이므로 \(\theta'(x) = \delta(x)\)이다. 둘째 항에서 \(\theta\)가 \(x &lt; 0\)에서 0, \(x > 0\)에서 1이어서 적분 구간이 \(0\)부터가 되었다.</p>
+    <p>델타의 도함수 \(\delta'(x)\)도 같은 방식으로, 적분 안에서 무엇을 하는지로 정한다. 부분 적분하면 경계 항은 델타가 0인 곳이라 사라지고</p>
+    <div class="formula" id="eq-delta-deriv">\[ \int_{-\infty}^{\infty} \delta'(x - a)\,f(x)\,dx = -f'(a) \]</div>
+    <p>이다. 델타는 함숫값을 골라내고, 델타의 도함수는 부호를 바꾼 도함수 값을 골라낸다. \(\delta(x)\)가 짝함수이므로 \(\delta'(x)\)는 홀함수다: \(\delta'(-x) = -\delta'(x)\). 3.3절에서 미분 연산자의 행렬 원소가 \(\delta'\)이 된다.</p>
+
+    <h3 id="s2-fourier">델타의 푸리에 표현</h3>
+    <p>3.3절과 3.4절에서 가장 많이 쓸 식은 다음 적분이다.</p>
+    <div class="formula" id="eq-delta-fourier">\[ \frac{1}{2\pi}\int_{-\infty}^{\infty} e^{ikx}\,dk = \delta(x) \]</div>
+    <p>왼쪽은 보통의 의미로는 수렴하지 않는다. \(|e^{ikx}| = 1\)이어서 피적분 함수가 줄어들지 않기 때문이다. 그래서 큰 \(|k|\)를 부드럽게 잘라 내는 인자 \(e^{-\varepsilon^2k^2/2}\)를 곱해 계산한 뒤 \(\varepsilon \to 0\)으로 보낸다. 식 <a class="ref" href="#eq-gauss-shift"></a>에 \(a = \varepsilon^2/2\), \(b = ix\)를 넣으면</p>
+    <div class="formula">\[ \begin{aligned} \frac{1}{2\pi}\int e^{ikx}\,e^{-\varepsilon^2k^2/2}\,dk &= \frac{1}{2\pi}\sqrt{\frac{2\pi}{\varepsilon^2}}\;e^{-x^2/2\varepsilon^2} \\ &= g_\varepsilon(x) \end{aligned} \]</div>
+    <p>로, 정확히 가우스 델타 수열이 나온다. \(\varepsilon \to 0\)에서 이것은 \(\delta(x)\)다. 자르는 방법을 바꿔 \(|k| \le K\)에서만 적분하면</p>
+    <div class="formula">\[ \frac{1}{2\pi}\int_{-K}^{K} e^{ikx}\,dk = \frac{1}{2\pi}\cdot\frac{e^{iKx} - e^{-iKx}}{ix} = \frac{\sin Kx}{\pi x} \]</div>
+    <p>를 얻는다(그림 3-3 (나)). 봉우리의 높이는 \(K/\pi\), 폭은 약 \(2\pi/K\)이고, 넓이는 \(K\)와 상관없이 1이다(\(\int \frac{\sin u}{u}\,du = \pi\)를 쓴다). 이 함수는 봉우리 밖에서 0으로 가지 않고 진동하지만, \(K\)가 커질수록 진동이 빨라져 매끄러운 \(f\)와 곱해 적분하면 서로 상쇄된다. 그래서 적분 안에서는 역시 델타처럼 작동한다.</p>
+    <p>식 <a class="ref" href="#eq-delta-fourier"></a>에서 문자 이름만 바꾸면 \(\int e^{iqx}\,dx = 2\pi\,\delta(q)\)이다. 여기에 \(q = (p - p')/\hbar\)를 넣고 식 <a class="ref" href="#eq-delta-scale"></a>을 쓰면, 3.3절에서 쓸 꼴이 나온다.</p>
+    <div class="formula" id="eq-delta-fourier-hbar">\[ \begin{aligned} \int_{-\infty}^{\infty} e^{i(p - p')x/\hbar}\,dx &= 2\pi\,\delta\Big(\frac{p - p'}{\hbar}\Big) \\ &= 2\pi\hbar\,\delta(p - p') \end{aligned} \]</div>
   </section>
 
+  <!-- ============================================================ 3.3 -->
   <section id="s3">
     <h2>위치와 운동량 연산자</h2>
-    <p class="slot" data-slot="3.3절">아직 쓰지 않은 절입니다.</p>
+    <p>2장에서 연산자는 정규직교 기저에서 행렬 \(\Omega_{ij} = \langle i|\hat\Omega|j\rangle\)로 표현되었다. 위치 기저에서는 번호가 연속이므로 행렬 원소 \(\langle x|\hat\Omega|x'\rangle\)도 두 연속 변수의 함수가 되고, 행렬과 벡터의 곱은 적분이 된다. \(\hat\Omega\)와 \(|f\rangle\) 사이에 식 <a class="ref" href="#eq-x-complete"></a>를 끼우면(<a href="ch02.html#eq-matrix-action">2장 식 (2.2)</a>와 같은 계산이다)</p>
+    <div class="formula" id="eq-op-kernel">\[ \langle x|\hat\Omega|f\rangle = \int \langle x|\hat\Omega|x'\rangle\,f(x')\,dx' \]</div>
+    <p>이다. 양자역학에서 가장 중요한 두 연산자를 이 언어로 보자.</p>
+
+    <h3 id="s3-x">위치 연산자</h3>
+    <div class="box def" id="def-x-op"><div class="box-h">위치 연산자</div>
+      <p>함수에 \(x\)를 곱하는 연산자 \(\hat x\)를 <span class="term">위치 연산자</span> <span class="en">(position operator)</span>라 한다.</p>
+      <div class="formula" id="eq-x-op">\[ \langle x|\hat x|f\rangle = x\,f(x) \]</div>
+    </div>
+    <p>행렬 원소는 \(\langle x|\hat x|x'\rangle = x\,\delta(x - x')\)이다. 이것을 식 <a class="ref" href="#eq-op-kernel"></a>에 넣으면 \(\int x\,\delta(x - x')\,f(x')\,dx' = x\,f(x)\)로 식 <a class="ref" href="#eq-x-op"></a>이 된다. \(x \neq x'\)이면 0이므로 대각 행렬의 연속판이고, 대각 원소 \(x\)는 실수다. 그러니 에르미트일 것이다. 직접 확인하면</p>
+    <div class="formula">\[ \begin{aligned} \langle f|\hat x g\rangle &= \int f^*(x)\,x\,g(x)\,dx \\ &= \int \big(x\,f(x)\big)^* g(x)\,dx = \langle\hat x f|g\rangle \end{aligned} \]</div>
+    <p>이다(\(x\)가 실수이므로 \(x^* = x\)). 여기서 \(\langle\hat x f|\)는 켓 \(\hat x|f\rangle\)에 대응하는 브라, 곧 \(\langle f|\hat x^\dagger\)이다(<a href="ch02.html#def-adjoint">2장 정의 2.4</a>). 따라서 위 식은 모든 \(f, g\)에 대해 \(\langle f|\hat x|g\rangle = \langle f|\hat x^\dagger|g\rangle\)라는 뜻이고, \(\hat x^\dagger = \hat x\)이다.</p>
+    <p>\(\hat x\)의 고유벡터는 무엇일까? 고유값 \(x_0\)의 고유 켓은 위치 기저 켓 \(|x_0\rangle\) 자신이다. 그 성분은 \(\langle x|x_0\rangle = \delta(x - x_0)\)이고, <a class="ref" href="#thm-delta-props"></a> (라)에 따라</p>
+    <div class="formula">\[ \langle x|\hat x|x_0\rangle = x\,\delta(x - x_0) = x_0\,\delta(x - x_0) = x_0\,\langle x|x_0\rangle \]</div>
+    <p>이다. 위치가 정확히 \(x_0\)인 상태는 \(x_0\)에 꽂힌 델타 봉우리다. 모든 실수 \(x_0\)이 고유값이므로, 고유값은 띄엄띄엄하지 않고 실수 전체를 채운다. 이런 고유값의 모임을 <span class="term">연속 스펙트럼</span> <span class="en">(continuous spectrum)</span>이라 한다.</p>
+
+    <h3 id="s3-d">미분 연산자는 에르미트가 아니다</h3>
+    <p>다음은 미분이다. <a href="ch02.html#ex-operators">2장 예제 2.1</a> (다)에서 미분이 선형 연산자임을 보았다. 미분 연산자 \(\hat D\)를 \(\langle x|\hat D|f\rangle = df/dx\)로 정의하면 행렬 원소는</p>
+    <div class="formula">\[ \langle x|\hat D|x'\rangle = \frac{d}{dx}\,\delta(x - x') = \delta'(x - x') \]</div>
+    <p>이다. 실제로 \(\int \delta'(x - x')\,f(x')\,dx'\)에서 \(\delta'(x - x')\)를 \(x'\)의 함수로 보면 \(-\frac{d}{dx'}\delta(x - x')\)이므로, 부분 적분하면 \(\int \delta(x - x')\,f'(x')\,dx' = f'(x)\)가 된다.</p>
+    <p>\(\hat D\)는 에르미트일까? 무한히 먼 곳에서 0이 되는 함수들에 대해 부분 적분하면</p>
+    <div class="formula" id="eq-d-anti">\[ \begin{aligned} \langle f|\hat D g\rangle &= \int f^*\,\frac{dg}{dx}\,dx \\ &= \Big[f^* g\Big]_{-\infty}^{\infty} - \int \frac{df^*}{dx}\,g\,dx \\ &= -\langle\hat D f|g\rangle \end{aligned} \]</div>
+    <p>이다. 곧 \(\hat D^\dagger = -\hat D\)이고, \(\hat D\)는 에르미트가 아니라 <b>반에르미트</b>다(<a href="ch02.html#def-hermitian">2장 정의 2.5</a>). 2장의 표에서 반에르미트는 순허수에 대응했다. 순허수에 \(i\)를 곱하면 실수가 되듯 \(-i\hat D\)는 에르미트다: \((-i\hat D)^\dagger = i\,\hat D^\dagger = -i\hat D\).</p>
+    <div class="box ex" id="ex-diff-matrix"><div class="box-h">격자에서 본 미분 행렬</div>
+      <p>3.1절의 격자에서 미분을 차분으로 바꾸면 \(\hat D\)가 진짜 행렬이 된다. 함수가 주기적이라 하고(\(f_{N+1} = f_1\), \(f_0 = f_N\)), 양옆 칸의 차이로 미분을 근사하자: \((Df)_i = (f_{i+1} - f_{i-1})/2\Delta\). \(N = 4\)이면</p>
+      <div class="formula">\[ D = \frac{1}{2\Delta}\begin{pmatrix} 0 & 1 & 0 & -1 \\ -1 & 0 & 1 & 0 \\ 0 & -1 & 0 & 1 \\ 1 & 0 & -1 & 0 \end{pmatrix} \]</div>
+      <p>이다. 첫 행은 \((f_2 - f_4)/2\Delta\)를 뜻한다. 이 행렬은 실수이고, 대각선을 사이에 두고 마주 보는 원소의 부호가 반대다: \(D^T = -D\). 실수 행렬이므로 \(D^\dagger = D^T = -D\), 곧 반에르미트다. 따라서 \(-iD\)는 에르미트 행렬이다. 그 고유값과 고유벡터는 <a class="ref" href="#prob-grid-p"></a>에서 구한다.</p>
+    </div>
+
+    <h3 id="s3-p">운동량 연산자</h3>
+    <div class="box def" id="def-p-op"><div class="box-h">운동량 연산자</div>
+      <div class="formula" id="eq-p-op">\[ \hat p = -i\hbar\,\hat D, \qquad \langle x|\hat p|f\rangle = -i\hbar\,\frac{df}{dx} \]</div>
+      <p>를 <span class="term">운동량 연산자</span> <span class="en">(momentum operator)</span>라 한다. \(\hbar\)는 플랑크 상수 \(h\)를 \(2\pi\)로 나눈 값이다.</p>
+    </div>
+    <p>왜 하필 이것이 '운동량'인지는 물리의 문제이고, 5장(드브로이 관계)과 6장(공준)에서 다룬다. 여기서는 단위만 확인하자. \(d/dx\)의 단위는 1/m이고 \(\hbar\)의 단위는 J·s = kg·m²/s이므로, \(\hbar\,d/dx\)의 단위는 kg·m/s, 곧 운동량의 단위다. \(-i\hat D\)에 실수 \(\hbar\)를 곱했으므로 \(\hat p\)도 에르미트다. \(\hat p/\hbar = -i\hat D\)는 단위 길이당 위상, 곧 파수를 재는 연산자이고 \(\hat k\)로 쓰기도 한다.</p>
+    <div class="callout deep"><strong>샨카와 다른 점</strong><p>샨카는 1장에서 \(\hbar\) 없이 \(\hat K = -i\hat D\)를 다루고, \(\hbar\)는 공준을 세우는 4장에서 붙인다. 이 책은 표기 규칙의 푸리에 변환 관례(\(1/\sqrt{2\pi\hbar}\))에 맞추어 처음부터 \(\hat p\)를 쓴다. 두 방식의 정규화 차이는 3.5절에서 정리한다.</p></div>
+    <p>그런데 위의 계산에는 조건이 하나 숨어 있었다. 부분 적분의 경계 항 \([f^* g]\)가 사라져야 한다. 일반적으로 구간 \(a \le x \le b\)에서는</p>
+    <div class="formula" id="eq-p-boundary">\[ \langle f|\hat p\,g\rangle = \langle\hat p f|g\rangle - i\hbar\Big[f^*(x)\,g(x)\Big]_a^b \]</div>
+    <p>이므로, \(\hat p\)가 에르미트가 되려면 공간의 모든 \(f, g\)에 대해 경계 항이 0이어야 한다. 무한히 먼 곳에서 0이 되는 함수들(제곱 적분 가능한 파동함수는 보통 그렇다), 양 끝에서 0인 함수들, 주기 조건 \(f(b) = f(a)\)를 만족하는 함수들에서는 그렇다.</p>
+    <div class="callout warn"><strong>에르미트인지는 연산자만 보고 정할 수 없다</strong><p>같은 \(-i\hbar\,d/dx\)라도 어떤 함수들에 작용하느냐에 따라 에르미트일 수도, 아닐 수도 있다. 예를 들어 구간 \([0, L]\)의 함수에 아무 조건도 두지 않으면, \(f = g = x\)에 대해 경계 항이 \(-i\hbar L^2\)이어서 \(\langle f|\hat p\,g\rangle \neq \langle\hat p f|g\rangle\)이다. 연산자를 정할 때는 작용하는 함수의 공간, 곧 경계 조건까지 함께 정해야 한다. 유한 차원에서는 없던 문제다(<a class="ref" href="#prob-twisted"></a>).</p></div>
+
+    <h3 id="s3-ccr">정준 교환 관계</h3>
+    <p>이제 이 장에서 가장 중요한 식을 유도하자. \(\hat x\)와 \(\hat p\)는 교환할까? 임의의 함수 \(f\)에 두 순서로 작용시켜 비교한다.</p>
+    <div class="formula">\[ \begin{aligned} \hat x\hat p\,f &= x\Big(-i\hbar\,\frac{df}{dx}\Big) = -i\hbar\,x f', \\ \hat p\hat x\,f &= -i\hbar\,\frac{d}{dx}\big(x f\big) = -i\hbar\,\big(f + x f'\big) \end{aligned} \]</div>
+    <p>둘째 줄에서는 곱의 미분을 했다. 첫째 줄에서 둘째 줄을 빼면 \(x f'\) 항이 상쇄되고 \(i\hbar f\)만 남는다. 어떤 \(f\)에 대해서나 그러므로</p>
+    <div class="formula" id="eq-ccr">\[ [\hat x, \hat p] = i\hbar\,\hat I \]</div>
+    <p>이다. 이것을 <span class="term">정준 교환 관계</span> <span class="en">(canonical commutation relation)</span>라 한다. 위치와 운동량은 교환하지 않으며, 그 교환자는 연산자가 아니라 숫자(\(i\hbar\) 곱하기 항등 연산자)다. 6장에서는 이 관계를 양자역학의 출발점으로 삼고, 9장에서는 이것이 불확정성 관계 \(\Delta x\,\Delta p \ge \hbar/2\)를 낳는 것을 본다.</p>
+    <div class="callout tip"><strong>유한 차원에서는 불가능하다</strong><p>\(\hat x\)와 \(\hat p\)를 \(n \times n\) 행렬로 흉내 낼 수는 없을까? 불가능하다. <a href="ch02.html#prob-trace">2장 문제 2.8</a>에 따라 \(\mathrm{Tr}(AB) = \mathrm{Tr}(BA)\)이므로, 어떤 두 행렬이든 \(\mathrm{Tr}[A, B] = 0\)이다. 그런데 \(\mathrm{Tr}(i\hbar I) = i\hbar n \neq 0\)이다. 정준 교환 관계는 무한 차원에서만 성립할 수 있다. 양자역학에 무한 차원 공간이 꼭 필요한 이유 가운데 하나다.</p></div>
+
+    <h3 id="s3-p-eigen">운동량의 고유함수</h3>
+    <p>\(\hat p\)의 고유값 문제 \(\hat p|p\rangle = p|p\rangle\)를 위치 기저에서 쓰면, 고유함수 \(\psi_p(x) = \langle x|p\rangle\)에 대한 미분 방정식이 된다.</p>
+    <div class="formula">\[ -i\hbar\,\frac{d\psi_p}{dx} = p\,\psi_p(x) \]</div>
+    <p>해는 \(\psi_p(x) = A\,e^{ipx/\hbar}\)이다. 어떤 \(p\)가 허용될까? \(p\)가 허수부 \(p_I\)를 가지면 \(|\psi_p| = |A|\,e^{-p_I x/\hbar}\)가 \(x \to +\infty\)나 \(x \to -\infty\) 가운데 한쪽에서 지수적으로 커진다. 이런 함수는 어떤 방법으로도 정규화할 수 없으므로 버린다. \(p\)가 실수이면 \(|\psi_p| = |A|\)로 어디서나 크기가 같다(그림 3-4). 무한히 먼 곳에서 0이 되지는 않지만 적어도 커지지는 않아서, 아래처럼 델타 함수로 정규화할 수 있다. 따라서 <b>모든 실수 \(p\)가 고유값</b>이고, \(\hat p\)의 스펙트럼도 연속이다. 에르미트 연산자의 고유값이 실수라는 <a href="ch02.html#thm-hermitian-eigen">2장 정리 2.3</a>과도 맞는다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:3-4--><svg viewBox="0 0 360 212" role="img" aria-label="평면파의 실수부와 허수부는 진동하지만 크기의 제곱은 일정하다"><defs><marker id="f34-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="18" y1="113.5" x2="342" y2="113.5" class="s-line" stroke-width="1.2" marker-end="url(#f34-dim)"/><line x1="18" y1="113.5" x2="18" y2="117.5" class="s-line" stroke-width="1.2"/><text x="18" y="130.5" class="t-dim" text-anchor="middle">0</text><text x="344" y="106.5" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><line x1="18" y1="63.8" x2="332" y2="63.8" class="s-line" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M18 113.5 L28.9 86.8 L33.7 77.2 L37.3 71.5 L40.9 67.3 L44.6 64.7 L48.2 63.8 L51.8 64.7 L54.2 66.2 L57.9 69.9 L61.5 75.2 L65.1 81.8 L71.1 95.2 L86.8 134.6 L91.7 145.1 L95.3 151.7 L100.1 158.4 L103.7 161.6 L107.4 163 L111 162.7 L114.6 160.7 L118.2 157 L121.9 151.7 L125.5 145.1 L131.5 131.7 L147.2 92.3 L152.1 81.8 L155.7 75.2 L159.3 69.9 L162.9 66.2 L166.5 64.2 L170.2 63.9 L173.8 65.3 L177.4 68.5 L181 73.3 L184.7 79.4 L191.9 95.2 L208.8 137.4 L216.1 151.7 L219.7 157 L223.3 160.7 L226.9 162.7 L230.6 163 L234.2 161.6 L237.8 158.4 L241.4 153.6 L245 147.5 L252.3 131.7 L269.2 89.5 L276.4 75.2 L280.1 69.9 L283.7 66.2 L287.3 64.2 L290.9 63.9 L294.6 65.3 L298.2 68.5 L301.8 73.3 L305.4 79.4 L312.7 95.2 L326 128.8 L332 142.6" class="s-acc2" stroke-width="2.2"/><path d="M18 63.8 L20.4 64.2 L24 66.2 L27.7 69.9 L31.3 75.2 L34.9 81.8 L39.7 92.3 L55.4 131.7 L61.5 145.1 L65.1 151.7 L68.7 157 L72.3 160.7 L76 162.7 L79.6 163 L83.2 161.6 L86.8 158.4 L90.5 153.6 L94.1 147.5 L98.9 137.4 L115.8 95.2 L123.1 79.4 L127.9 71.5 L131.5 67.3 L135.1 64.7 L138.8 63.8 L142.4 64.7 L146 67.3 L149.6 71.5 L153.3 77.2 L160.5 92.3 L176.2 131.7 L182.2 145.1 L185.9 151.7 L189.5 157 L193.1 160.7 L195.5 162.2 L199.2 163.1 L202.8 162.2 L206.4 159.6 L211.2 153.6 L214.9 147.5 L219.7 137.4 L236.6 95.2 L243.8 79.4 L248.7 71.5 L252.3 67.3 L255.9 64.7 L259.5 63.8 L263.2 64.7 L266.8 67.3 L270.4 71.5 L275.2 79.4 L282.5 95.2 L300.6 140.1 L305.4 149.7 L310.3 157 L313.9 160.7 L316.3 162.2 L318.7 163 L321.1 163 L323.5 162.2 L326 160.7 L328.4 158.4 L332 153.6" class="s-acc" stroke-width="2.4"/><line x1="138.8" y1="44.9" x2="259.5" y2="44.9" class="s-line" stroke-width="1.2" marker-start="url(#f34-dim)" marker-end="url(#f34-dim)"/><line x1="138.8" y1="39.9" x2="138.8" y2="60.8" class="s-grid" stroke-dasharray="2 3"/><line x1="259.5" y1="39.9" x2="259.5" y2="60.8" class="s-grid" stroke-dasharray="2 3"/><text x="199.2" y="37.9" class="t-math dim" text-anchor="middle"><tspan font-style="italic">λ</tspan> = 2πħ/<tspan font-style="italic">p</tspan></text><text x="199.2" y="182.1" class="t-math acc" text-anchor="middle">Re <tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">p</tspan></tspan></text><text x="108.6" y="182.1" class="t-math acc2" text-anchor="middle">Im <tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">p</tspan></tspan></text><text x="332" y="55.8" class="t-math dim" text-anchor="end">|<tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">p</tspan></tspan>|<tspan baseline-shift="super" font-size="72%">2</tspan></text></svg><!--/fig:3-4--></div>
+      <figcaption><b>그림 3-4.</b> 운동량 고유함수 \(\psi_p(x) = e^{ipx/\hbar}/\sqrt{2\pi\hbar}\)의 실수부(\(\cos\))와 허수부(\(\sin\)). 세로축의 단위는 \(\mathrm{Re}\,\psi_p\), \(\mathrm{Im}\,\psi_p\)에 대해 \(1/\sqrt{2\pi\hbar}\), \(|\psi_p|^2\)에 대해 \(1/2\pi\hbar\)이다. 파장은 \(\lambda = 2\pi\hbar/p\)이다. \(|\psi_p|^2\)이 어디서나 같으므로 이 상태의 입자는 어느 한 곳에 있지 않다.</figcaption>
+    </figure>
+    <p>파장 \(\lambda\)는 위상 \(px/\hbar\)가 \(2\pi\)만큼 늘어나는 거리이므로 \(\lambda = 2\pi\hbar/p = h/p\)이다. 5장에서 이 관계를 드브로이 관계로 다시 만난다.</p>
+    <p>정규화 상수 \(A\)를 정하자. 크기가 일정한 함수는 제곱 적분이 무한대이므로 \(\langle p|p\rangle = 1\)로 맞출 수 없다. 대신 위치 기저의 \(\langle x|x'\rangle = \delta(x - x')\)와 같은 꼴을 요구한다. 식 <a class="ref" href="#eq-delta-fourier-hbar"></a>를 쓰면</p>
+    <div class="formula">\[ \begin{aligned} \langle p|p'\rangle &= \int \psi_p^*(x)\,\psi_{p'}(x)\,dx \\ &= |A|^2 \int e^{i(p' - p)x/\hbar}\,dx \\ &= |A|^2 \cdot 2\pi\hbar\,\delta(p - p') \end{aligned} \]</div>
+    <p>이다(\(\delta(p' - p) = \delta(p - p')\)). 따라서 \(A = 1/\sqrt{2\pi\hbar}\)로 잡는다. 위상은 관례로 양의 실수를 고른다.</p>
+    <div class="formula" id="eq-xp">\[ \langle x|p\rangle = \frac{1}{\sqrt{2\pi\hbar}}\,e^{ipx/\hbar}, \qquad \langle p|p'\rangle = \delta(p - p') \]</div>
+    <p>운동량 고유 켓들도 완비성 관계를 만족한다. \(\int |p\rangle\langle p|\,dp\)의 위치 기저 행렬 원소를 구하면, 식 <a class="ref" href="#eq-delta-fourier-hbar"></a>에서 \(x\)와 \(p\)의 역할을 바꾼 식으로</p>
+    <div class="formula">\[ \int \langle x|p\rangle\langle p|x'\rangle\,dp = \frac{1}{2\pi\hbar}\int e^{ip(x - x')/\hbar}\,dp = \delta(x - x') \]</div>
+    <p>이다. 이것은 \(\langle x|\hat I|x'\rangle = \langle x|x'\rangle\)와 같다. 위치 기저에서 행렬 원소가 모두 항등 연산자와 같으므로 \(\int |p\rangle\langle p|\,dp = \hat I\)이다.</p>
   </section>
 
+  <!-- ============================================================ 3.4 -->
   <section id="s4">
     <h2>푸리에 변환</h2>
-    <p class="slot" data-slot="3.4절">아직 쓰지 않은 절입니다.</p>
+    <p>이제 같은 함수 공간에 기저가 둘 있다. 위치 기저 \(\{|x\rangle\}\)와 운동량 기저 \(\{|p\rangle\}\)다. 한 상태 \(|\psi\rangle\)를 두 기저에서 보면 성분도 두 벌이다.</p>
+    <div class="formula">\[ \psi(x) = \langle x|\psi\rangle, \qquad \phi(p) = \langle p|\psi\rangle \]</div>
+    <p>\(\psi(x)\)를 <span class="term">위치 공간 파동함수</span> <span class="en">(position-space wave function)</span>, \(\phi(p)\)를 <span class="term">운동량 공간 파동함수</span> <span class="en">(momentum-space wave function)</span>라 한다. 한 벌에서 다른 벌을 구하는 것은 2장의 기저 바꾸기(<a href="ch02.html#eq-basis-change">2장 식 (2.10)</a>)이고, 계산은 완비성 관계를 끼우는 것으로 끝난다. \(\langle p|x\rangle = \langle x|p\rangle^* = e^{-ipx/\hbar}/\sqrt{2\pi\hbar}\)이므로</p>
+    <div class="formula" id="eq-ft">\[ \begin{aligned} \phi(p) &= \int \langle p|x\rangle\langle x|\psi\rangle\,dx \\ &= \frac{1}{\sqrt{2\pi\hbar}}\int e^{-ipx/\hbar}\,\psi(x)\,dx \end{aligned} \]</div>
+    <div class="formula" id="eq-ift">\[ \begin{aligned} \psi(x) &= \int \langle x|p\rangle\langle p|\psi\rangle\,dp \\ &= \frac{1}{\sqrt{2\pi\hbar}}\int e^{ipx/\hbar}\,\phi(p)\,dp \end{aligned} \]</div>
+    <p>이다. 이 한 쌍의 식이 <span class="term">푸리에 변환</span> <span class="en">(Fourier transform)</span>과 그 역변환이다. <b>푸리에 변환은 같은 벡터를 다른 기저에서 본 성분일 뿐이다.</b> \(\langle p|x\rangle\)는 두 연속 번호 \(p, x\)를 가진 기저 바꾸기 '행렬'로, 2장의 \(U^\dagger\)가 하던 일을 한다.</p>
+
+    <h3 id="s4-parseval">기저를 바꿔도 노름은 그대로</h3>
+    <p>\(\langle\psi|\psi\rangle\)의 가운데에 두 완비성 관계 가운데 어느 것을 끼우느냐에 따라 노름을 두 가지로 계산할 수 있다.</p>
+    <div class="formula" id="eq-parseval">\[ \int |\psi(x)|^2\,dx = \langle\psi|\psi\rangle = \int |\phi(p)|^2\,dp \]</div>
+    <p>이것을 푸리에 변환의 <span class="term">파스발 정리</span> <span class="en">(Parseval's theorem)</span>라 한다. 위치 공간에서 정규화된 파동함수는 운동량 공간에서도 정규화되어 있다. 두 상태의 내적 \(\langle\chi|\psi\rangle\)도 같은 방법으로 어느 기저에서 계산해도 같다. 유니타리 기저 바꾸기가 내적을 보존한다는 <a href="ch02.html#eq-unitary-ip">2장 식 (2.9)</a>의 연속판이다.</p>
+    <div class="box math" id="math-fourier"><div class="box-h">푸리에 변환의 관례와 성질</div>
+      <p><b>관례.</b> \(2\pi\)를 어디에 두는지는 교재마다 다르다. 이 책은 변환과 역변환에 \(1/\sqrt{2\pi\hbar}\)를 똑같이 나누어 둔다. 수학과 공학 교재에서는 \(\hbar\) 없이 파수 \(k\)를 쓰고 \(1/2\pi\)를 한쪽에 몰아 두는 관례도 흔하다(보아스 7장이 그렇다). 관례가 달라도 내용은 같지만, 공식을 옮겨 올 때는 상수를 확인해야 한다.</p>
+      <p><b>성질.</b> \(\psi(x)\)의 변환이 \(\phi(p)\)일 때 다음이 성립한다. 모두 식 <a class="ref" href="#eq-ft"></a>에 넣어 치환 적분이나 부분 적분을 하면 확인된다. 예를 들어 첫째 줄은 \(u = x - a\)로 치환하면 \(e^{-ip(u + a)/\hbar}\)에서 \(e^{-ipa/\hbar}\)가 적분 밖으로 나온다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>위치 공간</th><th>운동량 공간</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr><td>\(\psi(x - a)\)</td><td>\(e^{-ipa/\hbar}\,\phi(p)\)</td><td>평행 이동은 위상을 곱한다</td></tr>
+          <tr><td>\(e^{ip_0x/\hbar}\,\psi(x)\)</td><td>\(\phi(p - p_0)\)</td><td>위상을 곱하면 평행 이동한다</td></tr>
+          <tr><td>\(\psi(x/c)\), \(c > 0\)</td><td>\(c\,\phi(cp)\)</td><td>넓히면 좁아진다</td></tr>
+          <tr><td>\(d\psi/dx\)</td><td>\((ip/\hbar)\,\phi(p)\)</td><td>미분은 곱셈이 된다</td></tr>
+          <tr><td>\(x\,\psi(x)\)</td><td>\(i\hbar\,d\phi/dp\)</td><td>곱셈은 미분이 된다</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <h3 id="s4-gauss">가우스 파속</h3>
+    <div class="box ex" id="ex-gauss-ft"><div class="box-h">가우스 파속의 푸리에 변환</div>
+      <p>위치 공간에서 폭이 \(\sigma\)인 가우스 함수에 위상 \(e^{ip_0x/\hbar}\)를 곱한 상태</p>
+      <div class="formula" id="eq-gauss-packet">\[ \psi(x) = \frac{1}{(\pi\sigma^2)^{1/4}}\,e^{-x^2/2\sigma^2}\,e^{ip_0x/\hbar} \]</div>
+      <p>를 <span class="term">가우스 파속</span> <span class="en">(Gaussian wave packet)</span>이라 한다. 가우스 적분의 기본형(\(a = 1/\sigma^2\))으로 \(\int |\psi|^2\,dx = (\pi\sigma^2)^{-1/2}\sqrt{\pi\sigma^2} = 1\)이므로 정규화되어 있다.</p>
+      <p>운동량 공간 파동함수를 구하자. 식 <a class="ref" href="#eq-ft"></a>에 넣으면 지수가 \(-\frac{x^2}{2\sigma^2} + \frac{i(p_0 - p)}{\hbar}\,x\)이므로, 식 <a class="ref" href="#eq-gauss-shift"></a>에 \(a = 1/2\sigma^2\), \(b = i(p_0 - p)/\hbar\)를 넣는다. \(\sqrt{\pi/a} = \sqrt{2\pi}\,\sigma\), \(b^2/4a = -\sigma^2(p - p_0)^2/2\hbar^2\)이므로</p>
+      <div class="formula">\[ \begin{aligned} \phi(p) &= \frac{1}{\sqrt{2\pi\hbar}}\cdot\frac{\sqrt{2\pi}\,\sigma}{(\pi\sigma^2)^{1/4}}\;e^{-\sigma^2(p - p_0)^2/2\hbar^2} \\ &= \Big(\frac{\sigma^2}{\pi\hbar^2}\Big)^{1/4} e^{-\sigma^2(p - p_0)^2/2\hbar^2} \end{aligned} \]</div>
+      <p>이다. 운동량 공간에서도 가우스 함수이고, 중심은 \(p_0\), 폭은 \(\hbar/\sigma\)다. 위치 공간에서 곱한 위상 \(e^{ip_0x/\hbar}\)가 운동량 공간에서 중심을 \(p_0\)로 옮겼다(수학 상자의 둘째 성질).</p>
+      <p>두 분포 \(|\psi(x)|^2\)과 \(|\phi(p)|^2\)의 표준 편차를 구해 보자. \(|\psi|^2 = (\pi\sigma^2)^{-1/2}e^{-x^2/\sigma^2}\)에 모멘트 공식(\(a = 1/\sigma^2\))을 쓰면 \(\int x^2|\psi|^2\,dx = \sigma^2/2\)이고, 평균이 0이므로 표준 편차는 \(\Delta x = \sigma/\sqrt 2\)이다. 같은 계산으로 \(\Delta p = \hbar/(\sigma\sqrt 2)\)이다. 따라서</p>
+      <div class="formula">\[ \Delta x\,\Delta p = \frac{\sigma}{\sqrt 2}\cdot\frac{\hbar}{\sigma\sqrt 2} = \frac{\hbar}{2} \]</div>
+      <p>이다. 위치에서 좁은 파속은 운동량에서 넓고, 위치에서 넓은 파속은 운동량에서 좁다(그림 3-5). 곱은 \(\sigma\)와 상관없이 \(\hbar/2\)이다. 9장에서 이 값이 모든 상태에 대한 \(\Delta x\,\Delta p\)의 최솟값임을 보인다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:3-5a--><svg viewBox="0 0 280 226" role="img" aria-label="세 가우스 파속의 위치 분포"><defs><marker id="f35a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="16" y1="196" x2="264" y2="196" class="s-line" stroke-width="1.2" marker-end="url(#f35a-dim)"/><line x1="75.5" y1="196" x2="75.5" y2="200" class="s-line" stroke-width="1.2"/><text x="75.5" y="213" class="t-dim" text-anchor="middle">−2</text><line x1="135" y1="196" x2="135" y2="200" class="s-line" stroke-width="1.2"/><text x="135" y="213" class="t-dim" text-anchor="middle">0</text><line x1="194.5" y1="196" x2="194.5" y2="200" class="s-line" stroke-width="1.2"/><text x="194.5" y="213" class="t-dim" text-anchor="middle">2</text><text x="266" y="189" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 195.4 L39.1 193.4 L48.7 191.7 L58.4 189.3 L67.3 186.3 L76.2 182.7 L103.8 169.3 L113.4 165.1 L124.6 161.9 L135 160.8 L145.4 161.9 L156.6 165.1 L166.2 169.3 L193.8 182.7 L202.7 186.3 L211.6 189.3 L221.3 191.7 L230.9 193.4 L254 195.4" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M16 196 L55.4 195.9 L68.8 195.5 L79.2 193.9 L83.7 192.4 L87.4 190.6 L91.1 188 L94.8 184.6 L101.5 176.1 L108.2 164.7 L120.1 141.2 L125.3 132.6 L128.3 129.1 L130.5 127.2 L132.8 126 L135 125.6 L137.2 126 L139.5 127.2 L141.7 129.1 L144.7 132.6 L149.9 141.2 L161.8 164.7 L168.5 176.1 L175.2 184.6 L178.9 188 L182.6 190.6 L186.3 192.4 L190.8 193.9 L201.2 195.5 L214.6 195.9 L254 196" class="s-acc2" stroke-width="2.2"/><path d="M16 196 L95.6 195.9 L100 195.4 L103 194.6 L105.3 193.4 L107.5 191.4 L109.7 188.2 L111.9 183.3 L114.2 176.2 L116.4 166.5 L120.1 144.2 L129.8 71.4 L132.8 58.3 L134.3 55.5 L135 55.2 L135.7 55.5 L137.2 58.3 L140.2 71.4 L149.9 144.2 L153.6 166.5 L155.8 176.2 L158.1 183.3 L160.3 188.2 L162.5 191.4 L164.8 193.4 L167 194.6 L170 195.4 L174.4 195.9 L254 196" class="s-acc" stroke-width="2.4"/><text x="147.5" y="61.2" class="t-math acc" text-anchor="start"><tspan font-style="italic">σ</tspan> = 0.5</text><text x="164.2" y="137.3" class="t-math acc2" text-anchor="start"><tspan font-style="italic">σ</tspan> = 1</text><text x="199" y="162.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">σ</tspan> = 2</text><text x="12" y="22" class="t-b" text-anchor="start">(가) |<tspan font-style="italic">ψ</tspan>(<tspan font-style="italic">x</tspan>)|<tspan baseline-shift="super" font-size="72%">2</tspan></text></svg><!--/fig:3-5a--><!--fig:3-5b--><svg viewBox="0 0 280 226" role="img" aria-label="같은 세 파속의 운동량 분포. 위치에서 좁은 것이 운동량에서 넓다"><defs><marker id="f35b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="16" y1="196" x2="264" y2="196" class="s-line" stroke-width="1.2" marker-end="url(#f35b-dim)"/><line x1="75.5" y1="196" x2="75.5" y2="200" class="s-line" stroke-width="1.2"/><text x="75.5" y="213" class="t-dim" text-anchor="middle">−2</text><line x1="135" y1="196" x2="135" y2="200" class="s-line" stroke-width="1.2"/><text x="135" y="213" class="t-dim" text-anchor="middle">0</text><line x1="194.5" y1="196" x2="194.5" y2="200" class="s-line" stroke-width="1.2"/><text x="194.5" y="213" class="t-dim" text-anchor="middle">2</text><text x="266" y="189" class="t-math dim" text-anchor="end"><tspan font-style="italic">p</tspan></text><path d="M16 196 L95.6 195.9 L100 195.4 L103 194.6 L105.3 193.4 L107.5 191.4 L109.7 188.2 L111.9 183.3 L114.2 176.2 L116.4 166.5 L120.1 144.2 L129.8 71.4 L132.8 58.3 L134.3 55.5 L135 55.2 L135.7 55.5 L137.2 58.3 L140.2 71.4 L149.9 144.2 L153.6 166.5 L155.8 176.2 L158.1 183.3 L160.3 188.2 L162.5 191.4 L164.8 193.4 L167 194.6 L170 195.4 L174.4 195.9 L254 196" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M16 196 L55.4 195.9 L68.8 195.5 L79.2 193.9 L83.7 192.4 L87.4 190.6 L91.1 188 L94.8 184.6 L101.5 176.1 L108.2 164.7 L120.1 141.2 L125.3 132.6 L128.3 129.1 L130.5 127.2 L132.8 126 L135 125.6 L137.2 126 L139.5 127.2 L141.7 129.1 L144.7 132.6 L149.9 141.2 L161.8 164.7 L168.5 176.1 L175.2 184.6 L178.9 188 L182.6 190.6 L186.3 192.4 L190.8 193.9 L201.2 195.5 L214.6 195.9 L254 196" class="s-acc2" stroke-width="2.2"/><path d="M16 195.4 L39.1 193.4 L48.7 191.7 L58.4 189.3 L67.3 186.3 L76.2 182.7 L103.8 169.3 L113.4 165.1 L124.6 161.9 L135 160.8 L145.4 161.9 L156.6 165.1 L166.2 169.3 L193.8 182.7 L202.7 186.3 L211.6 189.3 L221.3 191.7 L230.9 193.4 L254 195.4" class="s-acc" stroke-width="2.4"/><text x="147.5" y="61.2" class="t-math dim" text-anchor="start"><tspan font-style="italic">σ</tspan> = 2</text><text x="164.2" y="137.3" class="t-math acc2" text-anchor="start"><tspan font-style="italic">σ</tspan> = 1</text><text x="199" y="162.3" class="t-math acc" text-anchor="start"><tspan font-style="italic">σ</tspan> = 0.5</text><text x="12" y="22" class="t-b" text-anchor="start">(나) |<tspan font-style="italic">φ</tspan>(<tspan font-style="italic">p</tspan>)|<tspan baseline-shift="super" font-size="72%">2</tspan></text></svg><!--/fig:3-5b--></div>
+      <figcaption><b>그림 3-5.</b> 폭이 다른 세 가우스 파속(\(p_0 = 0\), \(\sigma = 0.5, 1, 2\))의 (가) 위치 분포 \(|\psi(x)|^2\)과 (나) 운동량 분포 \(|\phi(p)|^2\). \(x\)와 \(\sigma\)는 임의의 길이 단위 \(\ell\)로, \(p\)는 \(\hbar/\ell\)로 쟀다. 같은 색은 같은 상태다. 위치에서 가장 좁은 파속(\(\sigma = 0.5\))이 운동량에서는 가장 넓다.</figcaption>
+    </figure>
+
+    <h3 id="s4-ops">운동량 표현에서 본 연산자</h3>
+    <p>위치 기저에서 \(\hat x\)는 곱하기, \(\hat p\)는 미분이었다. 운동량 기저에서는 어떨까? \(\hat p\)는 쉽다. \(\hat p\)가 에르미트이고 고유값이 실수이므로 \(\langle p|\hat p = p\,\langle p|\)이고</p>
+    <div class="formula">\[ \langle p|\hat p|\psi\rangle = p\,\phi(p) \]</div>
+    <p>이다. 운동량 기저에서 \(\hat p\)는 \(p\)를 곱하는 연산자다. 연산자가 자기 고유 기저에서 대각 행렬이 되는 것과 같다. \(\hat x\)는 위치 기저의 완비성 관계를 끼워 계산한다. \(x\,e^{-ipx/\hbar} = i\hbar\,\frac{d}{dp}\,e^{-ipx/\hbar}\)이므로</p>
+    <div class="formula" id="eq-x-in-p">\[ \begin{aligned} \langle p|\hat x|\psi\rangle &= \frac{1}{\sqrt{2\pi\hbar}}\int x\,e^{-ipx/\hbar}\,\psi(x)\,dx \\ &= i\hbar\,\frac{d}{dp}\,\frac{1}{\sqrt{2\pi\hbar}}\int e^{-ipx/\hbar}\,\psi(x)\,dx \\ &= i\hbar\,\frac{d\phi}{dp} \end{aligned} \]</div>
+    <p>이다(둘째 줄에서 미분과 적분의 순서를 바꾸었다). 결과를 모으면 \(x\)와 \(p\)의 역할이 거의 대칭이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>위치 표현</th><th>운동량 표현</th></tr></thead>
+      <tbody>
+        <tr><td>상태</td><td>\(\psi(x) = \langle x|\psi\rangle\)</td><td>\(\phi(p) = \langle p|\psi\rangle\)</td></tr>
+        <tr><td>\(\hat x\)</td><td>\(x\) 곱하기</td><td>\(i\hbar\,d/dp\)</td></tr>
+        <tr><td>\(\hat p\)</td><td>\(-i\hbar\,d/dx\)</td><td>\(p\) 곱하기</td></tr>
+        <tr><td>정규화</td><td>\(\int |\psi|^2\,dx = 1\)</td><td>\(\int |\phi|^2\,dp = 1\)</td></tr>
+      </tbody>
+    </table></div>
+    <p>운동량 표현에서도 정준 교환 관계가 성립하는지 확인해 보자. \(\hat x\hat p\,\phi = i\hbar\,(p\phi)' = i\hbar\,(\phi + p\phi')\), \(\hat p\hat x\,\phi = p\cdot i\hbar\,\phi'\)이므로 \([\hat x, \hat p]\,\phi = i\hbar\,\phi\)이다. 교환 관계는 기저와 상관없는 연산자 사이의 관계이므로 당연한 결과다.</p>
+    <div class="callout tip"><strong>날카로운 모양에는 큰 운동량이 필요하다</strong><p>수학 상자의 넷째 성질에 따르면 \(\psi\)를 미분하는 것은 \(\phi\)에 \(ip/\hbar\)를 곱하는 것이다. 위치 공간에서 급하게 변하는 함수는 운동량 공간에서 \(|p|\)가 큰 성분을 많이 가진다는 뜻이다. 매끄러운 가우스 함수의 \(\phi(p)\)는 큰 \(|p|\)에서 지수적으로 빨리 줄지만, 꺾인 점이 있는 \(e^{-|x|/a}\)의 \(\phi(p)\)는 \(1/p^2\)으로 천천히 줄고(<a class="ref" href="#prob-exp-ft"></a>), 끊긴 점이 있는 직사각형의 \(\phi(p)\)는 \(1/p\)로 더 천천히 준다(<a class="ref" href="#prob-box-ft"></a>).</p></div>
   </section>
 
+  <!-- ============================================================ 3.5 -->
   <section id="s5">
     <h2>연속 고유값의 정규화</h2>
-    <p class="slot" data-slot="3.5절">아직 쓰지 않은 절입니다.</p>
+    <p>\(\hat x\)와 \(\hat p\)는 고유값이 실수 전체를 채운다. 이 장에서는 이런 연산자의 고유벡터를 \(\langle x|x'\rangle = \delta(x - x')\), \(\langle p|p'\rangle = \delta(p - p')\)처럼 델타 함수로 정규화했다. 이 절에서는 이 <span class="term">델타 정규화</span> <span class="en">(delta-function normalization)</span>가 무엇을 뜻하는지, 왜 필요한지, 유한한 상자의 이산 정규화와 어떻게 이어지는지 정리한다.</p>
+
+    <h3 id="s5-dict">이산과 연속의 사전</h3>
+    <p>연속 스펙트럼을 가진 에르미트 연산자 \(\hat\Omega\)의 고유 켓 \(|\omega\rangle\)에 대해, 유한 차원의 공식은 다음 규칙으로 옮겨진다. <b>합 \(\sum_i\)은 적분 \(\int d\omega\)로, 크로네커 델타 \(\delta_{ij}\)는 디랙 델타 \(\delta(\omega - \omega')\)로 바꾼다.</b></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>이산 스펙트럼</th><th>연속 스펙트럼</th></tr></thead>
+      <tbody>
+        <tr><td>정규직교</td><td>\(\langle\omega_i|\omega_j\rangle = \delta_{ij}\)</td><td>\(\langle\omega|\omega'\rangle = \delta(\omega - \omega')\)</td></tr>
+        <tr><td>완비성</td><td>\(\sum_i |\omega_i\rangle\langle\omega_i| = \hat I\)</td><td>\(\int |\omega\rangle\langle\omega|\,d\omega = \hat I\)</td></tr>
+        <tr><td>전개</td><td>\(|\psi\rangle = \sum_i c_i\,|\omega_i\rangle\)</td><td>\(|\psi\rangle = \int c(\omega)\,|\omega\rangle\,d\omega\)</td></tr>
+        <tr><td>성분</td><td>\(c_i = \langle\omega_i|\psi\rangle\)</td><td>\(c(\omega) = \langle\omega|\psi\rangle\)</td></tr>
+        <tr><td>노름</td><td>\(\sum_i |c_i|^2\)</td><td>\(\int |c(\omega)|^2\,d\omega\)</td></tr>
+        <tr><td>스펙트럼 분해</td><td>\(\sum_i \omega_i\,|\omega_i\rangle\langle\omega_i|\)</td><td>\(\int \omega\,|\omega\rangle\langle\omega|\,d\omega\)</td></tr>
+      </tbody>
+    </table></div>
+    <p>두 열의 공식들은 서로를 정한다. 특히 완비성 관계를 정하면 정규화는 저절로 정해진다. 3.1절에서처럼 \(c(\omega) = \langle\omega|\psi\rangle = \int \langle\omega|\omega'\rangle\,c(\omega')\,d\omega'\)이 모든 \(c\)에 대해 성립하려면 \(\langle\omega|\omega'\rangle = \delta(\omega - \omega')\)여야 하기 때문이다.</p>
+
+    <h3 id="s5-improper">정규화할 수 없는 고유벡터</h3>
+    <p>델타 정규화에는 대가가 있다. \(\langle p|p\rangle = \delta(0)\)은 무한대다. 평면파 \(e^{ipx/\hbar}\)는 제곱 적분이 무한대여서 힐베르트 공간에 들어 있지 않다. 위치 고유 상태 \(\delta(x - x_0)\)도 마찬가지다(델타의 제곱은 적분할 수 없다). 곧 \(|x\rangle\)와 \(|p\rangle\)는 물리적인 상태가 아니다. 공간 전체에 고르게 퍼진 파동이나 폭이 0인 점은 실제로 만들 수 없는 이상화다.</p>
+    <p>그래도 이들은 기저로서는 훌륭하다. 물리적인 상태는 이들을 중첩해 만든다.</p>
+    <div class="formula" id="eq-packet">\[ |\psi\rangle = \int \phi(p)\,|p\rangle\,dp, \qquad \int |\phi(p)|^2\,dp = 1 \]</div>
+    <p>이렇게 운동량이 퍼져 있는 상태를 <span class="term">파속</span> <span class="en">(wave packet)</span>이라 한다. 3.4절의 가우스 파속이 그 예이고, 두 이상화 사이를 잇는다. \(\sigma \to \infty\)이면 위치로는 한없이 퍼지고 운동량은 \(p_0\) 하나로 모여, 모양이 평면파 \(e^{ip_0x/\hbar}\)에 다가간다. \(\sigma \to 0\)이면 위치가 한 점에 모여 모양이 델타 봉우리에 다가간다. 평면파와 델타는 정규화할 수 있는 상태들의 극한이다.</p>
+    <div class="callout deep"><strong>엄밀하게는</strong><p>\(|x\rangle\), \(|p\rangle\)처럼 힐베르트 공간 밖에 있는 고유벡터를 <span class="term">일반화된 고유벡터</span> <span class="en">(generalized eigenvector)</span>라 한다. 수학적으로는 힐베르트 공간을 조금 넓힌 리그드 힐베르트 공간 <span class="en">(rigged Hilbert space)</span>에서 이들을 엄밀하게 다룬다. 무한 차원 에르미트 연산자의 스펙트럼 정리도 성립하지만, 연산자가 어떤 함수에 작용할 수 있는지(정의역)까지 따져야 한다. 이 책에서는 위의 사전을 믿고 계산한다.</p></div>
+
+    <h3 id="s5-box">상자 정규화</h3>
+    <p>무한대가 불편하면, 계를 길이 \(L\)인 고리에 가두어 스펙트럼을 이산으로 만든 뒤 마지막에 \(L \to \infty\)로 보내는 방법이 있다. 고리를 한 바퀴 돌면 제자리이므로 함수는 주기 조건 \(\psi(x + L) = \psi(x)\)를 만족한다. 이 조건에서는 경계 항이 사라지므로 \(\hat p\)는 에르미트다(식 <a class="ref" href="#eq-p-boundary"></a>). 고유함수 \(e^{ipx/\hbar}\)가 주기 조건을 만족하려면 \(e^{ipL/\hbar} = 1\)이어야 하므로</p>
+    <div class="formula" id="eq-box-p">\[ p_n = \frac{2\pi\hbar}{L}\,n, \qquad n = 0, \pm 1, \pm 2, \ldots \]</div>
+    <p>로 운동량이 띄엄띄엄해진다. 이제 고유함수는 고리 위에서 제곱 적분할 수 있고, 보통의 방법으로 정규화된다. 고리 한 바퀴를 \(-L/2 \le x \le L/2\)로 잡으면</p>
+    <div class="formula">\[ \begin{gathered} \psi_n(x) = \frac{1}{\sqrt L}\,e^{ip_nx/\hbar}, \\ \langle n|m\rangle = \frac{1}{L}\int_{-L/2}^{L/2} e^{2\pi i(m - n)x/L}\,dx = \delta_{nm} \end{gathered} \]</div>
+    <p>이다(\(m \neq n\)이면 한 바퀴 동안 위상이 \(2\pi\)의 정수배만큼 돌아 적분이 0이다). 이웃한 운동량 사이의 간격은 \(\Delta p = 2\pi\hbar/L\)이고, \(L\)이 커질수록 촘촘해진다(그림 3-6). 운동량 구간 \(dp\)에 들어 있는 상태의 수는 \(dp/\Delta p = L\,dp/2\pi\hbar\)이므로, \(L\)이 크면 상태에 대한 합을 적분으로 바꿀 수 있다.</p>
+    <div class="formula" id="eq-box-limit">\[ \sum_n F(p_n) \;\longrightarrow\; \frac{L}{2\pi\hbar}\int F(p)\,dp \]</div>
+    <p>이것을 완비성 관계 \(\sum_n |n\rangle\langle n| = \hat I\)에 쓰면 \(\int \frac{L}{2\pi\hbar}\,|n\rangle\langle n|\,dp = \hat I\)이다. 따라서 켓의 크기를 다시 맞추어</p>
+    <div class="formula">\[ |p\rangle = \sqrt{\frac{L}{2\pi\hbar}}\;|n\rangle \]</div>
+    <p>로 두면 \(\int |p\rangle\langle p|\,dp = \hat I\)가 되고, 위치 공간 파동함수는 \(\langle x|p\rangle = \sqrt{L/2\pi\hbar}\cdot e^{ipx/\hbar}/\sqrt L = e^{ipx/\hbar}/\sqrt{2\pi\hbar}\)로 식 <a class="ref" href="#eq-xp"></a>와 정확히 같아진다. 내적은 \(\langle p|p'\rangle = \frac{L}{2\pi\hbar}\,\delta_{nm}\)이다. 높이가 \(1/\Delta p\)이고 폭이 \(\Delta p\)인, 넓이 1인 막대다. \(L \to \infty\)이면 이것이 \(\delta(p - p')\)가 된다. 3.1절에서 \(\delta_{ij}/\Delta\)가 \(\delta(x - x')\)가 된 것과 똑같은 일이 운동량 쪽에서 일어난 것이다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:3-6--><svg viewBox="0 0 360 206" role="img" aria-label="고리 길이가 길어질수록 허용되는 운동량의 간격이 줄어들어 연속에 가까워진다"><defs><marker id="f36-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="92" y1="58" x2="352" y2="58" class="s-grid"/><text x="10" y="63" class="t-dim" text-anchor="start">고리 길이 <tspan font-style="italic">L</tspan></text><circle cx="99.9" cy="58" r="3.4" class="f-acc"/><circle cx="119.6" cy="58" r="3.4" class="f-acc"/><circle cx="139.3" cy="58" r="3.4" class="f-acc"/><circle cx="158.9" cy="58" r="3.4" class="f-acc"/><circle cx="178.6" cy="58" r="3.4" class="f-acc"/><circle cx="198.3" cy="58" r="3.4" class="f-acc"/><circle cx="218" cy="58" r="3.4" class="f-acc"/><circle cx="237.7" cy="58" r="3.4" class="f-acc"/><circle cx="257.4" cy="58" r="3.4" class="f-acc"/><circle cx="277.1" cy="58" r="3.4" class="f-acc"/><circle cx="296.8" cy="58" r="3.4" class="f-acc"/><circle cx="316.4" cy="58" r="3.4" class="f-acc"/><circle cx="336.1" cy="58" r="3.4" class="f-acc"/><path d="M218 52 V47 H237.7 V52" class="s-line" stroke-width="1.2"/><text x="243.7" y="49" class="t-math dim" text-anchor="start">Δ<tspan font-style="italic">p</tspan> = 2πħ/<tspan font-style="italic">L</tspan></text><line x1="92" y1="116" x2="352" y2="116" class="s-grid"/><text x="10" y="121" class="t-dim" text-anchor="start">고리 길이 2<tspan font-style="italic">L</tspan></text><circle cx="99.9" cy="116" r="2.8" class="f-acc2"/><circle cx="109.7" cy="116" r="2.8" class="f-acc2"/><circle cx="119.6" cy="116" r="2.8" class="f-acc2"/><circle cx="129.4" cy="116" r="2.8" class="f-acc2"/><circle cx="139.3" cy="116" r="2.8" class="f-acc2"/><circle cx="149.1" cy="116" r="2.8" class="f-acc2"/><circle cx="158.9" cy="116" r="2.8" class="f-acc2"/><circle cx="168.8" cy="116" r="2.8" class="f-acc2"/><circle cx="178.6" cy="116" r="2.8" class="f-acc2"/><circle cx="188.5" cy="116" r="2.8" class="f-acc2"/><circle cx="198.3" cy="116" r="2.8" class="f-acc2"/><circle cx="208.2" cy="116" r="2.8" class="f-acc2"/><circle cx="218" cy="116" r="2.8" class="f-acc2"/><circle cx="227.8" cy="116" r="2.8" class="f-acc2"/><circle cx="237.7" cy="116" r="2.8" class="f-acc2"/><circle cx="247.5" cy="116" r="2.8" class="f-acc2"/><circle cx="257.4" cy="116" r="2.8" class="f-acc2"/><circle cx="267.2" cy="116" r="2.8" class="f-acc2"/><circle cx="277.1" cy="116" r="2.8" class="f-acc2"/><circle cx="286.9" cy="116" r="2.8" class="f-acc2"/><circle cx="296.8" cy="116" r="2.8" class="f-acc2"/><circle cx="306.6" cy="116" r="2.8" class="f-acc2"/><circle cx="316.4" cy="116" r="2.8" class="f-acc2"/><circle cx="326.3" cy="116" r="2.8" class="f-acc2"/><circle cx="336.1" cy="116" r="2.8" class="f-acc2"/><path d="M218 110 V105 H227.8 V110" class="s-line" stroke-width="1.2"/><text x="233.8" y="107" class="t-math dim" text-anchor="start">Δ<tspan font-style="italic">p</tspan> = πħ/<tspan font-style="italic">L</tspan></text><line x1="92" y1="172" x2="344" y2="172" class="s-acc" stroke-width="4" stroke-linecap="round"/><text x="10" y="177" class="t-dim" text-anchor="start"><tspan font-style="italic">L</tspan> → ∞</text><line x1="350" y1="172" x2="358" y2="172" class="s-line" stroke-width="1.2" marker-end="url(#f36-dim)"/><text x="358" y="190" class="t-math dim" text-anchor="end"><tspan font-style="italic">p</tspan></text><line x1="218" y1="64" x2="218" y2="68" class="s-line" stroke-width="1.2"/><line x1="218" y1="122" x2="218" y2="126" class="s-line" stroke-width="1.2"/><line x1="218" y1="178" x2="218" y2="182" class="s-line" stroke-width="1.2"/><text x="218" y="196" class="t-dim" text-anchor="middle">0</text></svg><!--/fig:3-6--></div>
+      <figcaption><b>그림 3-6.</b> 고리 위에서 허용되는 운동량 \(p_n = 2\pi\hbar n/L\). 고리가 두 배 길어지면 간격 \(\Delta p\)가 반으로 줄고, \(L \to \infty\)에서는 운동량이 실수 전체를 채운다. 같은 폭의 운동량 구간에 들어 있는 상태의 수는 \(L\)에 비례한다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-box-numbers"><div class="box-h">상자는 얼마나 커야 연속인가</div>
+      <p>전자를 고리에 가두었을 때 이웃한 운동량의 간격 \(\Delta p = 2\pi\hbar/L = h/L\)을 속도 간격 \(\Delta v = \Delta p/m_e\)로 바꾸어 보자. \(h = 6.626\,070\,15\times10^{-34}\ \mathrm{J\,s}\)(정의값)와 \(m_e = 9.109\times10^{-31}\ \mathrm{kg}\)(유효숫자 4자리)를 쓴다.</p>
+      <div class="formula">\[ \begin{aligned} L = 1\ \mathrm{cm}: &\quad \Delta v = \frac{h}{m_e L} \approx 7.27\times10^{-2}\ \mathrm{m/s}, \\ L = 1\ \mathrm{nm}: &\quad \Delta v \approx 7.27\times10^{5}\ \mathrm{m/s} \end{aligned} \]</div>
+      <p>상온(300 K)에서 전자의 열운동 속도는 \(\sqrt{3k_BT/m_e} \approx 1.2\times10^5\ \mathrm{m/s}\)이다. 1 cm 고리의 속도 간격은 이보다 백만 배 넘게 작아서 사실상 연속이다. 실험실 크기의 계에서 상자의 크기가 물리적 결과에 나타나지 않는 이유다. 반면 분자 크기(1 nm)의 고리에서는 간격이 열운동 속도보다 커서 운동량이 띄엄띄엄한 것이 그대로 드러난다. 원자와 분자 크기의 계에서 양자화가 눈에 띄는 이유다(7장, 15장).</p>
+    </div>
+    <p>상자 정규화는 계산을 위한 장부 정리 방법이다. 정규화할 수 있는 상태에 대한 물리적 결과는 \(L \to \infty\)에서 \(L\)에 의존하지 않는다. 21장의 산란 이론이나 통계역학의 상태 밀도 계산에서 자주 쓴다.</p>
+
+    <h3 id="s5-relabel">이름표를 바꾸면 정규화도 바뀐다</h3>
+    <p>운동량 대신 파수 \(k = p/\hbar\)로 고유 켓에 이름을 붙이는 교재도 많다. 같은 상태를 \(|k\rangle\)로 부르고 \(\langle k|k'\rangle = \delta(k - k')\)로 정규화하면, 식 <a class="ref" href="#eq-delta-fourier"></a>에 따라 \(\langle x|k\rangle = e^{ikx}/\sqrt{2\pi}\)이다. 그런데 식 <a class="ref" href="#eq-delta-scale"></a>에 따라 \(\delta(k - k') = \delta\big((p - p')/\hbar\big) = \hbar\,\delta(p - p')\)이므로, 두 이름표의 켓은 크기가 다르다.</p>
+    <div class="formula" id="eq-relabel">\[ |p\rangle = \frac{1}{\sqrt\hbar}\,|k\rangle \qquad (k = p/\hbar) \]</div>
+    <p>확인해 보면 \(\langle p|p'\rangle = \frac1\hbar\langle k|k'\rangle = \frac1\hbar\cdot\hbar\,\delta(p - p') = \delta(p - p')\)이다. 이산 스펙트럼에서는 고유벡터의 길이가 1로 정해져 있어 이름표가 정규화에 영향을 주지 않았다. 연속 스펙트럼에서는 델타의 넓이가 이름표의 눈금에 따라 달라지므로 정규화 상수도 달라진다(<a class="ref" href="#prob-relabel"></a>).</p>
+    <div class="callout warn"><strong>\(1/\sqrt{2\pi}\)인가 \(1/\sqrt{2\pi\hbar}\)인가</strong><p>평면파의 정규화 상수가 교재마다 다르게 보이는 것은 대개 고유 켓을 \(k\)로 부르느냐 \(p\)로 부르느냐의 차이다. 둘 다 옳다. 다른 교재의 공식을 옮겨 올 때는 그 교재가 어떤 이름표와 정규화를 썼는지 먼저 확인하자.</p></div>
+
+    <h3 id="s5-spectral">연속 스펙트럼의 연산자 함수와 평행 이동</h3>
+    <p>사전의 마지막 줄에 따라 \(\hat p = \int p\,|p\rangle\langle p|\,dp\)로 쓸 수 있고, <a href="ch02.html#eq-function">2장 식 (2.15)</a>의 연산자 함수도 그대로 옮겨진다.</p>
+    <div class="formula" id="eq-func-p">\[ f(\hat p) = \int f(p)\,|p\rangle\langle p|\,dp \]</div>
+    <p>운동량 표현에서 \(f(\hat p)\)는 \(\phi(p)\)에 \(f(p)\)를 곱하는 연산자다. 가장 중요한 예는 지수 함수다.</p>
+    <div class="box ex" id="ex-translation"><div class="box-h">운동량은 평행 이동을 만든다</div>
+      <p>\(\hat T(a) = e^{-i\hat p a/\hbar}\)가 파동함수에 무엇을 하는지 보자. 운동량 표현에서는 \(\phi(p)\)에 \(e^{-ipa/\hbar}\)를 곱한다. <a class="ref" href="#math-fourier"></a>의 첫째 성질에 따르면, 이것은 위치 공간에서 \(\psi(x)\)를 \(\psi(x - a)\)로 바꾸는 것이다.</p>
+      <div class="formula" id="eq-translation">\[ e^{-i\hat p a/\hbar}\,\psi(x) = \psi(x - a) \]</div>
+      <p>곧 \(\hat T(a)\)는 파동함수를 \(+a\)만큼 평행 이동한다. 위치 공간에서 직접 확인할 수도 있다. \(-i\hat p a/\hbar = -a\,d/dx\)이므로 지수 함수의 급수는</p>
+      <div class="formula">\[ e^{-a\,d/dx}\,\psi(x) = \sum_{n=0}^{\infty} \frac{(-a)^n}{n!}\,\frac{d^n\psi}{dx^n} = \psi(x - a) \]</div>
+      <p>이다. 마지막 등호는 \(\psi(x - a)\)를 \(x\) 둘레에서 테일러 전개한 것이다. \(\hat p\)가 에르미트이므로 \(\hat T(a)\)는 유니타리이고(<a href="ch02.html#thm-exp-unitary">2장 정리 2.6</a>), 평행 이동은 노름을 바꾸지 않는다. <a href="ch02.html#ex-exp-pauli">2장 예제 2.11</a>에서 \(\sigma_y\)가 회전의 생성자였듯, \(\hat p\)는 평행 이동의 생성자다. 13장에서 이 관계가 운동량 보존과 공간의 균일성을 잇는다.</p>
+    </div>
+
+    <h3 id="s5-mixed">이산과 연속이 함께 있는 스펙트럼</h3>
+    <p>연산자에 따라서는 스펙트럼의 일부는 이산이고 일부는 연속이다. 7장의 유한한 퍼텐셜 우물에 든 입자는 에너지가 띄엄띄엄한 속박 상태 \(|n\rangle\)과, 우물을 벗어나 에너지가 연속인 산란 상태 \(|E\rangle\)를 함께 가진다. 이때 완비성 관계는 두 부분을 모두 더해야 성립한다.</p>
+    <div class="formula" id="eq-mixed">\[ \sum_n |n\rangle\langle n| + \int |E\rangle\langle E|\,dE = \hat I \]</div>
+    <p>속박 상태는 보통처럼 \(\langle n|m\rangle = \delta_{nm}\)으로, 산란 상태는 \(\langle E|E'\rangle = \delta(E - E')\)로 정규화하고, 두 종류는 서로 직교한다. 같은 에너지에 산란 상태가 여럿이면(예를 들어 왼쪽으로 가는 파동과 오른쪽으로 가는 파동) 그 이름표에 대한 합도 붙는다. 15장의 수소 원자도 이런 구조다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>함수는 성분의 번호가 연속 변수 \(x\)인 벡터이고, 성분은 \(\psi(x) = \langle x|\psi\rangle\)이다. 합에 칸의 폭을 곱한 극한이 적분이 되어 \(\langle f|g\rangle = \int f^* g\,dx\)이다. \(\int |\psi|^2\,dx &lt; \infty\)인 함수들이 힐베르트 공간 \(L^2\)를 이룬다.</li>
+      <li>함수 공간은 무한 차원이다. 사인 함수처럼 셀 수 있는 정규직교 기저로 전개할 수 있지만(푸리에 급수), 무한 차원에서는 정규직교 벡터가 무한히 많다고 해서 완비한 것은 아니다.</li>
+      <li>위치 기저는 \(\int |x\rangle\langle x|\,dx = \hat I\), \(\langle x|x'\rangle = \delta(x - x')\)를 만족한다. 디랙 델타는 적분 안에서 \(\int \delta(x - a)f(x)\,dx = f(a)\)로 정의되며, \(\delta(ax) = \delta(x)/|a|\), \(\theta' = \delta\), \(\int \delta'(x - a)f\,dx = -f'(a)\), \(\frac{1}{2\pi}\int e^{ikx}\,dk = \delta(x)\)이다.</li>
+      <li>\(\hat x\)는 \(x\)를 곱하는 연산자이고, \(\hat p = -i\hbar\,d/dx\)이다. 미분 연산자는 반에르미트이고 \(\hat p\)는 경계 항이 사라지는 함수 공간에서 에르미트다. 에르미트인지는 경계 조건까지 정해야 판단할 수 있다.</li>
+      <li>정준 교환 관계 \([\hat x, \hat p] = i\hbar\)는 곱의 미분에서 나온다. 교환자의 대각합이 0이어서 유한 차원 행렬로는 이 관계를 만들 수 없다.</li>
+      <li>\(\hat p\)의 고유함수는 평면파 \(\langle x|p\rangle = e^{ipx/\hbar}/\sqrt{2\pi\hbar}\)이고, 모든 실수 \(p\)가 고유값이며 \(\langle p|p'\rangle = \delta(p - p')\)이다. 위치 기저와 운동량 기저 사이의 기저 바꾸기가 푸리에 변환이고, 노름은 보존된다(파스발 정리).</li>
+      <li>운동량 표현에서 \(\hat p\)는 \(p\) 곱하기, \(\hat x\)는 \(i\hbar\,d/dp\)이다. 가우스 파속은 위치 폭 \(\sigma\)와 운동량 폭 \(\hbar/\sigma\)를 가지며 \(\Delta x\,\Delta p = \hbar/2\)이다.</li>
+      <li>연속 스펙트럼의 고유벡터는 정규화할 수 없어 델타로 정규화하고, 물리적 상태는 이들을 중첩한 파속이다. 고리 위의 상자 정규화 \(p_n = 2\pi\hbar n/L\)에서 \(L \to \infty\)로 보낸 극한이 델타 정규화이고, \(e^{-i\hat p a/\hbar}\)는 파동함수를 \(a\)만큼 평행 이동한다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 함수를 \(N\)개 칸의 값 \(f_i\)로 보고 내적을 \(\sum_i f_i^*\, g_i\)로 정하면, \(N \to \infty\)에서 무슨 일이 생기는가?</p><div class="opts">
+        <button class="opt">합이 적분 \(\int f^* g\,dx\)로 수렴한다.</button>
+        <button class="opt" data-correct>합이 대개 \(N\)에 비례해 커지므로, 각 항에 칸의 폭 \(\Delta\)를 곱해야 적분으로 수렴한다.</button>
+        <button class="opt">합이 0으로 줄어든다.</button>
+        <button class="opt">합은 \(N\)과 상관없이 일정하다.</button>
+      </div><div class="quiz-exp">칸이 두 배가 되면 더하는 항도 두 배가 된다. <a class="ref" href="#ex-grid-ip"></a>에서 \(\Delta\)를 곱하지 않은 합은 0.969, 3.992, 15.998로 커졌고, \(\Delta\)를 곱한 합은 \(\tfrac14\)로 다가갔다.</div></div>
+      <div class="quiz-q"><p>2. \(\int_{-\infty}^{\infty} \delta(2x - 4)\,f(x)\,dx\)는?</p><div class="opts">
+        <button class="opt">\(f(4)\)</button>
+        <button class="opt">\(f(2)\)</button>
+        <button class="opt" data-correct>\(f(2)/2\)</button>
+        <button class="opt">\(2f(2)\)</button>
+      </div><div class="quiz-exp">\(\delta(2x - 4) = \delta\big(2(x - 2)\big) = \tfrac12\,\delta(x - 2)\)이다(식 <a class="ref" href="#eq-delta-scale"></a>). 봉우리의 폭이 반으로 줄었으므로 넓이도 반이다.</div></div>
+      <div class="quiz-q"><p>3. 무한히 먼 곳에서 0이 되는 함수들의 공간에서 에르미트인 연산자는?</p><div class="opts">
+        <button class="opt">\(d/dx\)</button>
+        <button class="opt" data-correct>\(-i\,d/dx\)</button>
+        <button class="opt">\(x\,d/dx\)</button>
+        <button class="opt">\(i\hat x\)</button>
+      </div><div class="quiz-exp">부분 적분으로 \(d/dx\)는 반에르미트임을 보였고, \(-i\)를 곱하면 에르미트가 된다. \(i\hat x\)는 에르미트인 \(\hat x\)에 \(i\)를 곱했으므로 반에르미트다. \(x\,d/dx\)의 수반은 \(-(d/dx)\,x = -1 - x\,d/dx\)여서 에르미트가 아니다.</div></div>
+      <div class="quiz-q"><p>4. \([\hat x, \hat p] = i\hbar\hat I\)를 만족하는 유한 크기 행렬이 없는 이유는?</p><div class="opts">
+        <button class="opt">\(\hbar\)가 너무 작아서</button>
+        <button class="opt" data-correct>어떤 두 행렬이든 교환자의 대각합이 0인데, \(i\hbar I\)의 대각합은 0이 아니라서</button>
+        <button class="opt">위치를 나타내는 행렬은 에르미트가 될 수 없어서</button>
+        <button class="opt">행렬끼리는 언제나 교환해서</button>
+      </div><div class="quiz-exp">\(\mathrm{Tr}(AB) = \mathrm{Tr}(BA)\)이므로 \(\mathrm{Tr}[A, B] = 0\)이다. \(n \times n\)에서 \(\mathrm{Tr}(i\hbar I) = i\hbar n \neq 0\)이므로 모순이다.</div></div>
+      <div class="quiz-q"><p>5. 가우스 파속의 위치 폭 \(\sigma\)를 절반으로 줄이면 운동량 분포의 표준 편차 \(\Delta p\)는?</p><div class="opts">
+        <button class="opt">절반이 된다.</button>
+        <button class="opt">그대로다.</button>
+        <button class="opt" data-correct>두 배가 된다.</button>
+        <button class="opt">네 배가 된다.</button>
+      </div><div class="quiz-exp">\(\Delta p = \hbar/(\sigma\sqrt 2)\)이므로 \(\sigma\)에 반비례한다. \(\Delta x\,\Delta p = \hbar/2\)는 그대로다(<a class="ref" href="#ex-gauss-ft"></a>).</div></div>
+      <div class="quiz-q"><p>6. 운동량 고유 상태 \(|p\rangle\)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">\(\langle p|p\rangle = 1\)로 정규화할 수 있다.</button>
+        <button class="opt" data-correct>\(\langle p|p'\rangle = \delta(p - p')\)로 정규화하며, 제곱 적분이 무한대라 그 자체로는 물리적 상태가 아니다.</button>
+        <button class="opt">고유값 \(p\)는 언제나 \(2\pi\hbar/L\)의 정수배다.</button>
+        <button class="opt">위치 공간에서 한 점에 모여 있다.</button>
+      </div><div class="quiz-exp">\(|\langle x|p\rangle|^2 = 1/2\pi\hbar\)이 어디서나 같아 제곱 적분이 무한대다. 물리적 상태는 \(|p\rangle\)들을 중첩한 파속이다. 운동량이 \(2\pi\hbar/L\)의 정수배가 되는 것은 길이 \(L\)인 고리에 가두었을 때다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-delta-calc" data-level="1"><p>다음 적분을 계산하라. (가) \(\int_{-\infty}^{\infty} \delta(x - 3)\,(x^2 + 1)\,dx\) (나) \(\int_0^2 \delta(x - 3)\,(x^2 + 1)\,dx\) (다) \(\int_{-\infty}^{\infty} \delta(2x - 1)\,e^x\,dx\) (라) \(\int_{-\infty}^{\infty} \delta'(x - 1)\,x^3\,dx\)</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 구간이 \(x = 3\)을 포함하므로 \(3^2 + 1 = 10\). (나) 구간 \([0, 2]\)는 \(x = 3\)을 포함하지 않으므로 0.</p>
+        <p>(다) \(\delta(2x - 1) = \delta\big(2(x - \tfrac12)\big) = \tfrac12\,\delta(x - \tfrac12)\)이므로 \(\tfrac12 e^{1/2} \approx 0.824\).</p>
+        <p>(라) 식 <a class="ref" href="#eq-delta-deriv"></a>에 따라 \(-\frac{d}{dx}x^3\Big|_{x=1} = -3\).</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-ring-basis" data-level="1"><p>길이 \(L\)인 고리 위의 함수(주기 조건 \(f(x + L) = f(x)\))에 대해, \(e_n(x) = e^{2\pi inx/L}/\sqrt L\)(\(n\)은 정수)이 정규직교임을 보여라. \(f(x) = \cos^2(2\pi x/L)\)을 이 기저로 전개하고, 노름 공식 \(\lVert f\rVert^2 = \sum_n |c_n|^2\)을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\langle e_m|e_n\rangle = \frac1L\int_0^L e^{2\pi i(n - m)x/L}\,dx\)이다. \(n = m\)이면 1이다. \(n \neq m\)이면 원시 함수 \(e^{2\pi i(n - m)x/L}\big/\big(2\pi i(n - m)/L\big)\)의 값이 \(x = 0\)과 \(x = L\)에서 같으므로(\(e^{2\pi i(n - m)} = 1\)) 0이다.</p>
+        <p>\(\theta = 2\pi x/L\)로 두면 \(\cos^2\theta = \tfrac12 + \tfrac14(e^{2i\theta} + e^{-2i\theta})\)이므로</p>
+        <div class="formula">\[ f = \frac{\sqrt L}{2}\,e_0 + \frac{\sqrt L}{4}\,(e_2 + e_{-2}) \]</div>
+        <p>이다. \(c_0 = \sqrt L/2\), \(c_{\pm 2} = \sqrt L/4\), 나머지는 0이다. \(\sum |c_n|^2 = \frac L4 + \frac{L}{16} + \frac{L}{16} = \frac{3L}{8}\)이고, 직접 계산한 \(\int_0^L \cos^4(2\pi x/L)\,dx = \frac{3L}{8}\)과 같다(\(\cos^4\)의 한 주기 평균은 \(3/8\)이다).</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-comm" data-level="1"><p>(가) <a href="ch02.html#thm-comm-product">2장 정리 2.2</a>와 <a href="ch02.html#prob-comm-identity">2장 문제 2.4</a>의 항등식으로 \([\hat x^2, \hat p] = 2i\hbar\,\hat x\)와 \([\hat x, \hat p^2] = 2i\hbar\,\hat p\)를 보여라. (나) 시험 함수 \(f\)에 작용시켜 \([\hat p, g(\hat x)] = -i\hbar\,g'(\hat x)\)를 보여라. 여기서 \(g(\hat x)\)는 \(g(x)\)를 곱하는 연산자다.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \([\hat A\hat B, \hat C] = \hat A[\hat B, \hat C] + [\hat A, \hat C]\hat B\)에서 \([\hat x\hat x, \hat p] = \hat x\,[\hat x, \hat p] + [\hat x, \hat p]\,\hat x = 2i\hbar\,\hat x\)이다. 정리 2.2에서 \([\hat x, \hat p\hat p] = \hat p\,[\hat x, \hat p] + [\hat x, \hat p]\,\hat p = 2i\hbar\,\hat p\)이다. 교환자가 숫자여서 어느 쪽에 써도 된다.</p>
+        <p>(나) \(\hat p\big(g f\big) - g\,\hat p f = -i\hbar\,(g' f + g f') + i\hbar\,g f' = -i\hbar\,g' f\)이다. \(g = x^2\)이면 \([\hat p, \hat x^2] = -2i\hbar\,\hat x\)로 (가)의 첫 식과 같다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-delta-roots" data-level="2"><p>(가) \(a \neq 0\)일 때 \(\delta(x^2 - a^2) = \dfrac{\delta(x - a) + \delta(x + a)}{2|a|}\)임을 보여라. (나) \(\int_{-\infty}^{\infty} \delta(x^2 - 5x + 6)\,x\,dx\)를 계산하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(g(x) = x^2 - a^2\)의 근은 \(\pm a\)이고 \(g'(\pm a) = \pm 2a\)이므로 \(|g'| = 2|a|\)이다. 식 <a class="ref" href="#eq-delta-compose"></a>에 넣으면 된다.</p>
+        <p>(나) \(x^2 - 5x + 6 = (x - 2)(x - 3)\)이고 \(g'(x) = 2x - 5\)이므로 \(|g'(2)| = |g'(3)| = 1\)이다. 따라서 \(\delta(x^2 - 5x + 6) = \delta(x - 2) + \delta(x - 3)\)이고 답은 \(2 + 3 = 5\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-xp" data-level="2"><p>\(\hat x\hat p\)는 에르미트가 아님을 보이고, \(\hat x\hat p\)를 에르미트 부분과 반에르미트 부분으로 나누어라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\((\hat x\hat p)^\dagger = \hat p^\dagger\hat x^\dagger = \hat p\hat x\)이고, 식 <a class="ref" href="#eq-ccr"></a>에 따라 \(\hat p\hat x = \hat x\hat p - i\hbar\)이므로 \((\hat x\hat p)^\dagger \neq \hat x\hat p\)이다. 2장의 표대로 나누면</p>
+        <div class="formula">\[ \hat x\hat p = \underbrace{\frac{\hat x\hat p + \hat p\hat x}{2}}_{\text{에르미트}} + \underbrace{\frac{[\hat x, \hat p]}{2}}_{= i\hbar/2} \]</div>
+        <p>이다. 첫째 항의 수반은 \((\hat p\hat x + \hat x\hat p)/2\)로 자기 자신이고, 둘째 항 \(i\hbar/2\)는 순허수이므로 반에르미트다. 고전역학의 양 \(xp\)에 대응하는 에르미트 연산자를 만들 때 \((\hat x\hat p + \hat p\hat x)/2\)처럼 대칭화하는 이유다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-p-real" data-level="2"><p>\(\psi(x)\)가 실수이고 정규화되어 있으며 무한히 먼 곳에서 0이 되는 함수라 하자. (가) \(\langle\psi|\hat p|\psi\rangle = 0\)임을 보여라. (나) \(\chi(x) = \psi(x)\,e^{ip_0x/\hbar}\)에 대해 \(\langle\chi|\hat p|\chi\rangle = p_0\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\langle\psi|\hat p|\psi\rangle = -i\hbar\int \psi\,\psi'\,dx = -i\hbar\Big[\tfrac12\psi^2\Big]_{-\infty}^{\infty} = 0\)이다. 다르게 보면, \(\hat p\)가 에르미트이므로 이 값은 실수여야 하는데 \(-i\hbar\) 곱하기 실수 적분이라 순허수이기도 하다. 둘 다이려면 0이다.</p>
+        <p>(나) \(\chi' = (\psi' + ip_0\psi/\hbar)\,e^{ip_0x/\hbar}\)이므로 \(\langle\chi|\hat p|\chi\rangle = -i\hbar\int \psi\,(\psi' + ip_0\psi/\hbar)\,dx = 0 + p_0\int \psi^2\,dx = p_0\)이다. 실수 파동함수는 오른쪽과 왼쪽으로 고르게 움직여 평균 운동량이 0이고, 위상 \(e^{ip_0x/\hbar}\)가 운동량 \(p_0\)를 싣는다. 6장에서 \(\langle\psi|\hat\Omega|\psi\rangle\)가 측정값의 평균(기댓값)이 된다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-exp-ft" data-level="2"><p>\(\psi(x) = e^{-|x|/a}/\sqrt a\)(\(a > 0\))에 대해 (가) 정규화되어 있음을 확인하고, (나) 운동량 공간 파동함수 \(\phi(p)\)를 구하라. (다) 파스발 정리를 확인하라(\(\int du/(1 + u^2)^2 = \pi/2\)를 써도 된다). (라) 큰 \(|p|\)에서 \(\phi\)가 줄어드는 빠르기를 가우스 파속과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\frac1a\int e^{-2|x|/a}\,dx = \frac2a\cdot\frac a2 = 1\).</p>
+        <p>(나) \(x > 0\)과 \(x &lt; 0\)으로 나누어 적분하면</p>
+        <div class="formula">\[ \begin{aligned} \phi(p) &= \frac{1}{\sqrt{2\pi\hbar a}}\Big[\frac{1}{1/a + ip/\hbar} + \frac{1}{1/a - ip/\hbar}\Big] \\ &= \sqrt{\frac{2a}{\pi\hbar}}\;\frac{1}{1 + p^2a^2/\hbar^2} \end{aligned} \]</div>
+        <p>이다(괄호 안을 통분하면 \(\frac{2/a}{1/a^2 + p^2/\hbar^2}\)).</p>
+        <p>(다) \(u = pa/\hbar\)로 치환하면 \(\int |\phi|^2\,dp = \frac{2a}{\pi\hbar}\cdot\frac{\hbar}{a}\int \frac{du}{(1 + u^2)^2} = \frac2\pi\cdot\frac\pi2 = 1\)이다.</p>
+        <p>(라) 큰 \(|p|\)에서 \(\phi \propto 1/p^2\)으로 거듭제곱으로 줄어든다. 가우스 파속의 \(\phi\)는 \(e^{-\sigma^2p^2/2\hbar^2}\)으로 훨씬 빨리 준다. \(e^{-|x|/a}\)가 \(x = 0\)에서 꺾여 있기 때문이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-box-ft" data-level="2"><p>\(|x| &lt; a\)에서 \(\psi(x) = 1/\sqrt{2a}\)이고 그 밖에서 0인 함수의 \(\phi(p)\)를 구하라. \(\phi\)가 0이 되는 \(p\)를 모두 구하고, \(\int \sin^2 u/u^2\,du = \pi\)를 써서 파스발 정리를 확인하라. \(a\)를 줄이면 \(\phi\)는 어떻게 바뀌는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <div class="formula">\[ \begin{aligned} \phi(p) &= \frac{1}{\sqrt{2\pi\hbar}}\cdot\frac{1}{\sqrt{2a}}\int_{-a}^{a} e^{-ipx/\hbar}\,dx \\ &= \frac{1}{\sqrt{4\pi\hbar a}}\cdot\frac{2\hbar\sin(pa/\hbar)}{p} \\ &= \sqrt{\frac{\hbar}{\pi a}}\;\frac{\sin(pa/\hbar)}{p} \end{aligned} \]</div>
+        <p>\(p \to 0\)에서 \(\phi(0) = \sqrt{a/\pi\hbar}\)이고, 영점은 \(p = n\pi\hbar/a\)(\(n = \pm 1, \pm 2, \ldots\))이다. \(u = pa/\hbar\)로 치환하면 \(\int |\phi|^2\,dp = \frac{\hbar}{\pi a}\cdot\frac{a}{\hbar}\int \frac{\sin^2 u}{u^2}\,du = \frac1\pi\cdot\pi = 1\)이다. \(a\)를 줄이면 첫 영점 \(\pi\hbar/a\)가 멀어져 \(\phi\)가 넓어진다. 끊긴 점 때문에 큰 \(|p|\)에서 \(\phi\)는 \(1/p\)로만 줄어든다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-relabel" data-level="2"><p>연속 고유값을 \(\mu\) 대신 \(\omega = g(\mu)\)(\(g\)는 단조 함수)로 부르기로 하자. \(\langle\mu|\mu'\rangle = \delta(\mu - \mu')\)일 때, \(\langle\omega|\omega'\rangle = \delta(\omega - \omega')\)이 되려면 \(|\omega\rangle = |\mu\rangle/\sqrt{|g'(\mu)|}\)이어야 함을 보여라. 이 규칙을 (가) \(k = p/\hbar\)와 (나) \(p > 0\)인 자유 입자의 에너지 \(E = p^2/2m\)에 적용하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(|\omega\rangle = c(\mu)|\mu\rangle\)로 두면 \(\langle\omega|\omega'\rangle = |c|^2\,\delta(\mu - \mu')\)이다. 한편 식 <a class="ref" href="#eq-delta-compose"></a>에 따라 \(\delta(\omega - \omega') = \delta\big(g(\mu) - g(\mu')\big) = \delta(\mu - \mu')/|g'(\mu)|\)이다. 두 식이 같으려면 \(|c|^2 = 1/|g'(\mu)|\)이다.</p>
+        <p>(가) 이름표를 \(\mu = p\), \(\omega = k = p/\hbar\)로 두면 \(g' = 1/\hbar\)이므로 \(|k\rangle = \sqrt\hbar\,|p\rangle\), 곧 식 <a class="ref" href="#eq-relabel"></a>이다.</p>
+        <p>(나) \(g'(p) = p/m\)이므로 \(|E\rangle = \sqrt{m/p}\;|p\rangle\)이고, \(\langle x|E\rangle = \sqrt{\dfrac{m}{2\pi\hbar\,p}}\;e^{ipx/\hbar}\)이다. 에너지로 정규화한 평면파는 운동량이 작을수록 진폭이 크다. 7장과 21장에서 이런 정규화를 쓴다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-momentum-kick" data-level="2"><p>(가) 연산자 \(e^{iq\hat x/\hbar}\)(\(q\)는 실수)가 운동량 공간 파동함수를 \(\phi(p) \to \phi(p - q)\)로 바꿈을 보이고, 이 연산자가 유니타리임을 보여라. (나) 시험 함수에 작용시켜 \(e^{-iq\hat x/\hbar}\,\hat p\,e^{iq\hat x/\hbar} = \hat p + q\)를 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 위치 표현에서 \(e^{iq\hat x/\hbar}\)는 \(\psi(x)\)에 \(e^{iqx/\hbar}\)를 곱한다. <a class="ref" href="#math-fourier"></a>의 둘째 성질에 따라 운동량 표현에서는 \(\phi(p - q)\)가 된다. 운동량 분포 전체가 \(q\)만큼 밀린다. \(\hat x\)가 에르미트이므로 <a href="ch02.html#thm-exp-unitary">2장 정리 2.6</a>에 따라 유니타리다(\(|e^{iqx/\hbar}| = 1\)이므로 노름이 그대로인 것으로도 알 수 있다).</p>
+        <p>(나) \(\big(e^{iqx/\hbar}f\big)' = e^{iqx/\hbar}\big(f' + \tfrac{iq}{\hbar}f\big)\)이므로 \(e^{-iqx/\hbar}\,(-i\hbar)\big(e^{iqx/\hbar}f\big)' = -i\hbar f' + q f\)이다. 곧 \((\hat p + q)f\)이다. 위상을 곱해 운동량을 \(q\)만큼 '걷어찬' 뒤 운동량을 재면 \(q\)만큼 큰 값이 나온다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-grid-p" data-level="3"><p><a class="ref" href="#ex-diff-matrix"></a>의 주기 격자(칸 \(N\)개, 폭 \(\Delta = L/N\))에서 (가) \(v^{(n)}_j = e^{2\pi inj/N}/\sqrt N\)(\(j = 1, \ldots, N\))이 \(-i\hbar D\)의 고유벡터임을 보이고 고유값을 구하라. (나) \(|n| \ll N\)일 때 고유값을 고리의 운동량 \(p_n = 2\pi\hbar n/L\)(식 <a class="ref" href="#eq-box-p"></a>)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(e^{2\pi in(N + 1)/N} = e^{2\pi in/N}\)이므로 \(v^{(n)}\)은 주기 조건을 만족한다. \((Dv)_j = (v_{j+1} - v_{j-1})/2\Delta = v_j\,(e^{2\pi in/N} - e^{-2\pi in/N})/2\Delta = v_j\cdot i\sin(2\pi n/N)/\Delta\)이므로, \(-i\hbar D\)의 고유값은</p>
+        <div class="formula">\[ \lambda_n = \frac{\hbar}{\Delta}\sin\frac{2\pi n}{N} = \frac{\hbar N}{L}\sin\frac{2\pi n}{N} \]</div>
+        <p>이다. 에르미트 행렬답게 실수다.</p>
+        <p>(나) \(|n| \ll N\)이면 \(\sin\theta \approx \theta\)이므로 \(\lambda_n \approx 2\pi\hbar n/L = p_n\)이다. 예를 들어 \(N = 50\), \(n = 1\)이면 \(\lambda_1/p_1 = \sin(2\pi/50)/(2\pi/50) = 0.9974\)로 0.26%만 작다. 파장이 칸의 폭보다 훨씬 길면 격자가 연속 공간을 잘 흉내 낸다. \(n\)이 \(N/2\)에 가까우면 차이가 커지는데, 칸 두세 개보다 짧은 파장은 격자로 나타낼 수 없기 때문이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-twisted" data-level="3"><p>구간 \([0, L]\)에서 경계 조건 \(\psi(L) = e^{i\alpha}\psi(0)\)(\(\alpha\)는 실수)을 만족하는 함수들을 생각하자. (가) 이 공간에서 \(\hat p\)가 에르미트임을 보여라. (나) 고유값과 정규화된 고유함수를 구하라. (다) 경계 조건을 \(\psi(0) = \psi(L) = 0\)으로 바꾸면 경계 항은 여전히 사라지지만 \(\hat p\)의 고유함수가 하나도 없음을 보여라. 이것은 무엇을 뜻하는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 두 함수가 모두 조건을 만족하면 \(f^*(L)\,g(L) = e^{-i\alpha}e^{i\alpha}f^*(0)\,g(0) = f^*(0)\,g(0)\)이므로 식 <a class="ref" href="#eq-p-boundary"></a>의 경계 항이 0이다.</p>
+        <p>(나) \(e^{ipL/\hbar} = e^{i\alpha}\)에서 \(p_n = \hbar(2\pi n + \alpha)/L\)(\(n\)은 정수)이고, 고유함수는 \(e^{ip_nx/\hbar}/\sqrt L\)이다. \(\alpha = 0\)이면 고리의 식 <a class="ref" href="#eq-box-p"></a>이다. \(\alpha\)마다 고유값이 다르므로, 같은 식 \(-i\hbar\,d/dx\)가 경계 조건에 따라 서로 다른 에르미트 연산자를 정한다.</p>
+        <p>(다) \(\psi(0) = \psi(L) = 0\)이면 \(f^* g\)가 양 끝에서 0이므로 경계 항은 사라진다. 그러나 고유값 방정식의 해 \(e^{ipx/\hbar}\)는 어디서도 0이 되지 않으므로 경계 조건을 만족하는 고유함수가 없다. '\(\langle f|\hat p g\rangle = \langle\hat p f|g\rangle\)'만으로는 스펙트럼 정리가 보장되지 않는다는 뜻이다. 무한 차원에서는 이 등식에 더해 \(\hat p\)와 \(\hat p^\dagger\)가 작용하는 함수의 공간까지 같아야 하고(자기 수반), (가)의 경계 조건은 그것을 만족하지만 (다)의 조건은 함수의 공간을 너무 좁게 잡았다. 이 책의 범위를 넘는 주제이지만, 물리학에서 말하는 '에르미트'는 이 조건까지 포함한다.</p>
+      </details>
+    </div>
   </section>
 </main>
 </body>
