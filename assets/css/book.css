@@ -188,6 +188,8 @@ pre:hover .copy, pre .copy:focus { opacity: 1; }
 .box.ex .box-n { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .box.math { border: 1.5px dashed color-mix(in srgb, var(--text-faint) 80%, transparent); background: var(--surface); }
 .box.math .box-n { background: var(--bg-elev); color: var(--text-dim); border: 1px solid var(--border); }
+.box.post { border-left-width: 6px; background: color-mix(in srgb, var(--accent) 7%, var(--bg-elev)); }
+.box.post .box-n { background: var(--accent); color: var(--bg-elev); }
 details.proof, details.sol { margin: 14px 0; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 .box details.proof, .box details.sol { background: var(--bg); }
 details.proof > summary, details.sol > summary { cursor: pointer; padding: 9px 0; font-weight: 700; font-size: 15px; color: var(--text-dim); }
