@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>07 1차원 문제 · QuantumBook</title>
-<meta name="description" content="자유 입자와 파속의 퍼짐 · 무한 우물 · 확률 흐름 · 계단 퍼텐셜의 반사와 투과 · 장벽과 터널링 · 유한 우물 · 1차원의 일반 정리">
+<meta name="description" content="자유 입자와 파속의 퍼짐, 무한 우물, 확률 흐름, 계단 퍼텐셜의 반사와 투과, 장벽 터널링, 유한 우물의 속박 상태, 1차원 속박 상태의 일반 정리를 시간에 무관한 슈뢰딩거 방정식으로 푼다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,71 +24,365 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch07">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">07</span></div>
     <h1 data-fill="chapter-title">1차원 문제</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">6장의 공준을 가장 단순한 무대, 곧 직선 위의 입자 하나에 적용한다. 퍼텐셜이 없으면 파속은 움직이면서 퍼지고, 벽에 갇히면 에너지가 띄엄띄엄해지며, 퍼텐셜의 턱을 만나면 고전적으로는 넘을 수 있는데도 되튀거나 넘을 수 없는데도 뚫고 지나간다. 모두 시간에 무관한 슈뢰딩거 방정식을 풀고 경계에서 해를 이어 붙이는 같은 방법으로 얻는다. 이 장의 결과는 원자, 분자, 반도체, 주사 터널링 현미경을 이해하는 기본 도구가 된다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>자유 입자의 가우스 파속이 퍼지는 정도를 유도하고, 퍼지는 시간 규모를 계산할 수 있다.</li>
+      <li>무한 우물의 에너지 고유값과 고유함수를 구하고, 처음 상태를 고유함수로 전개할 수 있다.</li>
+      <li>확률 흐름을 정의하고, 이를 써서 반사 확률과 투과 확률을 구할 수 있다.</li>
+      <li>계단과 장벽에서 연결 조건으로 반사·투과 진폭을 구하고, 터널링 확률이 장벽 두께에 지수적으로 줄어듦을 설명할 수 있다.</li>
+      <li>유한 우물의 속박 상태를 그래프로 풀고, 1차원 속박 상태의 일반 성질(비축퇴, 실수, 반전성)을 증명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>3장(사인 기저, 푸리에 변환, 가우스 적분), 6장(네 공준, 시간에 무관한 슈뢰딩거 방정식, 에너지 고유 상태로 전개해 풀기)</p>
   </header>
 
+  <!-- ============================================================ 7.1 -->
   <section id="s1">
     <h2>자유 입자와 파속의 퍼짐</h2>
-    <p class="slot" data-slot="7.1절">아직 쓰지 않은 절입니다.</p>
+    <p>퍼텐셜이 없는 입자에서 시작하자. 해밀토니안은 \(\hat H = \hat p^2/2m\)이고, 운동량 고유 상태 \(|p\rangle\)가 곧 에너지 고유 상태다(에너지 \(E = p^2/2m\)). 따라서 운동량 표현에서는 6장의 처방(<a href="ch06.html#eq-expansion-t">6장 식 (6.13)</a>)이 바로 적용된다. 처음 상태의 운동량 공간 파동함수 \(\phi(p)\)에 위상 \(e^{-ip^2t/2m\hbar}\)만 붙이면 되고, 위치 표현으로 돌아가면</p>
+    <div class="formula" id="eq-free-packet">\[ \psi(x, t) = \frac{1}{\sqrt{2\pi\hbar}}\int \phi(p)\,e^{i(px - p^2t/2m)/\hbar}\,dp \]</div>
+    <p>이다. 운동량 분포 \(|\phi(p)|^2\)는 시간에 따라 변하지 않는다. 자유 입자의 운동량은 보존되기 때문이다. 변하는 것은 각 운동량 성분의 위상이고, 성분마다 위상이 도는 빠르기가 \(p^2\)에 비례해 달라서 위치 분포의 모양이 바뀐다.</p>
+    <p>에너지 고유 상태 \(e^{ipx/\hbar}\)는 정규화할 수 없으므로(<a href="ch03.html#s5-improper">3.5절</a>), 물리적인 자유 입자는 언제나 운동량이 퍼진 파속이다. 하나의 에너지 \(E\)에는 운동량 \(+p\)와 \(-p\) 두 상태가 있다. 오른쪽으로 가는 파동과 왼쪽으로 가는 파동이다.</p>
+
+    <h3 id="s1-gauss">가우스 파속의 퍼짐</h3>
+    <p><a href="ch03.html#ex-gauss-ft">3장 예제 3.5</a>의 가우스 파속(처음 폭 \(\sigma\), 평균 운동량 \(p_0\))을 시간에 따라 변하게 하자. 식 <a class="ref" href="#eq-free-packet"></a>에서 \(p = p_0 + q\)로 두면 지수에 \(q\)의 2차식이 나온다.</p>
+    <div class="formula">\[ \begin{gathered} -\frac{\sigma^2(1 + i\tau)}{2\hbar^2}\,q^2 + \frac{i(x - v_0t)}{\hbar}\,q + (q\text{와 무관한 항}), \\ \tau = \frac{\hbar t}{m\sigma^2}, \qquad v_0 = \frac{p_0}{m} \end{gathered} \]</div>
+    <p>가우스 적분(<a href="ch03.html#eq-gauss-shift">3장 식 (3.10)</a>)에 \(a = \sigma^2(1 + i\tau)/2\hbar^2\), \(b = i(x - v_0t)/\hbar\)를 넣으면 \(b^2/4a = -(x - v_0t)^2/2\sigma^2(1 + i\tau)\)이다. \(\big|e^{b^2/4a}\big|^2 = \exp\big[-(x - v_0t)^2\,\mathrm{Re}\frac{1}{\sigma^2(1 + i\tau)}\big]\)이고 \(\mathrm{Re}\frac{1}{1 + i\tau} = \frac{1}{1 + \tau^2}\)이므로, 정규화 상수까지 정리하면</p>
+    <div class="formula" id="eq-spreading">\[ \begin{gathered} |\psi(x, t)|^2 = \frac{1}{\sqrt\pi\,\sigma(t)}\,e^{-(x - v_0t)^2/\sigma(t)^2}, \\ \sigma(t) = \sigma\sqrt{1 + \Big(\frac{\hbar t}{m\sigma^2}\Big)^2} \end{gathered} \]</div>
+    <p>이다. 파속의 중심은 속도 \(v_0 = p_0/m\)으로 움직이고(<a href="ch06.html#ex-free-ehrenfest">6장 예제 6.7</a>), 폭은 시간이 지나며 커진다(그림 7-1). 시간이 길면 \(\sigma(t) \approx \hbar t/m\sigma\)이다. 이것은 고전적으로도 이해할 수 있다. 운동량 퍼짐이 \(\Delta p = \hbar/\sigma\sqrt2\)이므로 속도가 \(\Delta p/m\)만큼 흩어진 입자들의 무리가 시간 \(t\) 동안 \(\Delta p\,t/m\)만큼 벌어지는 것과 같다. <b>처음에 좁게 모은 파속일수록 운동량이 넓게 퍼져 있어 빨리 퍼진다.</b></p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:7-1--><svg viewBox="0 0 360 220" role="img" aria-label="가우스 파속이 오른쪽으로 움직이며 퍼진다"><defs><marker id="f71-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f71-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f71-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="190" x2="342" y2="190" class="s-line" stroke-width="1.2" marker-end="url(#f71-dim)"/><line x1="60.1" y1="190" x2="60.1" y2="194" class="s-line" stroke-width="1.2"/><text x="60.1" y="207" class="t-dim" text-anchor="middle">0</text><line x1="118.9" y1="190" x2="118.9" y2="194" class="s-line" stroke-width="1.2"/><text x="118.9" y="207" class="t-dim" text-anchor="middle">4</text><line x1="177.7" y1="190" x2="177.7" y2="194" class="s-line" stroke-width="1.2"/><text x="177.7" y="207" class="t-dim" text-anchor="middle">8</text><line x1="236.5" y1="190" x2="236.5" y2="194" class="s-line" stroke-width="1.2"/><text x="236.5" y="207" class="t-dim" text-anchor="middle">12</text><line x1="295.3" y1="190" x2="295.3" y2="194" class="s-line" stroke-width="1.2"/><text x="295.3" y="207" class="t-dim" text-anchor="middle">16</text><text x="344" y="183" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan>/<tspan font-style="italic">σ</tspan></text><path d="M16 190 L25.5 189.4 L30.2 187.5 L32.6 185.3 L34.2 183 L36.5 178 L38.1 173.3 L41.3 159.6 L44.4 139.7 L53.1 64.9 L55.5 48 L57.9 37 L59.5 33.8 L60.2 33.5 L61 34.1 L62.6 38 L65.8 55.2 L74.5 129.8 L79.2 161.1 L81.6 171.5 L84.7 180.6 L87.9 185.6 L91.1 188.1 L95.8 189.6 L104.5 190 L332 190" class="s-acc" stroke-width="2.4"/><text font-size="14" x="60.1" y="26.5" class="t-math acc" text-anchor="middle"><tspan font-style="italic">τ</tspan> = 0</text><path d="M16 190 L58.7 190 L69.7 189.6 L77.6 187.8 L80.8 186.2 L83.9 183.4 L88.7 176.6 L93.4 165.3 L99 145.9 L107.6 107.4 L111.6 92.1 L115.5 82.2 L117.1 80.1 L118.7 79.3 L120.3 79.8 L122.7 82.9 L126.6 93.6 L139.2 147.6 L142.4 159.2 L145.6 168.7 L148.7 175.9 L151.9 181.1 L155 184.6 L159 187.3 L165.3 189.2 L176.4 189.9 L332 190" class="s-acc2" stroke-width="2.2"/><text font-size="14" x="118.9" y="72.3" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">τ</tspan> = 1</text><path d="M16 190 L100.5 189.7 L113.2 188.5 L122.7 185.8 L130.6 181 L137.7 174.1 L145.6 163.1 L160.6 136.6 L166.1 128.2 L169.3 124.4 L172.4 121.8 L175.6 120.3 L178 120 L180.3 120.5 L183.5 122.2 L186.6 125 L189.8 128.9 L195.3 137.6 L209.6 162.7 L217.5 173.8 L224.6 180.9 L232.5 185.7 L241.9 188.5 L254.6 189.7 L332 190" class="s-line" stroke-width="1.8"/><text font-size="14" x="177.7" y="113" class="t-math dim" text-anchor="middle"><tspan font-style="italic">τ</tspan> = 2</text><path d="M16 190 L128.2 189.8 L145.6 188.9 L159 186.9 L170 183.6 L180.3 178.5 L191.4 170.7 L211.9 152.6 L219.8 146.5 L224.6 143.6 L228.5 141.9 L232.5 140.9 L236.4 140.5 L240.4 140.9 L244.3 141.9 L248.3 143.6 L253 146.4 L260.9 152.5 L283 171.9 L290.1 177 L297.2 181 L305.1 184.4 L313 186.7 L321.7 188.3 L332 189.3" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><text font-size="14" x="236.5" y="133.5" class="t-math dim" text-anchor="middle"><tspan font-style="italic">τ</tspan> = 3</text></svg><!--/fig:7-1--></div>
+      <figcaption><b>그림 7-1.</b> 자유 입자 가우스 파속의 확률 밀도 \(|\psi(x, t)|^2\)(\(p_0\sigma/\hbar = 4\)). \(\tau = \hbar t/m\sigma^2 = 0, 1, 2, 3\)에서 그렸다. 중심은 일정한 속도로 움직이고, 폭은 \(\sqrt{1 + \tau^2}\)배로 커지며, 넓이(전체 확률)는 1로 그대로다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-spread-time"><div class="box-h">얼마나 빨리 퍼지나</div>
+      <p>퍼짐의 시간 규모는 \(t_s = m\sigma^2/\hbar\)이다. 이 시간이 지나면 폭이 \(\sqrt2\)배가 된다.</p>
+      <ul>
+        <li>원자 크기 \(\sigma = 0.1\ \mathrm{nm}\)로 모은 전자: \(t_s = \dfrac{9.11\times10^{-31}\times10^{-20}}{1.055\times10^{-34}} = 8.6\times10^{-17}\ \mathrm s\).</li>
+        <li>질량 1 μg의 먼지를 \(\sigma = 1\ \mu\mathrm m\)로 모으면: \(t_s = 9.5\times10^{12}\ \mathrm s\), 약 30만 년이다.</li>
+      </ul>
+      <p>전자의 파속은 순식간에 퍼지지만, 거시적인 물체의 파속은 사실상 퍼지지 않는다. \(t_s\)가 질량과 폭의 제곱에 비례하기 때문이다.</p>
+    </div>
+    <p>아래 실험에서 파속의 퍼짐을 직접 볼 수 있다. 슈뢰딩거 방정식을 수치로 풀어, 파속 폭 \(\sigma\)를 줄이면 더 빨리 퍼지는 것을 보여 준다. 판독 칸의 \(\Delta x\)는 수치 해에서 계산한 값이고, 괄호 안은 식 <a class="ref" href="#eq-spreading"></a>의 값(\(\sigma(t)/\sqrt2\))이다.</p>
+    <div data-sim="qm-packet" data-preset="free"></div>
   </section>
 
+  <!-- ============================================================ 7.2 -->
   <section id="s2">
     <h2>무한 우물</h2>
-    <p class="slot" data-slot="7.2절">아직 쓰지 않은 절입니다.</p>
+    <p>입자를 길이 \(L\)인 구간에 가두자. 구간 안(\(0 &lt; x &lt; L\))에서는 \(V = 0\)이고 밖에서는 \(V = \infty\)인 <span class="term">무한 우물</span> <span class="en">(infinite square well)</span>이다. 6장의 상자 속 입자(<a href="ch06.html#ex-box-slosh">6장 예제 6.8</a>)에서 미뤄 둔 경계 조건부터 정하자.</p>
+
+    <h3 id="s2-bc">경계 조건</h3>
+    <p>퍼텐셜이 아주 높은 \(V_\infty\)인 영역에서 에너지가 \(E &lt; V_\infty\)인 해는 \(e^{\pm\kappa x}\), \(\kappa = \sqrt{2m(V_\infty - E)}/\hbar\)이다. 무한히 커지는 쪽은 버리고 줄어드는 쪽만 남으므로, 파동함수는 벽 안쪽으로 \(1/\kappa\) 정도만 스며든다. \(V_\infty \to \infty\)이면 \(1/\kappa \to 0\)이므로 <b>벽 밖에서 \(\psi = 0\)</b>이다. 또 파동함수는 연속이어야 한다. 끊긴 곳이 있으면 \(d\psi/dx\)에 델타 함수가 생기고 운동 에너지 \(\frac{\hbar^2}{2m}\int|\psi'|^2dx\)가 무한대가 되기 때문이다. 따라서 무한 우물의 경계 조건은</p>
+    <div class="formula" id="eq-box-bc">\[ \psi(0) = \psi(L) = 0 \]</div>
+    <p>이다. 도함수 \(\psi'\)은 무한히 높은 벽에서 끊길 수 있다(7.4절에서 보듯 퍼텐셜이 유한하면 \(\psi'\)도 연속이다).</p>
+
+    <h3 id="s2-solution">에너지 고유값과 고유함수</h3>
+    <p>구간 안에서 시간에 무관한 슈뢰딩거 방정식은 \(-\frac{\hbar^2}{2m}\psi'' = E\psi\), 곧 \(\psi'' = -k^2\psi\)(\(k = \sqrt{2mE}/\hbar\))이고, 해는 \(\psi = A\sin kx + B\cos kx\)이다. \(\psi(0) = 0\)에서 \(B = 0\), \(\psi(L) = 0\)에서 \(\sin kL = 0\), 곧 \(kL = n\pi\)이다. \(n = 0\)이면 \(\psi = 0\)이 되어 상태가 아니고, 음의 \(n\)은 부호만 바뀐 같은 상태이므로 \(n = 1, 2, 3, \ldots\)이다. 정규화하면</p>
+    <div class="formula" id="eq-box-states">\[ \psi_n(x) = \sqrt{\frac2L}\,\sin\frac{n\pi x}{L}, \qquad E_n = \frac{n^2\pi^2\hbar^2}{2mL^2} \]</div>
+    <p>이다. 3장에서 함수 공간의 정규직교 기저로 처음 만났던 사인 함수들(<a href="ch03.html#eq-sine-basis">3장 식 (3.2)</a>)이 바로 이 에너지 고유함수다(그림 7-2). 몇 가지 특징을 짚어 두자.</p>
+    <ul>
+      <li><b>에너지가 띄엄띄엄하다.</b> 경계 조건이 허용되는 파장을 \(\lambda_n = 2L/n\)으로 제한한다. 5장의 '갇힌 파동의 정상파 조건'(<a href="ch05.html#s4">5.4절</a>)이 정확한 꼴로 나타났다.</li>
+      <li><b>바닥 에너지가 0이 아니다.</b> \(E_1 = \pi^2\hbar^2/2mL^2 > 0\)이다. 갇힌 입자는 멈춰 있을 수 없다. 위치가 \(L\) 안으로 제한되면 운동량이 \(\hbar/L\) 정도로 흩어질 수밖에 없기 때문이다(9장).</li>
+      <li><b>\(n\)번째 상태에는 마디가 \(n - 1\)개 있다.</b> 에너지가 높을수록 파동함수가 더 자주 굽이친다.</li>
+      <li><b>가운데에 대해 대칭이거나 반대칭이다.</b> 홀수 \(n\)은 \(x = L/2\)에 대해 대칭, 짝수 \(n\)은 반대칭이다. 퍼텐셜이 가운데에 대해 대칭이기 때문이다(7.7절).</li>
+    </ul>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:7-2--><svg viewBox="0 0 360 300" role="img" aria-label="무한 우물의 에너지 준위와 고유함수"><defs><marker id="f72-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f72-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f72-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="52" y1="284" x2="52" y2="14" class="s-line" stroke-width="3"/><line x1="304" y1="284" x2="304" y2="14" class="s-line" stroke-width="3"/><line x1="52" y1="284" x2="304" y2="284" class="s-line" stroke-width="1.2"/><line x1="52" y1="269.2" x2="304" y2="269.2" class="s-grid" stroke-dasharray="4 3"/><path d="M52 269.2 L92.3 260.4 L122.6 255 L150.3 251.9 L178 250.8 L205.7 251.9 L233.4 255 L263.7 260.4 L304 269.2" class="s-acc" stroke-width="2.2"/><text font-size="14" x="312" y="274.2" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 1</text><text font-size="14" x="44" y="273.2" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="52" y1="225" x2="304" y2="225" class="s-grid" stroke-dasharray="4 3"/><path d="M52 225 L72.2 216.1 L87.3 210.8 L101.1 207.6 L115 206.5 L122.6 206.9 L130.1 207.8 L145.2 211.5 L160.4 217.1 L191.9 231.2 L204.5 236.3 L218.3 240.6 L232.2 243 L239.7 243.4 L247.3 243.2 L254.9 242.3 L263.7 240.6 L281.3 234.9 L304 225" class="s-acc2" stroke-width="2.2"/><text font-size="14" x="312" y="230" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 2</text><text font-size="14" x="44" y="229" class="t-math dim" text-anchor="end">4<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="52" y1="151.2" x2="304" y2="151.2" class="s-grid" stroke-dasharray="4 3"/><path d="M52 151.2 L67.1 141.3 L78.5 135.8 L84.8 133.9 L89.8 133 L94.8 132.8 L99.9 133.2 L108.7 135.5 L118.8 140.1 L127.6 145.5 L147.8 159.1 L157.8 164.7 L167.9 168.4 L173 169.3 L178 169.7 L183 169.3 L188.1 168.4 L198.2 164.7 L208.2 159.1 L228.4 145.5 L237.2 140.1 L247.3 135.5 L256.1 133.2 L261.2 132.8 L266.2 133 L271.2 133.9 L277.5 135.8 L288.9 141.3 L304 151.2" class="s-acc" stroke-width="2.2"/><text font-size="14" x="312" y="156.2" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 3</text><text font-size="14" x="44" y="155.2" class="t-math dim" text-anchor="end">9<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="52" y1="47.9" x2="304" y2="47.9" class="s-grid" stroke-dasharray="4 3"/><path d="M52 47.9 L62.1 39 L69.6 33.7 L77.2 30.4 L83.5 29.5 L89.8 30.4 L97.4 33.7 L104.9 39 L122.6 54.7 L130.1 60.6 L137.7 64.6 L141.5 65.8 L145.2 66.3 L149 66.2 L152.8 65.5 L160.4 62.1 L169.2 55.8 L185.6 41.1 L191.9 36.2 L199.4 31.8 L207 29.6 L210.8 29.5 L214.5 30.1 L218.3 31.2 L223.4 33.7 L232.2 40.1 L248.6 54.7 L254.9 59.7 L262.4 64.1 L268.7 66.1 L272.5 66.4 L276.3 66.1 L283.8 63.5 L292.7 57.8 L304 47.9" class="s-acc2" stroke-width="2.2"/><text font-size="14" x="312" y="52.9" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 4</text><text font-size="14" x="44" y="51.9" class="t-math dim" text-anchor="end">16<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="52" y="298" class="t-dim" text-anchor="middle">0</text><text font-size="14" x="304" y="298" class="t-math dim" text-anchor="middle"><tspan font-style="italic">L</tspan></text></svg><!--/fig:7-2--></div>
+      <figcaption><b>그림 7-2.</b> 무한 우물의 에너지 준위 \(E_n = n^2E_1\)(가로선, 눈금대로)와 고유함수 \(\psi_n(x)\)(각 준위를 기준선으로 그림). \(n\)번째 함수에는 마디가 \(n - 1\)개 있고, 가운데에 대해 대칭과 반대칭이 번갈아 나타난다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-box-expand"><div class="box-h">포물선 상태의 에너지</div>
+      <p>처음 상태가 \(\psi(x, 0) = \sqrt{30/L^5}\,x(L - x)\)일 때 에너지를 재면 무엇이 나올까? <a href="ch03.html#ex-sine-series">3장 예제 3.2</a>에서 \(x(L - x)\)를 사인 기저로 전개했으므로, 정규화 상수만 곱하면</p>
+      <div class="formula">\[ \begin{gathered} c_n = \langle\psi_n|\psi\rangle = \frac{8\sqrt{15}}{n^3\pi^3}\quad(n\ \text{홀수}), \\ c_n = 0\quad(n\ \text{짝수}) \end{gathered} \]</div>
+      <p>이다. 바닥 상태가 나올 확률은 \(|c_1|^2 = 960/\pi^6 = 0.9986\)이고, \(E_3\)은 0.0014, 그 위는 더 작다. 짝수 상태가 나오지 않는 것은 처음 상태가 가운데에 대해 대칭이기 때문이다. 에너지의 기댓값은 위치 표현에서 바로 구할 수 있다(<a href="ch06.html#eq-expect-x">6장 식 (6.5)</a>).</p>
+      <div class="formula">\[ \begin{aligned} \langle E\rangle &= \frac{\hbar^2}{2m}\int_0^L|\psi'|^2dx \\ &= \frac{\hbar^2}{2m}\cdot\frac{30}{L^5}\int_0^L(L - 2x)^2dx = \frac{5\hbar^2}{mL^2} \end{aligned} \]</div>
+      <p>이것은 \(E_1\)의 \(10/\pi^2 = 1.013\)배로, 바닥 상태 에너지보다 조금 크다. 확률로 계산한 \(\sum_n|c_n|^2E_n\)도 같은 값이다.</p>
+    </div>
   </section>
 
+  <!-- ============================================================ 7.3 -->
   <section id="s3">
     <h2>확률 흐름</h2>
-    <p class="slot" data-slot="7.3절">아직 쓰지 않은 절입니다.</p>
+    <p>입자가 퍼텐셜에 부딪혀 되튀거나 지나가는 문제에서는 '확률이 얼마나 흘러가는가'를 재는 양이 필요하다. 확률 밀도 \(\rho = |\psi|^2\)의 시간 변화를 슈뢰딩거 방정식으로 계산하자. \(\dot\psi = \frac{i\hbar}{2m}\psi'' - \frac{i}{\hbar}V\psi\)와 그 켤레를 쓰면 퍼텐셜 항(\(V\)가 실수)은 지워지고</p>
+    <div class="formula">\[ \begin{aligned} \frac{\partial\rho}{\partial t} &= \psi^*\dot\psi + \dot\psi^*\psi = \frac{i\hbar}{2m}\big(\psi^*\psi'' - \psi\,\psi^{*\prime\prime}\big) \\ &= -\frac{\partial}{\partial x}\Big[\frac{\hbar}{2mi}\big(\psi^*\psi' - \psi\,\psi^{*\prime}\big)\Big] \end{aligned} \]</div>
+    <p>가 남는다(<a href="ch06.html#prob-norm">6장 문제 6.6</a>). 괄호 안의 양을 이름 붙이면 다음과 같다.</p>
+    <div class="box def" id="def-current"><div class="box-h">확률 흐름</div>
+      <div class="formula" id="eq-current">\[ j(x, t) = \frac{\hbar}{2mi}\Big(\psi^*\frac{\partial\psi}{\partial x} - \psi\frac{\partial\psi^*}{\partial x}\Big) = \frac{\hbar}{m}\,\mathrm{Im}\Big(\psi^*\frac{\partial\psi}{\partial x}\Big) \]</div>
+      <p>를 <span class="term">확률 흐름</span> <span class="en">(probability current)</span>이라 한다. 확률 밀도와 함께 <span class="term">연속 방정식</span> <span class="en">(continuity equation)</span>을 만족한다.</p>
+      <div class="formula" id="eq-continuity">\[ \frac{\partial\rho}{\partial t} + \frac{\partial j}{\partial x} = 0 \]</div>
+    </div>
+    <p>연속 방정식을 구간 \([a, b]\)에서 적분하면 \(\frac{d}{dt}\int_a^b\rho\,dx = j(a) - j(b)\)이다. 구간 안의 확률이 늘어나는 빠르기는 왼쪽으로 들어오는 흐름에서 오른쪽으로 나가는 흐름을 뺀 것이다. 전하 보존의 연속 방정식과 같은 꼴이다.</p>
+    <div class="box ex" id="ex-current"><div class="box-h">평면파와 정상파의 흐름</div>
+      <p><b>(가)</b> 평면파 \(\psi = Ae^{ikx}\)이면 \(\psi^*\psi' = ik|A|^2\)이므로 \(j = \frac{\hbar k}{m}|A|^2\)이다. 밀도 \(|A|^2\) 곱하기 속도 \(v = \hbar k/m = p/m\), 곧 '밀도 × 속도'다.</p>
+      <p><b>(나)</b> 두 방향의 파동이 겹친 \(\psi = Ae^{ikx} + Be^{-ikx}\)이면</p>
+      <div class="formula">\[ j = \frac{\hbar k}{m}\big(|A|^2 - |B|^2\big) \]</div>
+      <p>이다. 교차항 \(A^*Be^{-2ikx}\) 등은 서로 지워진다. 오른쪽 흐름에서 왼쪽 흐름을 뺀 것이 그대로 남는다.</p>
+      <p><b>(다)</b> 실수인 파동함수(예: 무한 우물의 정상 상태)는 \(\psi^*\psi'\)이 실수이므로 \(j = 0\)이다. 갇힌 정상 상태에서는 확률이 어디로도 흐르지 않는다.</p>
+    </div>
+    <p>(나)의 결과를 써서 산란 문제의 반사와 투과를 정의한다. 왼쪽에서 들어오는 파동 \(e^{ikx}\)이 퍼텐셜에서 일부는 반사파 \(re^{-ikx}\)로, 일부는 투과파 \(te^{ik'x}\)로 나뉘면</p>
+    <div class="formula" id="eq-RT">\[ R = \frac{|j_{\text{반사}}|}{j_{\text{입사}}} = |r|^2, \qquad T = \frac{j_{\text{투과}}}{j_{\text{입사}}} = \frac{k'}{k}\,|t|^2 \]</div>
+    <p>를 <span class="term">반사 확률</span> <span class="en">(reflection probability)</span>과 <span class="term">투과 확률</span> <span class="en">(transmission probability)</span>이라 한다. 투과 쪽의 속도가 다르면(\(k' \neq k\)) 진폭의 제곱만으로는 안 되고 속도의 비 \(k'/k\)를 곱해야 한다. 정상 상태에서는 확률이 쌓이지 않으므로 흐름이 보존되어 \(R + T = 1\)이다.</p>
   </section>
 
+  <!-- ============================================================ 7.4 -->
   <section id="s4">
     <h2>계단 퍼텐셜의 반사와 투과</h2>
-    <p class="slot" data-slot="7.4절">아직 쓰지 않은 절입니다.</p>
+    <p>가장 단순한 산란 문제는 퍼텐셜이 한 곳에서 갑자기 바뀌는 계단이다. \(x &lt; 0\)에서 \(V = 0\), \(x > 0\)에서 \(V = V_0 > 0\)이고, 입자가 왼쪽에서 에너지 \(E\)로 들어온다.</p>
+
+    <h3 id="s4-matching">연결 조건</h3>
+    <p>퍼텐셜이 유한한 크기로 끊기는 점에서 파동함수를 어떻게 이을까? 시간에 무관한 슈뢰딩거 방정식을 \(\psi'' = \frac{2m}{\hbar^2}(V - E)\psi\)로 쓰고 경계를 가로지르는 좁은 구간 \([-\epsilon, \epsilon]\)에서 적분하면</p>
+    <div class="formula" id="eq-derivative-jump">\[ \psi'(\epsilon) - \psi'(-\epsilon) = \frac{2m}{\hbar^2}\int_{-\epsilon}^{\epsilon}(V - E)\,\psi\,dx \]</div>
+    <p>이다. \(V\)가 유한하면 오른쪽은 \(\epsilon \to 0\)에서 0이다. 따라서 <b>퍼텐셜이 유한하게 끊기는 점에서 \(\psi\)와 \(\psi'\)이 모두 연속</b>이다. (\(V\)에 델타 함수가 있으면 오른쪽이 0이 아니어서 \(\psi'\)이 끊긴다. <a class="ref" href="#prob-delta-well"></a>에서 다룬다.)</p>
+
+    <h3 id="s4-above">에너지가 계단보다 높을 때</h3>
+    <p>\(E > V_0\)이면 양쪽 모두에서 파동이 진행한다. \(k = \sqrt{2mE}/\hbar\), \(k' = \sqrt{2m(E - V_0)}/\hbar\)로 두면</p>
+    <div class="formula">\[ \psi(x) = \begin{cases} e^{ikx} + r\,e^{-ikx} & (x &lt; 0) \\ t\,e^{ik'x} & (x > 0) \end{cases} \]</div>
+    <p>이다. \(x > 0\)에 왼쪽으로 가는 파동이 없는 것은 입자가 왼쪽에서만 들어오기 때문이다. \(x = 0\)에서 \(\psi\)가 연속이면 \(1 + r = t\), \(\psi'\)이 연속이면 \(ik(1 - r) = ik't\)이다. 두 식을 풀면</p>
+    <div class="formula" id="eq-step">\[ \begin{gathered} r = \frac{k - k'}{k + k'}, \qquad t = \frac{2k}{k + k'}, \\ R = \Big(\frac{k - k'}{k + k'}\Big)^2, \qquad T = \frac{4kk'}{(k + k')^2} \end{gathered} \]</div>
+    <p>이고, 실제로 \(R + T = 1\)이다. 놀라운 점은 \(R > 0\)이라는 것이다. 고전적인 공은 계단보다 에너지가 많으면 언제나 넘어가는데, 양자역학의 입자는 일부가 되튄다. 파장이 갑자기 바뀌는 곳에서 파동이 반사되는 것은 빛이 유리 표면에서 일부 반사되는 것과 같은 현상이다. 예를 들어 \(E = 2V_0\)이면 \(k' = k/\sqrt2\)이고 \(R = (3 - 2\sqrt2)^2 = 0.029\)로, 약 3%가 되튄다.</p>
+
+    <h3 id="s4-below">에너지가 계단보다 낮을 때</h3>
+    <p>\(E &lt; V_0\)이면 \(x > 0\)은 고전적으로 들어갈 수 없는 영역이다. 그곳의 해는 \(e^{\pm\kappa x}\)(\(\kappa = \sqrt{2m(V_0 - E)}/\hbar\))이고, 무한히 커지는 쪽을 버리면 \(\psi = t\,e^{-\kappa x}\)이다. 식 <a class="ref" href="#eq-step"></a>에서 \(k'\)을 \(i\kappa\)로 바꾼 것과 같으므로</p>
+    <div class="formula">\[ r = \frac{k - i\kappa}{k + i\kappa}, \qquad t = \frac{2k}{k + i\kappa} \]</div>
+    <p>이다. \(|r| = 1\)이어서 <b>모두 반사된다</b>(\(R = 1\)). 그러나 파동함수는 계단 안으로 거리 \(1/\kappa\) 정도 스며든다(그림 7-3 (나)). 이 영역의 \(\psi\)는 실수 함수에 상수 위상을 곱한 것이어서 흐름이 0이므로 투과는 없다. 전자가 높이 1 eV 남짓한 계단에 부딪히면(\(V_0 - E = 1\ \mathrm{eV}\)) 스며드는 깊이는 \(1/\kappa = 0.195\ \mathrm{nm}\)로 원자 크기 정도다. 계단이 얇은 장벽이라면 이렇게 스며든 파동이 반대편까지 닿을 수 있다. 그것이 다음 절의 터널링이다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:7-3a--><svg viewBox="0 0 280 214" role="img" aria-label="에너지가 계단보다 높을 때의 확률 밀도"><defs><marker id="f73a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f73a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f73a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><rect x="136" y="40" width="120" height="148" class="f-surface" stroke="none"/><text font-size="14" x="251" y="54" class="t-math dim" text-anchor="end"><tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><line x1="16" y1="188" x2="266" y2="188" class="s-line" stroke-width="1.2" marker-end="url(#f73a-dim)"/><line x1="136" y1="188" x2="136" y2="192" class="s-line" stroke-width="1.2"/><text x="136" y="205" class="t-dim" text-anchor="middle">0</text><text x="268" y="181" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 147.6 L22.5 161.6 L24.6 163.9 L26.6 164.3 L28.3 163.2 L30.4 160.2 L38.3 143.5 L40.7 141 L42.7 141 L44.5 142.4 L46.2 145.1 L53.7 161.2 L55.8 163.7 L57.8 164.3 L59.5 163.4 L61.6 160.6 L69.8 143.3 L71.9 141.1 L73.6 140.8 L75.3 141.8 L77.4 144.7 L85.3 161.4 L87.3 163.8 L89 164.4 L91.1 163.2 L93.1 160.3 L101 143.6 L103.1 141.3 L104.8 140.8 L106.5 141.6 L108.6 144.3 L116.8 161.6 L118.5 163.6 L120.2 164.4 L121.9 163.7 L123.7 161.8 L131.9 144.5 L133.9 141.7 L135.7 140.8 L256 140.8" class="s-acc" stroke-width="2.2"/><text x="12" y="22" class="t-b" text-anchor="start">(가) <tspan font-style="italic">E</tspan> = 2<tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text></svg><!--/fig:7-3a--><!--fig:7-3b--><svg viewBox="0 0 280 214" role="img" aria-label="에너지가 계단보다 낮을 때의 확률 밀도: 모두 반사되고 꼬리만 스며든다"><defs><marker id="f73b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f73b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f73b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><rect x="136" y="40" width="120" height="148" class="f-surface" stroke="none"/><text font-size="14" x="251" y="54" class="t-math dim" text-anchor="end"><tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><line x1="16" y1="188" x2="266" y2="188" class="s-line" stroke-width="1.2" marker-end="url(#f73b-dim)"/><line x1="136" y1="188" x2="136" y2="192" class="s-line" stroke-width="1.2"/><text x="136" y="205" class="t-dim" text-anchor="middle">0</text><text x="268" y="181" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 181.5 L17.4 187.1 L18.4 187.9 L19.8 184.6 L21.1 176.3 L23.5 152.2 L29.7 73.1 L31.8 56.5 L32.8 52 L33.8 50.3 L34.9 51.6 L35.9 55.7 L37.9 71.6 L44.1 150.5 L46.5 175.3 L48.6 186.5 L49.6 188 L50.6 186.6 L52.3 177.9 L54.1 162.5 L61.6 68.5 L63.7 54.1 L64.7 50.9 L65.4 50.3 L66.4 51.9 L67.4 56.4 L69.5 72.9 L75.7 152 L77.7 173.5 L79.8 185.9 L80.8 187.9 L81.5 187.7 L83.2 181.6 L85.3 164.7 L93.1 67.3 L95.2 53.5 L96.2 50.7 L96.9 50.4 L97.6 51.4 L98.6 55.2 L100.7 70.8 L107.2 153.6 L109.3 174.5 L111.3 186.3 L112.3 188 L113 187.5 L114.7 180.8 L116.8 163.4 L124.7 66.2 L126.4 54.5 L127.4 51 L128.1 50.3 L128.8 50.9 L129.8 54.2 L131.9 68.7 L137 132 L139.8 155.6 L141.5 165 L143.5 172.8 L145.9 178.6 L148.7 182.6 L151.4 184.9 L154.5 186.3 L158.6 187.3 L164.1 187.8 L256 188" class="s-acc" stroke-width="2.2"/><text x="12" y="22" class="t-b" text-anchor="start">(나) <tspan font-style="italic">E</tspan> = <tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>/2</text></svg><!--/fig:7-3b--></div>
+      <figcaption><b>그림 7-3.</b> 계단 퍼텐셜(\(x > 0\)에서 \(V_0\), 회색)에서의 확률 밀도 \(|\psi(x)|^2\)(입사파의 진폭을 1로 둠). (가) \(E = 2V_0\): 왼쪽은 입사파와 약한 반사파가 겹쳐 조금 출렁이고, 오른쪽은 투과파의 일정한 밀도다. (나) \(E = V_0/2\): 모두 반사되어 왼쪽에 정상파가 생기고, 오른쪽으로는 지수적으로 줄어드는 꼬리만 스며든다.</figcaption>
+    </figure>
   </section>
 
+  <!-- ============================================================ 7.5 -->
   <section id="s5">
     <h2>장벽과 터널링</h2>
-    <p class="slot" data-slot="7.5절">아직 쓰지 않은 절입니다.</p>
+    <p>이제 계단 대신 폭 \(a\)인 장벽을 놓자. \(0 &lt; x &lt; a\)에서 \(V = V_0\), 그 밖에서 \(V = 0\)이다. 고전적으로는 \(E &lt; V_0\)인 입자가 장벽을 넘을 수 없다. 양자역학에서는 장벽 안으로 스며든 파동이 반대편에서 다시 진행파가 되어, 입자가 일정한 확률로 장벽을 뚫고 지나간다. 이것을 <span class="term">터널링</span> <span class="en">(tunneling)</span>이라 한다.</p>
+    <p>\(E &lt; V_0\)일 때 세 영역의 해는 \(e^{ikx} + re^{-ikx}\), \(Ce^{\kappa x} + De^{-\kappa x}\), \(te^{ikx}\)이다. 두 경계에서 \(\psi\)와 \(\psi'\)을 이으면 조건이 넷, 미지수가 넷(\(r, C, D, t\))이다. 풀면 투과 확률은</p>
+    <div class="formula" id="eq-barrier">\[ T = \bigg[1 + \frac{V_0^2\,\sinh^2(\kappa a)}{4E(V_0 - E)}\bigg]^{-1} \qquad (E &lt; V_0) \]</div>
+    <p>이다. 양쪽의 속도가 같으므로 \(T = |t|^2\)이다.</p>
+    <details class="proof"><summary>유도</summary>
+      <p>\(x = a\)의 두 조건 \(Ce^{\kappa a} + De^{-\kappa a} = te^{ika}\), \(\kappa(Ce^{\kappa a} - De^{-\kappa a}) = ikte^{ika}\)에서 \(C\)와 \(D\)를 \(t\)로 나타내면</p>
+      <div class="formula">\[ \begin{gathered} C = \frac{te^{ika}}{2}\Big(1 + \frac{ik}{\kappa}\Big)e^{-\kappa a}, \\ D = \frac{te^{ika}}{2}\Big(1 - \frac{ik}{\kappa}\Big)e^{\kappa a} \end{gathered} \]</div>
+      <p>이다. \(x = 0\)의 두 조건 \(1 + r = C + D\), \(ik(1 - r) = \kappa(C - D)\)에서 \(r\)을 지우면(둘째 식을 \(ik\)로 나누어 첫째 식에 더한다)</p>
+      <div class="formula">\[ 2 = C\Big(1 + \frac{\kappa}{ik}\Big) + D\Big(1 - \frac{\kappa}{ik}\Big) \]</div>
+      <p>이다. 여기에 \(C\), \(D\)를 넣는다. \(\big(1 + \frac{ik}{\kappa}\big)\big(1 + \frac{\kappa}{ik}\big) = 2 + i\big(\frac k\kappa - \frac\kappa k\big)\)이고 \(\big(1 - \frac{ik}{\kappa}\big)\big(1 - \frac{\kappa}{ik}\big) = 2 - i\big(\frac k\kappa - \frac\kappa k\big)\)이므로</p>
+      <div class="formula">\[ 2 = te^{ika}\Big[2\cosh\kappa a - i\Big(\frac k\kappa - \frac\kappa k\Big)\sinh\kappa a\Big] \]</div>
+      <p>이다. 따라서 \(|t|^{-2} = \cosh^2\kappa a + \frac14\big(\frac k\kappa - \frac\kappa k\big)^2\sinh^2\kappa a\)이다. \(\cosh^2 = 1 + \sinh^2\)과 \(1 + \frac14\big(\frac k\kappa - \frac\kappa k\big)^2 = \frac14\big(\frac k\kappa + \frac\kappa k\big)^2 = \frac{(k^2 + \kappa^2)^2}{4k^2\kappa^2}\)을 쓰고, \(k^2 + \kappa^2 = 2mV_0/\hbar^2\), \(k^2\kappa^2 = (2m/\hbar^2)^2E(V_0 - E)\)를 넣으면 식 <a class="ref" href="#eq-barrier"></a>이 된다.</p>
+    </details>
+    <p>장벽이 두껍거나 높아 \(\kappa a \gg 1\)이면 \(\sinh\kappa a \approx \tfrac12e^{\kappa a}\)이므로</p>
+    <div class="formula" id="eq-barrier-thick">\[ T \approx 16\,\frac{E}{V_0}\Big(1 - \frac{E}{V_0}\Big)\,e^{-2\kappa a} \]</div>
+    <p>이다. <b>투과 확률은 장벽 두께에 지수적으로 줄어든다.</b> 두께가 \(1/\kappa\)만큼 늘 때마다 \(e^2 \approx 7.4\)배씩 작아진다.</p>
+    <p>에너지가 장벽보다 높을 때(\(E > V_0\))도 같은 계산에서 \(\kappa\)를 \(ik'\)(\(k' = \sqrt{2m(E - V_0)}/\hbar\))로 바꾸면 된다. \(\sinh\)가 \(\sin\)이 되어 \(T = \big[1 + \frac{V_0^2\sin^2(k'a)}{4E(E - V_0)}\big]^{-1}\)이다. 고전적으로는 언제나 넘어가는 에너지인데도 일부가 반사되고, \(k'a = n\pi\)일 때만 \(T = 1\)이 된다. 장벽 안에 반 파장의 정수배가 꼭 들어맞아 두 경계에서 반사된 파동이 상쇄되는 <span class="term">공명 투과</span> <span class="en">(resonant transmission)</span>다(그림 7-4 (가)).</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:7-4a--><svg viewBox="0 0 280 220" role="img" aria-label="장벽의 투과 확률이 에너지에 따라 변한다. 장벽보다 낮아도 0이 아니고 높아도 공명에서만 1이다"><defs><marker id="f74a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f74a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f74a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="34" y1="190" x2="266" y2="190" class="s-line" stroke-width="1.2" marker-end="url(#f74a-dim)"/><line x1="89.5" y1="190" x2="89.5" y2="194" class="s-line" stroke-width="1.2"/><text x="89.5" y="207" class="t-dim" text-anchor="middle">1</text><line x1="145" y1="190" x2="145" y2="194" class="s-line" stroke-width="1.2"/><text x="145" y="207" class="t-dim" text-anchor="middle">2</text><line x1="200.5" y1="190" x2="200.5" y2="194" class="s-line" stroke-width="1.2"/><text x="200.5" y="207" class="t-dim" text-anchor="middle">3</text><text x="268" y="183" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan>/<tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><line x1="34" y1="190" x2="34" y2="30" class="s-line" stroke-width="1.2" marker-end="url(#f74a-dim)"/><line x1="30" y1="123" x2="34" y2="123" class="s-line" stroke-width="1.2"/><text x="27" y="127" class="t-dim" text-anchor="end">0.5</text><line x1="30" y1="56.1" x2="34" y2="56.1" class="s-line" stroke-width="1.2"/><text x="27" y="60.1" class="t-dim" text-anchor="end">1</text><text x="41" y="36" class="t-math dim" text-anchor="start"><tspan font-style="italic">T</tspan></text><path d="M34 190 L89.5 190 L89.5 56.1 L256 56.1" class="s-line" stroke-width="1.4" stroke-dasharray="5 4" fill="none"/><path d="M34.1 190 L54.8 189.1 L61.8 188.1 L67.5 186.7 L72.5 184.6 L77 181.8 L80.8 178.1 L84.2 173.7 L89.7 162.7 L94.9 146.9 L99.3 128.6 L108 87.4 L111.9 72.5 L116 62.2 L118.2 58.9 L120.4 57 L123 56.1 L126.2 56.4 L143.4 64.5 L149.5 66 L155.8 66.5 L166.7 65.4 L194.2 59.1 L209.8 56.8 L228.1 56.1 L256 57.1" class="s-acc" stroke-width="2.4"/><text x="12" y="22" class="t-b" text-anchor="start">(가) 투과 확률</text></svg><!--/fig:7-4a--><!--fig:7-4b--><svg viewBox="0 0 280 220" role="img" aria-label="장벽 안에서 줄어든 파동이 반대편으로 투과한다"><defs><marker id="f74b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f74b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f74b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><rect x="149.3" y="40" width="13.3" height="154" class="f-surface" stroke="none"/><line x1="16" y1="194" x2="266" y2="194" class="s-line" stroke-width="1.2" marker-end="url(#f74b-dim)"/><line x1="149.3" y1="194" x2="149.3" y2="198" class="s-line" stroke-width="1.2"/><text x="149.3" y="211" class="t-dim" text-anchor="middle">0</text><text x="268" y="187" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 87.6 L17.8 95.4 L19.9 108.2 L28.9 176 L31.3 187.1 L32.5 190.3 L33.7 191.8 L34.9 191.6 L36.1 189.6 L38.5 180.7 L41.5 162 L49.6 100.3 L52.3 87.6 L53.8 83.9 L55 82.9 L56.2 83.6 L57.4 86.1 L59.8 95.9 L62.5 113.3 L70.6 174.9 L73.3 187.5 L74.5 190.5 L75.7 191.9 L76.9 191.5 L78.1 189.4 L80.5 180.2 L83.2 163.3 L91.6 99.6 L94.3 87.2 L95.8 83.7 L97 82.9 L98.2 83.8 L99.4 86.4 L101.8 96.5 L104.5 114.1 L112.3 173.7 L115 186.8 L116.2 190.2 L117.4 191.8 L118.6 191.7 L119.8 189.8 L122.5 179.6 L125.2 162.5 L133.3 100.8 L136 87.8 L137.5 84 L138.7 82.9 L139.9 83.5 L141.1 85.9 L143.8 97.2 L150.4 145.5 L153.1 160.6 L156.4 171.8 L158.2 175.5 L160.3 178 L162.7 179 L256 179" class="s-acc" stroke-width="2.2"/><text font-size="14" x="209.3" y="171" class="t-math dim" text-anchor="middle">|<tspan font-style="italic">t</tspan>|<tspan baseline-shift="super" font-size="72%">2</tspan> = 0.42</text><text x="12" y="22" class="t-b" text-anchor="start">(나) 터널링하는 파동</text></svg><!--/fig:7-4b--></div>
+      <figcaption><b>그림 7-4.</b> 장벽 투과. (가) \(2mV_0a^2/\hbar^2 = 16\)인 장벽의 투과 확률 \(T\)를 에너지 \(E/V_0\)에 따라 그렸다. 점선은 고전역학(\(E &lt; V_0\)이면 0, 넘으면 1)이다. \(E &lt; V_0\)에서도 투과가 있고, \(E > V_0\)에서는 1에 못 미치다가 공명 에너지에서만 1이 된다. (나) 터널링하는 파동의 \(|\psi|^2\)(\(E = V_0/2\), \(\kappa a = 1\)). 장벽 안에서 지수적으로 줄어든 뒤 오른쪽으로 일정한 밀도의 투과파가 나간다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-tunnel-numbers"><div class="box-h">전자의 터널링과 주사 터널링 현미경</div>
+      <p>에너지 1 eV의 전자가 높이 2 eV, 두께 0.5 nm의 장벽에 부딪힌다. \(\kappa = \sqrt{2m_e\times1\ \mathrm{eV}}/\hbar = 5.12\times10^9\ \mathrm{m^{-1}}\), \(\kappa a = 2.56\)이고, 식 <a class="ref" href="#eq-barrier"></a>으로 \(T = 0.024\)이다. 근사식 <a class="ref" href="#eq-barrier-thick"></a>도 0.024를 준다. 전자 40개 가운데 하나꼴로 지나간다.</p>
+      <p>주사 터널링 현미경(STM)은 이 지수적 민감성을 쓴다. 날카로운 바늘을 시료 표면에 0.5~1 nm까지 가까이 대고 전압을 걸면, 전자가 진공의 틈을 터널링해 전류가 흐른다. 장벽의 높이는 금속의 일함수 정도(약 4 eV)이므로 \(\kappa \approx 1.0\times10^{10}\ \mathrm{m^{-1}}\)이고, 틈이 0.1 nm 늘 때마다 전류가 \(e^{-2\kappa\times0.1\,\mathrm{nm}} = 0.13\)배, 약 8분의 1로 준다. 전류를 일정하게 유지하며 바늘을 움직이면 원자 하나의 높이 차이까지 읽을 수 있다.</p>
+    </div>
+    <p>아래 실험은 가우스 파속을 장벽에 보내 터널링을 보여 준다. 반사·투과 확률은 수치 해에서 직접 센 값이다. 파속은 여러 에너지의 평면파가 섞인 것이어서 평면파 공식의 \(T(E_0)\)와 조금 다르다. 파속 폭을 키우면(에너지 퍼짐을 줄이면) 공식에 가까워진다. 장벽 두께를 조금만 늘려도 투과가 급격히 주는 것을 확인해 보자.</p>
+    <div data-sim="qm-packet" data-preset="barrier"></div>
+    <div class="callout tip"><strong>터널링이 일어나는 곳</strong><p>알파 붕괴는 알파 입자가 핵의 쿨롱 장벽을 터널링하는 현상이고, 장벽 두께가 에너지에 따라 달라 반감기가 에너지에 극도로 민감하다(18장에서 WKB로 계산한다). 태양 안의 핵융합, 플래시 메모리의 저장과 지우기, 터널 다이오드도 터널링에 기댄다. 6장의 암모니아 분자에서 질소가 두 우물 사이를 오간 것도 터널링이다.</p></div>
   </section>
 
+  <!-- ============================================================ 7.6 -->
   <section id="s6">
     <h2>유한 우물</h2>
-    <p class="slot" data-slot="7.6절">아직 쓰지 않은 절입니다.</p>
+    <p>깊이 \(V_0\), 폭 \(2a\)인 우물을 생각하자. \(|x| &lt; a\)에서 \(V = -V_0\), 그 밖에서 \(V = 0\)이다. 에너지가 \(-V_0 &lt; E &lt; 0\)이면 입자는 고전적으로 우물 안에 갇혀 있고, 양자역학에서는 띄엄띄엄한 <span class="term">속박 상태</span> <span class="en">(bound state)</span>가 된다. \(E > 0\)이면 무한히 멀리 갈 수 있는 산란 상태로, 에너지가 연속이다(<a href="ch03.html#eq-mixed">3장 식 (3.34)</a>의 '섞인 스펙트럼').</p>
+
+    <h3 id="s6-even-odd">짝 상태와 홀 상태</h3>
+    <p>\(k = \sqrt{2m(E + V_0)}/\hbar\), \(\kappa = \sqrt{-2mE}/\hbar\)로 두자. 우물 안의 해는 \(\cos kx\), \(\sin kx\)이고, 밖에서는 무한히 먼 곳에서 0이 되는 \(e^{-\kappa|x|}\)이다. 퍼텐셜이 \(x \to -x\)에 대해 대칭이므로 속박 상태는 짝함수이거나 홀함수다(7.7절). 짝 상태 \(\psi = A\cos kx\)(\(|x| &lt; a\)), \(Be^{-\kappa|x|}\)(\(|x| > a\))를 \(x = a\)에서 이으면 \(A\cos ka = Be^{-\kappa a}\), \(-kA\sin ka = -\kappa Be^{-\kappa a}\)이고, 나누면 \(k\tan ka = \kappa\)이다. 홀 상태 \(A\sin kx\)에서는 같은 방법으로 \(-k\cot ka = \kappa\)이다. 차원 없는 변수 \(\xi = ka\), \(\eta = \kappa a\)로 쓰면</p>
+    <div class="formula" id="eq-finite-well">\[ \text{짝: } \eta = \xi\tan\xi, \qquad \text{홀: } \eta = -\xi\cot\xi, \qquad \xi^2 + \eta^2 = z_0^2 \]</div>
+    <p>이다. 마지막 식은 \(k^2 + \kappa^2 = 2mV_0/\hbar^2\)에서 나오고, \(z_0 = a\sqrt{2mV_0}/\hbar\)는 우물의 깊이와 폭을 하나로 묶은 '우물의 세기'다. 해는 \(\xi\eta\) 평면에서 반지름 \(z_0\)인 원과 두 곡선의 교점이다(그림 7-5 (가)). 에너지는 \(E = -V_0(1 - \xi^2/z_0^2)\)이다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:7-5a--><svg viewBox="0 0 280 252" role="img" aria-label="짝 상태와 홀 상태의 곡선이 원과 만나는 세 점이 속박 상태다"><defs><marker id="f75a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f75a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f75a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="30" y1="222" x2="266" y2="222" class="s-line" stroke-width="1.2" marker-end="url(#f75a-dim)"/><line x1="102.4" y1="222" x2="102.4" y2="226" class="s-line" stroke-width="1.2"/><text x="102.4" y="239" class="t-dim" text-anchor="middle">π/2</text><line x1="174.9" y1="222" x2="174.9" y2="226" class="s-line" stroke-width="1.2"/><text x="174.9" y="239" class="t-dim" text-anchor="middle">π</text><line x1="247.3" y1="222" x2="247.3" y2="226" class="s-line" stroke-width="1.2"/><text x="247.3" y="239" class="t-dim" text-anchor="middle">3π/2</text><text x="268" y="215" class="t-math dim" text-anchor="end"><tspan font-style="italic">ξ</tspan></text><line x1="30" y1="222" x2="30" y2="30" class="s-line" stroke-width="1.2" marker-end="url(#f75a-dim)"/><line x1="26" y1="152" x2="30" y2="152" class="s-line" stroke-width="1.2"/><text x="23" y="156" class="t-dim" text-anchor="end">2</text><line x1="26" y1="82" x2="30" y2="82" class="s-line" stroke-width="1.2"/><text x="23" y="86" class="t-dim" text-anchor="end">4</text><text x="37" y="36" class="t-math dim" text-anchor="start"><tspan font-style="italic">η</tspan></text><path d="M30 222 L36.5 221.3 L43 219.1 L49.2 215.6 L54.8 210.8 L60 204.6 L64.8 197.3 L68.9 188.8 L72.7 178.9 L76 168 L78.9 155.9 L83.8 126.9 L87.7 89.3 L90.8 42.9" class="s-acc" stroke-width="2.2"/><path d="M175.1 221.5 L182.6 202.5 L189.3 183 L195.2 163.1 L200.4 142 L205.1 119.9 L209.4 95.9 L213.2 69.7 L216.7 41.4" class="s-acc" stroke-width="2.2"/><path d="M102.6 221.8 L112.4 208.3 L120.9 192.8 L128.3 175.1 L134.8 154.6 L140.5 131.4 L145.2 105.7 L149.3 75.7 L152.9 41" class="s-acc2" stroke-width="2.2" stroke-dasharray="6 4"/><path d="M214.5 222 L213.7 208.8 L210.9 194.7 L206.3 180.8 L200.4 168.4 L193 156.5 L183.4 144.2 L173.1 133.6 L160.5 123 L147.6 114.1 L132.5 105.6 L116.3 98.3 L100.6 92.7 L84.2 88.2 L66 84.7 L48.8 82.7 L30 82" class="s-line" stroke-width="1.6" fill="none"/><circle cx="87.8" cy="89" r="4" class="f-acc"/><circle cx="144.1" cy="112" r="4" class="f-acc"/><circle cx="195.8" cy="160.6" r="4" class="f-acc"/><text font-size="14" x="216.5" y="185.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">z</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan> = 4</text><text x="12" y="22" class="t-b" text-anchor="start">(가) 그래프로 풀기</text></svg><!--/fig:7-5a--><!--fig:7-5b--><svg viewBox="0 0 280 252" role="img" aria-label="유한 우물의 세 속박 상태. 파동함수가 우물 밖으로 스며든다"><defs><marker id="f75b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f75b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f75b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><path d="M16 70.6 L89.8 70.6 L89.8 223.8 L182.2 223.8 L182.2 70.6 L256 70.6" class="s-line" stroke-width="1.8" fill="none"/><line x1="16" y1="208.7" x2="256" y2="208.7" class="s-grid" stroke-dasharray="4 3"/><path d="M16 208.7 L56.8 208.4 L76 207.1 L86.2 204.8 L102.4 198.4 L114.4 194.7 L125.2 192.6 L136 191.9 L146.8 192.6 L157.6 194.7 L169.6 198.4 L185.8 204.8 L196 207.1 L215.2 208.4 L256 208.7" class="s-acc" stroke-width="2"/><line x1="16" y1="165.1" x2="256" y2="165.1" class="s-grid" stroke-dasharray="4 3"/><path d="M16 165.2 L50.8 165.9 L61.6 166.7 L70 167.8 L76.6 169.4 L82.6 171.5 L98.2 180.3 L102.4 181.5 L106.6 182 L113.2 181 L120.4 177.6 L127.6 172.5 L142.6 159.3 L149.2 154.2 L156.4 150.2 L163 148.4 L167.8 148.5 L172.6 149.6 L177.4 151.7 L185.2 156.7 L189.4 158.8 L195.4 160.9 L202.6 162.6 L211 163.7 L221.8 164.4 L256 165.1" class="s-acc2" stroke-width="2"/><line x1="16" y1="100" x2="256" y2="100" class="s-grid" stroke-dasharray="4 3"/><path d="M16 101 L41.8 102.5 L61.6 105.2 L70 107.2 L77.8 109.6 L92.2 116.3 L97 116.8 L101.8 115 L106.6 111.1 L111.4 105.7 L121.6 92.7 L127 87.2 L131.8 84.1 L136 83.2 L140.2 84.1 L145 87.2 L150.4 92.7 L160.6 105.7 L165.4 111.1 L170.2 115 L175 116.8 L179.8 116.3 L194.2 109.6 L202 107.2 L210.4 105.2 L230.2 102.5 L256 101" class="s-acc" stroke-width="2"/><text font-size="14" x="251.4" y="227.8" class="t-math dim" text-anchor="end">−<tspan font-style="italic">V</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><text x="12" y="22" class="t-b" text-anchor="start">(나) 속박 상태</text></svg><!--/fig:7-5b--></div>
+      <figcaption><b>그림 7-5.</b> 유한 우물(\(z_0 = 4\)). (가) 그래프로 풀기. 짝 상태의 곡선 \(\xi\tan\xi\)(실선), 홀 상태의 곡선 \(-\xi\cot\xi\)(점선)과 원 \(\xi^2 + \eta^2 = 16\)의 교점 세 개가 속박 상태다. (나) 세 속박 상태의 에너지(가로선)와 파동함수. 우물 밖으로 지수적으로 스며든 꼬리가 있고, 에너지가 높을수록 더 멀리 스며든다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-finite-well"><div class="box-h">세기 \(z_0 = 4\)인 우물</div>
+      <p>그림 7-5에서 교점을 수치로 구하면 \(\xi = 1.252\)(짝), \(2.475\)(홀), \(3.595\)(짝)이고, 에너지는 \(E/V_0 = -0.902, -0.617, -0.192\)이다. 속박 상태는 셋이다. 홀 상태의 곡선은 \(\xi = \pi/2\)에서 시작하므로, 원이 \(\xi = \pi\)를 넘지 못하는 얕은 우물에는 홀 상태가 하나도 없다.</p>
+      <p>일반적으로 \(\xi\)가 \(\pi/2\)를 넘을 때마다 곡선이 하나씩 늘어나므로 속박 상태의 수는 \(\lceil 2z_0/\pi\rceil\)이다. 깊이 10 eV, 폭 0.5 nm인 우물의 전자는 \(z_0 = 4.05\)이어서 속박 상태가 3개다.</p>
+    </div>
+    <p>두 극한을 보자. 우물이 아주 깊으면(\(z_0 \to \infty\)) 원이 커지고 교점은 곡선의 점근선 \(\xi \to n\pi/2\)에 다가간다. 그러면 \(k = n\pi/2a\)이고 폭 \(2a\)인 무한 우물의 결과(식 <a class="ref" href="#eq-box-states"></a>)와 같아진다. 반대로 우물이 아주 얕아도(\(z_0 \to 0\)) 짝 상태의 곡선 \(\xi\tan\xi\)는 원점에서 출발하므로 원과 반드시 만난다. <b>1차원에서는 아무리 얕은 우물에도 속박 상태가 적어도 하나 있다.</b> 3차원에서는 그렇지 않아, 우물이 어느 정도 깊어야 속박 상태가 생긴다(15장).</p>
   </section>
 
+  <!-- ============================================================ 7.7 -->
   <section id="s7">
     <h2>1차원의 일반 정리</h2>
-    <p class="slot" data-slot="7.7절">아직 쓰지 않은 절입니다.</p>
+    <p>지금까지의 예에서 되풀이해 나타난 성질들이 있다. 속박 상태의 에너지는 겹치지 않았고, 파동함수는 실수로 쓸 수 있었으며, 대칭인 퍼텐셜에서는 짝 또는 홀이었다. 이것들은 1차원 속박 상태의 일반적인 성질이다.</p>
+    <div class="box thm" id="thm-nondegenerate"><div class="box-h">1차원 속박 상태는 축퇴되지 않는다</div>
+      <p>1차원에서 무한히 먼 곳에서 0이 되는 두 해 \(\psi_1\), \(\psi_2\)가 같은 에너지 \(E\)를 가지면 \(\psi_2 = c\,\psi_1\)이다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p>두 해는 \(\psi_i'' = \frac{2m}{\hbar^2}(V - E)\psi_i\)를 만족한다. 첫째 식에 \(\psi_2\)를, 둘째 식에 \(\psi_1\)을 곱해 빼면 \(\psi_2\psi_1'' - \psi_1\psi_2'' = 0\)이다. 왼쪽은 \(\frac{d}{dx}(\psi_2\psi_1' - \psi_1\psi_2')\)이므로 \(W = \psi_2\psi_1' - \psi_1\psi_2'\)는 상수다. 무한히 먼 곳에서 두 함수가 모두 0이므로 \(W = 0\)이다. 그러면 \(\psi_1 \neq 0\)인 곳에서 \(\frac{\psi_1'}{\psi_1} = \frac{\psi_2'}{\psi_2}\), 곧 \(\frac{d}{dx}\ln\frac{\psi_1}{\psi_2} = 0\)이므로 \(\psi_2 = c\,\psi_1\)이다.</p>
+      </details>
+    </div>
+    <p>산란 상태는 다르다. 자유 입자의 \(e^{\pm ikx}\)처럼 같은 에너지에 두 상태(왼쪽에서 오는 것과 오른쪽에서 오는 것)가 있다. 무한히 먼 곳에서 0이 되지 않아 위 증명의 \(W = 0\)이 성립하지 않기 때문이다.</p>
+    <div class="box thm" id="thm-real-parity"><div class="box-h">실수성과 반전성</div>
+      <p><b>(가)</b> 1차원 속박 상태의 파동함수는 전체 위상을 빼면 실수로 고를 수 있다. <b>(나)</b> 퍼텐셜이 짝함수(\(V(-x) = V(x)\))이면 속박 상태는 짝함수이거나 홀함수다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p><b>(가)</b> \(V\)와 \(E\)가 실수이므로 \(\psi\)가 해이면 켤레 \(\psi^*\)도 같은 에너지의 해다. 축퇴가 없으므로 \(\psi^* = c\,\psi\)이고, 노름을 비교하면 \(|c| = 1\)이다. \(c = e^{-2i\alpha}\)로 쓰면 \(e^{i\alpha}\psi\)가 실수다.</p>
+        <p><b>(나)</b> \(V(-x) = V(x)\)이면 \(\psi(-x)\)도 같은 에너지의 해다(방정식에 \(x \to -x\)를 넣어도 \(d^2/dx^2\)는 그대로다). 축퇴가 없으므로 \(\psi(-x) = c\,\psi(x)\)이다. 이를 두 번 쓰면 \(\psi(x) = c^2\psi(x)\)이므로 \(c = \pm1\)이다.</p>
+      </details>
+    </div>
+    <p>이 밖에도 두 가지를 기억해 두자. 첫째, 에너지는 퍼텐셜의 최솟값보다 크다. \(\langle E\rangle = \frac{\hbar^2}{2m}\int|\psi'|^2dx + \int V|\psi|^2dx\)에서 첫째 항은 양수이고 둘째 항은 \(V_{\min}\)보다 작지 않기 때문이다(<a class="ref" href="#prob-vmin"></a>). 둘째, \(n\)번째 속박 상태에는 마디가 \(n - 1\)개 있다. 무한 우물과 유한 우물에서 확인했고, 8장의 조화 진동자에서도 그렇다. 이것은 스투름-리우빌 이론의 결과로, 이 책에서는 증명 없이 예로 확인하며 쓴다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>속박 상태</th><th>산란 상태</th></tr></thead>
+      <tbody>
+        <tr><td>에너지</td><td>퍼텐셜의 양 끝 값보다 낮다</td><td>적어도 한쪽 끝 값보다 높다</td></tr>
+        <tr><td>스펙트럼</td><td>이산</td><td>연속</td></tr>
+        <tr><td>정규화</td><td>\(\int|\psi|^2dx = 1\)</td><td>델타 정규화 또는 흐름으로 비교</td></tr>
+        <tr><td>축퇴</td><td>없음</td><td>양 끝에서 모두 진행파면 2중</td></tr>
+        <tr><td>예</td><td>무한 우물, 유한 우물의 \(E &lt; 0\)</td><td>자유 입자, 계단, 장벽, 유한 우물의 \(E > 0\)</td></tr>
+      </tbody>
+    </table></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>자유 입자에서는 운동량 분포가 변하지 않고 각 성분의 위상만 돈다. 가우스 파속의 폭은 \(\sigma(t) = \sigma\sqrt{1 + (\hbar t/m\sigma^2)^2}\)로 커지며, 처음에 좁을수록 빨리 퍼진다.</li>
+      <li>무한 우물의 경계 조건은 벽에서 \(\psi = 0\)이다. 에너지는 \(E_n = n^2\pi^2\hbar^2/2mL^2\)로 띄엄띄엄하고 바닥 에너지가 0이 아니며, 고유함수는 3장의 사인 기저다.</li>
+      <li>확률 흐름 \(j = \frac{\hbar}{m}\mathrm{Im}(\psi^*\psi')\)는 연속 방정식을 만족한다. 평면파의 흐름은 '밀도 × 속도'이고, 실수 파동함수의 흐름은 0이다. 반사·투과 확률은 흐름의 비다.</li>
+      <li>퍼텐셜이 유한하게 끊기는 점에서 \(\psi\)와 \(\psi'\)은 연속이다. 델타 퍼텐셜에서는 \(\psi'\)이 끊긴다.</li>
+      <li>계단에서 \(E > V_0\)이어도 일부가 반사되고(\(R = ((k - k')/(k + k'))^2\)), \(E &lt; V_0\)이면 모두 반사되지만 파동은 \(1/\kappa\)만큼 스며든다.</li>
+      <li>장벽 투과 확률은 \(E &lt; V_0\)에서도 0이 아니며, 두꺼운 장벽에서 \(T \approx 16\frac{E}{V_0}(1 - \frac{E}{V_0})e^{-2\kappa a}\)로 두께에 지수적으로 줄어든다. \(E > V_0\)에서는 공명 에너지에서만 \(T = 1\)이다.</li>
+      <li>유한 우물의 속박 상태는 \(\eta = \xi\tan\xi\)(짝), \(\eta = -\xi\cot\xi\)(홀)와 원 \(\xi^2 + \eta^2 = z_0^2\)의 교점이다. 개수는 \(\lceil 2z_0/\pi\rceil\)이고, 1차원에서는 언제나 하나 이상이다.</li>
+      <li>1차원 속박 상태는 축퇴되지 않고, 실수로 고를 수 있으며, 대칭 퍼텐셜에서는 짝 또는 홀이다. 에너지는 \(V_{\min}\)보다 크고, \(n\)번째 상태에는 마디가 \(n - 1\)개 있다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 자유 입자의 파속에서 시간에 따라 변하지 <b>않는</b> 것은?</p><div class="opts">
+        <button class="opt">위치 분포의 폭</button>
+        <button class="opt" data-correct>운동량 분포 \(|\phi(p)|^2\)</button>
+        <button class="opt">위치 분포의 최댓값</button>
+        <button class="opt">파속 중심의 위치</button>
+      </div><div class="quiz-exp">\(\hat p\)가 \(\hat H\)와 교환하므로 운동량 분포는 보존된다. 각 운동량 성분의 위상이 다른 빠르기로 돌아 위치 분포가 퍼진다.</div></div>
+      <div class="quiz-q"><p>2. 무한 우물의 바닥 에너지가 0이 아닌 이유로 가장 알맞은 것은?</p><div class="opts">
+        <button class="opt">\(n = 0\)인 상태가 정규화되지 않아서</button>
+        <button class="opt" data-correct>\(n = 0\)이면 \(\psi = 0\)이 되어 상태가 아니고, 갇힌 입자는 운동량이 퍼질 수밖에 없어서</button>
+        <button class="opt">벽의 퍼텐셜 에너지가 더해져서</button>
+        <button class="opt">경계 조건 \(\psi'(0) = 0\) 때문에</button>
+      </div><div class="quiz-exp">\(kL = n\pi\)에서 \(n = 0\)이면 파동함수가 어디서나 0이다. 물리적으로는 위치를 \(L\) 안으로 가두면 운동량이 \(\hbar/L\) 정도 흩어져 운동 에너지가 0일 수 없다.</div></div>
+      <div class="quiz-q"><p>3. 실수인 파동함수의 확률 흐름은?</p><div class="opts">
+        <button class="opt" data-correct>0이다.</button>
+        <button class="opt">\(|\psi|^2\)에 비례한다.</button>
+        <button class="opt">\(\psi'\)에 비례한다.</button>
+        <button class="opt">음수다.</button>
+      </div><div class="quiz-exp">\(j = \frac\hbar m\mathrm{Im}(\psi^*\psi')\)이고 \(\psi\)가 실수이면 \(\psi^*\psi'\)이 실수다. 갇힌 정상 상태에서는 확률이 흐르지 않는다.</div></div>
+      <div class="quiz-q"><p>4. 에너지가 계단 높이의 두 배(\(E = 2V_0\))인 입자가 계단에 부딪히면?</p><div class="opts">
+        <button class="opt">모두 넘어간다.</button>
+        <button class="opt" data-correct>약 3%가 되튀고 나머지는 넘어간다.</button>
+        <button class="opt">절반이 되튄다.</button>
+        <button class="opt">모두 되튄다.</button>
+      </div><div class="quiz-exp">\(R = ((k - k')/(k + k'))^2\)이고 \(k' = k/\sqrt2\)이므로 \(R = 0.029\)이다. 고전적으로는 모두 넘어가야 한다.</div></div>
+      <div class="quiz-q"><p>5. 두꺼운 장벽에서 장벽 두께를 두 배로 하면 터널링 확률은 대략?</p><div class="opts">
+        <button class="opt">절반이 된다.</button>
+        <button class="opt">4분의 1이 된다.</button>
+        <button class="opt" data-correct>\(e^{-2\kappa a}\)배가 된다(처음 확률이 작을수록 더 크게 준다).</button>
+        <button class="opt">변하지 않는다.</button>
+      </div><div class="quiz-exp">\(T \propto e^{-2\kappa a}\)이므로 두께가 \(a\)에서 \(2a\)가 되면 \(e^{-2\kappa a}\)만큼 더 곱해진다. \(T\)가 이미 0.024였다면 약 0.0004배가 더 되는 셈이다.</div></div>
+      <div class="quiz-q"><p>6. 1차원 대칭 유한 우물에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">우물이 충분히 깊어야 속박 상태가 생긴다.</button>
+        <button class="opt" data-correct>아무리 얕아도 짝 속박 상태가 적어도 하나 있다.</button>
+        <button class="opt">속박 상태는 언제나 두 개씩 축퇴되어 있다.</button>
+        <button class="opt">속박 상태의 파동함수는 우물 밖에서 정확히 0이다.</button>
+      </div><div class="quiz-exp">짝 상태의 곡선 \(\xi\tan\xi\)는 원점에서 출발해 어떤 반지름의 원과도 만난다. 1차원 속박 상태는 축퇴되지 않고, 파동함수는 우물 밖으로 지수적으로 스며든다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-box-numbers" data-level="1"><p>길이 0.5 nm인 무한 우물에 전자가 있다. (가) \(E_1\)과 \(E_2\)를 eV로 구하라. (나) \(n = 2 \to 1\) 전이에서 나오는 빛의 파장은? (다) 바닥 상태에서 \(\langle x\rangle\)과 \(\Delta x\)를 구하라(\(\langle x^2\rangle = L^2(\tfrac13 - \tfrac{1}{2\pi^2})\)을 써도 된다).</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(E_1 = \pi^2\hbar^2/2m_eL^2 = 1.50\ \mathrm{eV}\), \(E_2 = 4E_1 = 6.02\ \mathrm{eV}\).</p>
+        <p>(나) \(\Delta E = 3E_1 = 4.51\ \mathrm{eV}\)이므로 \(\lambda = 1239.84/4.51 = 275\ \mathrm{nm}\)(자외선)이다.</p>
+        <p>(다) \(|\psi_1|^2\)이 가운데에 대해 대칭이므로 \(\langle x\rangle = L/2\)이다. \(\Delta x = L\sqrt{\tfrac13 - \tfrac{1}{2\pi^2} - \tfrac14} = 0.181L = 0.090\ \mathrm{nm}\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-box-uncertainty" data-level="1"><p>무한 우물의 \(n\)번째 상태에서 \(\langle p\rangle\)과 \(\langle p^2\rangle\)을 구하고, 바닥 상태에서 \(\Delta x\,\Delta p\)를 계산하라. 가우스 파속의 \(\hbar/2\)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\psi_n\)이 실수이므로 \(\langle p\rangle = 0\)이다. \(\hat H = \hat p^2/2m\)(우물 안)이므로 \(\langle p^2\rangle = 2mE_n = (n\pi\hbar/L)^2\)이다. 바닥 상태에서 \(\Delta p = \pi\hbar/L\)이고 \(\Delta x = 0.1808L\)이므로 \(\Delta x\,\Delta p = 0.568\hbar\)로 \(\hbar/2\)보다 조금 크다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-step-rt" data-level="1"><p>계단 퍼텐셜에서 \(E > V_0\)일 때 식 <a class="ref" href="#eq-step"></a>의 \(R + T = 1\)을 확인하고, \(E = 2V_0\)에서 \(R\)과 \(T\)를 구하라. 입자가 오른쪽(높은 쪽)에서 왼쪽으로 들어오면 \(R\)은 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(R + T = \frac{(k - k')^2 + 4kk'}{(k + k')^2} = 1\)이다. \(E = 2V_0\)이면 \(k'/k = 1/\sqrt2\)이므로 \(R = \big(\frac{\sqrt2 - 1}{\sqrt2 + 1}\big)^2 = (3 - 2\sqrt2)^2 = 0.0294\), \(T = 0.9706\)이다.</p>
+        <p>오른쪽에서 들어오면 \(k\)와 \(k'\)의 역할이 바뀌는데, \(R\)은 \(k\)와 \(k'\)에 대해 대칭이므로 같다. 퍼텐셜이 내려가는 쪽으로 가도 같은 비율로 되튄다. 고전적으로는 상상하기 어려운 결과다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-box-current" data-level="1"><p>평면파의 중첩 \(\psi = Ae^{ikx} + Be^{-ikx}\)의 확률 흐름이 \(\frac{\hbar k}{m}(|A|^2 - |B|^2)\)임을 직접 계산으로 보여라. 무한 우물의 정상 상태 \(\sin kx\)는 \(A\)와 \(B\)가 어떤 관계인 경우인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\psi' = ik(Ae^{ikx} - Be^{-ikx})\)이므로 \(\psi^*\psi' = ik\big(|A|^2 - |B|^2 - A^*Be^{-2ikx} + B^*Ae^{2ikx}\big)\)이다. 괄호의 뒤 두 항은 \(z - z^*\) 꼴(\(z = B^*Ae^{2ikx}\))로 순허수이므로, \(ik\)를 곱하면 실수가 되어 \(\mathrm{Im}\)에 기여하지 않는다. 따라서 \(j = \frac{\hbar}{m}k(|A|^2 - |B|^2)\)이다. \(\sin kx = \frac{1}{2i}(e^{ikx} - e^{-ikx})\)은 \(|A| = |B|\)인 경우로, 두 방향의 흐름이 같아 \(j = 0\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-spread" data-level="2"><p>(가) 처음에 폭 \(\sigma\)로 모은 파속이 시간 \(t\) 뒤 가장 좁으려면 \(\sigma\)를 얼마로 해야 하는가? 그때 \(\sigma(t)\)는? (나) 이 결과를 질량 1 g의 구슬을 1초 동안 관측하는 경우에 적용하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\sigma(t)^2 = \sigma^2 + \frac{\hbar^2t^2}{m^2\sigma^2}\)을 \(\sigma^2\)에 대해 최소화하면 \(\sigma^2 = \hbar t/m\)이고, 그때 \(\sigma(t) = \sqrt{2\hbar t/m}\)이다. 처음에 너무 좁게 모으면 운동량이 퍼져 빨리 벌어지고, 너무 넓으면 처음부터 넓다.</p>
+        <p>(나) \(\sqrt{2\times1.055\times10^{-34}\times1/10^{-3}} = 4.6\times10^{-16}\ \mathrm m\)이다. 양성자 크기의 절반 정도로, 거시적 물체에서는 파속의 퍼짐이 관측에 아무 영향을 주지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-spread-general" data-level="3"><p>자유 입자(\(\hat H = \hat p^2/2m\))의 임의의 상태에 대해</p>
+      <div class="formula">\[ \langle x^2\rangle_t = \langle x^2\rangle_0 + \frac{\langle\hat x\hat p + \hat p\hat x\rangle_0}{m}\,t + \frac{\langle p^2\rangle_0}{m^2}\,t^2 \]</div>
+      <p>임을 <a href="ch06.html#eq-heisenberg-expect">6장 식 (6.10)</a>을 두 번 써서 보여라. 이로부터 \((\Delta x)_t^2\)가 \(t\)의 2차식이고, 긴 시간에서 \(\Delta x \approx \Delta p\,t/m\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\([\hat x^2, \hat p^2] = \hat x[\hat x, \hat p^2] + [\hat x, \hat p^2]\hat x = 2i\hbar(\hat x\hat p + \hat p\hat x)\)이므로 \(\frac{d}{dt}\langle x^2\rangle = \frac{1}{i\hbar}\cdot\frac{1}{2m}\langle[\hat x^2, \hat p^2]\rangle = \frac1m\langle\hat x\hat p + \hat p\hat x\rangle\)이다. 다시 \([\hat x\hat p + \hat p\hat x, \hat p^2] = 2\cdot 2i\hbar\,\hat p^2\)이므로 \(\frac{d}{dt}\langle\hat x\hat p + \hat p\hat x\rangle = \frac{2}{m}\langle p^2\rangle\)이고, \(\langle p^2\rangle\)은 일정하다. 두 번 적분하면 주어진 식이다.</p>
+        <p>\(\langle x\rangle_t = \langle x\rangle_0 + \langle p\rangle t/m\)을 제곱해 빼면 \((\Delta x)_t^2 = (\Delta x)_0^2 + \big(\langle\hat x\hat p + \hat p\hat x\rangle_0 - 2\langle x\rangle_0\langle p\rangle_0\big)\frac tm + (\Delta p)^2\frac{t^2}{m^2}\)이다. 긴 시간에는 마지막 항이 이기므로 \(\Delta x \approx \Delta p\,t/m\)이다. 가우스 파속이면 가운데 항이 0이어서 식 <a class="ref" href="#eq-spreading"></a>와 같다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-delta-well" data-level="2"><p>델타 퍼텐셜 우물 \(V(x) = -\alpha\,\delta(x)\)(\(\alpha > 0\))를 생각하자. (가) 식 <a class="ref" href="#eq-derivative-jump"></a>에서 \(x = 0\)에서의 도함수 뜀이 \(\psi'(0^+) - \psi'(0^-) = -\frac{2m\alpha}{\hbar^2}\psi(0)\)임을 보여라. (나) 속박 상태가 정확히 하나 있음을 보이고 그 에너지와 파동함수를 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\int_{-\epsilon}^{\epsilon}(V - E)\psi\,dx \to -\alpha\psi(0)\)이다(\(E\psi\) 항은 \(\epsilon \to 0\)에서 0).</p>
+        <p>(나) \(x \neq 0\)에서 \(V = 0\)이므로 속박 상태(\(E &lt; 0\))는 \(\psi = Ae^{-\kappa|x|}\)이다(짝함수여야 \(x = 0\)에서 연속). \(x > 0\)에서 \(\psi' = -\kappa Ae^{-\kappa x}\), \(x &lt; 0\)에서 \(\psi' = \kappa Ae^{\kappa x}\)이므로 \(\psi'(0^+) - \psi'(0^-) = -2\kappa A\)이고, (가)와 같으려면 \(\kappa = m\alpha/\hbar^2\)이다. 따라서 \(E = -\hbar^2\kappa^2/2m = -m\alpha^2/2\hbar^2\)이고 정규화하면 \(\psi = \sqrt\kappa\,e^{-\kappa|x|}\)이다. \(\kappa\)가 하나로 정해지므로 속박 상태는 하나뿐이다. 홀함수는 \(x = 0\)에서 0이어서 델타 함수를 느끼지 못하므로 속박되지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-delta-barrier" data-level="3"><p>델타 장벽 \(V(x) = \alpha\,\delta(x)\)(\(\alpha > 0\))에 에너지 \(E\)인 입자가 왼쪽에서 들어온다. 투과 확률이</p>
+      <div class="formula">\[ T = \frac{1}{1 + m\alpha^2/2\hbar^2E} \]</div>
+      <p>임을 보여라. 이 결과가 높이 \(V_0 = \alpha/a\), 폭 \(a\)인 장벽에서 \(a \to 0\)으로 보낸 식 <a class="ref" href="#eq-barrier"></a>의 극한과 같음을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\psi = e^{ikx} + re^{-ikx}\)(\(x &lt; 0\)), \(te^{ikx}\)(\(x > 0\))이다. 연속에서 \(1 + r = t\), 도함수 뜀에서 \(ikt - ik(1 - r) = \frac{2m\alpha}{\hbar^2}t\)이다(델타 장벽이므로 (가)와 부호가 반대다). 둘째 식에 \(r = t - 1\)을 넣으면 \(ik(2t - 2) = \frac{2m\alpha}{\hbar^2}t\)이고, 양변을 \(2ik\)로 나누면 \(t - 1 = -i\beta t\)(\(\beta = m\alpha/\hbar^2k\))이다. 따라서 \(t = \frac{1}{1 + i\beta}\)이고 \(T = |t|^2 = \frac{1}{1 + \beta^2} = \frac{1}{1 + m\alpha^2/2\hbar^2E}\)이다(\(\beta^2 = m^2\alpha^2/\hbar^4k^2 = m\alpha^2/2\hbar^2E\)).</p>
+        <p>얇은 장벽에서는 \(\kappa a = a\sqrt{2m(\alpha/a - E)}/\hbar \approx \sqrt{2m\alpha a}/\hbar \to 0\)이므로 \(\sinh^2\kappa a \approx \kappa^2a^2 \approx 2m\alpha a/\hbar^2\)이고, \(V_0^2/(4E(V_0 - E)) \approx V_0/4E = \alpha/4Ea\)이다. 곱하면 \(\frac{2m\alpha a}{\hbar^2}\cdot\frac{\alpha}{4Ea} = \frac{m\alpha^2}{2\hbar^2E}\)로 같다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-stm" data-level="2"><p>일함수 4.5 eV인 금속 표면과 바늘 사이를 터널링하는 전자를 생각하자(장벽 높이를 4.5 eV로, 전자 에너지를 0에 가깝다고 본다). (가) \(\kappa\)를 구하라. (나) 틈이 0.05 nm 늘면 전류는 몇 배가 되는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\kappa = \sqrt{2m_e\times4.5\ \mathrm{eV}}/\hbar = 1.09\times10^{10}\ \mathrm{m^{-1}}\).</p>
+        <p>(나) 전류는 \(T \propto e^{-2\kappa d}\)에 비례하므로 \(e^{-2\times1.09\times10^{10}\times0.05\times10^{-9}} = e^{-1.09} = 0.34\)배다. 원자 지름의 4분의 1만큼만 멀어져도 전류가 3분의 1로 준다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-resonance" data-level="2"><p>장벽에서 \(E > V_0\)일 때 투과 확률이 1이 되는 에너지를 모두 구하라. \(2mV_0a^2/\hbar^2 = 16\)인 장벽에서는 몇인가(\(E/V_0\)로)? \(E = V_0\)에서의 \(T\)도 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(T = 1\)은 \(\sin k'a = 0\), 곧 \(k'a = n\pi\)일 때다. \(k'^2 = 2m(E - V_0)/\hbar^2\)이므로 \(E_n = V_0 + \frac{n^2\pi^2\hbar^2}{2ma^2}\)(\(n = 1, 2, \ldots\))이다. 장벽 폭 \(a\)인 무한 우물의 준위를 \(V_0\) 위에 얹은 것과 같다. 주어진 장벽에서는 \(E_n/V_0 = 1 + n^2\pi^2/16 = 1.617, 3.467, \ldots\)이다.</p>
+        <p>\(E \to V_0\)이면 \(\sin^2k'a/(E - V_0) \to k'^2a^2/(E - V_0) = 2ma^2/\hbar^2\)이므로 \(T = \big[1 + \frac{mV_0a^2}{2\hbar^2}\big]^{-1} = (1 + 16/4)^{-1} = 0.2\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-well-count" data-level="2"><p>(가) 깊이 10 eV, 폭 0.5 nm인 우물에 갇힌 전자의 \(z_0\)를 구하고, 속박 상태의 수를 구하라. (나) 같은 깊이에서 속박 상태가 하나뿐이려면 폭이 얼마보다 작아야 하는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(a = 0.25\ \mathrm{nm}\)이므로 \(z_0 = a\sqrt{2m_eV_0}/\hbar = 0.25\times10^{-9}\times1.62\times10^{10} = 4.05\)이고 \(\lceil 2\times4.05/\pi\rceil = \lceil 2.58\rceil = 3\)개다.</p>
+        <p>(나) 홀 상태가 생기지 않으려면 \(z_0 &lt; \pi/2\), 곧 \(a &lt; \frac{\pi/2}{1.62\times10^{10}} = 0.097\ \mathrm{nm}\)이다. 폭 \(2a\)가 0.19 nm보다 작아야 한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-vmin" data-level="2"><p>시간에 무관한 슈뢰딩거 방정식의 정규화된 해의 에너지 \(E\)는 퍼텐셜의 최솟값 \(V_{\min}\)보다 큼을 보여라. 무한 우물에서 이 결과를 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(E = \langle\psi|\hat H|\psi\rangle = \frac{\hbar^2}{2m}\int|\psi'|^2dx + \int V|\psi|^2dx\)이다(운동 에너지 항은 부분 적분으로 얻으며, 정규화된 해는 무한히 먼 곳에서 0이다). 둘째 항은 \(V_{\min}\int|\psi|^2dx = V_{\min}\)보다 작지 않고, 첫째 항은 0 이상인데 0이면 \(\psi\)가 상수가 되어 정규화될 수 없다. 따라서 \(E > V_{\min}\)이다. 무한 우물에서는 \(V_{\min} = 0 &lt; E_1\)이다.</p>
+      </details>
+    </div>
+
   </section>
 </main>
 </body>
