@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>06 양자역학의 공준 · QuantumBook</title>
-<meta name="description" content="상태는 벡터 · 관측량은 에르미트 연산자 · 측정과 보른 규칙 · 기댓값과 분산 · 슈뢰딩거 방정식 · 정상 상태">
+<meta name="description" content="상태는 힐베르트 공간의 벡터, 관측량은 에르미트 연산자, 측정 결과는 고유값과 보른 규칙의 확률, 시간 변화는 슈뢰딩거 방정식이라는 네 공준을 세우고, 기댓값과 분산, 시간 변화 연산자, 정상 상태로 문제를 푸는 방법을 익힌다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,66 +24,382 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch06">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">06</span></div>
     <h1 data-fill="chapter-title">양자역학의 공준</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">5장의 실험들이 남긴 교훈을 네 개의 공준으로 정리한다. 상태는 힐베르트 공간의 벡터이고, 측정할 수 있는 양은 에르미트 연산자다. 측정 결과는 그 연산자의 고유값 가운데 하나이며 확률은 내적의 절댓값 제곱으로 주어진다. 시간에 따른 변화는 슈뢰딩거 방정식이 정한다. 1~3장의 수학이 여기서 물리가 되고, 이 책의 나머지는 모두 이 네 공준을 여러 계에 적용하는 일이다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>네 공준을 말하고, 각 공준이 5장의 어떤 실험에서 나왔는지 설명할 수 있다.</li>
+      <li>주어진 상태에서 관측량의 측정 결과, 각 결과의 확률, 측정 직후의 상태를 구할 수 있다(축퇴가 있는 경우 포함).</li>
+      <li>기댓값 \(\langle\psi|\hat\Omega|\psi\rangle\)와 분산을 계산하고, 분산이 0인 조건을 설명할 수 있다.</li>
+      <li>슈뢰딩거 방정식이 왜 그런 꼴인지 설명하고, 시간 변화 연산자와 기댓값의 시간 변화를 구할 수 있다.</li>
+      <li>에너지 고유 상태로 전개해 슈뢰딩거 방정식을 풀고, 정상 상태와 중첩 상태의 시간 변화를 구별할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>1~3장 전체(특히 스펙트럼 정리, 투영 연산자, 연산자의 함수, 위치·운동량 연산자), 4장(해밀토니안, 푸아송 괄호), 5장(이중 슬릿, 슈테른-게를라흐 실험)</p>
   </header>
 
+  <!-- ============================================================ 6.1 -->
   <section id="s1">
     <h2>상태는 벡터</h2>
-    <p class="slot" data-slot="6.1절">아직 쓰지 않은 절입니다.</p>
+    <p>고전역학에서 입자의 상태는 위치와 운동량, 곧 위상 공간의 한 점이었다(<a href="ch04.html#s2">4.2절</a>). 5장의 이중 슬릿 실험은 이것으로는 부족하다는 것을 보여 주었다. 전자는 두 경로를 '함께' 지나며 두 진폭이 더해졌다. 슈테른-게를라흐 실험에서는 원자의 상태를 \(\mathbb{C}^2\)의 벡터로 쓰자 실험이 정확히 설명되었다. 이것을 첫째 공준으로 삼는다.</p>
+    <div class="box post" id="post-state"><div class="box-h">상태</div>
+      <p>고립된 계의 상태는 복소 힐베르트 공간의 벡터 \(|\psi\rangle\)로 나타낸다. 보통 \(\langle\psi|\psi\rangle = 1\)로 정규화하며, 0이 아닌 복소수 \(c\)에 대해 \(c|\psi\rangle\)는 \(|\psi\rangle\)와 같은 상태를 나타낸다.</p>
+    </div>
+    <p>계에 따라 힐베르트 공간이 다르다. 은 원자의 스핀은 2차원 \(\mathbb{C}^2\)(<a href="ch05.html#s5-vectors">5.5절</a>), 직선 위의 입자는 제곱 적분 가능한 함수의 공간 \(L^2\)(<a href="ch03.html#def-hilbert">3장 정의 3.2</a>)이다. 직선 위의 입자에서 \(|\psi\rangle\)의 위치 성분 \(\psi(x) = \langle x|\psi\rangle\)를 <span class="term">파동함수</span> <span class="en">(wave function)</span>라 한다.</p>
+
+    <h3 id="s1-superposition">중첩의 원리</h3>
+    <p>상태가 벡터라는 것은 두 상태의 일차 결합도 상태라는 뜻이다. \(|\psi_1\rangle\)과 \(|\psi_2\rangle\)가 가능한 상태이면 \(a|\psi_1\rangle + b|\psi_2\rangle\)(정규화하면)도 가능한 상태다. 이것을 <span class="term">중첩의 원리</span> <span class="en">(superposition principle)</span>라 한다. 이중 슬릿을 지난 전자의 상태는 '슬릿 1을 지난 상태'와 '슬릿 2를 지난 상태'의 중첩이고, 두 진폭이 더해져 간섭 무늬를 만든다.</p>
+    <p>공준의 마지막 문장은 벡터의 크기와 전체 위상이 물리적인 의미가 없다는 뜻이다. 크기는 정규화로 정하고, 정규화한 뒤에도 남는 전체 위상 \(e^{i\alpha}\)는 어떤 측정 결과의 확률도 바꾸지 않는다. 6.3절의 규칙에 따르면 확률은 \(|\langle\omega|\psi\rangle|^2\)인데, \(|\langle\omega|e^{i\alpha}\psi\rangle|^2 = |e^{i\alpha}|^2|\langle\omega|\psi\rangle|^2 = |\langle\omega|\psi\rangle|^2\)이기 때문이다. 그러나 중첩 안의 <b>상대 위상</b>은 중요하다.</p>
+    <div class="box ex" id="ex-relative-phase"><div class="box-h">상대 위상은 측정 결과를 바꾼다</div>
+      <p>스핀 상태 세 개를 비교하자(<a href="ch05.html#eq-x-states">5장 식 (5.18)</a>, <a href="ch05.html#eq-y-states">(5.19)</a>).</p>
+      <div class="formula">\[ \begin{aligned} |x{+}\rangle &= \tfrac{1}{\sqrt2}\big(|z{+}\rangle + |z{-}\rangle\big), \\ |x{-}\rangle &= \tfrac{1}{\sqrt2}\big(|z{+}\rangle - |z{-}\rangle\big), \\ |y{+}\rangle &= \tfrac{1}{\sqrt2}\big(|z{+}\rangle + i\,|z{-}\rangle\big) \end{aligned} \]</div>
+      <p>세 상태 모두 \(|z{\pm}\rangle\) 성분의 크기는 \(1/\sqrt2\)로 같아서, \(z\) 방향으로 재면 셋 다 \(z+\)와 \(z-\)가 반반이다. 다른 것은 두 성분 사이의 위상(\(+1\), \(-1\), \(i\))뿐이다. 그러나 \(x\) 방향으로 재면 \(|x{+}\rangle\)은 언제나 \(x+\), \(|x{-}\rangle\)은 언제나 \(x-\), \(|y{+}\rangle\)은 반반이다. 상대 위상은 다른 관측량을 통해 드러나는 물리적인 정보다.</p>
+    </div>
+    <div class="callout warn"><strong>중첩은 섞음이 아니다</strong><p>\(|x{+}\rangle = (|z{+}\rangle + |z{-}\rangle)/\sqrt2\)를 '원자의 절반은 \(z+\)이고 절반은 \(z-\)인 상태'로 읽으면 안 된다. 실제로 \(z+\) 원자와 \(z-\) 원자를 반반 섞은 빔을 SG\(_x\)에 넣으면 \(z+\) 원자도 \(z-\) 원자도 각각 반반으로 갈리므로 \(x+\)가 절반 나온다. 반면 \(|x{+}\rangle\) 상태의 원자는 모두 \(x+\)로 나온다. 중첩은 하나하나의 계가 가진 새로운 상태이고, 섞음은 우리가 모르는 고전적 무지다. 섞인 앙상블은 22장의 밀도 행렬로 다룬다.</p></div>
   </section>
 
+  <!-- ============================================================ 6.2 -->
   <section id="s2">
     <h2>관측량은 에르미트 연산자</h2>
-    <p class="slot" data-slot="6.2절">아직 쓰지 않은 절입니다.</p>
+    <p>위치, 운동량, 에너지처럼 측정할 수 있는 양을 <span class="term">관측량</span> <span class="en">(observable)</span>이라 한다. 고전역학에서 관측량은 위상 공간의 함수 \(\omega(x, p)\)였다. 양자역학에서는 연산자다.</p>
+    <div class="box post" id="post-observable"><div class="box-h">관측량</div>
+      <p>관측량은 상태 공간의 에르미트 연산자로 나타낸다. 위치와 운동량은 교환 관계</p>
+      <div class="formula" id="eq-ccr-post">\[ [\hat x, \hat p] = i\hbar \]</div>
+      <p>를 만족하는 연산자 \(\hat x\), \(\hat p\)이고, 위치 표현에서 \(\hat x\)는 \(x\)를 곱하며 \(\hat p = -i\hbar\,d/dx\)이다. 고전역학의 관측량 \(\omega(x, p)\)에는 연산자 \(\hat\Omega = \omega(\hat x, \hat p)\)가 대응한다.</p>
+    </div>
+    <p>왜 에르미트 연산자일까? 2장에서 본 두 성질 때문이다. 에르미트 연산자의 고유값은 실수이고(<a href="ch02.html#thm-hermitian-eigen">2장 정리 2.3</a>), 고유벡터는 정규직교 기저를 이룬다(<a href="ch02.html#thm-spectral">정리 2.4</a>). 측정값은 실수여야 하고, 다음 절에서 보듯 어떤 상태든 측정 결과들의 고유벡터로 전개할 수 있어야 확률이 정해진다.</p>
+    <p>교환 관계 \([\hat x, \hat p] = i\hbar\)는 4장의 푸아송 괄호 \(\{x, p\} = 1\)에 디랙의 대응 \(\{\,,\} \to [\,,]/i\hbar\)를 쓴 것이고(<a href="ch04.html#s3">4.3절</a>), 3장에서 \(\hat p = -i\hbar\,d/dx\)로 직접 확인한 관계다(<a href="ch03.html#eq-ccr">3장 식 (3.21)</a>). 중요한 관측량을 연산자로 쓰면 다음과 같다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>관측량</th><th>고전역학</th><th>양자역학 (위치 표현)</th></tr></thead>
+      <tbody>
+        <tr><td>위치</td><td>\(x\)</td><td>\(x\) 곱하기</td></tr>
+        <tr><td>운동량</td><td>\(p\)</td><td>\(-i\hbar\,d/dx\)</td></tr>
+        <tr><td>에너지</td><td>\(H = \dfrac{p^2}{2m} + V(x)\)</td><td>\(\hat H = -\dfrac{\hbar^2}{2m}\dfrac{d^2}{dx^2} + V(x)\)</td></tr>
+        <tr><td>각운동량 \(z\) 성분</td><td>\(\ell_z = xp_y - yp_x\)</td><td>\(-i\hbar\Big(x\dfrac{\partial}{\partial y} - y\dfrac{\partial}{\partial x}\Big)\)</td></tr>
+      </tbody>
+    </table></div>
+    <p>해밀토니안 \(\hat H\)는 <span class="term">에너지 연산자</span>이고, 6.5절에서 시간 변화를 정한다. 각운동량의 \(x\)와 \(p_y\)는 서로 다른 방향이라 교환하므로 순서를 걱정할 필요가 없다.</p>
+    <div class="callout warn"><strong>순서가 문제 되는 경우</strong><p>고전량 \(xp\)를 그대로 \(\hat x\hat p\)로 바꾸면 에르미트가 아니다(<a href="ch03.html#prob-xp">3장 문제 3.5</a>). 이럴 때는 \((\hat x\hat p + \hat p\hat x)/2\)처럼 대칭화한다. 순서의 모호함은 \(\hbar \to 0\)에서 사라지는 차이일 뿐이고, 이 책에서 다루는 해밀토니안에서는 거의 나타나지 않는다.</p></div>
+    <div class="callout tip"><strong>고전적 짝이 없는 관측량</strong><p>스핀처럼 고전역학에 대응하는 양이 없는 관측량도 있다. 은 원자의 자기 모멘트 \(z\) 성분은 \(\hat\mu_z = \mu_{\mathrm B}\sigma_z\)로, 고유값 \(\pm\mu_{\mathrm B}\)가 슈테른-게를라흐 실험의 두 점이다. 이런 연산자는 고전량에서 '번역'하는 대신 실험과 대칭으로 정한다(16장).</p></div>
   </section>
 
+  <!-- ============================================================ 6.3 -->
   <section id="s3">
     <h2>측정과 보른 규칙</h2>
-    <p class="slot" data-slot="6.3절">아직 쓰지 않은 절입니다.</p>
+    <p>이제 상태와 관측량을 측정으로 잇는다. 5장의 두 실험이 규칙을 알려 주었다. 이중 슬릿에서 확률은 진폭의 절댓값 제곱이었고, 슈테른-게를라흐 실험에서 측정 결과는 띄엄띄엄했으며, 측정 뒤의 원자는 측정 결과에 해당하는 상태가 되었다.</p>
+    <div class="box post" id="post-measurement"><div class="box-h">측정</div>
+      <p>상태 \(|\psi\rangle\)에서 관측량 \(\Omega\)를 측정하면</p>
+      <ul>
+        <li>결과는 \(\hat\Omega\)의 고유값 \(\omega\) 가운데 하나다.</li>
+        <li>결과 \(\omega\)를 얻을 확률은
+          <div class="formula" id="eq-born">\[ P(\omega) = |\langle\omega|\psi\rangle|^2 \]</div>
+          이다. \(\omega\)가 축퇴되어 있으면 \(P(\omega) = \langle\psi|\hat P_\omega|\psi\rangle\)이다. \(\hat P_\omega\)는 고유값 \(\omega\)의 고유 공간 위로의 투영 연산자다.</li>
+        <li>결과 \(\omega\)를 얻은 직후 계의 상태는 \(|\omega\rangle\)(축퇴되어 있으면 \(\hat P_\omega|\psi\rangle\)를 정규화한 것)이다.</li>
+      </ul>
+    </div>
+    <p>확률을 \(|\langle\omega|\psi\rangle|^2\)로 주는 규칙을 <span class="term">보른 규칙</span> <span class="en">(Born rule)</span>이라 한다. 확률을 모두 더하면 1이다. 고유벡터들의 완비성 관계(<a href="ch02.html#eq-completeness">2장 식 (2.3)</a>)로</p>
+    <div class="formula">\[ \sum_i P(\omega_i) = \sum_i \langle\psi|\omega_i\rangle\langle\omega_i|\psi\rangle = \langle\psi|\psi\rangle = 1 \]</div>
+    <p>이기 때문이다. 공준이 상태를 정규화하는 이유가 이것이다. 측정 직후 상태가 측정 결과의 고유벡터로 바뀌는 것을 <span class="term">상태의 붕괴</span> <span class="en">(collapse)</span>라 한다. 같은 측정을 곧바로 되풀이하면 같은 결과가 확률 1로 나온다. \(|\langle\omega|\omega\rangle|^2 = 1\)이기 때문이다.</p>
+    <p>기하학적으로 보면 측정은 상태 벡터를 측정 결과들의 정규직교 축에 투영하는 일이다(그림 6-1). 투영한 길이의 제곱이 확률이고, 측정 뒤 상태는 그 축 방향이 된다. 같은 상태라도 어떤 관측량을 재느냐, 곧 어떤 축으로 투영하느냐에 따라 확률이 달라진다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:6-1a--><svg viewBox="0 0 280 250" role="img" aria-label="상태 벡터를 관측량 오메가의 고유 축에 투영한 길이의 제곱이 확률이다"><defs><marker id="f61a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f61a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f61a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="70" y1="212" x2="235" y2="212" class="s-line" stroke-width="1.6" marker-end="url(#f61a-dim)"/><text x="243" y="230" class="t-math dim" text-anchor="start">|<tspan font-style="italic">ω</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>⟩</text><line x1="70" y1="212" x2="70" y2="47" class="s-line" stroke-width="1.6" marker-end="url(#f61a-dim)"/><text x="78" y="49" class="t-math dim" text-anchor="start">|<tspan font-style="italic">ω</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text><line x1="145.9" y1="80.5" x2="152.5" y2="212" class="s-grid" stroke-dasharray="4 3" stroke-width="1.4"/><line x1="70" y1="212" x2="152.5" y2="212" class="s-acc2" stroke-width="4" stroke-linecap="round" opacity="0.8"/><line x1="145.9" y1="80.5" x2="70" y2="69.1" class="s-grid" stroke-dasharray="4 3" stroke-width="1.4"/><line x1="70" y1="212" x2="70" y2="69.1" class="s-acc2" stroke-width="4" stroke-linecap="round" opacity="0.8"/><line x1="70" y1="212" x2="145.9" y2="80.5" class="s-acc" stroke-width="2.8" marker-end="url(#f61a-acc)"/><text x="137.9" y="78.5" class="t-math acc" text-anchor="end">|<tspan font-style="italic">ψ</tspan>⟩</text><circle cx="70" cy="212" r="3" class="f-dim"/><text x="111.3" y="232" class="t-dim" text-anchor="middle">확률 0.25</text><text x="62" y="141.1" class="t-dim" text-anchor="end">0.75</text><text x="12" y="22" class="t-b" text-anchor="start">(가) Ω를 잴 때</text></svg><!--/fig:6-1a--><!--fig:6-1b--><svg viewBox="0 0 280 250" role="img" aria-label="같은 상태를 다른 관측량의 고유 축에 투영하면 확률이 달라진다"><defs><marker id="f61b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f61b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f61b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="136" y1="212" x2="242.1" y2="105.9" class="s-line" stroke-width="1.6" marker-end="url(#f61b-dim)"/><text x="250.1" y="107.9" class="t-math dim" text-anchor="start">|<tspan font-style="italic">λ</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>⟩</text><line x1="136" y1="212" x2="29.9" y2="105.9" class="s-line" stroke-width="1.6" marker-end="url(#f61b-dim)"/><text x="29.9" y="95.9" class="t-math dim" text-anchor="middle">|<tspan font-style="italic">λ</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>⟩</text><line x1="205" y1="92.5" x2="238.5" y2="109.5" class="s-grid" stroke-dasharray="4 3" stroke-width="1.4"/><line x1="136" y1="212" x2="238.5" y2="109.5" class="s-acc2" stroke-width="4" stroke-linecap="round" opacity="0.8"/><line x1="205" y1="92.5" x2="108.5" y2="184.5" class="s-grid" stroke-dasharray="4 3" stroke-width="1.4"/><line x1="136" y1="212" x2="108.5" y2="184.5" class="s-acc2" stroke-width="4" stroke-linecap="round" opacity="0.8"/><line x1="136" y1="212" x2="205" y2="92.5" class="s-acc" stroke-width="2.8" marker-end="url(#f61b-acc)"/><text x="197" y="90.5" class="t-math acc" text-anchor="end">|<tspan font-style="italic">ψ</tspan>⟩</text><circle cx="136" cy="212" r="3" class="f-dim"/><text x="244.5" y="131.5" class="t-dim" text-anchor="start">0.933</text><text x="100.5" y="188.5" class="t-dim" text-anchor="end">0.067</text><text x="12" y="22" class="t-b" text-anchor="start">(나) Λ를 잴 때</text></svg><!--/fig:6-1b--></div>
+      <figcaption><b>그림 6-1.</b> 측정은 고유 기저로의 투영이다(실수 2차원으로 그린 그림). (가) 관측량 \(\Omega\)의 고유벡터 \(|\omega_1\rangle, |\omega_2\rangle\)에 상태 \(|\psi\rangle\)를 투영한 길이는 \(\cos 60^\circ\)와 \(\sin 60^\circ\)이고, 확률은 그 제곱 0.25와 0.75이다. (나) 같은 상태를 다른 관측량 \(\Lambda\)의 고유 기저(45° 돌아간 축)로 보면 투영한 길이는 \(\cos 15^\circ\)와 \(\sin 15^\circ\)이고, 확률은 0.933과 0.067이다.</figcaption>
+    </figure>
+
+    <h3 id="s3-recipe">확률을 계산하는 순서</h3>
+    <p>공준을 쓰는 순서를 정리하자. 상태 \(|\psi\rangle\)에서 관측량 \(\Omega\)를 잴 때,</p>
+    <ol>
+      <li>\(\hat\Omega\)의 고유값 문제를 풀어 고유값 \(\omega_i\)와 정규화된 고유벡터 \(|\omega_i\rangle\)를 구한다. 이것이 가능한 측정 결과다.</li>
+      <li>\(|\psi\rangle\)를 고유 기저로 전개한다: \(|\psi\rangle = \sum_i |\omega_i\rangle\langle\omega_i|\psi\rangle\).</li>
+      <li>각 계수의 절댓값 제곱이 그 결과의 확률이다. 축퇴된 고유값은 그 고유 공간의 계수들의 절댓값 제곱을 더한다.</li>
+    </ol>
+    <div class="box ex" id="ex-measure-3"><div class="box-h">축퇴가 있는 측정</div>
+      <p><a href="ch02.html#ex-degenerate">2장 예제 2.8</a>의 관측량 \(\Omega = \begin{pmatrix} 2 & 1 & 1 \\ 1 & 2 & 1 \\ 1 & 1 & 2 \end{pmatrix}\)를 상태 \(|\psi\rangle \to (1, 0, 0)\)에서 잰다.</p>
+      <p><b>1단계.</b> 2장에서 구했듯 고유값은 4와 1(중근)이다. 고유값 4의 고유벡터는 \((1, 1, 1)/\sqrt3\), 고유값 1의 고유 공간은 \((1, -1, 0)/\sqrt2\)와 \((1, 1, -2)/\sqrt6\)이 생성하는 평면이다.</p>
+      <p><b>2·3단계.</b> \(|\psi\rangle\)와의 내적은 각각 \(1/\sqrt3\), \(1/\sqrt2\), \(1/\sqrt6\)이므로</p>
+      <div class="formula">\[ P(4) = \frac13, \qquad P(1) = \frac12 + \frac16 = \frac23 \]</div>
+      <p>이다. 평면 안에서 다른 정규직교 기저를 골라도 \(P(1)\)은 같다. \(P(1) = \langle\psi|\hat P_1|\psi\rangle\)이고, 투영 연산자는 기저와 상관없기 때문이다.</p>
+      <p><b>측정 뒤.</b> 결과가 4이면 상태는 \((1, 1, 1)/\sqrt3\)이 된다. 결과가 1이면 \(\hat P_1 = \hat I - \hat P_4\)를 써서 \(\hat P_1|\psi\rangle \to (1, 0, 0) - \tfrac13(1, 1, 1) = \tfrac13(2, -1, -1)\)이고, 정규화하면 \((2, -1, -1)/\sqrt6\)이다. 이 벡터는 평면 \(x + y + z = 0\) 위에 있어 고유값 1의 고유벡터다. 축퇴된 결과를 얻으면 상태는 고유 공간 안에서 처음 상태에 가장 가까운 방향으로 투영된다.</p>
+    </div>
+    <div class="box ex" id="ex-sg-postulates"><div class="box-h">슈테른-게를라흐 실험을 공준으로</div>
+      <p>5.5절의 셋째 실험을 공준으로 다시 따라가 보자. SG\(_z\)에서 \(+\)를 고른 원자의 상태는 \(|z{+}\rangle\)이다. SG\(_x\)는 \(\hat\mu_x = \mu_{\mathrm B}\sigma_x\)를 재고, 고유벡터는 \(|x{\pm}\rangle\)이므로 \(P(x{+}) = |\langle x{+}|z{+}\rangle|^2 = \tfrac12\)이다. \(x+\)를 얻은 원자의 상태는 \(|x{+}\rangle\)로 붕괴하고, 이것을 다시 SG\(_z\)로 재면 \(P(z{-}) = |\langle z{-}|x{+}\rangle|^2 = \tfrac12\)이다. 처음에 \(z-\)를 모두 버렸는데도 \(z-\)가 다시 나오는 것은 \(x\) 측정이 상태를 \(|x{+}\rangle\)로 바꾸었기 때문이다.</p>
+    </div>
+
+    <h3 id="s3-continuous">연속 스펙트럼</h3>
+    <p>위치처럼 고유값이 연속이면 확률 대신 확률 밀도가 나온다. 3장의 델타 정규화(\(\langle x|x'\rangle = \delta(x - x')\))를 쓰면 공준은</p>
+    <div class="formula" id="eq-born-x">\[ P(x)\,dx = |\langle x|\psi\rangle|^2\,dx = |\psi(x)|^2\,dx \]</div>
+    <p>가 된다. 입자를 \(x\)와 \(x + dx\) 사이에서 발견할 확률이 \(|\psi(x)|^2\,dx\)이다. 운동량을 재면 확률 밀도는 운동량 공간 파동함수의 \(|\phi(p)|^2\)이다(<a href="ch03.html#eq-ft">3장 식 (3.23)</a>). 위치를 정확히 재면 상태가 델타 함수로 붕괴하겠지만, 델타는 정규화할 수 없으므로(<a href="ch03.html#s5-improper">3.5절</a>) 실제 측정은 분해능이 유한하고, 측정 뒤 상태는 폭이 좁은 파속이 된다.</p>
+    <div class="box ex" id="ex-gauss-prob"><div class="box-h">가우스 파속의 위치와 운동량</div>
+      <p><a href="ch03.html#ex-gauss-ft">3장 예제 3.5</a>의 가우스 파속 \(\psi(x) = (\pi\sigma^2)^{-1/4}e^{-x^2/2\sigma^2}e^{ip_0x/\hbar}\)에서 입자를 \(|x| &lt; \sigma\)에서 발견할 확률은</p>
+      <div class="formula">\[ \begin{aligned} \int_{-\sigma}^{\sigma}\frac{e^{-x^2/\sigma^2}}{\sqrt\pi\,\sigma}\,dx &= \frac{2}{\sqrt\pi}\int_0^1 e^{-u^2}\,du \\ &= \mathrm{erf}(1) = 0.843 \end{aligned} \]</div>
+      <p>이다(\(u = x/\sigma\)로 치환했다. \(\mathrm{erf}\)는 오차 함수다). 운동량 분포 \(|\phi(p)|^2 \propto e^{-\sigma^2(p - p_0)^2/\hbar^2}\)도 같은 꼴이므로, 운동량을 \(|p - p_0| &lt; \hbar/\sigma\)에서 얻을 확률도 0.843이다.</p>
+    </div>
+
+    <h3 id="s3-compatible">함께 잴 수 있는 관측량</h3>
+    <p>두 관측량을 잇달아 재면 어떻게 될까? \(\hat\Omega\)와 \(\hat\Lambda\)가 교환하면 공통 고유벡터로 된 기저가 있다(<a href="ch02.html#thm-simultaneous">2장 정리 2.5</a>). \(\Omega\)를 재서 얻은 상태 안에서 \(\Lambda\)를 재고 나면 상태는 공통 고유벡터가 되고, 이후 \(\Omega\)를 다시 재도 처음 값이 그대로 나온다. 이런 두 관측량을 <span class="term">양립 가능한</span> <span class="en">(compatible)</span> 관측량이라 한다. 두 연산자가 교환하지 않으면 공통 고유벡터가 없고(예: \(\sigma_x\)와 \(\sigma_z\)), 하나를 재면 다른 하나의 값이 흐트러진다. 위치와 운동량이 그런 쌍이며, 그 정도를 정량적으로 나타내는 것이 9장의 불확정성 관계다.</p>
+    <div class="callout deep"><strong>측정이란 무엇인가</strong><p>공준 3은 측정에서 무슨 일이 일어나는지만 말하고, 무엇이 측정인지는 말하지 않는다. 측정 장치도 원자로 이루어져 있으니 슈뢰딩거 방정식(공준 4)을 따라야 할 텐데, 그 방정식은 선형이어서 중첩을 붕괴시키지 않는다. 두 공준이 어떻게 맞물리는지가 이른바 '측정 문제'이고, 코펜하겐 해석, 다세계 해석, 결어긋남 등 여러 관점이 있다. 측정 장치와 계가 얽히며 간섭이 사라지는 과정은 22장에서 본다. 이 책의 계산은 어느 해석을 따르든 같다.</p></div>
+    <div class="callout tip"><strong>확률은 무엇의 확률인가</strong><p>공준 3의 확률은 똑같이 준비한 계를 아주 많이 모아(앙상블) 하나씩 측정했을 때 각 결과가 나오는 비율이다. 계 하나를 한 번 재면 결과는 하나뿐이고, 그 결과가 무엇일지는 원리적으로 예측할 수 없다. 그림 5-5의 전자 하나하나가 그랬다.</p></div>
   </section>
 
+  <!-- ============================================================ 6.4 -->
   <section id="s4">
     <h2>기댓값과 분산</h2>
-    <p class="slot" data-slot="6.4절">아직 쓰지 않은 절입니다.</p>
+    <p>측정 결과의 분포 전체 대신 평균과 퍼짐만 알고 싶을 때가 많다. 이때는 고유값 문제를 풀지 않아도 된다.</p>
+    <div class="box def" id="def-expectation"><div class="box-h">기댓값과 불확정도</div>
+      <p>상태 \(|\psi\rangle\)에서 관측량 \(\Omega\)의 측정값의 평균을 <span class="term">기댓값</span> <span class="en">(expectation value)</span> \(\langle\Omega\rangle\), 표준 편차를 <span class="term">불확정도</span> <span class="en">(uncertainty)</span> \(\Delta\Omega\)라 한다.</p>
+      <div class="formula" id="eq-expectation">\[ \langle\Omega\rangle = \langle\psi|\hat\Omega|\psi\rangle, \qquad (\Delta\Omega)^2 = \langle\Omega^2\rangle - \langle\Omega\rangle^2 \]</div>
+    </div>
+    <p>첫째 식은 정의가 아니라 공준 3에서 나오는 결과다. 평균은 '값 곱하기 확률'의 합이므로, 스펙트럼 분해(<a href="ch02.html#eq-spectral">2장 식 (2.13)</a>)를 쓰면</p>
+    <div class="formula">\[ \begin{aligned} \langle\Omega\rangle = \sum_i \omega_i\,P(\omega_i) &= \sum_i \omega_i\,\langle\psi|\omega_i\rangle\langle\omega_i|\psi\rangle \\ &= \langle\psi|\Big(\sum_i \omega_i|\omega_i\rangle\langle\omega_i|\Big)|\psi\rangle = \langle\psi|\hat\Omega|\psi\rangle \end{aligned} \]</div>
+    <p>이다. 분산도 같은 방법으로 \((\Delta\Omega)^2 = \sum_i(\omega_i - \langle\Omega\rangle)^2P(\omega_i) = \langle\psi|(\hat\Omega - \langle\Omega\rangle)^2|\psi\rangle\)이고, 제곱을 펼치면 둘째 식이 된다. 행렬 원소 하나를 계산하는 것으로 평균이 나오니, 대각화보다 훨씬 쉽다.</p>
+    <div class="box thm" id="thm-zero-variance"><div class="box-h">불확정도가 0인 상태</div>
+      <p>\(\Delta\Omega = 0\)일 필요충분조건은 \(|\psi\rangle\)가 \(\hat\Omega\)의 고유벡터인 것이다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p>\(\hat A = \hat\Omega - \langle\Omega\rangle\)로 두면 \(\hat A\)는 에르미트이므로 \((\Delta\Omega)^2 = \langle\psi|\hat A\hat A|\psi\rangle = \lVert\hat A\psi\rVert^2\)이다. 이것이 0인 것은 \(\hat A|\psi\rangle = 0\), 곧 \(\hat\Omega|\psi\rangle = \langle\Omega\rangle|\psi\rangle\)일 때뿐이다.</p>
+      </details>
+    </div>
+    <p>측정값이 확정된 상태, 곧 결과를 확실히 예측할 수 있는 상태는 고유 상태뿐이다. 고유 상태가 아니면 측정값은 반드시 흩어진다.</p>
+    <div class="box ex" id="ex-expect-3"><div class="box-h">행렬로 계산하기</div>
+      <p><a class="ref" href="#ex-measure-3"></a>에서 \(\langle\Omega\rangle = \langle\psi|\hat\Omega|\psi\rangle = \Omega_{11} = 2\)이다. 확률로 계산한 \(4\cdot\tfrac13 + 1\cdot\tfrac23 = 2\)와 같다. \(\Omega^2\)의 (1,1) 원소는 \(2^2 + 1 + 1 = 6\)이므로 \((\Delta\Omega)^2 = 6 - 2^2 = 2\), \(\Delta\Omega = \sqrt2\)이다.</p>
+      <p>스핀이라면, \(|x{+}\rangle\) 상태에서 \(\sigma_z\)를 재면 \(\langle\sigma_z\rangle = \tfrac12(+1) + \tfrac12(-1) = 0\)이고, \(\sigma_z^2 = I\)이므로 \(\Delta\sigma_z = \sqrt{1 - 0} = 1\)이다. 같은 상태에서 \(\sigma_x\)는 \(\langle\sigma_x\rangle = 1\), \(\Delta\sigma_x = 0\)이다. \(|x{+}\rangle\)은 \(\sigma_x\)의 고유 상태이기 때문이다.</p>
+    </div>
+    <p>위치 표현에서는 기댓값이 적분이 된다. 완비성 관계를 끼우면</p>
+    <div class="formula" id="eq-expect-x">\[ \begin{aligned} \langle x\rangle &= \int x\,|\psi|^2\,dx, \\ \langle p\rangle &= \int \psi^*\Big(-i\hbar\frac{d\psi}{dx}\Big)dx, \\ \langle p^2\rangle &= \hbar^2\int\Big|\frac{d\psi}{dx}\Big|^2dx \end{aligned} \]</div>
+    <p>이다. 마지막 식은 \(\langle p^2\rangle = \langle\hat p\psi|\hat p\psi\rangle = \lVert\hat p\psi\rVert^2\)이어서 언제나 0 이상이다.</p>
+    <div class="box ex" id="ex-gauss-moments"><div class="box-h">가우스 파속을 위치 표현에서</div>
+      <p><a class="ref" href="#ex-gauss-prob"></a>의 파속에서 \(|\psi|^2\)은 짝함수이므로 \(\langle x\rangle = 0\)이고, <a href="ch03.html#math-gauss">3장의 가우스 적분</a>으로 \(\langle x^2\rangle = \sigma^2/2\)이다. 운동량은 도함수가 필요하다.</p>
+      <div class="formula">\[ \frac{d\psi}{dx} = \Big(-\frac{x}{\sigma^2} + \frac{ip_0}{\hbar}\Big)\psi \]</div>
+      <p>이므로 \(\langle p\rangle = -i\hbar\int\big(-\frac{x}{\sigma^2} + \frac{ip_0}{\hbar}\big)|\psi|^2dx = p_0\)이다(\(x|\psi|^2\)의 적분은 0). 또 \(|d\psi/dx|^2 = \big(\frac{x^2}{\sigma^4} + \frac{p_0^2}{\hbar^2}\big)|\psi|^2\)이므로</p>
+      <div class="formula">\[ \langle p^2\rangle = \hbar^2\Big(\frac{1}{\sigma^4}\cdot\frac{\sigma^2}{2} + \frac{p_0^2}{\hbar^2}\Big) = p_0^2 + \frac{\hbar^2}{2\sigma^2} \]</div>
+      <p>이다. 따라서 \(\Delta x = \sigma/\sqrt2\), \(\Delta p = \hbar/(\sigma\sqrt2)\), \(\Delta x\,\Delta p = \hbar/2\)이다. 3장에서 운동량 공간 파동함수로 얻은 결과와 같다. 어느 표현에서 계산하든 결과는 같고, 문제마다 편한 쪽을 고르면 된다.</p>
+    </div>
   </section>
 
+  <!-- ============================================================ 6.5 -->
   <section id="s5">
     <h2>슈뢰딩거 방정식</h2>
-    <p class="slot" data-slot="6.5절">아직 쓰지 않은 절입니다.</p>
+    <p>마지막 공준은 상태가 시간에 따라 어떻게 변하는지를 정한다.</p>
+    <div class="box post" id="post-evolution"><div class="box-h">시간 변화</div>
+      <p>상태는 다음 방정식을 따라 변한다.</p>
+      <div class="formula" id="eq-schrodinger">\[ i\hbar\,\frac{d}{dt}|\psi(t)\rangle = \hat H\,|\psi(t)\rangle \]</div>
+      <p>\(\hat H\)는 계의 해밀토니안(에너지 연산자)이다.</p>
+    </div>
+    <p>이것이 <span class="term">슈뢰딩거 방정식</span> <span class="en">(Schrödinger equation)</span>이다. 위치 표현에서 \(\hat H = \hat p^2/2m + V(\hat x)\)이면</p>
+    <div class="formula" id="eq-schrodinger-x">\[ i\hbar\,\frac{\partial\psi}{\partial t} = -\frac{\hbar^2}{2m}\frac{\partial^2\psi}{\partial x^2} + V(x)\,\psi \]</div>
+    <p>이다. 공준이므로 유도할 수는 없지만, 왜 이런 꼴이어야 하는지는 이해할 수 있다.</p>
+    <ul>
+      <li><b>시간에 대해 1계다.</b> 지금의 상태 \(|\psi(0)\rangle\)만 알면 미래가 정해진다. 4장의 해밀턴 방정식이 지금의 \((q, p)\)로 미래를 정한 것과 같다.</li>
+      <li><b>선형이다.</b> 두 해의 중첩도 해다. 중첩의 원리가 시간이 흘러도 유지된다.</li>
+      <li><b>노름을 보존한다.</b> 확률의 합은 언제나 1이어야 한다. 방정식과 그 수반 \(-i\hbar\frac{d}{dt}\langle\psi| = \langle\psi|\hat H^\dagger\)를 쓰면
+        <div class="formula">\[ \frac{d}{dt}\langle\psi|\psi\rangle = \frac{1}{i\hbar}\langle\psi|\big(\hat H - \hat H^\dagger\big)|\psi\rangle \]</div>
+        이므로, 모든 상태에서 노름이 보존될 조건은 \(\hat H^\dagger = \hat H\), 곧 에너지가 관측량이라는 것과 같다.</li>
+      <li><b>드브로이 관계와 맞는다.</b> 자유 입자의 평면파 \(\psi = e^{i(px - Et)/\hbar}\)를 넣으면 왼쪽은 \(E\psi\), 오른쪽은 \(\frac{p^2}{2m}\psi\)이다. 방정식은 \(E = p^2/2m\)이라는 고전적 에너지 관계와, 드브로이의 \(E = \hbar\omega\), \(p = \hbar k\)(<a href="ch05.html#def-de-broglie">5장 정의 5.2</a>)를 함께 담고 있다.</li>
+    </ul>
+
+    <h3 id="s5-propagator">시간 변화 연산자</h3>
+    <p>\(\hat H\)가 시간에 따라 변하지 않으면 슈뢰딩거 방정식은 바로 풀린다. <a href="ch02.html#eq-derivative">2장 식 (2.16)</a>에 따라 \(\frac{d}{dt}e^{-i\hat Ht/\hbar} = -\frac{i}{\hbar}\hat H\,e^{-i\hat Ht/\hbar}\)이므로</p>
+    <div class="formula" id="eq-propagator">\[ |\psi(t)\rangle = \hat U(t)\,|\psi(0)\rangle, \qquad \hat U(t) = e^{-i\hat Ht/\hbar} \]</div>
+    <p>이다. \(\hat U(t)\)를 <span class="term">시간 변화 연산자</span> <span class="en">(time-evolution operator)</span>라 한다. \(\hat H\)가 에르미트이므로 \(\hat U\)는 유니타리이고(<a href="ch02.html#thm-exp-unitary">2장 정리 2.6</a>), 노름이 보존된다. 4장에서 해밀토니안이 시간 변화의 생성자였던 것(<a href="ch04.html#s4-generator">4.4절</a>)과 같은 구조다. 계산할 때는 \(\hat H\)의 고유 기저에서 쓰는 것이 가장 편하다(<a href="ch02.html#eq-function">2장 식 (2.15)</a>).</p>
+    <div class="formula" id="eq-propagator-spectral">\[ \hat U(t) = \sum_n e^{-iE_nt/\hbar}\,|E_n\rangle\langle E_n| \]</div>
+    <p>여기서 \(\hat H|E_n\rangle = E_n|E_n\rangle\)이다. 연속 스펙트럼이 있으면 그 부분은 적분이 된다.</p>
+
+    <h3 id="s5-expect">기댓값의 시간 변화</h3>
+    <p>관측량의 기댓값은 어떻게 변할까? \(\frac{d}{dt}|\psi\rangle = \frac{1}{i\hbar}\hat H|\psi\rangle\)와 그 수반 \(\frac{d}{dt}\langle\psi| = -\frac{1}{i\hbar}\langle\psi|\hat H\)를 쓰면(\(\hat\Omega\)가 시간을 직접 포함하지 않을 때)</p>
+    <div class="formula" id="eq-heisenberg-expect">\[ \frac{d}{dt}\langle\Omega\rangle = \frac{1}{i\hbar}\big\langle\psi\big|\big(\hat\Omega\hat H - \hat H\hat\Omega\big)\big|\psi\big\rangle = \frac{1}{i\hbar}\big\langle[\hat\Omega, \hat H]\big\rangle \]</div>
+    <p>이다. 4장의 \(d\omega/dt = \{\omega, H\}\)(<a href="ch04.html#eq-pb-eom">4장 식 (4.12)</a>)에서 푸아송 괄호를 \([\,,]/i\hbar\)로 바꾼 꼴이다. 특히 \([\hat\Omega, \hat H] = 0\)이면 \(\langle\Omega\rangle\)가 변하지 않는다. 이때 \(\hat\Omega\)의 거듭제곱도 \(\hat H\)와 교환하므로 측정값의 확률 분포 전체가 변하지 않는다. 이런 \(\Omega\)를 <span class="term">운동 상수</span> <span class="en">(constant of motion)</span>라 한다.</p>
+    <div class="box ex" id="ex-free-ehrenfest"><div class="box-h">자유 입자의 평균 운동</div>
+      <p>자유 입자 \(\hat H = \hat p^2/2m\)에서 \([\hat p, \hat H] = 0\)이므로 \(\langle p\rangle\)는 일정하다. 위치는 <a href="ch03.html#prob-comm">3장 문제 3.3</a>의 \([\hat x, \hat p^2] = 2i\hbar\,\hat p\)를 쓰면 \([\hat x, \hat H] = i\hbar\,\hat p/m\)이므로</p>
+      <div class="formula">\[ \frac{d}{dt}\langle x\rangle = \frac{1}{i\hbar}\cdot\frac{i\hbar\langle p\rangle}{m} = \frac{\langle p\rangle}{m} \]</div>
+      <p>이다. 파속의 중심은 고전 입자처럼 등속도로 움직인다. 퍼텐셜이 있으면 \(\frac{d}{dt}\langle p\rangle = -\langle V'(x)\rangle\)가 되는데(<a class="ref" href="#prob-ehrenfest"></a>), 이것이 9장의 에렌페스트 정리다.</p>
+    </div>
   </section>
 
+  <!-- ============================================================ 6.6 -->
   <section id="s6">
     <h2>정상 상태</h2>
-    <p class="slot" data-slot="6.6절">아직 쓰지 않은 절입니다.</p>
+    <p>해밀토니안이 시간을 포함하지 않을 때 가장 중요한 해는 에너지 고유 상태다. \(\hat H|E\rangle = E|E\rangle\)이면 식 <a class="ref" href="#eq-propagator-spectral"></a>에서</p>
+    <div class="formula" id="eq-stationary">\[ |\psi(t)\rangle = e^{-iEt/\hbar}\,|E\rangle \]</div>
+    <p>이다. 시간이 흘러도 전체 위상만 돈다. 6.1절에서 보았듯 전체 위상은 어떤 측정 확률도 바꾸지 않으므로, 이 상태에서는 어떤 관측량의 확률 분포도 시간에 따라 변하지 않는다. 이런 상태를 <span class="term">정상 상태</span> <span class="en">(stationary state)</span>라 한다. 보어가 가정한 '빛을 내지 않는 궤도'(<a href="ch05.html#s2-bohr">5.2절</a>)의 정체가 이것이다.</p>
+    <p>정상 상태를 찾는 일은 \(\hat H\)의 고유값 문제를 푸는 일이다.</p>
+    <div class="formula" id="eq-tise">\[ \hat H\,|E\rangle = E\,|E\rangle, \qquad -\frac{\hbar^2}{2m}\frac{d^2\psi_E}{dx^2} + V(x)\,\psi_E = E\,\psi_E \]</div>
+    <p>이것을 <span class="term">시간에 무관한 슈뢰딩거 방정식</span> <span class="en">(time-independent Schrödinger equation)</span>이라 한다. 7장부터 15장까지의 많은 부분이 여러 퍼텐셜에서 이 방정식을 푸는 일이다.</p>
+
+    <h3 id="s6-general">에너지 고유 상태로 전개해 풀기</h3>
+    <p>처음 상태가 정상 상태가 아니어도, 에너지 고유 상태로 전개하면 각 성분이 따로 위상만 돈다. 식 <a class="ref" href="#eq-propagator-spectral"></a>를 처음 상태에 작용시키면</p>
+    <div class="formula" id="eq-expansion-t">\[ |\psi(t)\rangle = \sum_n c_n\,e^{-iE_nt/\hbar}\,|E_n\rangle, \qquad c_n = \langle E_n|\psi(0)\rangle \]</div>
+    <p>이다. 시간 의존 문제를 푸는 순서는 다음과 같다. (1) 시간에 무관한 슈뢰딩거 방정식으로 \(E_n\)과 \(|E_n\rangle\)을 구한다. (2) 처음 상태를 전개해 \(c_n\)을 구한다. (3) 각 항에 \(e^{-iE_nt/\hbar}\)를 붙인다. 에너지를 잴 때 \(E_n\)이 나올 확률 \(|c_ne^{-iE_nt/\hbar}|^2 = |c_n|^2\)은 시간에 따라 변하지 않는다. 에너지 보존이다.</p>
+    <p>다른 관측량은 다르다. 에너지가 다른 두 정상 상태의 중첩에서는 두 성분의 상대 위상이 \(e^{-i(E_2 - E_1)t/\hbar}\)로 돌고, 6.1절에서 보았듯 상대 위상은 측정 결과를 바꾼다. 확률 분포가 각진동수</p>
+    <div class="formula" id="eq-bohr-frequency">\[ \omega_{21} = \frac{E_2 - E_1}{\hbar} \]</div>
+    <p>로 진동한다. 5장에서 원자가 내는 빛의 진동수가 \((E_i - E_f)/h\)였던 것(보어의 진동수 조건)과 같은 진동수다. 20장에서 이 진동하는 전하 분포가 빛과 주고받는 과정을 다룬다.</p>
+    <div class="box ex" id="ex-box-slosh"><div class="box-h">상자 속에서 출렁이는 입자</div>
+      <p>구간 \(0 \le x \le L\)에 갇힌 입자(\(V = 0\), 양 끝에서 \(\psi = 0\))를 생각하자. 왜 양 끝에서 0인지는 7장에서 다룬다. <a href="ch03.html#eq-sine-basis">3장의 사인 기저</a> \(e_n(x) = \sqrt{2/L}\sin(n\pi x/L)\)는 \(e_n'' = -(n\pi/L)^2e_n\)이므로 시간에 무관한 슈뢰딩거 방정식의 해이고, 에너지는</p>
+      <div class="formula">\[ E_n = \frac{\hbar^2}{2m}\Big(\frac{n\pi}{L}\Big)^2 = \frac{n^2\pi^2\hbar^2}{2mL^2} \]</div>
+      <p>이다. 처음 상태가 \(\psi(x, 0) = \frac{1}{\sqrt2}\big(e_1(x) + e_2(x)\big)\)이면 식 <a class="ref" href="#eq-expansion-t"></a>에서</p>
+      <div class="formula">\[ \begin{aligned} |\psi(x, t)|^2 &= \tfrac12\big|e_1 + e_2\,e^{-i\omega_{21}t}\big|^2 \\ &= \tfrac12\big(e_1^2 + e_2^2\big) + e_1e_2\cos\omega_{21}t \end{aligned} \]</div>
+      <p>이다(\(e_1, e_2\)는 실수). 간섭 항 \(e_1e_2\)는 왼쪽 절반에서 양수, 오른쪽 절반에서 음수이므로, 확률이 왼쪽과 오른쪽을 오가며 출렁인다(그림 6-2). 위치의 기댓값은 \(\langle e_n|\hat x|e_n\rangle = L/2\), \(\langle e_1|\hat x|e_2\rangle = -16L/9\pi^2\)을 쓰면</p>
+      <div class="formula">\[ \langle x\rangle(t) = \frac L2 - \frac{16L}{9\pi^2}\cos\omega_{21}t \]</div>
+      <p>로, 진폭 \(0.18L\)로 진동한다. 전자가 \(L = 1\ \mathrm{nm}\)의 상자에 있으면 \(E_1 = 0.376\ \mathrm{eV}\), \(E_2 - E_1 = 3E_1 = 1.13\ \mathrm{eV}\)이고, 출렁임의 주기는 \(h/(E_2 - E_1) = 3.7\ \mathrm{fs}\)이다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:6-2a--><svg viewBox="0 0 280 228" role="img" aria-label="확률 밀도가 상자의 왼쪽에서 오른쪽으로 옮겨 간다"><defs><marker id="f62a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f62a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f62a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="198" x2="266" y2="198" class="s-line" stroke-width="1.2" marker-end="url(#f62a-dim)"/><line x1="16" y1="198" x2="16" y2="202" class="s-line" stroke-width="1.2"/><text x="16" y="215" class="t-dim" text-anchor="middle">0</text><line x1="136" y1="198" x2="136" y2="202" class="s-line" stroke-width="1.2"/><text font-size="14" x="136" y="215" class="t-math dim" text-anchor="middle"><tspan font-style="italic">L</tspan>/2</text><line x1="256" y1="198" x2="256" y2="202" class="s-line" stroke-width="1.2"/><text font-size="14" x="256" y="215" class="t-math dim" text-anchor="middle"><tspan font-style="italic">L</tspan></text><text x="268" y="191" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><path d="M16 198 L19.6 197.5 L24.4 195.1 L28 192.3 L32.8 187 L41.2 175 L59.2 145.1 L64 138.2 L68.8 132.3 L73.6 127.9 L77.2 125.5 L80.8 123.9 L85.6 123.2 L91.6 124.2 L97.6 127.1 L103.6 131.3 L118 142.9 L124 146.7 L130 149.2 L136 150.1 L142 149.2 L149.2 146 L155.2 142 L170.8 129.5 L178 125.2 L182.8 123.6 L186.4 123.2 L190 123.6 L193.6 124.9 L197.2 127 L200.8 129.9 L208 138.2 L215.2 148.8 L232 176.9 L240.4 188.5 L245.2 193.3 L248.8 195.9 L252.4 197.5 L256 198" class="s-acc2" stroke-width="1.8" stroke-dasharray="5 4"/><path d="M16 198 L19.6 197 L22 195.4 L24.4 192.9 L29.2 185.5 L34 175.4 L42.4 152.4 L61.6 91.4 L66.4 78.2 L71.2 67.1 L76 58.5 L79.6 53.8 L82 51.7 L84.4 50.3 L88 49.7 L91.6 50.8 L96.4 54.8 L100 59.6 L104.8 68.2 L113.2 87.7 L132.4 140.8 L140.8 161.5 L145.6 171.5 L150.4 179.9 L155.2 186.7 L160 191.7 L163.6 194.4 L167.2 196.3 L170.8 197.4 L174.4 198 L182.8 197.3 L203.2 192.3 L212.8 191.5 L223.6 192.5 L246.4 197.3 L256 198" class="s-line" stroke-width="1.8"/><path d="M16 198 L25.6 197.3 L48.4 192.5 L59.2 191.5 L68.8 192.3 L89.2 197.3 L97.6 198 L101.2 197.4 L104.8 196.3 L108.4 194.4 L112 191.7 L116.8 186.7 L121.6 179.9 L126.4 171.5 L131.2 161.5 L139.6 140.8 L158.8 87.7 L167.2 68.2 L172 59.6 L175.6 54.8 L180.4 50.8 L184 49.7 L187.6 50.3 L190 51.7 L192.4 53.8 L196 58.5 L200.8 67.1 L205.6 78.2 L210.4 91.4 L229.6 152.4 L238 175.4 L242.8 185.5 L247.6 192.9 L250 195.4 L252.4 197 L256 198" class="s-acc" stroke-width="2.6"/><text x="98.4" y="55.6" class="t-math dim" text-anchor="end">0</text><text x="173.6" y="55.6" class="t-math acc" text-anchor="start">π</text><text x="136" y="140.1" class="t-math acc2" text-anchor="middle">π/2</text><text x="12" y="22" class="t-b" text-anchor="start">(가) |<tspan font-style="italic">ψ</tspan>(<tspan font-style="italic">x</tspan>, <tspan font-style="italic">t</tspan>)|<tspan baseline-shift="super" font-size="72%">2</tspan></text></svg><!--/fig:6-2a--><!--fig:6-2b--><svg viewBox="0 0 280 228" role="img" aria-label="위치의 기댓값이 상자 가운데를 중심으로 진동한다"><defs><marker id="f62b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f62b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f62b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="36" y1="198" x2="266" y2="198" class="s-line" stroke-width="1.2" marker-end="url(#f62b-dim)"/><line x1="146" y1="198" x2="146" y2="202" class="s-line" stroke-width="1.2"/><text x="146" y="215" class="t-dim" text-anchor="middle">2π</text><line x1="256" y1="198" x2="256" y2="202" class="s-line" stroke-width="1.2"/><text x="256" y="215" class="t-dim" text-anchor="middle">4π</text><text x="268" y="191" class="t-math dim" text-anchor="end"><tspan font-style="italic">ω</tspan><tspan baseline-shift="sub" font-size="72%">21</tspan><tspan font-style="italic">t</tspan></text><line x1="36" y1="198" x2="36" y2="30" class="s-line" stroke-width="1.2" marker-end="url(#f62b-dim)"/><line x1="32" y1="119" x2="36" y2="119" class="s-line" stroke-width="1.2"/><text font-size="14" x="29" y="123" class="t-math dim" text-anchor="end"><tspan font-style="italic">L</tspan>/2</text><line x1="32" y1="40" x2="36" y2="40" class="s-line" stroke-width="1.2"/><text font-size="14" x="29" y="44" class="t-math dim" text-anchor="end"><tspan font-style="italic">L</tspan></text><text x="43" y="36" class="t-math dim" text-anchor="start">⟨<tspan font-style="italic">x</tspan>⟩</text><line x1="36" y1="119" x2="256" y2="119" class="s-line" stroke-width="1.2" stroke-dasharray="5 4"/><line x1="36" y1="40" x2="256" y2="40" class="s-grid"/><path d="M36 147.5 L38.9 147.1 L41.9 145.9 L47.7 141.3 L55.1 132.2 L70.5 108 L77.1 99.1 L80.7 95.3 L84.4 92.5 L88.1 90.9 L91 90.5 L93.9 90.9 L97.6 92.5 L100.5 94.7 L104.2 98.3 L110.8 106.9 L124 127.8 L129.9 136.2 L136.5 143.3 L139.4 145.5 L142.3 146.8 L146 147.5 L149.7 146.8 L153.3 145 L157 142 L160.7 138 L165.1 132.2 L180.5 108 L187.1 99.1 L190.7 95.3 L194.4 92.5 L198.1 90.9 L201 90.5 L203.9 90.9 L206.9 92.1 L212.7 96.7 L220.1 105.8 L235.5 130 L242.1 138.9 L245.7 142.7 L249.4 145.5 L253.1 147.1 L256 147.5" class="s-acc" stroke-width="2.4"/><text x="12" y="22" class="t-b" text-anchor="start">(나) 위치의 기댓값</text></svg><!--/fig:6-2b--></div>
+      <figcaption><b>그림 6-2.</b> 상자 속 두 정상 상태의 중첩. (가) 확률 밀도 \(|\psi(x, t)|^2\)을 \(\omega_{21}t = 0\)(실선), \(\pi/2\)(점선), \(\pi\)(굵은 선)에서 그렸다. 확률이 왼쪽에서 오른쪽으로 옮겨 간다. (나) 위치의 기댓값 \(\langle x\rangle\)는 진폭 \(0.18L\)로 진동한다. 정상 상태 하나만 있었다면 \(\langle x\rangle = L/2\)로 일정했을 것이다(점선).</figcaption>
+    </figure>
+    <div class="box ex" id="ex-two-level"><div class="box-h">두 준위계: 왼쪽과 오른쪽을 오가는 분자</div>
+      <p>암모니아 분자(NH<sub>3</sub>)에서 질소 원자는 수소 세 개가 이루는 평면의 한쪽이나 반대쪽에 있을 수 있다. 평면을 사이에 둔 두 우물로 생각해, 질소가 한쪽에 있는 상태를 \(|L\rangle\), 반대쪽에 있는 상태를 \(|R\rangle\)로 쓰자. 두 상태의 에너지는 \(E_0\)로 같지만, 질소가 평면을 뚫고 넘어가는 작은 진폭이 있어서 해밀토니안은</p>
+      <div class="formula">\[ H = \begin{pmatrix} E_0 & -A \\ -A & E_0 \end{pmatrix} \qquad (A > 0) \]</div>
+      <p>로 쓸 수 있다. 고유 상태는 \(|\pm\rangle = (|L\rangle \pm |R\rangle)/\sqrt2\)이고 에너지는 \(E_0 \mp A\)이다(<a href="ch02.html#ex-eigen-2x2">2장 예제 2.6</a>과 같은 계산이다). 처음에 \(|L\rangle = (|+\rangle + |-\rangle)/\sqrt2\)이었다면</p>
+      <div class="formula">\[ \begin{aligned} |\psi(t)\rangle &= \tfrac{1}{\sqrt2}\big(e^{-i(E_0 - A)t/\hbar}|+\rangle + e^{-i(E_0 + A)t/\hbar}|-\rangle\big) \\ &= e^{-iE_0t/\hbar}\Big(\cos\frac{At}{\hbar}\,|L\rangle + i\sin\frac{At}{\hbar}\,|R\rangle\Big) \end{aligned} \]</div>
+      <p>이다. 질소를 반대쪽에서 발견할 확률 \(P_R = \sin^2(At/\hbar)\)이 0과 1 사이를 오간다(그림 6-3). 진동의 각진동수는 \(2A/\hbar\)로, 두 에너지 준위의 간격을 \(\hbar\)로 나눈 보어 진동수다. 암모니아에서 이 진동수는 약 24 GHz이고(\(2A \approx 1.0\times10^{-4}\ \mathrm{eV}\)), 질소가 한쪽에서 반대쪽으로 넘어가는 데 약 21 ps가 걸린다. 이 마이크로파 전이는 최초의 메이저에 쓰였다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:6-3--><svg viewBox="0 0 360 210" role="img" aria-label="두 준위계에서 확률이 L과 R 사이를 오간다"><defs><marker id="f63-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f63-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f63-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="36" y1="180" x2="336" y2="180" class="s-line" stroke-width="1.2" marker-end="url(#f63-dim)"/><line x1="108.5" y1="180" x2="108.5" y2="184" class="s-line" stroke-width="1.2"/><text x="108.5" y="197" class="t-dim" text-anchor="middle">π/2</text><line x1="181" y1="180" x2="181" y2="184" class="s-line" stroke-width="1.2"/><text x="181" y="197" class="t-dim" text-anchor="middle">π</text><line x1="253.5" y1="180" x2="253.5" y2="184" class="s-line" stroke-width="1.2"/><text x="253.5" y="197" class="t-dim" text-anchor="middle">3π/2</text><line x1="326" y1="180" x2="326" y2="184" class="s-line" stroke-width="1.2"/><text x="326" y="197" class="t-dim" text-anchor="middle">2π</text><text x="338" y="173" class="t-math dim" text-anchor="end"><tspan font-style="italic">A</tspan><tspan font-style="italic">t</tspan>/ħ</text><line x1="36" y1="180" x2="36" y2="10" class="s-line" stroke-width="1.2" marker-end="url(#f63-dim)"/><line x1="32" y1="108.6" x2="36" y2="108.6" class="s-line" stroke-width="1.2"/><text x="29" y="112.6" class="t-dim" text-anchor="end">½</text><line x1="32" y1="37.1" x2="36" y2="37.1" class="s-line" stroke-width="1.2"/><text x="29" y="41.1" class="t-dim" text-anchor="end">1</text><line x1="36" y1="37.1" x2="326" y2="37.1" class="s-grid"/><path d="M36 180 L39.9 179 L43.7 176 L47.6 171.2 L51.5 164.5 L56.3 154.1 L61.1 141.7 L81.4 80.9 L90.1 58.6 L95 49.1 L99.8 42.2 L104.6 38.1 L108.5 37.1 L112.4 38.1 L116.2 41.1 L120.1 46 L124 52.6 L128.8 63 L133.6 75.5 L153.9 136.3 L162.6 158.5 L167.5 168.1 L172.3 175 L177.1 179 L181 180 L184.9 179 L189.7 175 L194.5 168.1 L199.4 158.5 L208.1 136.3 L228.4 75.5 L234.2 60.8 L239 50.8 L243.8 43.3 L248.7 38.7 L251.6 37.4 L253.5 37.1 L255.4 37.4 L258.3 38.7 L262.2 42.2 L266.1 47.5 L269.9 54.5 L274.8 65.4 L282.5 86.5 L299.9 139 L308.6 160.6 L313.4 169.7 L317.3 175 L322.1 179 L326 180" class="s-acc2" stroke-width="2.2"/><path d="M36 37.1 L39.9 38.1 L43.7 41.1 L47.6 46 L51.5 52.6 L56.3 63 L61.1 75.5 L81.4 136.3 L90.1 158.5 L95 168.1 L99.8 175 L104.6 179 L108.5 180 L112.4 179 L116.2 176 L120.1 171.2 L124 164.5 L128.8 154.1 L133.6 141.7 L153.9 80.9 L162.6 58.6 L167.5 49.1 L172.3 42.2 L177.1 38.1 L181 37.1 L184.9 38.1 L189.7 42.2 L194.5 49.1 L199.4 58.6 L208.1 80.9 L228.4 141.7 L234.2 156.4 L239 166.4 L243.8 173.8 L248.7 178.4 L251.6 179.7 L253.5 180 L255.4 179.7 L258.3 178.4 L262.2 175 L266.1 169.7 L269.9 162.6 L274.8 151.8 L282.5 130.6 L299.9 78.2 L308.6 56.5 L313.4 47.5 L317.3 42.2 L322.1 38.1 L326 37.1" class="s-acc" stroke-width="2.4"/><text x="41.5" y="31.1" class="t-math acc" text-anchor="start"><tspan font-style="italic">P</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">L</tspan></tspan></text><text x="112.5" y="31.1" class="t-math acc2" text-anchor="start"><tspan font-style="italic">P</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">R</tspan></tspan></text></svg><!--/fig:6-3--></div>
+      <figcaption><b>그림 6-3.</b> 두 준위계에서 처음에 \(|L\rangle\)이었던 계를 \(|L\rangle\), \(|R\rangle\)에서 발견할 확률. 가로축은 \(At/\hbar\)이다. 확률은 주기 \(\pi\hbar/A\)로 두 상태를 오간다. 정상 상태 \(|\pm\rangle\)에서 출발했다면 두 확률 모두 \(\tfrac12\)로 일정했을 것이다.</figcaption>
+    </figure>
+    <div class="callout tip"><strong>네 공준 한눈에 보기</strong><p>고전역학과 나란히 놓으면 다음과 같다. <b>상태</b>: 위상 공간의 점 \((x, p)\) → 힐베르트 공간의 벡터 \(|\psi\rangle\). <b>관측량</b>: 함수 \(\omega(x, p)\) → 에르미트 연산자 \(\hat\Omega\). <b>측정</b>: 값 \(\omega(x, p)\)가 그대로 나온다 → 고유값 가운데 하나가 확률 \(|\langle\omega|\psi\rangle|^2\)로 나오고 상태가 바뀐다. <b>시간 변화</b>: 해밀턴 방정식 → 슈뢰딩거 방정식. 앞의 둘과 마지막은 고전역학에도 짝이 있지만, 셋째 공준의 확률과 붕괴는 양자역학에만 있다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li><b>공준 1</b>: 상태는 힐베르트 공간의 정규화된 벡터 \(|\psi\rangle\)이다. 전체 위상은 의미가 없지만 중첩 안의 상대 위상은 측정 결과를 바꾼다. 중첩은 고전적 섞음과 다르다.</li>
+      <li><b>공준 2</b>: 관측량은 에르미트 연산자다. \([\hat x, \hat p] = i\hbar\)이고 고전량 \(\omega(x, p)\)는 \(\omega(\hat x, \hat p)\)가 된다(순서가 문제 되면 대칭화한다).</li>
+      <li><b>공준 3</b>: 측정 결과는 고유값 \(\omega\)이고 확률은 \(|\langle\omega|\psi\rangle|^2\)(축퇴면 \(\langle\psi|\hat P_\omega|\psi\rangle\))이며, 측정 뒤 상태는 해당 고유 상태로 바뀐다. 연속 스펙트럼에서는 \(|\psi(x)|^2dx\)가 확률이다.</li>
+      <li>기댓값은 \(\langle\Omega\rangle = \langle\psi|\hat\Omega|\psi\rangle\), 분산은 \(\langle\Omega^2\rangle - \langle\Omega\rangle^2\)이다. 불확정도가 0인 상태는 고유 상태뿐이다.</li>
+      <li>교환하는 관측량은 함께 확정할 수 있고, 교환하지 않는 관측량은 하나를 재면 다른 하나가 흐트러진다.</li>
+      <li><b>공준 4</b>: \(i\hbar\,\frac{d}{dt}|\psi\rangle = \hat H|\psi\rangle\). 1계이고 선형이며, \(\hat H\)가 에르미트여서 노름이 보존된다. 해는 \(|\psi(t)\rangle = e^{-i\hat Ht/\hbar}|\psi(0)\rangle\)이다.</li>
+      <li>\(\frac{d}{dt}\langle\Omega\rangle = \frac{1}{i\hbar}\langle[\hat\Omega, \hat H]\rangle\)이다. \(\hat H\)와 교환하는 관측량은 운동 상수다.</li>
+      <li>에너지 고유 상태는 위상만 도는 정상 상태다. 일반적인 상태는 에너지 고유 상태로 전개해 각 항에 \(e^{-iE_nt/\hbar}\)를 붙이면 되고, 중첩은 보어 진동수 \((E_2 - E_1)/\hbar\)로 진동한다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \(|\psi\rangle\)와 \(-|\psi\rangle\)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt" data-correct>같은 상태다. 어떤 측정의 확률도 같다.</button>
+        <button class="opt">서로 직교하는 상태다.</button>
+        <button class="opt">에너지가 부호만 다르다.</button>
+        <button class="opt">\(-|\psi\rangle\)는 정규화되어 있지 않다.</button>
+      </div><div class="quiz-exp">\(-1 = e^{i\pi}\)는 전체 위상이다. \(|\langle\omega|{-\psi}\rangle|^2 = |\langle\omega|\psi\rangle|^2\)이다. 상대 위상과 달리 전체 위상은 물리적 의미가 없다.</div></div>
+      <div class="quiz-q"><p>2. 상태 \((|z{+}\rangle + |z{-}\rangle)/\sqrt2\)의 원자들을 SG\(_x\)에 넣으면?</p><div class="opts">
+        <button class="opt">\(x+\)와 \(x-\)가 반반 나온다.</button>
+        <button class="opt" data-correct>모두 \(x+\)로 나온다.</button>
+        <button class="opt">모두 \(x-\)로 나온다.</button>
+        <button class="opt">\(z+\)와 \(z-\)가 반반 나온다.</button>
+      </div><div class="quiz-exp">이 상태는 \(|x{+}\rangle\)이다. \(z+\) 원자와 \(z-\) 원자를 반반 섞은 빔이었다면 반반이 나왔을 것이다. 중첩은 섞음이 아니다.</div></div>
+      <div class="quiz-q"><p>3. 관측량 \(\Omega\)를 측정해 나올 수 있는 값은?</p><div class="opts">
+        <button class="opt">\(\langle\psi|\hat\Omega|\psi\rangle\)만 나온다.</button>
+        <button class="opt">\(\hat\Omega\)의 행렬 원소 가운데 하나</button>
+        <button class="opt" data-correct>\(\hat\Omega\)의 고유값 가운데 하나</button>
+        <button class="opt">어떤 실수든 나올 수 있다.</button>
+      </div><div class="quiz-exp">공준 3이다. 기댓값 \(\langle\psi|\hat\Omega|\psi\rangle\)는 여러 번 잰 결과의 평균이고, 한 번의 측정에서는 나오지 않을 수도 있다. <a class="ref" href="#ex-expect-3"></a>에서 기댓값 2는 가능한 결과(4 또는 1)가 아니다.</div></div>
+      <div class="quiz-q"><p>4. 측정해서 결과 \(\omega\)를 얻은 직후 같은 관측량을 다시 재면?</p><div class="opts">
+        <button class="opt" data-correct>확률 1로 같은 결과 \(\omega\)가 나온다.</button>
+        <button class="opt">처음과 같은 확률 분포에서 다시 무작위로 나온다.</button>
+        <button class="opt">반드시 다른 값이 나온다.</button>
+        <button class="opt">측정할 수 없다.</button>
+      </div><div class="quiz-exp">측정 직후 상태는 \(|\omega\rangle\)로 붕괴했고 \(|\langle\omega|\omega\rangle|^2 = 1\)이다. 시간이 흐르게 두면 \(\hat H\)에 따라 상태가 다시 변할 수 있다.</div></div>
+      <div class="quiz-q"><p>5. 정상 상태 \(|\psi(t)\rangle = e^{-iEt/\hbar}|E\rangle\)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">입자가 움직이지 않는 상태다.</button>
+        <button class="opt">모든 관측량의 값이 확정되어 있다.</button>
+        <button class="opt" data-correct>모든 관측량의 측정 확률 분포가 시간에 따라 변하지 않는다.</button>
+        <button class="opt">에너지가 시간에 따라 줄어든다.</button>
+      </div><div class="quiz-exp">시간이 흘러도 전체 위상만 돈다. 에너지는 확정되어 있지만, 위치 같은 다른 관측량은 흩어져 있을 수 있다. 다만 그 분포가 변하지 않는다.</div></div>
+      <div class="quiz-q"><p>6. 시간을 직접 포함하지 않는 관측량 \(\Omega\)의 기댓값이 어떤 상태에서나 일정할 조건은?</p><div class="opts">
+        <button class="opt">\(\hat\Omega\)가 에르미트이다.</button>
+        <button class="opt" data-correct>\([\hat\Omega, \hat H] = 0\)이다.</button>
+        <button class="opt">\(\hat\Omega\)의 고유값이 모두 양수다.</button>
+        <button class="opt">\(\hat H\)가 에르미트이다.</button>
+      </div><div class="quiz-exp">\(\frac{d}{dt}\langle\Omega\rangle = \frac{1}{i\hbar}\langle[\hat\Omega, \hat H]\rangle\)이다. 4장의 \(\{\omega, H\} = 0\)과 짝을 이룬다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-normalize" data-level="1"><p>3차원 계의 상태가 정규직교 기저 \(|1\rangle, |2\rangle, |3\rangle\)에서 \((1, i, 1 + i)\)에 비례한다. 정규화하고, 기저 \(|1\rangle, |2\rangle, |3\rangle\)이 어떤 관측량의 서로 다른 고유값 \(a_1, a_2, a_3\)의 고유벡터일 때 각 결과의 확률을 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>노름의 제곱은 \(1 + 1 + |1 + i|^2 = 4\)이므로 \(|\psi\rangle \to \tfrac12(1, i, 1 + i)\)이다. 확률은 \(P(a_1) = \tfrac14\), \(P(a_2) = \tfrac14\), \(P(a_3) = \tfrac{2}{4} = \tfrac12\)이고 합은 1이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-phase" data-level="1"><p>다음 스핀 상태 가운데 \(|y{+}\rangle \to (1, i)/\sqrt2\)와 같은 상태는 어느 것인가? (가) \((i, -1)/\sqrt2\) (나) \((1, -i)/\sqrt2\) (다) \((-1, -i)/\sqrt2\)</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가)는 \(i\cdot(1, i)/\sqrt2\), (다)는 \(-1\cdot(1, i)/\sqrt2\)이므로 \(|y{+}\rangle\)와 같은 상태다. (나)는 \(|y{-}\rangle\)이고, \(\langle y{+}|y{-}\rangle = \tfrac12\big(1\cdot1 + (i)^*(-i)\big) = \tfrac12(1 - 1) = 0\)이므로 \(|y{+}\rangle\)와 직교한다. 상대 위상이 \(i\)에서 \(-i\)로 바뀌면 다른 상태다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-spin-60" data-level="1"><p>스핀 상태 \(|\psi\rangle = \tfrac{\sqrt3}{2}|z{+}\rangle + \tfrac12|z{-}\rangle\)에 대해 (가) SG\(_z\)에서 \(+\)가 나올 확률과 \(\langle\sigma_z\rangle\), (나) SG\(_x\)에서 \(+\)가 나올 확률과 \(\langle\sigma_x\rangle\)를 구하라. (다) 이 상태는 어느 방향의 \(+\) 상태인가(<a href="ch05.html#prob-spin-direction">5장 문제 5.11</a>)?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(P(z{+}) = \tfrac34\), \(\langle\sigma_z\rangle = \tfrac34 - \tfrac14 = \tfrac12\).</p>
+        <p>(나) \(\langle x{+}|\psi\rangle = \frac{1}{\sqrt2}\big(\tfrac{\sqrt3}{2} + \tfrac12\big)\)이므로 \(P(x{+}) = \frac{(\sqrt3 + 1)^2}{8} = \frac{2 + \sqrt3}{4} = 0.933\)이고, \(\langle\sigma_x\rangle = 2P(x{+}) - 1 = \tfrac{\sqrt3}{2}\)이다. 행렬로 계산하면 \(\langle\sigma_x\rangle = 2\cdot\tfrac{\sqrt3}{2}\cdot\tfrac12 = \tfrac{\sqrt3}{2}\)로 같다.</p>
+        <p>(다) \(\cos\tfrac\theta2 = \tfrac{\sqrt3}{2}\), \(\sin\tfrac\theta2 = \tfrac12\)이므로 \(\theta = 60^\circ\), \(\phi = 0\)이다. \(xz\) 평면에서 \(z\)축과 60°를 이루는 방향이다. 기댓값 \((\langle\sigma_x\rangle, \langle\sigma_z\rangle) = (\sin 60^\circ, \cos 60^\circ)\)가 바로 그 방향의 단위 벡터다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-compatible" data-level="2"><p><a href="ch02.html#prob-simultaneous">2장 문제 2.12</a>의 교환하는 두 관측량 \(\Omega = \begin{pmatrix} 0 & 0 & 1 \\ 0 & 1 & 0 \\ 1 & 0 & 0 \end{pmatrix}\), \(\Lambda = \mathrm{diag}(1, 2, 1)\)을 상태 \(|\psi\rangle \to (1, 1, 1)/\sqrt3\)에서 잰다. (가) 먼저 \(\Lambda\)를 재면 각 결과의 확률과 측정 뒤 상태는? (나) \(\Lambda = 1\)을 얻은 뒤 \(\Omega\)를 재면? (다) 그 뒤 \(\Lambda\)를 다시 재면?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\Lambda\)의 고유값 1의 고유 공간은 \(xz\) 평면(2차원)이고 2의 고유벡터는 \((0, 1, 0)\)이다. \(P(1) = \langle\psi|\hat P_1|\psi\rangle = \tfrac13 + \tfrac13 = \tfrac23\)이고 측정 뒤 상태는 \((1, 0, 1)/\sqrt2\)이다. \(P(2) = \tfrac13\)이고 측정 뒤 상태는 \((0, 1, 0)\)이다.</p>
+        <p>(나) \((1, 0, 1)/\sqrt2\)는 \(\Omega\)의 고유값 \(+1\)의 고유벡터이므로 확률 1로 \(+1\)이 나오고 상태는 변하지 않는다.</p>
+        <p>(다) 상태가 그대로이므로 확률 1로 \(\Lambda = 1\)이다. 교환하는 관측량은 서로의 값을 흐트러뜨리지 않는다. 처음 상태에서 \(\Omega\)의 확률은 \(P(+1) = 1\)이었는데(\((1,1,1)\)이 \(\Omega\)의 고유벡터이므로), \(\Lambda\) 측정 뒤에도 그대로다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-exp-moments" data-level="2"><p>파동함수 \(\psi(x) = e^{-|x|/a}/\sqrt a\)에 대해 \(\langle x\rangle\), \(\langle x^2\rangle\), \(\langle p\rangle\), \(\langle p^2\rangle\)을 구하고 \(\Delta x\,\Delta p\)를 가우스 파속과 비교하라. \(\langle p^2\rangle = \hbar^2\int|\psi'|^2dx\)를 써라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(|\psi|^2\)이 짝함수이므로 \(\langle x\rangle = 0\)이다. \(\langle x^2\rangle = \frac2a\int_0^\infty x^2e^{-2x/a}dx = \frac2a\cdot\frac{2}{(2/a)^3} = \frac{a^2}{2}\)이다. \(\psi\)가 실수이므로 \(\langle p\rangle = 0\)이다(<a href="ch03.html#prob-p-real">3장 문제 3.6</a>). \(x \neq 0\)에서 \(|\psi'| = |\psi|/a\)이므로 \(\langle p^2\rangle = \hbar^2/a^2\)이다.</p>
+        <p>\(\Delta x\,\Delta p = \frac{a}{\sqrt2}\cdot\frac{\hbar}{a} = \frac{\hbar}{\sqrt2} \approx 0.707\hbar\)로 가우스 파속의 \(\hbar/2\)보다 크다. 9장에서 \(\hbar/2\)가 최솟값임을 보인다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-norm" data-level="2"><p>(가) 위치 표현의 슈뢰딩거 방정식 <a class="ref" href="#eq-schrodinger-x"></a>(\(V\)는 실수)에서 \(\frac{d}{dt}\int|\psi|^2dx = 0\)임을 부분 적분으로 직접 보여라. (나) 퍼텐셜에 허수부를 넣어 \(V - i\Gamma/2\)(\(\Gamma > 0\) 상수)로 하면 노름이 어떻게 변하는가? 이런 해밀토니안은 무엇을 흉내 낼 수 있는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\frac{\partial}{\partial t}|\psi|^2 = \psi^*\dot\psi + \dot\psi^*\psi\)이고, 방정식에서 \(\dot\psi = \frac{i\hbar}{2m}\psi'' - \frac{i}{\hbar}V\psi\)이다. \(V\) 항은 \(-\frac{i}{\hbar}V|\psi|^2 + \frac{i}{\hbar}V|\psi|^2 = 0\)으로 지워지고, 남은 것은 \(\frac{i\hbar}{2m}(\psi^*\psi'' - \psi\psi^{*\prime\prime}) = \frac{i\hbar}{2m}\frac{\partial}{\partial x}(\psi^*\psi' - \psi\psi^{*\prime})\)이다. 이것을 \(x\)로 적분하면 무한히 먼 곳의 값만 남고, \(\psi \to 0\)이므로 0이다. (괄호 안의 양은 7장의 확률 흐름이다.)</p>
+        <p>(나) \(V\) 항이 \(-\frac{i}{\hbar}(V - i\Gamma/2)|\psi|^2 + \frac{i}{\hbar}(V + i\Gamma/2)|\psi|^2 = -\frac{\Gamma}{\hbar}|\psi|^2\)이 되어 \(\frac{d}{dt}\langle\psi|\psi\rangle = -\frac{\Gamma}{\hbar}\langle\psi|\psi\rangle\), 곧 \(\langle\psi|\psi\rangle = e^{-\Gamma t/\hbar}\)이다. \(\hat H\)가 에르미트가 아니면 확률이 새어 나간다. 붕괴하는 불안정한 입자나, 다른 곳으로 흡수되어 사라지는 입자를 흉내 내는 데 쓴다(수명 \(\hbar/\Gamma\)).</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-ehrenfest" data-level="2"><p>\(\hat H = \hat p^2/2m + V(\hat x)\)일 때 \(\frac{d}{dt}\langle x\rangle = \frac{\langle p\rangle}{m}\), \(\frac{d}{dt}\langle p\rangle = -\langle V'(x)\rangle\)임을 보여라. <a href="ch03.html#prob-comm">3장 문제 3.3</a>의 교환자를 써라. \(\langle V'(x)\rangle = V'(\langle x\rangle)\)이면 고전역학의 운동 방정식과 같아지는데, 언제 그런가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\([\hat x, \hat p^2] = 2i\hbar\hat p\)이고 \([\hat x, V(\hat x)] = 0\)이므로 \([\hat x, \hat H] = i\hbar\hat p/m\)이고, 식 <a class="ref" href="#eq-heisenberg-expect"></a>에서 \(\frac{d}{dt}\langle x\rangle = \langle p\rangle/m\)이다. \([\hat p, \hat p^2] = 0\), \([\hat p, V(\hat x)] = -i\hbar V'(\hat x)\)이므로 \(\frac{d}{dt}\langle p\rangle = \frac{1}{i\hbar}(-i\hbar)\langle V'\rangle = -\langle V'\rangle\)이다.</p>
+        <p>\(V'\)이 1차식이면(자유 입자, 균일한 힘, 조화 진동자) \(\langle V'(x)\rangle = V'(\langle x\rangle)\)가 정확히 성립한다. 그렇지 않으면 파속의 폭이 \(V'\)이 변하는 길이에 비해 좁을 때 근사적으로 성립한다. 9장에서 고전 극한으로 다시 본다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-box-matrix" data-level="2"><p><a class="ref" href="#ex-box-slosh"></a>에서 (가) \(\langle e_1|\hat x|e_2\rangle = -16L/9\pi^2\)을 계산하라. (나) 같은 처음 상태에서 에너지를 재면 어떤 값이 어떤 확률로 나오는가? 에너지의 기댓값과 불확정도는? 이것이 시간에 따라 변하는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\sin A\sin B = \tfrac12[\cos(A - B) - \cos(A + B)]\)로</p>
+        <div class="formula">\[ \begin{aligned} \langle e_1|\hat x|e_2\rangle &= \frac1L\int_0^L x\Big[\cos\frac{\pi x}{L} - \cos\frac{3\pi x}{L}\Big]dx \\ &= \frac1L\Big[-\frac{2L^2}{\pi^2} + \frac{2L^2}{9\pi^2}\Big] = -\frac{16L}{9\pi^2} \end{aligned} \]</div>
+        <p>이다(\(\int_0^L x\cos(k\pi x/L)\,dx = \frac{L^2}{k^2\pi^2}[(-1)^k - 1]\)를 썼다).</p>
+        <p>(나) \(E_1\)과 \(E_2 = 4E_1\)이 각각 확률 \(\tfrac12\)로 나온다. \(\langle E\rangle = \tfrac52E_1\), \(\langle E^2\rangle = \tfrac{17}{2}E_1^2\)이므로 \(\Delta E = \sqrt{\tfrac{17}{2} - \tfrac{25}{4}}\,E_1 = \tfrac32E_1\)이다. 에너지의 확률은 \(|c_n|^2\)이어서 시간에 따라 변하지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-ammonia" data-level="2"><p><a class="ref" href="#ex-two-level"></a>의 두 준위계에서 (가) 처음 상태 \(\cos\alpha|L\rangle + \sin\alpha|R\rangle\)(\(\alpha\)는 실수) 가운데 정상 상태인 것은? (나) 처음에 \(|L\rangle\)인 분자를 시간 \(\tau = \pi\hbar/4A\)마다 '질소가 어느 쪽에 있는지' 재고, 첫 측정에서 \(L\)을 얻었다. 그 측정 직후의 상태와 다음 측정에서 \(L\)이 나올 확률은?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 정상 상태는 \(\hat H\)의 고유 상태 \(|\pm\rangle\)이므로 \(\alpha = \pi/4\)(\(|+\rangle\))와 \(\alpha = -\pi/4\) 또는 \(3\pi/4\)(\(|-\rangle\), 전체 부호만 다름)이다.</p>
+        <p>(나) 측정 직후 상태는 \(|L\rangle\)로 붕괴한다. 다시 시간 \(\tau\)가 흐르면 \(P_L = \cos^2(A\tau/\hbar) = \cos^2(\pi/4) = \tfrac12\)이다. 측정할 때마다 상태가 \(|L\rangle\)에서 다시 출발한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-precession" data-level="3"><p>스핀의 해밀토니안이 \(\hat H = \tfrac12\hbar\omega\,\sigma_z\)이다(16장에서 \(z\) 방향 자기장 속의 스핀이 이렇게 된다). 처음 상태가 \(|x{+}\rangle\)일 때 \(|\psi(t)\rangle\)를 구하고, \(\langle\sigma_x\rangle\), \(\langle\sigma_y\rangle\), \(\langle\sigma_z\rangle\)의 시간 변화를 구하라. 결과를 그림으로 설명하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\sigma_z\)의 고유 상태 \(|z{\pm}\rangle\)의 에너지는 \(\pm\tfrac12\hbar\omega\)이므로 식 <a class="ref" href="#eq-expansion-t"></a>에서</p>
+        <div class="formula">\[ |\psi(t)\rangle = \tfrac{1}{\sqrt2}\big(e^{-i\omega t/2}|z{+}\rangle + e^{i\omega t/2}|z{-}\rangle\big) \]</div>
+        <p>이다. \(|\psi\rangle \to (a, b)\)일 때 \(\langle\sigma_x\rangle = 2\,\mathrm{Re}(a^*b)\), \(\langle\sigma_y\rangle = 2\,\mathrm{Im}(a^*b)\), \(\langle\sigma_z\rangle = |a|^2 - |b|^2\)이고, \(a^*b = \tfrac12e^{i\omega t}\)이므로</p>
+        <div class="formula">\[ \begin{gathered} \langle\sigma_x\rangle = \cos\omega t, \qquad \langle\sigma_y\rangle = \sin\omega t, \\ \langle\sigma_z\rangle = 0 \end{gathered} \]</div>
+        <p>이다. 기댓값으로 만든 벡터 \((\langle\sigma_x\rangle, \langle\sigma_y\rangle, \langle\sigma_z\rangle)\)가 \(xy\) 평면에서 각진동수 \(\omega\)로 \(z\)축 둘레를 돈다. 자기장 속 자석이 축 둘레로 세차 운동하는 것과 같다. \(\langle\sigma_z\rangle\)가 일정한 것은 \(\sigma_z\)가 \(\hat H\)와 교환하기 때문이다. 상태 자체로 보면 \(|z{\pm}\rangle\) 사이의 상대 위상이 보어 진동수 \(\omega\)로 도는 것이고(5장 문제 5.11의 \(\phi = \omega t\)), 6.1절에서 보았듯 상대 위상이 바로 방향 정보다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-zeno" data-level="3"><p><a class="ref" href="#ex-two-level"></a>의 분자를 처음에 \(|L\rangle\)로 준비하고, 시간 \(t\) 동안 같은 간격으로 \(N\)번 '질소가 어느 쪽에 있는지' 잰다. 모든 측정에서 \(L\)이 나올 확률이 \(\big[\cos^2(At/N\hbar)\big]^N\)임을 보이고, \(N \to \infty\)에서 1로 감을 보여라. \(At/\hbar = 1.2\)일 때 \(N = 1, 10, 1000\)이면 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>매 측정에서 \(L\)이 나오면 상태는 \(|L\rangle\)로 되돌아가므로, 각 간격 \(t/N\) 동안 \(L\)로 남을 확률은 \(\cos^2(At/N\hbar)\)이고 \(N\)번 모두 그럴 확률은 그 \(N\)제곱이다. \(N\)이 크면 \(\cos^2\epsilon \approx 1 - \epsilon^2\)이므로 \(\big(1 - (At/\hbar)^2/N^2\big)^N \approx e^{-(At/\hbar)^2/N} \to 1\)이다. \(At/\hbar = 1.2\)이면 \(N = 1\)에서 \(\cos^2 1.2 = 0.131\), \(N = 10\)에서 0.866, \(N = 1000\)에서 0.9986이다.</p>
+        <p>자주 잴수록 계가 처음 상태에 묶인다. 이것을 <span class="term">양자 제논 효과</span> <span class="en">(quantum Zeno effect)</span>라 한다. 짧은 시간 동안 상태가 바뀔 확률이 시간의 제곱에 비례해 아주 천천히 자라기 때문에, 그 전에 측정이 상태를 되돌려 놓는 것이다.</p>
+      </details>
+    </div>
   </section>
 </main>
 </body>

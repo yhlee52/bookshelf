@@ -42,6 +42,7 @@
 |---|---|---|
 | 절 | `<section id="s1"><h2>제목</h2>…</section>` | 1.1, 1.2 … |
 | 정의 · 정리 · 예제 · 수학 상자 | `<div class="box def\|thm\|ex\|math" id="…"><div class="box-h">이름</div>…</div>` | 정의 1.1, 정리 1.1 … (종류마다 따로 셈) |
+| 공준 | `<div class="box post" id="post-…"><div class="box-h">이름</div>…</div>` | 공준 1, 공준 2 … (장 번호 없이 셈. 6장에만 둔다) |
 | 번호 식 | `<div class="formula" id="eq-…">\[ … \]</div>` | (1.1), (1.2) … (`id`가 있는 식만) |
 | 연습문제 | `<div class="prob" id="prob-…" data-level="2">…</div>` | 문제 1.1 … |
 | 참조 | `<a class="ref" href="#eq-…"></a>` (비워 둠) | 위 번호로 채워짐 |
