@@ -1,7 +1,7 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
    projectile · pendulum · oscillator · orbit · waves · double-slit · efield
-   random-walk · heat · ising · double-pendulum · lorenz3d
+   random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
   "use strict";
@@ -820,6 +820,142 @@
           set("fp", st.rho < 1 ? "원점 안정" : st.rho < 24.74 ? "두 고정점 안정" : '<span style="color:var(--bad)">모두 불안정 → 카오스</span>');
         });
       }).catch(() => {});
+    },
+  });
+
+  /* ======================================================================
+     13. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     ====================================================================== */
+  // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
+  // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
+  // 페이지에서 <div data-sim="qm-packet" data-preset="free|step|barrier|well"></div>로 처음 퍼텐셜을 고른다.
+  Lab.register({
+    id: "qm-packet", field: "phys", thumb: "wave",
+    title: "1차원 파속 — 퍼짐, 반사, 터널링",
+    desc: "가우스 파속이 자유 공간에서 퍼지고, 계단·장벽·우물 퍼텐셜에서 반사하고 투과하는 모습을 슈뢰딩거 방정식을 직접 풀어 보여 줍니다.",
+    tags: ["양자역학", "슈뢰딩거 방정식", "터널링", "파속"],
+    note: "ħ = m = 1 단위로 슈뢰딩거 방정식을 크랭크-니콜슨 방법으로 풉니다. 회색 띠가 퍼텐셜, 점선이 파속의 평균 에너지 E₀입니다. 투과 확률은 퍼텐셜 오른쪽, 반사 확률은 왼쪽에 있는 |ψ|²의 넓이입니다. 파속은 여러 에너지가 섞여 있으므로 평면파 공식의 T(E₀)와 조금 다르며, 파속 폭 σ를 키울수록(에너지 퍼짐이 작을수록) 가까워집니다. '자유'에서는 σ를 작게 할수록 빨리 퍼집니다. Δx 옆 괄호는 해석해 σ√(1 + (t/σ²)²)/√2이고, 계산 격자 때문에 오래 지나면 1~2% 작게 나옵니다.",
+    mount(S) {
+      const pre = ["free", "step", "barrier", "well"].includes(S.el.dataset.preset) ? S.el.dataset.preset : "barrier";
+      const st = { pot: pre, E0: pre === "free" ? 1.2 : 1.5, V0: 2, a: 1.5, sig: pre === "free" ? 3 : 6 };
+      const N = 3000, L = 300, dx = L / N, dt = 0.05, XP = 150; // 폭 a는 Δx의 정수배로 잡아 장벽 폭이 정확하다
+      const re = new Float64Array(N), im = new Float64Array(N), V = new Float64Array(N);
+      const cpr = new Float64Array(N), cpi = new Float64Array(N), ivr = new Float64Array(N), ivi = new Float64Array(N);
+      const dpr = new Float64Array(N), dpi = new Float64Array(N);
+      const br = 0, bi = -dt / (4 * dx * dx); // 비대각 원소 b = −iΔt/4Δx²
+      let t = 0, done = false, x0 = 0, rho0 = 0;
+      const xs = Array.from({ length: N }, (_, j) => (j + 0.5) * dx);
+      const region = () => (st.pot === "free" ? [L, L] : st.pot === "step" ? [XP, L] : [XP, XP + st.a]);
+      function setup() {
+        const [xa, xb] = region();
+        for (let j = 0; j < N; j++) V[j] = st.pot === "free" ? 0 : xs[j] >= xa && xs[j] < xb ? (st.pot === "well" ? -st.V0 : st.V0) : 0;
+        // 대각 원소 a_j = 1 + iΔt(1/Δx² + V_j)/2 와 토마스 알고리즘의 앞 단계 계수
+        for (let j = 0; j < N; j++) {
+          let ar = 1, ai = (dt / 2) * (1 / (dx * dx) + V[j]);
+          if (j > 0) { // a_j − b·c'_{j−1}
+            const pr = br * cpr[j - 1] - bi * cpi[j - 1], pi = br * cpi[j - 1] + bi * cpr[j - 1];
+            ar -= pr; ai -= pi;
+          }
+          const m2 = ar * ar + ai * ai;
+          ivr[j] = ar / m2; ivi[j] = -ai / m2;
+          cpr[j] = br * ivr[j] - bi * ivi[j]; cpi[j] = br * ivi[j] + bi * ivr[j];
+        }
+        // 처음 파속
+        const k0 = Math.sqrt(2 * st.E0);
+        x0 = st.pot === "free" ? 60 : XP - 4 * st.sig - 20;
+        const nrm = Math.pow(Math.PI * st.sig * st.sig, -0.25);
+        for (let j = 0; j < N; j++) {
+          const g = nrm * Math.exp(-((xs[j] - x0) ** 2) / (2 * st.sig * st.sig));
+          re[j] = g * Math.cos(k0 * xs[j]); im[j] = g * Math.sin(k0 * xs[j]);
+        }
+        rho0 = 1 / (Math.sqrt(Math.PI) * st.sig);
+        t = 0; done = false;
+      }
+      function step() {
+        // 오른쪽: r = (1 − iHΔt/2)ψ
+        for (let j = 0; j < N; j++) {
+          const lr = j > 0 ? re[j - 1] : 0, li = j > 0 ? im[j - 1] : 0, rr = j < N - 1 ? re[j + 1] : 0, ri = j < N - 1 ? im[j + 1] : 0;
+          const d = (dt / 2) * (1 / (dx * dx) + V[j]), o = dt / (4 * dx * dx);
+          // (1 − i d)ψ_j + i o (ψ_{j+1} + ψ_{j−1})
+          const r0 = re[j] + d * im[j] - o * (ri + li), i0 = im[j] - d * re[j] + o * (rr + lr);
+          // d'_j = (r_j − b d'_{j−1}) / den_j
+          let nr = r0, ni = i0;
+          if (j > 0) { nr -= br * dpr[j - 1] - bi * dpi[j - 1]; ni -= br * dpi[j - 1] + bi * dpr[j - 1]; }
+          dpr[j] = nr * ivr[j] - ni * ivi[j]; dpi[j] = nr * ivi[j] + ni * ivr[j];
+        }
+        re[N - 1] = dpr[N - 1]; im[N - 1] = dpi[N - 1];
+        for (let j = N - 2; j >= 0; j--) {
+          re[j] = dpr[j] - (cpr[j] * re[j + 1] - cpi[j] * im[j + 1]);
+          im[j] = dpi[j] - (cpr[j] * im[j + 1] + cpi[j] * re[j + 1]);
+        }
+        t += dt;
+      }
+      // 평면파 투과 확률 T(E)
+      function Tplane(E) {
+        const V0 = st.V0, a = st.a;
+        if (st.pot === "free") return 1;
+        if (st.pot === "step") { if (E <= V0) return 0; const k = Math.sqrt(2 * E), q = Math.sqrt(2 * (E - V0)); return (4 * k * q) / (k + q) ** 2; }
+        if (st.pot === "well") { const q = Math.sqrt(2 * (E + V0)); return 1 / (1 + (V0 * V0 * Math.sin(q * a) ** 2) / (4 * E * (E + V0))); }
+        if (Math.abs(E - V0) < 1e-9) return 1 / (1 + (V0 * a * a) / 2);
+        if (E < V0) { const kap = Math.sqrt(2 * (V0 - E)); return 1 / (1 + (V0 * V0 * Math.sinh(kap * a) ** 2) / (4 * E * (V0 - E))); }
+        const q = Math.sqrt(2 * (E - V0)); return 1 / (1 + (V0 * V0 * Math.sin(q * a) ** 2) / (4 * E * (E - V0)));
+      }
+      const cv = S.canvas({ aspect: 0.5, minHeight: 230, maxHeight: 360 }, (ctx) => {
+        const P = VZ.palette();
+        const ymax = 1.3 * rho0, [xa, xb] = region();
+        const data = [];
+        for (let j = 0; j < N; j += 4) data.push([xs[j], re[j] * re[j] + im[j] * im[j]]);
+        const ch = VZ.chart(ctx, null, { x: [0, L], y: [0, ymax], xLabel: "위치 x (ħ = m = 1)", yFmt: (v) => v.toFixed(2), series: [] });
+        // 퍼텐셜과 평균 에너지 (같은 눈금: V0 또는 E0 가운데 큰 것이 높이의 75%)
+        if (st.pot !== "free") {
+          const vs = (0.75 * ymax) / Math.max(st.V0, st.E0);
+          ctx.fillStyle = VZ.alpha(P.dim, 0.18);
+          const top = st.pot === "well" ? ymax : st.V0 * vs;
+          ctx.fillRect(ch.X(xa), ch.Y(top), Math.max(2, ch.X(xb) - ch.X(xa)), ch.Y(0) - ch.Y(top));
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+          ctx.fillText(st.pot === "well" ? "우물 −V₀" : "V₀", ch.X(Math.min(xb, L - 20)) + 4, ch.Y(Math.min(top, ymax)) + (st.pot === "well" ? 14 : -2));
+          if (st.pot !== "well") {
+            ctx.strokeStyle = P.dim; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.2; ctx.beginPath();
+            ctx.moveTo(ch.X(0), ch.Y(st.E0 * vs)); ctx.lineTo(ch.X(L), ch.Y(st.E0 * vs)); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillText("E₀", ch.X(4), ch.Y(st.E0 * vs) - 2);
+          }
+        }
+        VZ.chart(ctx, null, { x: [0, L], y: [0, ymax], noGrid: true, xTicks: [], yTicks: [], margin: { b: 40 }, series: [{ data, color: P.accent, width: 2, fill: VZ.alpha(P.accent, 0.18) }] });
+      });
+      const set = S.stats([{ k: "t", label: "시간 t" }, { k: "R", label: "반사 확률" }, { k: "T", label: "투과 확률" }, { k: "Tp", label: "평면파 공식 T(E₀)" }, { k: "dx", label: "위치 퍼짐 Δx (식)" }]);
+      function readout() {
+        const [xa, xb] = region();
+        let Rl = 0, Tr = 0, n = 0, mx = 0, mx2 = 0;
+        for (let j = 0; j < N; j++) {
+          const p = (re[j] * re[j] + im[j] * im[j]) * dx;
+          n += p; mx += p * xs[j]; mx2 += p * xs[j] * xs[j];
+          if (xs[j] < xa) Rl += p; else if (xs[j] >= (st.pot === "step" ? xa : xb)) Tr += p;
+        }
+        set("t", t.toFixed(1));
+        if (st.pot === "free") {
+          const dxn = Math.sqrt(Math.max(0, mx2 / n - (mx / n) ** 2));
+          const th = (st.sig / Math.SQRT2) * Math.sqrt(1 + (t / (st.sig * st.sig)) ** 2);
+          set("R", "—"); set("T", "—"); set("Tp", "—"); set("dx", dxn.toFixed(2) + " <small>(" + th.toFixed(2) + ")</small>");
+        } else {
+          set("R", (Rl * 100).toFixed(1) + "%"); set("T", (Tr * 100).toFixed(1) + "%"); set("Tp", (Tplane(st.E0) * 100).toFixed(1) + "%"); set("dx", "—");
+        }
+        // 벽에 닿기 전에 멈춘다 (양 끝 15 단위)
+        let edge = 0;
+        for (let j = 0; j < N; j++) if (xs[j] < 15 || xs[j] > L - 15) edge += (re[j] * re[j] + im[j] * im[j]) * dx;
+        if (edge > 2e-3 && !done) { done = true; lp.stop(); playBtn.textContent = "다시 재생"; }
+      }
+      // 설정을 바꾸면 처음부터 다시 재생한다
+      function restart() { setup(); readout(); cv.redraw(); lp.start(); playBtn.textContent = "멈춤"; }
+      S.seg({ label: "퍼텐셜", options: [["free", "자유"], ["step", "계단"], ["barrier", "장벽"], ["well", "우물"]], value: st.pot, onChange: (v) => { st.pot = v; restart(); } });
+      S.range({ label: "평균 에너지 E₀", min: 0.2, max: 4, step: 0.05, value: st.E0, fmt: (v) => v.toFixed(2), onInput: (v) => { st.E0 = v; restart(); } });
+      S.range({ label: "퍼텐셜 크기 V₀", min: 0.5, max: 4, step: 0.05, value: st.V0, fmt: (v) => v.toFixed(2), onInput: (v) => { st.V0 = v; restart(); } });
+      S.range({ label: "폭 a (장벽·우물)", min: 0.4, max: 8, step: 0.1, value: st.a, fmt: (v) => v.toFixed(1), onInput: (v) => { st.a = v; restart(); } });
+      S.range({ label: "파속 폭 σ", min: 2, max: 12, step: 0.5, value: st.sig, fmt: (v) => v.toFixed(1), onInput: (v) => { st.sig = v; restart(); } });
+      const playBtn = S.button("멈춤", () => { if (done) return restart(); playBtn.textContent = lp.toggle() ? "멈춤" : "재생"; }, { primary: true });
+      S.button("처음부터", () => restart());
+      setup();
+      const lp = S.loop(() => { if (done) return; for (let k = 0; k < 4; k++) step(); readout(); cv.redraw(); });
+      readout();
     },
   });
 })();
