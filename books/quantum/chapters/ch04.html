@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>04 고전역학 다시 보기 · QuantumBook</title>
-<meta name="description" content="최소 작용과 라그랑지안 · 해밀턴 형식 · 푸아송 괄호 · 정준 변환 · 대칭과 보존 법칙">
+<meta name="description" content="최소 작용의 원리에서 라그랑주 방정식을 유도하고, 르장드르 변환으로 해밀턴 형식과 위상 공간으로 옮긴 뒤, 푸아송 괄호, 정준 변환과 생성자, 대칭과 보존 법칙을 양자역학과 같은 구조로 정리한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,61 +24,467 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch04">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">04</span></div>
     <h1 data-fill="chapter-title">고전역학 다시 보기</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">양자역학으로 넘어가기 전에 고전역학을 다른 언어로 다시 쓴다. 뉴턴의 \(F = ma\) 대신 작용과 라그랑지안, 해밀토니안과 위상 공간, 푸아송 괄호의 언어다. 결과는 뉴턴 역학과 같지만, 이 언어로 쓴 고전역학은 양자역학과 구조가 거의 같다. 해밀토니안은 6장에서 해밀토니안 연산자가 되고, 푸아송 괄호 \(\{x, p\} = 1\)은 3장의 \([\hat x, \hat p] = i\hbar\)와 짝을 이룬다. 대칭과 보존 법칙을 잇는 생성자는 13장에서 그대로 쓰이고, 작용은 11장의 경로 적분에서 다시 주인공이 된다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>최소 작용의 원리에서 오일러-라그랑주 방정식을 유도하고, 일반화 좌표로 운동 방정식을 세울 수 있다.</li>
+      <li>르장드르 변환으로 해밀토니안을 구하고, 해밀턴 방정식으로 위상 공간의 운동을 기술할 수 있다.</li>
+      <li>푸아송 괄호를 계산하고, 물리량의 시간 변화와 보존 여부를 푸아송 괄호로 판단할 수 있다.</li>
+      <li>변환이 정준인지 판별하고, 생성자로 무한소 정준 변환을 만들 수 있다.</li>
+      <li>대칭과 보존량의 관계를 라그랑주 형식과 해밀턴 형식 두 가지로 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>일반물리 수준의 뉴턴 역학(운동 에너지, 퍼텐셜 에너지, 각운동량), 편미분과 연쇄 법칙, 2장(교환자의 성질), 3장(정준 교환 관계, 평행 이동)</p>
   </header>
 
+  <!-- ============================================================ 4.1 -->
   <section id="s1">
     <h2>최소 작용과 라그랑지안</h2>
-    <p class="slot" data-slot="4.1절">아직 쓰지 않은 절입니다.</p>
+    <p>뉴턴 역학은 매 순간의 힘으로 다음 순간의 운동을 정한다. 같은 법칙을 전혀 다른 방식으로 말할 수도 있다. 출발점과 도착점을 정해 두고, 둘을 잇는 모든 가능한 경로 가운데 실제로 일어나는 경로를 한꺼번에 고르는 규칙이다. 이 절에서는 그 규칙을 세우고, 그것이 뉴턴 방정식과 같은 내용임을 보인다.</p>
+
+    <h3 id="s1-action">작용</h3>
+    <p>퍼텐셜 \(V(x)\) 속에서 1차원으로 움직이는 질량 \(m\)인 입자가 시각 \(t_1\)에 \(x_1\)을 떠나 시각 \(t_2\)에 \(x_2\)에 도착한다고 하자. 두 점을 잇는 경로 \(x(t)\)는 무수히 많다. 경로마다 숫자 하나를 붙이는 다음 규칙을 생각한다.</p>
+    <div class="box def" id="def-action"><div class="box-h">라그랑지안과 작용</div>
+      <p>운동 에너지에서 퍼텐셜 에너지를 뺀</p>
+      <div class="formula" id="eq-lagrangian">\[ L(x, \dot x) = T - V = \tfrac12 m\dot x^2 - V(x) \]</div>
+      <p>를 <span class="term">라그랑지안</span> <span class="en">(Lagrangian)</span>이라 하고, 경로 \(x(t)\)를 따라 라그랑지안을 적분한</p>
+      <div class="formula" id="eq-action">\[ S[x] = \int_{t_1}^{t_2} L\big(x(t), \dot x(t)\big)\,dt \]</div>
+      <p>를 그 경로의 <span class="term">작용</span> <span class="en">(action)</span>이라 한다. \(\dot x = dx/dt\)이다.</p>
+    </div>
+    <p>작용은 숫자 하나가 아니라 경로 전체에 따라 정해진다. 이렇게 함수를 받아 숫자를 내놓는 규칙을 <span class="term">범함수</span> <span class="en">(functional)</span>라 하고, 대괄호 \(S[x]\)로 쓴다. 작용의 단위는 J·s로, 플랑크 상수와 같다. 우연이 아니라는 것은 11장에서 본다.</p>
+    <div class="box def" id="def-hamilton-principle"><div class="box-h">최소 작용의 원리</div>
+      <p>양 끝점 \(x(t_1) = x_1\), \(x(t_2) = x_2\)를 고정한 모든 경로 가운데, 실제 경로는 작용을 <span class="term">정류</span> <span class="en">(stationary)</span>하게 만드는 경로다. 곧 실제 경로를 조금 바꾸었을 때 작용의 변화가 바꾼 양의 1차까지는 0이다.</p>
+    </div>
+    <p>'정류'는 보통 함수의 극소점에서 도함수가 0인 것과 같은 뜻이다. 실제 경로 \(x(t)\)를 \(x(t) + \varepsilon\,\eta(t)\)로 바꾸어 보자. \(\eta(t)\)는 경로를 비트는 모양이고, 양 끝점은 고정하므로 \(\eta(t_1) = \eta(t_2) = 0\)이다. 그러면 작용은 \(\varepsilon\)의 보통 함수 \(S(\varepsilon)\)이 되고, 원리는 어떤 \(\eta\)에 대해서나 \(dS/d\varepsilon = 0\)(\(\varepsilon = 0\)에서)이라는 말이다.</p>
+
+    <h3 id="s1-el">오일러-라그랑주 방정식</h3>
+    <p>원리를 미분 방정식으로 바꾸자. \(L\)을 \(x\)와 \(\dot x\)의 두 변수 함수로 보고 미분하면(아래 수학 상자 참고)</p>
+    <div class="formula">\[ \begin{aligned} \frac{dS}{d\varepsilon}\Big|_{\varepsilon=0} &= \int_{t_1}^{t_2}\Big(\frac{\partial L}{\partial x}\,\eta + \frac{\partial L}{\partial\dot x}\,\dot\eta\Big)dt \\ &= \Big[\frac{\partial L}{\partial\dot x}\,\eta\Big]_{t_1}^{t_2} + \int_{t_1}^{t_2}\Big(\frac{\partial L}{\partial x} - \frac{d}{dt}\frac{\partial L}{\partial\dot x}\Big)\eta\,dt \end{aligned} \]</div>
+    <p>이다. 둘째 줄은 \(\dot\eta\)가 붙은 항을 부분 적분한 것이다. 경계 항은 \(\eta(t_1) = \eta(t_2) = 0\)이어서 사라진다. 남은 적분이 모든 \(\eta\)에 대해 0이려면 괄호 안이 모든 시각에서 0이어야 한다(수학 상자의 기본 보조정리).</p>
+    <div class="formula" id="eq-euler-lagrange">\[ \frac{d}{dt}\frac{\partial L}{\partial\dot x} - \frac{\partial L}{\partial x} = 0 \]</div>
+    <p>이것이 <span class="term">오일러-라그랑주 방정식</span> <span class="en">(Euler–Lagrange equation)</span>이다. 식 <a class="ref" href="#eq-lagrangian"></a>의 라그랑지안이면 \(\partial L/\partial\dot x = m\dot x\), \(\partial L/\partial x = -V'(x)\)이므로</p>
+    <div class="formula">\[ m\ddot x = -\frac{dV}{dx} = F \]</div>
+    <p>로 뉴턴 방정식이 나온다. 최소 작용의 원리는 뉴턴 방정식과 같은 내용을 다르게 말한 것이다.</p>
+    <div class="box math" id="math-variation"><div class="box-h">변분법</div>
+      <ul>
+        <li><b>범함수와 변분</b>: \(S[x]\)처럼 함수를 받아 숫자를 내놓는 것이 범함수다. 함수를 \(x \to x + \varepsilon\eta\)로 바꿀 때 범함수가 1차로 변하는 양을 <span class="term">변분</span> <span class="en">(variation)</span>이라 하고 \(\delta S\)로 쓴다. 최소 작용의 원리는 \(\delta S = 0\)이다.</li>
+        <li><b>편미분의 뜻</b>: \(\partial L/\partial x\)와 \(\partial L/\partial\dot x\)를 구할 때는 \(x\)와 \(\dot x\)를 서로 독립인 두 변수로 보고 미분한다. 미분한 뒤에 경로를 대입한다. 반면 \(d/dt\)는 경로를 따라 시간에 대해 하는 보통의 미분이다.</li>
+        <li><b>기본 보조정리</b>: 연속 함수 \(g(t)\)에 대해 양 끝에서 0인 모든 매끄러운 \(\eta\)에 대해 \(\int_{t_1}^{t_2} g\,\eta\,dt = 0\)이면 \(g\)는 어디서나 0이다. 어떤 \(t_0\)에서 \(g(t_0) > 0\)이라 하자. 연속이므로 \(t_0\) 근처의 작은 구간에서도 \(g > 0\)이다. 그 구간에서만 양수이고 나머지에서 0인 \(\eta\)를 고르면 적분이 양수가 되어 가정과 어긋난다. \(g(t_0) &lt; 0\)이어도 마찬가지다.</li>
+      </ul>
+    </div>
+    <div class="box ex" id="ex-action-ball"><div class="box-h">던진 공의 작용</div>
+      <p>질량 \(m = 0.1\ \mathrm{kg}\)인 공을 \(t = 0\)에 높이 \(x = 0\)에서 던져 올렸더니 \(T = 2\ \mathrm{s}\) 뒤에 같은 높이로 돌아왔다. 중력 퍼텐셜은 \(V = mgx\)(\(g = 9.8\ \mathrm{m/s^2}\))이다. 실제 경로는 \(x_c(t) = \tfrac{g}{2}\,t\,(T - t)\)로, 최고 높이는 \(t = 1\ \mathrm{s}\)에서 4.9 m이다. 이 경로의 작용을 계산하면</p>
+      <div class="formula">\[ \begin{aligned} S_0 &= \int_0^T \tfrac12 m\dot x_c^2\,dt - \int_0^T mg\,x_c\,dt \\ &= \frac{mg^2T^3}{24} - \frac{mg^2T^3}{12} = -\frac{mg^2T^3}{24} \approx -3.20\ \mathrm{J\,s} \end{aligned} \]</div>
+      <p>이다. 이제 양 끝을 고정한 채 경로를 \(x_c(t) + a\sin(\pi t/T)\)로 비틀어 보자(그림 4-1 (가)). \(\eta = \sin(\pi t/T)\)로 두고 작용을 \(a\)의 거듭제곱으로 정리하면</p>
+      <div class="formula">\[ \begin{aligned} S(a) = S_0 &+ a\int_0^T\big(m\dot x_c\,\dot\eta - mg\,\eta\big)dt \\ &+ \frac{a^2}{2}\int_0^T m\dot\eta^2\,dt \end{aligned} \]</div>
+      <p>이다. \(V\)가 \(x\)의 1차식이어서 \(a\)의 3차 이상 항은 없다. \(a\)의 1차 항은 부분 적분하면 \(-\int_0^T m(\ddot x_c + g)\,\eta\,dt\)이고, 실제 경로에서는 \(\ddot x_c = -g\)이므로 0이다. 원리가 말하는 바로 그 사실이다. 2차 항은 \(\int_0^T \dot\eta^2\,dt = \pi^2/2T\)이므로</p>
+      <div class="formula">\[ S(a) = S_0 + \frac{m\pi^2}{4T}\,a^2 = -3.2013 + 0.1234\,a^2\ \ (\mathrm{J\,s}) \]</div>
+      <p>이다. \(a = \pm 0.5\ \mathrm{m}\)이면 \(-3.1705\ \mathrm{J\,s}\), \(a = \pm 1\ \mathrm{m}\)이면 \(-3.0780\ \mathrm{J\,s}\)로, 어느 쪽으로 비틀어도 작용이 커진다(그림 4-1 (나)). 이 예에서 실제 경로는 작용이 가장 작은 경로다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:4-1a--><svg viewBox="0 0 280 236" role="img" aria-label="같은 끝점을 잇는 실제 경로와 비튼 경로"><defs><marker id="f41a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f41a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f41a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="34" y1="174.7" x2="266" y2="174.7" class="s-line" stroke-width="1.2" marker-end="url(#f41a-dim)"/><line x1="145" y1="174.7" x2="145" y2="178.7" class="s-line" stroke-width="1.2"/><text x="145" y="191.7" class="t-dim" text-anchor="middle">1</text><line x1="256" y1="174.7" x2="256" y2="178.7" class="s-line" stroke-width="1.2"/><text x="256" y="191.7" class="t-dim" text-anchor="middle">2</text><text x="268" y="167.7" class="t-math dim" text-anchor="end"><tspan font-style="italic">t</tspan></text><line x1="34" y1="206" x2="34" y2="24" class="s-line" stroke-width="1.2" marker-end="url(#f41a-dim)"/><line x1="30" y1="174.7" x2="34" y2="174.7" class="s-line" stroke-width="1.2"/><text x="27" y="178.7" class="t-dim" text-anchor="end">0</text><line x1="30" y1="130.1" x2="34" y2="130.1" class="s-line" stroke-width="1.2"/><text x="27" y="134.1" class="t-dim" text-anchor="end">2</text><line x1="30" y1="85.4" x2="34" y2="85.4" class="s-line" stroke-width="1.2"/><text x="27" y="89.4" class="t-dim" text-anchor="end">4</text><line x1="30" y1="40.7" x2="34" y2="40.7" class="s-line" stroke-width="1.2"/><text x="27" y="44.7" class="t-dim" text-anchor="end">6</text><text x="41" y="30" class="t-math dim" text-anchor="start"><tspan font-style="italic">x</tspan></text><path d="M34 174.7 L47.3 154.2 L60.6 136.7 L74 122.1 L88.4 109.3 L101.7 100.2 L108.4 96.6 L116.1 93.2 L122.8 90.9 L130.6 89 L137.2 88 L145 87.6 L152.8 88 L159.4 89 L167.2 90.9 L173.9 93.2 L181.6 96.6 L188.3 100.2 L201.6 109.3 L216 122.1 L229.4 136.7 L242.7 154.2 L256 174.7" class="s-line" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M34 174.7 L48.4 143.6 L62.9 116.3 L77.3 93.2 L90.6 75.5 L98.4 66.9 L105 60.6 L111.7 55.2 L118.4 50.8 L125 47.4 L131.7 44.9 L138.3 43.4 L145 42.9 L151.7 43.4 L158.3 44.9 L165 47.4 L171.6 50.8 L178.3 55.2 L185 60.6 L191.6 66.9 L199.4 75.5 L212.7 93.2 L227.1 116.3 L241.6 143.6 L256 174.7" class="s-acc2" stroke-width="1.8" stroke-dasharray="5 4"/><path d="M34 174.7 L47.3 150 L61.8 126.8 L75.1 108.7 L81.7 100.8 L89.5 92.6 L96.2 86.5 L103.9 80.3 L110.6 75.8 L117.3 72.1 L123.9 69.2 L131.7 66.8 L138.3 65.7 L145 65.3 L151.7 65.7 L158.3 66.8 L166.1 69.2 L172.8 72.1 L179.4 75.8 L186.1 80.3 L193.8 86.5 L200.5 92.6 L213.8 107.3 L228.3 126.8 L241.6 148.1 L256 174.7" class="s-acc" stroke-width="2.6"/><circle cx="34" cy="174.7" r="3.5" class="f-dim"/><circle cx="256" cy="174.7" r="3.5" class="f-dim"/><text x="145" y="38.9" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">a</tspan> = +1</text><text x="211.6" y="54.1" class="t-math acc" text-anchor="start"><tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">c</tspan>(<tspan font-style="italic">t</tspan>)</text><text x="145" y="105.6" class="t-math dim" text-anchor="middle"><tspan font-style="italic">a</tspan> = −1</text><text x="12" y="22" class="t-b" text-anchor="start">(가) 경로</text></svg><!--/fig:4-1a--><!--fig:4-1b--><svg viewBox="0 0 280 236" role="img" aria-label="비튼 정도 a에 따른 작용의 증가는 a의 제곱에 비례하고 a=0에서 기울기가 0이다"><defs><marker id="f41b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f41b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f41b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="50.3" y1="196.5" x2="266" y2="196.5" class="s-line" stroke-width="1.2" marker-end="url(#f41b-dim)"/><line x1="84.6" y1="196.5" x2="84.6" y2="200.5" class="s-line" stroke-width="1.2"/><text x="84.6" y="213.5" class="t-dim" text-anchor="middle">−1</text><line x1="153.1" y1="196.5" x2="153.1" y2="200.5" class="s-line" stroke-width="1.2"/><text x="153.1" y="213.5" class="t-dim" text-anchor="middle">0</text><line x1="221.7" y1="196.5" x2="221.7" y2="200.5" class="s-line" stroke-width="1.2"/><text x="221.7" y="213.5" class="t-dim" text-anchor="middle">1</text><text x="268" y="189.5" class="t-math dim" text-anchor="end"><tspan font-style="italic">a</tspan></text><line x1="40" y1="196.5" x2="40" y2="40" class="s-line" stroke-width="1.2" marker-end="url(#f41b-dim)"/><line x1="36" y1="149.3" x2="40" y2="149.3" class="s-line" stroke-width="1.2"/><text x="33" y="153.3" class="t-dim" text-anchor="end">0.1</text><line x1="36" y1="102" x2="40" y2="102" class="s-line" stroke-width="1.2"/><text x="33" y="106" class="t-dim" text-anchor="end">0.2</text><text x="47" y="46" class="t-math dim" text-anchor="start"><tspan font-style="italic">S</tspan> − <tspan font-style="italic">S</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><line x1="112" y1="196.5" x2="194.3" y2="196.5" class="s-acc2" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M50.3 65.3 L62.6 94.9 L76 122.7 L88.3 144.5 L94.5 153.9 L101.7 163.7 L107.9 171.1 L115.1 178.6 L121.3 183.9 L127.4 188.3 L133.6 191.8 L139.8 194.3 L145.9 195.9 L153.1 196.5 L159.3 196.1 L165.5 194.7 L172.7 191.8 L178.9 188.3 L186.1 183.1 L192.2 177.6 L198.4 171.1 L204.6 163.7 L216.9 146.1 L230.3 122.7 L242.6 97.2 L256 65.3" class="s-acc" stroke-width="2.4"/><circle cx="84.6" cy="138.2" r="3.4" class="f-acc"/><circle cx="118.9" cy="182" r="3.4" class="f-acc"/><circle cx="153.1" cy="196.5" r="3.4" class="f-acc"/><circle cx="187.4" cy="182" r="3.4" class="f-acc"/><circle cx="221.7" cy="138.2" r="3.4" class="f-acc"/><text x="198.3" y="190.5" class="t-dim" text-anchor="start">기울기 0</text><text x="12" y="22" class="t-b" text-anchor="start">(나) 작용의 증가</text></svg><!--/fig:4-1b--></div>
+      <figcaption><b>그림 4-1.</b> 최소 작용의 원리. (가) 같은 끝점을 잇는 경로들. 실선이 실제 경로 \(x_c(t)\)이고, 점선은 \(x_c + a\sin(\pi t/T)\)(\(a = \pm 1\ \mathrm{m}\))이다. (나) 비튼 정도 \(a\)에 따른 작용의 증가 \(S(a) - S_0\). \(a = 0\)에서 기울기가 0이다. 이것이 '정류'의 뜻이다.</figcaption>
+    </figure>
+    <div class="callout deep"><strong>최소인가, 정류인가</strong><p>이름은 '최소' 작용이지만 원리가 요구하는 것은 정류뿐이다. 위 예에서는 실제 경로가 최소였지만, 조화 진동자에서 걸리는 시간이 반주기보다 길면 실제 경로는 작용의 안장점이 된다(<a class="ref" href="#prob-sho-action"></a>). 운동 방정식을 얻는 데는 1차 변분이 0이라는 조건만 쓴다.</p></div>
+    <div class="callout tip"><strong>양자역학에서 작용은</strong><p>11장에서 보겠지만 양자역학에서는 입자가 모든 경로를 '함께' 지나고, 경로마다 \(e^{iS/\hbar}\)의 무게가 붙어 더해진다. 위 예의 작용은 \(\hbar\)의 약 \(3\times10^{34}\)배여서, 실제 경로에서 조금만 벗어나도 위상 \(S/\hbar\)가 크게 돌아 이웃한 경로끼리 상쇄된다. 작용이 정류인 경로 근처만 살아남는 것, 그것이 고전역학이다.</p></div>
+
+    <h3 id="s1-generalized">일반화 좌표</h3>
+    <p>라그랑주 형식의 큰 장점은 좌표를 마음대로 고를 수 있다는 것이다. 계의 배치를 정하는 \(N\)개의 변수 \(q_1, \ldots, q_N\)을 아무렇게나 골라도 된다. 직교 좌표일 필요가 없고 각도여도 된다. 이런 변수를 <span class="term">일반화 좌표</span> <span class="en">(generalized coordinates)</span>라 한다. 라그랑지안 \(L(q, \dot q, t)\)를 이 변수로 쓰고 각 \(q_i\)를 따로따로 비틀면, 앞의 유도를 그대로 되풀이해</p>
+    <div class="formula" id="eq-el-general">\[ \frac{d}{dt}\frac{\partial L}{\partial\dot q_i} = \frac{\partial L}{\partial q_i}, \qquad i = 1, \ldots, N \]</div>
+    <p>을 얻는다. 작용은 경로마다 정해진 숫자이고 어떤 좌표로 계산하든 같으므로, 이 방정식의 꼴도 좌표와 상관없다.</p>
+    <div class="box def" id="def-canonical-momentum"><div class="box-h">정준 운동량</div>
+      <div class="formula" id="eq-canonical-momentum">\[ p_i = \frac{\partial L}{\partial\dot q_i} \]</div>
+      <p>를 좌표 \(q_i\)에 짝지어진 <span class="term">정준 운동량</span> <span class="en">(canonical momentum)</span> 또는 일반화 운동량이라 한다. 그러면 식 <a class="ref" href="#eq-el-general"></a>는 \(\dot p_i = \partial L/\partial q_i\)로, '운동량의 변화율은 힘'이라는 뉴턴의 꼴이 된다.</p>
+    </div>
+    <div class="box ex" id="ex-pendulum"><div class="box-h">단진자</div>
+      <p>길이 \(\ell\)인 줄에 매달린 질량 \(m\)의 진자를 각도 \(\theta\) 하나로 기술하자(연직 아래가 \(\theta = 0\)). 속력은 \(\ell\dot\theta\), 높이는 \(-\ell\cos\theta\)이므로</p>
+      <div class="formula">\[ L = \tfrac12 m\ell^2\dot\theta^2 + mg\ell\cos\theta \]</div>
+      <p>이다. \(p_\theta = \partial L/\partial\dot\theta = m\ell^2\dot\theta\)는 매단 점에 대한 각운동량이고, 식 <a class="ref" href="#eq-el-general"></a>는 \(m\ell^2\ddot\theta = -mg\ell\sin\theta\), 곧 \(\ddot\theta = -(g/\ell)\sin\theta\)이다. 줄의 장력은 한 번도 나오지 않았다. 줄이 길이를 고정한다는 사실이 좌표 \(\theta\) 하나를 고른 순간 이미 반영되었기 때문이다.</p>
+    </div>
+    <div class="box ex" id="ex-polar"><div class="box-h">평면의 중심력 운동</div>
+      <p>평면에서 퍼텐셜 \(V(r)\)이 원점까지의 거리에만 달린 입자를 극좌표 \((r, \theta)\)로 쓰자. \(x = r\cos\theta\), \(y = r\sin\theta\)를 미분해 제곱해 더하면 \(\dot x^2 + \dot y^2 = \dot r^2 + r^2\dot\theta^2\)이므로</p>
+      <div class="formula">\[ L = \tfrac12 m\big(\dot r^2 + r^2\dot\theta^2\big) - V(r) \]</div>
+      <p>이다. 두 방정식은 다음과 같다.</p>
+      <div class="formula">\[ \begin{aligned} r:&\quad m\ddot r = m r\dot\theta^2 - V'(r), \\ \theta:&\quad \frac{d}{dt}\big(m r^2\dot\theta\big) = 0 \end{aligned} \]</div>
+      <p>\(r\) 방정식에는 원심력 \(mr\dot\theta^2\)이 저절로 나타났다. \(\theta\) 방정식은 \(L\)이 \(\theta\)에 의존하지 않아서 오른쪽이 0이 된 것이고, \(\theta\)에 짝지어진 정준 운동량 \(p_\theta = mr^2\dot\theta\), 곧 각운동량이 보존된다는 뜻이다.</p>
+    </div>
+    <p>이처럼 라그랑지안에 나타나지 않는 좌표를 <span class="term">순환 좌표</span> <span class="en">(cyclic coordinate)</span>라 한다. \(\partial L/\partial q_k = 0\)이면 \(\dot p_k = 0\)이므로, <b>순환 좌표에 짝지어진 정준 운동량은 보존된다.</b> 4.5절에서 이것을 대칭의 언어로 다시 본다.</p>
   </section>
 
+  <!-- ============================================================ 4.2 -->
   <section id="s2">
     <h2>해밀턴 형식</h2>
-    <p class="slot" data-slot="4.2절">아직 쓰지 않은 절입니다.</p>
+    <p>라그랑주 방정식은 \(N\)개의 2계 미분 방정식이다. 해밀턴 형식은 같은 내용을 위치 \(q\)와 운동량 \(p\)에 대한 \(2N\)개의 1계 미분 방정식으로 바꾼다. \((q_1, \ldots, q_N, p_1, \ldots, p_N)\)이 이루는 \(2N\)차원 공간을 <span class="term">위상 공간</span> <span class="en">(phase space)</span>이라 한다. 어느 순간 계의 상태는 위상 공간의 한 점이고, 시간이 흐르면 이 점이 곡선을 그린다. 양자역학에서 상태가 벡터 \(|\psi\rangle\) 하나이고 시간에 대해 1계인 슈뢰딩거 방정식을 따르는 것과 가장 닮은 고전역학의 모습이 이것이다.</p>
+
+    <h3 id="s2-legendre">르장드르 변환과 해밀토니안</h3>
+    <p>변수 \(\dot q\)를 \(p = \partial L/\partial\dot q\)로 바꾸고 싶다. 변수의 자리에 기울기를 놓는 이런 변환에는 정해진 방법이 있다.</p>
+    <div class="box math" id="math-legendre"><div class="box-h">르장드르 변환</div>
+      <p>함수 \(f(x)\)의 기울기 \(s = f'(x)\)가 \(x\)에 따라 단조롭게 변하면(예를 들어 \(f'' > 0\)이면) \(x\)를 \(s\)의 함수로 풀 수 있다. 이때</p>
+      <div class="formula">\[ g(s) = s\,x - f(x), \qquad x = x(s) \]</div>
+      <p>를 \(f\)의 <span class="term">르장드르 변환</span> <span class="en">(Legendre transform)</span>이라 한다. 미분하면 \(dg = s\,dx + x\,ds - f'(x)\,dx = x\,ds\)이므로 \(g'(s) = x\)이다. 원래 함수에서는 \(f'(x) = s\)였는데, 변환한 함수에서는 \(g'(s) = x\)로 변수와 기울기가 자리를 바꾼다. 예를 들어 \(f(x) = \tfrac12 ax^2\)(\(a > 0\))이면 \(s = ax\)이고 \(g(s) = s\cdot\frac sa - \frac{s^2}{2a} = \frac{s^2}{2a}\)이다. \(a = m\)으로 두면 운동 에너지 \(\tfrac12 mv^2\)이 \(p^2/2m\)이 되는 과정이다.</p>
+    </div>
+    <div class="box def" id="def-hamiltonian"><div class="box-h">해밀토니안</div>
+      <div class="formula" id="eq-hamiltonian">\[ H(q, p, t) = \sum_i p_i\,\dot q_i - L(q, \dot q, t) \]</div>
+      <p>에서 \(\dot q_i\)를 \((q, p)\)로 나타내 \((q, p, t)\)의 함수로 쓴 것을 <span class="term">해밀토니안</span> <span class="en">(Hamiltonian)</span>이라 한다. 라그랑지안을 \(\dot q\)에 대해 르장드르 변환한 것이다.</p>
+    </div>
+    <p>식 <a class="ref" href="#eq-lagrangian"></a>의 라그랑지안이면 \(p = m\dot x\), \(\dot x = p/m\)이므로</p>
+    <div class="formula">\[ H = p\cdot\frac pm - \Big(\frac{p^2}{2m} - V\Big) = \frac{p^2}{2m} + V(x) \]</div>
+    <p>로, 해밀토니안은 위치와 운동량으로 쓴 전체 에너지다.</p>
+
+    <h3 id="s2-hamilton">해밀턴 방정식</h3>
+    <p>\(H\)의 미분을 구하자. 식 <a class="ref" href="#eq-hamiltonian"></a>에서</p>
+    <div class="formula">\[ \begin{aligned} dH &= \sum_i\Big(\dot q_i\,dp_i + p_i\,d\dot q_i - \frac{\partial L}{\partial q_i}\,dq_i - \frac{\partial L}{\partial\dot q_i}\,d\dot q_i\Big) - \frac{\partial L}{\partial t}\,dt \\ &= \sum_i\big(\dot q_i\,dp_i - \dot p_i\,dq_i\big) - \frac{\partial L}{\partial t}\,dt \end{aligned} \]</div>
+    <p>이다. 둘째 줄에서 \(p_i = \partial L/\partial\dot q_i\)이어서 \(d\dot q_i\)가 붙은 두 항이 상쇄되었고, 오일러-라그랑주 방정식으로 \(\partial L/\partial q_i = \dot p_i\)를 썼다. 한편 \(H(q, p, t)\)의 미분은 \(dH = \sum_i\big(\frac{\partial H}{\partial q_i}dq_i + \frac{\partial H}{\partial p_i}dp_i\big) + \frac{\partial H}{\partial t}dt\)이다. 두 식의 계수를 비교하면</p>
+    <div class="formula" id="eq-hamilton">\[ \dot q_i = \frac{\partial H}{\partial p_i}, \qquad \dot p_i = -\frac{\partial H}{\partial q_i} \]</div>
+    <p>이다(그리고 \(\partial H/\partial t = -\partial L/\partial t\)). 이것이 <span class="term">해밀턴 방정식</span> <span class="en">(Hamilton's equations)</span>이다. \(H = p^2/2m + V\)이면 \(\dot x = p/m\), \(\dot p = -V'(x)\)로, 운동량의 정의와 뉴턴 방정식을 각각 1계 방정식으로 쓴 것이다.</p>
+    <p>에너지는 언제 보존될까? 운동을 따라 \(H\)의 변화율을 구하면 해밀턴 방정식 때문에 두 항이 상쇄된다.</p>
+    <div class="formula" id="eq-energy">\[ \frac{dH}{dt} = \sum_i\Big(\frac{\partial H}{\partial q_i}\,\dot q_i + \frac{\partial H}{\partial p_i}\,\dot p_i\Big) + \frac{\partial H}{\partial t} = \frac{\partial H}{\partial t} \]</div>
+    <p>따라서 <b>해밀토니안이 시간을 직접 포함하지 않으면 \(H\)는 보존된다.</b></p>
+    <div class="box ex" id="ex-sho-phase"><div class="box-h">조화 진동자의 위상 공간</div>
+      <p>\(H = \dfrac{p^2}{2m} + \tfrac12 m\omega^2x^2\)이면 해밀턴 방정식은 \(\dot x = p/m\), \(\dot p = -m\omega^2x\)이고, 해는</p>
+      <div class="formula">\[ x = A\cos(\omega t + \varphi), \qquad p = -m\omega A\sin(\omega t + \varphi) \]</div>
+      <p>이다. 에너지 \(E = H\)가 일정하므로 위상 공간의 궤도는 \(H(x, p) = E\)인 곡선, 곧 타원</p>
+      <div class="formula">\[ \frac{x^2}{2E/m\omega^2} + \frac{p^2}{2mE} = 1 \]</div>
+      <p>이다(그림 4-2 (가)). 두 반지름이 \(\sqrt{2E/m\omega^2}\)와 \(\sqrt{2mE}\)이므로 타원의 넓이는 \(\pi\sqrt{2E/m\omega^2}\,\sqrt{2mE} = 2\pi E/\omega\)이다. 점은 시계 방향으로 돈다. 위쪽(\(p > 0\))에서는 \(\dot x = p/m > 0\)이어서 오른쪽으로 움직이기 때문이다.</p>
+    </div>
+    <p>진자도 같은 방법으로 볼 수 있다. <a class="ref" href="#ex-pendulum"></a>의 라그랑지안에서 \(H = p_\theta^2/2m\ell^2 - mg\ell\cos\theta\)이다. 에너지가 \(mg\ell\)보다 작으면 진자는 좌우로 흔들리고 궤도는 닫힌 곡선이다. 에너지가 \(mg\ell\)보다 크면 진자는 한쪽으로 계속 돌고 궤도는 위나 아래로 열린 곡선이다. 그 경계 \(E = mg\ell\)의 궤도를 <span class="term">분리선</span> <span class="en">(separatrix)</span>이라 한다(그림 4-2 (나)). 위상 공간 그림 한 장에 가능한 모든 운동이 담긴다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:4-2a--><svg viewBox="0 0 280 252" role="img" aria-label="조화 진동자의 위상 공간 궤도는 시계 방향으로 도는 타원이다"><defs><marker id="f42a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f42a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f42a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="132" x2="268" y2="132" class="s-line" stroke-width="1.2" marker-end="url(#f42a-dim)"/><text x="270" y="125" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan></text><line x1="137" y1="230" x2="137" y2="24" class="s-line" stroke-width="1.2" marker-end="url(#f42a-dim)"/><text x="144" y="30" class="t-math dim" text-anchor="start"><tspan font-style="italic">p</tspan></text><path d="M137 101.2 L145.4 101.8 L154.7 103.6 L163.2 106.7 L169.7 110.3 L175.8 115.2 L179.7 120.2 L182.5 126.4 L183.3 132 L182.2 138.4 L179.7 143.8 L175.1 149.4 L169.7 153.7 L162.2 157.8 L154.7 160.4 L145.4 162.2 L137 162.8 L128.6 162.2 L119.3 160.4 L111.8 157.8 L104.3 153.7 L98.2 148.8 L94.3 143.8 L91.8 138.4 L90.7 132 L91.8 125.6 L94.3 120.2 L98.9 114.6 L104.3 110.3 L111.8 106.2 L119.3 103.6 L128.6 101.8 L137 101.2 Z" class="s-line" stroke-width="1.6" fill="none"/><line x1="131" y1="101.2" x2="139" y2="101.2" class="s-line" stroke-width="1.6" marker-end="url(#f42a-dim)"/><line x1="143" y1="162.8" x2="135" y2="162.8" class="s-line" stroke-width="1.6" marker-end="url(#f42a-dim)"/><path d="M137 78.7 L151.6 79.6 L167.7 82.8 L175.2 85.2 L182.4 88.1 L193.6 94.3 L203 101.8 L207.4 106.6 L211 111.6 L213.8 116.9 L215.8 122.3 L216.9 127.8 L217.1 132 L216.7 137.6 L215.4 143.1 L213.8 147.1 L211 152.4 L204.2 161 L199.3 165.5 L193.6 169.7 L187.4 173.4 L180.6 176.7 L167.7 181.2 L151.6 184.4 L137 185.3 L122.4 184.4 L106.3 181.2 L93.4 176.7 L86.6 173.4 L80.4 169.7 L71 162.2 L66.6 157.4 L63 152.4 L60.2 147.1 L58.6 143.1 L57.3 137.6 L56.9 132 L57.3 126.4 L58.2 122.3 L60.2 116.9 L63 111.6 L66.6 106.6 L71 101.8 L80.4 94.3 L86.6 90.6 L93.4 87.3 L106.3 82.8 L120.3 79.9 L137 78.7 Z" class="s-acc2" stroke-width="2" fill="none"/><line x1="131" y1="78.7" x2="139" y2="78.7" class="s-acc2" stroke-width="1.6" marker-end="url(#f42a-acc2)"/><line x1="143" y1="185.3" x2="135" y2="185.3" class="s-acc2" stroke-width="1.6" marker-end="url(#f42a-acc2)"/><path d="M137 56.7 L148.8 57.1 L160.6 58.3 L169.2 59.8 L180.4 62.4 L188.4 64.9 L198.7 68.8 L208.3 73.5 L217.1 78.7 L225 84.6 L232 91 L237.9 97.8 L241.7 103.2 L245.6 110.6 L248.4 118.3 L249.7 124.1 L250.3 132 L249.7 139.9 L247.8 147.7 L244.7 155.3 L241.7 160.8 L236.6 167.9 L232 173 L225 179.4 L217.1 185.3 L208.3 190.5 L198.7 195.2 L191.1 198.2 L180.4 201.6 L169.2 204.2 L160.6 205.7 L148.8 206.9 L137 207.3 L125.2 206.9 L113.4 205.7 L102 203.6 L93.6 201.6 L82.9 198.2 L75.3 195.2 L65.7 190.5 L56.9 185.3 L50.9 180.9 L43.6 174.7 L37.4 167.9 L32.3 160.8 L29.3 155.3 L26.2 147.7 L24.3 139.9 L23.7 132 L24.1 126.1 L25.6 118.3 L28.4 110.6 L32.3 103.2 L37.4 96.1 L43.6 89.3 L50.9 83.1 L56.9 78.7 L65.7 73.5 L75.3 68.8 L85.6 64.9 L93.6 62.4 L104.8 59.8 L113.4 58.3 L125.2 57.1 L137 56.7 Z" class="s-acc" stroke-width="2.4" fill="none"/><line x1="131" y1="56.7" x2="139" y2="56.7" class="s-acc" stroke-width="1.6" marker-end="url(#f42a-acc)"/><line x1="143" y1="207.3" x2="135" y2="207.3" class="s-acc" stroke-width="1.6" marker-end="url(#f42a-acc)"/><text x="12" y="22" class="t-b" text-anchor="start">(가) 조화 진동자</text></svg><!--/fig:4-2a--><!--fig:4-2b--><svg viewBox="0 0 280 252" role="img" aria-label="진자의 위상 공간: 흔들리는 운동의 닫힌 곡선, 도는 운동의 열린 곡선, 둘을 가르는 분리선"><defs><marker id="f42b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f42b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f42b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="132" x2="268" y2="132" class="s-line" stroke-width="1.2" marker-end="url(#f42b-dim)"/><line x1="16" y1="132" x2="16" y2="136" class="s-line" stroke-width="1.2"/><text x="19" y="149" class="t-dim" text-anchor="start">−π</text><line x1="258" y1="132" x2="258" y2="136" class="s-line" stroke-width="1.2"/><text x="255" y="149" class="t-dim" text-anchor="end">π</text><text x="270" y="125" class="t-math dim" text-anchor="end"><tspan font-style="italic">θ</tspan></text><line x1="137" y1="230" x2="137" y2="24" class="s-line" stroke-width="1.2" marker-end="url(#f42b-dim)"/><text x="144" y="30" class="t-math dim" text-anchor="start"><tspan font-style="italic">p</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">θ</tspan></tspan></text><path d="M101.3 132 L102 126.6 L104.1 121.3 L107.4 116.6 L112 112.2 L117.7 108.5 L123.8 105.9 L130.2 104.3 L137 103.7 L143.8 104.3 L150.2 105.9 L156.3 108.5 L162 112.2 L166.6 116.6 L169.9 121.3 L172 126.6 L172.7 132 L172.7 132 L172 137.4 L169.9 142.7 L166.6 147.4 L162 151.8 L156.3 155.5 L150.2 158.1 L143.8 159.7 L137 160.3 L130.2 159.7 L123.8 158.1 L117.7 155.5 L112 151.8 L107.4 147.4 L104.1 142.7 L102 137.4 L101.3 132 Z" class="s-acc" stroke-width="2" fill="none"/><path d="M76.5 132 L77.7 124.1 L81.3 116.2 L87.4 108.4 L95.9 101 L105.5 95 L115.8 90.7 L126.1 88.2 L137 87.3 L147.9 88.2 L158.2 90.7 L168.5 95 L178.1 101 L186.6 108.4 L192.7 116.2 L196.3 124.1 L197.5 132 L197.5 132 L196.3 139.9 L192.7 147.8 L186.6 155.6 L178.1 163 L168.5 169 L158.2 173.3 L147.9 175.8 L137 176.7 L126.1 175.8 L115.8 173.3 L105.5 169 L95.9 163 L87.4 155.6 L81.3 147.8 L77.7 139.9 L76.5 132 Z" class="s-acc" stroke-width="2" fill="none"/><path d="M56.3 132 L57.1 126 L57.9 123.4 L60.4 118.3 L63.6 113.5 L72.5 103.9 L84.6 94.4 L97.5 86.9 L110.4 81.6 L123.3 78.4 L137 77.2 L150.7 78.4 L163.6 81.6 L176.5 86.9 L189.4 94.4 L201.5 103.9 L210.4 113.5 L213.6 118.3 L216.1 123.4 L216.9 126 L217.7 132 L217.7 132 L216.9 138 L216.1 140.6 L213.6 145.7 L210.4 150.5 L201.5 160.1 L189.4 169.6 L176.5 177.1 L163.6 182.4 L150.7 185.6 L137 186.8 L123.3 185.6 L110.4 182.4 L97.5 177.1 L84.6 169.6 L72.5 160.1 L63.6 150.5 L60.4 145.7 L57.9 140.6 L57.1 138 L56.3 132 Z" class="s-acc" stroke-width="2" fill="none"/><line x1="131" y1="77.2" x2="139" y2="77.2" class="s-acc" stroke-width="1.6" marker-end="url(#f42b-acc)"/><path d="M16 97.4 L26.9 96.2 L39 92.7 L49.9 88.1 L82.6 72.7 L101.9 65.5 L111.6 62.9 L120.1 61.2 L128.5 60.2 L137 59.9 L145.5 60.2 L153.9 61.2 L162.4 62.9 L172.1 65.5 L191.5 72.7 L224.1 88.1 L235 92.7 L247.1 96.2 L258 97.4" class="s-line" stroke-width="1.6"/><path d="M16 166.6 L26.9 167.8 L39 171.3 L49.9 175.9 L82.6 191.3 L101.9 198.5 L111.6 201.1 L120.1 202.8 L128.5 203.8 L137 204.1 L145.5 203.8 L153.9 202.8 L162.4 201.1 L172.1 198.5 L191.5 191.3 L224.1 175.9 L235 171.3 L247.1 167.8 L258 166.6" class="s-line" stroke-width="1.6"/><path d="M16 75.4 L29.3 74.4 L42.6 71.5 L55.9 67.4 L87.4 56.1 L105.5 51 L121.3 48.1 L137 47.2 L152.7 48.1 L168.5 51 L186.6 56.1 L218.1 67.4 L231.4 71.5 L244.7 74.4 L258 75.4" class="s-line" stroke-width="1.6"/><path d="M16 188.6 L29.3 189.6 L42.6 192.5 L55.9 196.6 L87.4 207.9 L105.5 213 L121.3 215.9 L137 216.8 L152.7 215.9 L168.5 213 L186.6 207.9 L218.1 196.6 L231.4 192.5 L244.7 189.6 L258 188.6" class="s-line" stroke-width="1.6"/><line x1="69.4" y1="60.3" x2="77.4" y2="60.3" class="s-line" stroke-width="1.6" marker-end="url(#f42b-dim)"/><line x1="204.6" y1="203.7" x2="196.6" y2="203.7" class="s-line" stroke-width="1.6" marker-end="url(#f42b-dim)"/><path d="M16 132 L38.2 114 L54.3 101.8 L69.4 91.6 L83.6 83.4 L97.7 76.8 L110.8 72.4 L123.9 69.7 L137 68.8 L150.1 69.7 L163.2 72.4 L176.3 76.8 L190.4 83.4 L204.6 91.6 L219.7 101.8 L235.8 114 L258 132" class="s-acc2" stroke-width="2.6"/><path d="M16 132 L38.2 150 L54.3 162.2 L69.4 172.4 L83.6 180.6 L97.7 187.2 L110.8 191.6 L123.9 194.3 L137 195.2 L150.1 194.3 L163.2 191.6 L176.3 187.2 L190.4 180.6 L204.6 172.4 L219.7 162.2 L235.8 150 L258 132" class="s-acc2" stroke-width="2.6"/><text x="12" y="22" class="t-b" text-anchor="start">(나) 진자</text></svg><!--/fig:4-2b--></div>
+      <figcaption><b>그림 4-2.</b> 위상 공간의 궤도. (가) 조화 진동자. 에너지가 다른 세 타원이며, 점은 화살표 방향(시계 방향)으로 돈다. (나) 진자(\(m = g = \ell = 1\)). 닫힌 곡선은 좌우로 흔들리는 운동, 위아래의 열린 곡선은 한쪽으로 계속 도는 운동이다. 굵은 선이 둘을 가르는 분리선 \(E = mg\ell\)이다. \(\theta = \pm\pi\)는 같은 점이다.</figcaption>
+    </figure>
+    <div class="callout tip"><strong>위상 공간의 넓이와 옛 양자론</strong><p>1913~1916년의 '옛 양자론'은 위상 공간 궤도가 둘러싼 넓이가 플랑크 상수의 정수배인 운동만 허용된다고 가정했다. 진동자라면 \(2\pi E/\omega = nh\)이므로 \(E = n\hbar\omega\)이다. 정확한 답은 \(E = (n + \tfrac12)\hbar\omega\)이고(8장), 이 규칙이 왜 근사적으로 맞는지는 18장의 WKB 근사에서 밝혀진다.</p></div>
+
+    <h3 id="s2-em">전자기장 속의 하전 입자</h3>
+    <p>정준 운동량이 늘 \(m\dot q\)인 것은 아니다. 양자역학에서 가장 중요한 예가 전자기장 속의 하전 입자다.</p>
+    <div class="box ex" id="ex-em"><div class="box-h">전자기장 속의 하전 입자</div>
+      <p>전하 \(q\)인 입자가 스칼라 퍼텐셜 \(\phi(\mathbf r, t)\)와 벡터 퍼텐셜 \(\mathbf A(\mathbf r, t)\)가 만드는 장 \(\mathbf E = -\nabla\phi - \partial\mathbf A/\partial t\), \(\mathbf B = \nabla\times\mathbf A\) 속에 있을 때 라그랑지안은</p>
+      <div class="formula" id="eq-em-lagrangian">\[ L = \tfrac12 m v^2 - q\phi + q\,\mathbf v\cdot\mathbf A \]</div>
+      <p>이다(SI 단위). 이 라그랑지안의 오일러-라그랑주 방정식이 로런츠 힘 \(m\dot{\mathbf v} = q(\mathbf E + \mathbf v\times\mathbf B)\)를 준다는 것은 균일한 자기장의 경우로 <a class="ref" href="#prob-cyclotron"></a>에서 확인한다. 정준 운동량은</p>
+      <div class="formula">\[ \mathbf p = \frac{\partial L}{\partial\mathbf v} = m\mathbf v + q\mathbf A \]</div>
+      <p>로, 운동량 \(m\mathbf v\)와 다르다. 해밀토니안은 \(H = \mathbf p\cdot\mathbf v - L = \tfrac12 mv^2 + q\phi\)이고, 이것을 \(\mathbf p\)로 쓰면</p>
+      <div class="formula" id="eq-em-hamiltonian">\[ H = \frac{(\mathbf p - q\mathbf A)^2}{2m} + q\phi \]</div>
+      <p>이다. 자기장은 일을 하지 않으므로 에너지에는 \(\mathbf A\)가 직접 나타나지 않고, \(\mathbf p - q\mathbf A = m\mathbf v\)의 꼴로만 들어간다.</p>
+    </div>
+    <div class="callout warn"><strong>어느 운동량인가</strong><p>양자역학에서 \(-i\hbar\nabla\)로 바뀌는 것은 정준 운동량 \(\mathbf p\)이지 \(m\mathbf v\)가 아니다. 16장과 19장에서 자기장 속 입자의 해밀토니안 연산자를 식 <a class="ref" href="#eq-em-hamiltonian"></a>에서 만든다. 샨카는 가우스 단위를 써서 \(q\mathbf A\) 대신 \(q\mathbf A/c\)로 쓴다.</p></div>
   </section>
 
+  <!-- ============================================================ 4.3 -->
   <section id="s3">
     <h2>푸아송 괄호</h2>
-    <p class="slot" data-slot="4.3절">아직 쓰지 않은 절입니다.</p>
+    <p>해밀턴 형식에서 위치, 운동량, 에너지, 각운동량 같은 물리량은 모두 위상 공간의 함수 \(\omega(q, p)\)이다. 운동을 따라 이 함수가 어떻게 변하는지 구해 보자. 연쇄 법칙과 해밀턴 방정식으로</p>
+    <div class="formula">\[ \frac{d\omega}{dt} = \sum_i\Big(\frac{\partial\omega}{\partial q_i}\dot q_i + \frac{\partial\omega}{\partial p_i}\dot p_i\Big) = \sum_i\Big(\frac{\partial\omega}{\partial q_i}\frac{\partial H}{\partial p_i} - \frac{\partial\omega}{\partial p_i}\frac{\partial H}{\partial q_i}\Big) \]</div>
+    <p>이다. 오른쪽의 조합에 이름을 붙인다.</p>
+    <div class="box def" id="def-poisson"><div class="box-h">푸아송 괄호</div>
+      <div class="formula" id="eq-poisson">\[ \{\omega, \lambda\} = \sum_i\Big(\frac{\partial\omega}{\partial q_i}\frac{\partial\lambda}{\partial p_i} - \frac{\partial\omega}{\partial p_i}\frac{\partial\lambda}{\partial q_i}\Big) \]</div>
+      <p>를 위상 공간의 두 함수 \(\omega, \lambda\)의 <span class="term">푸아송 괄호</span> <span class="en">(Poisson bracket)</span>라 한다.</p>
+    </div>
+    <p>그러면 어떤 물리량이든 시간 변화가 한 줄로 쓰인다.</p>
+    <div class="formula" id="eq-pb-eom">\[ \frac{d\omega}{dt} = \{\omega, H\} \]</div>
+    <p>(\(\omega\)가 시간을 직접 포함하면 오른쪽에 \(\partial\omega/\partial t\)를 더한다.) \(\omega = q_i\)이면 \(\dot q_i = \{q_i, H\} = \partial H/\partial p_i\), \(\omega = p_i\)이면 \(\dot p_i = \{p_i, H\} = -\partial H/\partial q_i\)로, 해밀턴 방정식은 이 식의 특별한 경우다. 위치와 운동량끼리의 괄호는 정의에서 바로 나온다.</p>
+    <div class="formula" id="eq-pb-fund">\[ \{q_i, q_j\} = 0, \qquad \{p_i, p_j\} = 0, \qquad \{q_i, p_j\} = \delta_{ij} \]</div>
+    <p>3장의 정준 교환 관계 <a href="ch03.html#eq-ccr">식 (3.21)</a> \([\hat x, \hat p] = i\hbar\)와 꼴이 같다.</p>
+    <div class="box thm" id="thm-pb-props"><div class="box-h">푸아송 괄호의 성질</div>
+      <p><b>(가)</b> \(\{\omega, \lambda\} = -\{\lambda, \omega\}\). 특히 \(\{\omega, \omega\} = 0\)이다.</p>
+      <p><b>(나)</b> \(\{\omega, a\lambda + b\sigma\} = a\{\omega, \lambda\} + b\{\omega, \sigma\}\) (\(a, b\)는 상수)</p>
+      <p><b>(다)</b> \(\{\omega, \lambda\sigma\} = \lambda\{\omega, \sigma\} + \{\omega, \lambda\}\sigma\)</p>
+      <details class="proof"><summary>증명</summary>
+        <p>(가)는 식 <a class="ref" href="#eq-poisson"></a>에서 \(\omega\)와 \(\lambda\)를 바꾸면 두 항이 자리를 바꾸어 부호가 뒤집히는 것이다. (나)는 미분의 선형성이다. (다)는 \(\partial(\lambda\sigma)/\partial p_i = \lambda\,\partial\sigma/\partial p_i + \sigma\,\partial\lambda/\partial p_i\)(\(q_i\)도 마찬가지)를 정의에 넣고 \(\lambda\)가 붙은 항과 \(\sigma\)가 붙은 항으로 모으면 된다.</p>
+      </details>
+    </div>
+    <p>이 성질들은 교환자의 성질과 똑같다. (다)는 <a href="ch02.html#thm-comm-product">2장 정리 2.2</a> \([\hat A, \hat B\hat C] = \hat B[\hat A, \hat C] + [\hat A, \hat B]\hat C\)와 같은 꼴이다. 다만 교환자에서는 연산자의 순서를 지켜야 하고, 푸아송 괄호의 함수들은 숫자이므로 순서를 바꿔도 된다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>고전역학</th><th>양자역학</th></tr></thead>
+      <tbody>
+        <tr><td>물리량</td><td>위상 공간의 함수 \(\omega(q, p)\)</td><td>에르미트 연산자 \(\hat\Omega\)</td></tr>
+        <tr><td>기본 관계</td><td>\(\{x, p\} = 1\)</td><td>\([\hat x, \hat p] = i\hbar\)</td></tr>
+        <tr><td>시간 변화</td><td>\(d\omega/dt = \{\omega, H\}\)</td><td>\(d\hat\Omega/dt = \frac{1}{i\hbar}[\hat\Omega, \hat H]\) (10장)</td></tr>
+        <tr><td>보존 조건</td><td>\(\{\omega, H\} = 0\)</td><td>\([\hat\Omega, \hat H] = 0\) (6장)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout deep"><strong>디랙의 대응 규칙</strong><p>표가 보여 주듯 푸아송 괄호 \(\{\omega, \lambda\}\)를 \([\hat\Omega, \hat\Lambda]/i\hbar\)로 바꾸면 고전역학의 관계가 양자역학의 관계가 된다. 디랙은 이 대응을 양자역학을 세우는 길잡이로 썼다. 그러나 이것은 정리가 아니라 길잡이다. \(x^2p^2\)처럼 연산자의 순서가 문제가 되는 양에서는 대응이 하나로 정해지지 않고, 모든 함수에 대해 이 규칙을 일관되게 지킬 수는 없다는 것이 알려져 있다.</p></div>
+    <div class="box ex" id="ex-pb-sho"><div class="box-h">푸아송 괄호로 계산하기</div>
+      <p><b>(가)</b> 조화 진동자 \(H = p^2/2m + \tfrac12 m\omega^2x^2\)에서 \(\dot x = \{x, H\} = \frac{1}{2m}\{x, p^2\} = \frac{1}{2m}\cdot 2p\{x, p\} = p/m\)이다. 여기서 성질 (다)로 \(\{x, p^2\} = p\{x, p\} + \{x, p\}p = 2p\)를 썼다. 같은 방법으로 \(\dot p = \{p, H\} = \tfrac12 m\omega^2\{p, x^2\} = -m\omega^2 x\)이다.</p>
+      <p><b>(나)</b> \(\{x, p^2\} = 2p\)를 <a href="ch03.html#prob-comm">3장 문제 3.3</a>의 \([\hat x, \hat p^2] = 2i\hbar\,\hat p\)와 비교하면, 정확히 \(\{\,,\} \to [\,,]/i\hbar\)의 대응이다.</p>
+    </div>
+    <p>시간을 직접 포함하지 않는 물리량 \(\omega\)는 \(\{\omega, H\} = 0\)일 때, 그리고 그때만 보존된다. 해밀토니안 자신은 \(\{H, H\} = 0\)이므로 보존된다(식 <a class="ref" href="#eq-energy"></a>과 같은 결론이다).</p>
+    <div class="box ex" id="ex-pb-angular"><div class="box-h">중심력에서 각운동량의 보존</div>
+      <p>평면에서 \(H = \dfrac{p_x^2 + p_y^2}{2m} + V(r)\), \(r = \sqrt{x^2 + y^2}\)이고, 각운동량은 \(\ell = xp_y - yp_x\)이다. \(\{\ell, p_x\} = \partial\ell/\partial x = p_y\), \(\{\ell, p_y\} = \partial\ell/\partial y = -p_x\)이므로 성질 (다)에 따라</p>
+      <div class="formula">\[ \{\ell, p_x^2 + p_y^2\} = 2p_x\,p_y + 2p_y\,(-p_x) = 0 \]</div>
+      <p>이다. 퍼텐셜 쪽은 \(\{\ell, V\} = -\Big(\dfrac{\partial\ell}{\partial p_x}\dfrac{\partial V}{\partial x} + \dfrac{\partial\ell}{\partial p_y}\dfrac{\partial V}{\partial y}\Big)\)이고, \(\partial\ell/\partial p_x = -y\), \(\partial\ell/\partial p_y = x\), \(\partial V/\partial x = V'(r)\,x/r\), \(\partial V/\partial y = V'(r)\,y/r\)이므로</p>
+      <div class="formula">\[ \{\ell, V\} = -\frac{V'(r)}{r}\big(-yx + xy\big) = 0 \]</div>
+      <p>이다. 따라서 \(\{\ell, H\} = 0\)이고 각운동량이 보존된다. 행성 운동의 케플러 제2법칙(면적 속도 일정)이 이것이다. <a class="ref" href="#ex-polar"></a>에서 순환 좌표로 얻은 결론을 좌표를 바꾸지 않고 다시 얻었다.</p>
+    </div>
   </section>
 
+  <!-- ============================================================ 4.4 -->
   <section id="s4">
     <h2>정준 변환</h2>
-    <p class="slot" data-slot="4.4절">아직 쓰지 않은 절입니다.</p>
+    <p>라그랑주 형식에서는 좌표를 마음대로 바꿀 수 있었다. 해밀턴 형식에서는 \(q\)와 \(p\)가 대등한 변수이므로, 둘을 섞는 변환 \(\bar q = \bar q(q, p)\), \(\bar p = \bar p(q, p)\)까지 생각할 수 있다. 그러나 이런 변환이 모두 해밀턴 방정식의 꼴을 지키지는 않는다. 예를 들어 \(\bar q = q\), \(\bar p = p^3\)으로 바꾸면 \(\dot{\bar q} = \dot q = \partial H/\partial p = 3p^2\,\partial H/\partial\bar p\)가 되어, 식 <a class="ref" href="#eq-hamilton"></a>에 없던 인자 \(3p^2\)이 끼어든다. 어떤 변환이 괜찮을까?</p>
+
+    <h3 id="s4-def">기본 괄호를 지키는 변환</h3>
+    <div class="box def" id="def-canonical"><div class="box-h">정준 변환</div>
+      <p>새 변수가 기본 괄호 <a class="ref" href="#eq-pb-fund"></a>을 그대로 만족하는 변환, 곧 옛 변수로 계산해</p>
+      <div class="formula" id="eq-canonical">\[ \{\bar q_i, \bar q_j\} = 0, \qquad \{\bar p_i, \bar p_j\} = 0, \qquad \{\bar q_i, \bar p_j\} = \delta_{ij} \]</div>
+      <p>인 변환 \((q, p) \to (\bar q, \bar p)\)를 <span class="term">정준 변환</span> <span class="en">(canonical transformation)</span>이라 한다.</p>
+    </div>
+    <p>이 조건이 왜 알맞은지는 자유도가 하나인 경우에 깔끔하게 보일 수 있다. 푸아송 괄호를 어느 변수로 계산했는지 아래 첨자로 표시하자.</p>
+    <div class="box thm" id="thm-canonical"><div class="box-h">정준 변환은 괄호와 해밀턴 방정식을 지킨다</div>
+      <p>자유도가 하나일 때, 임의의 함수 \(f, g\)에 대해</p>
+      <div class="formula" id="eq-pb-jacobian">\[ \{f, g\}_{q,p} = \{f, g\}_{\bar q,\bar p}\;\{\bar q, \bar p\}_{q,p} \]</div>
+      <p>이다. 따라서 정준 변환(\(\{\bar q, \bar p\}_{q,p} = 1\))에서는 어떤 괄호든 두 변수 가운데 어느 쪽으로 계산해도 같다. 또 변환이 시간을 직접 포함하지 않으면, 새 변수도 같은 해밀토니안으로 해밀턴 방정식 \(\dot{\bar q} = \partial H/\partial\bar p\), \(\dot{\bar p} = -\partial H/\partial\bar q\)를 따른다.</p>
+      <details class="proof" open><summary>증명</summary>
+        <p>\(f\)를 \(\bar q, \bar p\)의 함수로 보고 연쇄 법칙을 쓰면 \(f_q = f_{\bar q}\,\bar q_q + f_{\bar p}\,\bar p_q\), \(f_p = f_{\bar q}\,\bar q_p + f_{\bar p}\,\bar p_p\)이다(아래 첨자는 편미분). \(g\)도 같다. 이것을 \(\{f, g\}_{q,p} = f_q g_p - f_p g_q\)에 넣고 펼치면, \(f_{\bar q}g_{\bar q}\)가 붙은 항은 \(\bar q_q\bar q_p - \bar q_p\bar q_q = 0\), \(f_{\bar p}g_{\bar p}\)가 붙은 항도 0이 되어 사라지고</p>
+        <div class="formula">\[ \{f, g\}_{q,p} = \big(f_{\bar q}g_{\bar p} - f_{\bar p}g_{\bar q}\big)\big(\bar q_q\bar p_p - \bar q_p\bar p_q\big) \]</div>
+        <p>가 남는다. 첫째 괄호는 \(\{f, g\}_{\bar q,\bar p}\), 둘째 괄호는 \(\{\bar q, \bar p\}_{q,p}\)이다. 정준 변환이면 둘째 괄호가 1이므로 식 <a class="ref" href="#eq-pb-eom"></a>를 써서 \(\dot{\bar q} = \{\bar q, H\}_{q,p} = \{\bar q, H\}_{\bar q,\bar p} = \partial H/\partial\bar p\)이고, \(\dot{\bar p}\)도 같은 방법으로 \(-\partial H/\partial\bar q\)이다.</p>
+      </details>
+    </div>
+    <p>\(\{\bar q, \bar p\}_{q,p} = \bar q_q\bar p_p - \bar q_p\bar p_q\)는 변수 바꾸기의 야코비 행렬식, 곧 위상 공간의 작은 넓이가 변환 뒤에 몇 배가 되는지를 나타낸다. 따라서 <b>자유도가 하나일 때 정준 변환은 위상 공간의 넓이를 보존하는 변환이다.</b> 자유도가 여럿이면 \(2N\)차원의 부피가 보존되고, 이것을 <span class="term">리우빌 정리</span> <span class="en">(Liouville's theorem)</span>라 한다.</p>
+    <div class="box ex" id="ex-canonical"><div class="box-h">정준 변환인가</div>
+      <p><b>(가) 좌표 바꾸기.</b> \(\bar q = f(q)\)이면 운동량은 \(\bar p = p/f'(q)\)로 바꾸어야 한다. \(\{\bar q, \bar p\} = f'(q)\cdot\frac{1}{f'(q)} - 0 = 1\)이다. 예를 들어 \(\bar q = 2q\)이면 \(\bar p = p/2\)이다. 좌표를 늘리면 운동량은 그만큼 줄어 넓이가 그대로다.</p>
+      <p><b>(나) 위치와 운동량 맞바꾸기.</b> \(\bar q = p\), \(\bar p = -q\)이면 \(\{\bar q, \bar p\} = \frac{\partial p}{\partial q}\frac{\partial(-q)}{\partial p} - \frac{\partial p}{\partial p}\frac{\partial(-q)}{\partial q} = 0 - (1)(-1) = 1\)이다. 해밀턴 형식에서 '위치'와 '운동량'은 부호 하나를 빼면 이름표일 뿐이다. 3장에서 위치 표현과 운동량 표현이 거의 대칭이었던 것과 같은 이야기다.</p>
+      <p><b>(다) 정준이 아닌 변환.</b> 처음의 \(\bar q = q\), \(\bar p = p^3\)은 \(\{\bar q, \bar p\} = 3p^2 \neq 1\)이다. 위상 공간을 곳에 따라 다른 비율로 늘린다.</p>
+    </div>
+
+    <h3 id="s4-action-angle">정준 변환으로 진동자 풀기</h3>
+    <p>정준 변환은 문제를 쉽게 만드는 도구다. 새 변수에서 해밀토니안이 순환 좌표를 가지게 고르면 운동이 바로 풀린다.</p>
+    <div class="box ex" id="ex-action-angle"><div class="box-h">작용-각 변수</div>
+      <p>조화 진동자에서 새 변수 \((Q, P)\)를 다음과 같이 잡자.</p>
+      <div class="formula" id="eq-action-angle">\[ q = \sqrt{\frac{2P}{m\omega}}\,\sin Q, \qquad p = \sqrt{2m\omega P}\,\cos Q \]</div>
+      <p>먼저 정준인지 확인한다. 새 변수로 옛 변수의 괄호를 계산하면</p>
+      <div class="formula">\[ \begin{aligned} \{q, p\}_{Q,P} &= \frac{\partial q}{\partial Q}\frac{\partial p}{\partial P} - \frac{\partial q}{\partial P}\frac{\partial p}{\partial Q} \\ &= \cos^2 Q + \sin^2 Q = 1 \end{aligned} \]</div>
+      <p>이다(\(\frac{\partial q}{\partial Q}\frac{\partial p}{\partial P} = \sqrt{\frac{2P}{m\omega}}\cos Q\cdot\sqrt{\frac{m\omega}{2P}}\cos Q\)이고 둘째 항도 같은 방식으로 \(-\sin^2Q\)이다). 식 <a class="ref" href="#eq-pb-jacobian"></a>에 \(f = q\), \(g = p\)를 넣으면 \(1 = \{q, p\}_{Q,P}\{Q, P\}_{q,p}\)이므로 \(\{Q, P\}_{q,p} = 1\), 곧 정준 변환이다. 해밀토니안에 넣으면</p>
+      <div class="formula">\[ H = \frac{2m\omega P\cos^2Q}{2m} + \frac12 m\omega^2\cdot\frac{2P}{m\omega}\sin^2Q = \omega P \]</div>
+      <p>로, \(Q\)가 순환 좌표다. 해밀턴 방정식은 \(\dot P = -\partial H/\partial Q = 0\), \(\dot Q = \partial H/\partial P = \omega\)이므로 \(P = E/\omega\)는 일정하고 \(Q = \omega t + Q_0\)이다. 식 <a class="ref" href="#eq-action-angle"></a>에 넣으면 \(q = \sqrt{2E/m\omega^2}\,\sin(\omega t + Q_0)\)으로, <a class="ref" href="#ex-sho-phase"></a>의 해와 같다.</p>
+      <p>\(P = E/\omega\)는 <a class="ref" href="#ex-sho-phase"></a>의 타원 넓이 \(2\pi E/\omega\)를 \(2\pi\)로 나눈 것이다. 이런 \(P\)를 <span class="term">작용 변수</span> <span class="en">(action variable)</span>, \(Q\)를 <span class="term">각 변수</span> <span class="en">(angle variable)</span>라 한다. 정준 변환은 넓이를 보존하므로, \((q, p)\) 평면의 타원 고리 조각과 \((Q, P)\) 평면의 직사각형은 넓이가 같다(그림 4-3).</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:4-3a--><svg viewBox="0 0 280 252" role="img" aria-label="q p 평면에서 두 타원 사이와 두 각도 사이의 영역"><defs><marker id="f43a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f43a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f43a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><path d="M177.5 69.9 L179 70.3 L180.4 70.7 L181.8 71.1 L183.2 71.6 L184.6 72 L186 72.5 L187.3 73 L188.7 73.5 L190.1 74 L191.4 74.5 L192.7 75.1 L194 75.6 L195.3 76.2 L196.6 76.7 L197.9 77.3 L199.1 77.9 L200.4 78.5 L201.6 79.2 L202.8 79.8 L204 80.4 L205.2 81.1 L206.4 81.8 L207.6 82.4 L208.7 83.1 L209.8 83.8 L210.9 84.5 L212 85.3 L213.1 86 L214.1 86.7 L215.2 87.5 L216.2 88.3 L217.2 89 L218.2 89.8 L219.2 90.6 L220.1 91.4 L221 92.2 L221.9 93.1 L222.8 93.9 L223.7 94.7 L224.6 95.6 L225.4 96.4 L226.2 97.3 L227 98.2 L227.8 99 L228.5 99.9 L229.3 100.8 L230 101.7 L230.7 102.6 L231.3 103.5 L232 104.5 L232.6 105.4 L233.2 106.3 L233.8 107.3 L234.4 108.2 L234.9 109.1 L235.4 110.1 L235.9 111.1 L236.4 112 L236.8 113 L237.3 114 L210.2 118.8 L209.9 118.1 L209.6 117.4 L209.2 116.7 L208.9 116 L208.5 115.3 L208.1 114.6 L207.7 113.9 L207.3 113.2 L206.8 112.6 L206.4 111.9 L205.9 111.2 L205.4 110.5 L204.9 109.9 L204.4 109.2 L203.8 108.6 L203.3 107.9 L202.7 107.3 L202.2 106.6 L201.6 106 L200.9 105.4 L200.3 104.8 L199.7 104.2 L199 103.6 L198.4 103 L197.7 102.4 L197 101.8 L196.3 101.2 L195.6 100.6 L194.8 100.1 L194.1 99.5 L193.3 99 L192.6 98.4 L191.8 97.9 L191 97.3 L190.2 96.8 L189.4 96.3 L188.5 95.8 L187.7 95.3 L186.8 94.8 L186 94.3 L185.1 93.9 L184.2 93.4 L183.3 92.9 L182.4 92.5 L181.5 92.1 L180.5 91.6 L179.6 91.2 L178.6 90.8 L177.7 90.4 L176.7 90 L175.7 89.6 L174.8 89.3 L173.8 88.9 L172.8 88.6 L171.8 88.2 L170.7 87.9 L169.7 87.6 L168.7 87.2 L167.6 86.9 L166.6 86.6 Z" class="f-acc-soft" stroke-width="1.6"/><line x1="16" y1="132" x2="268" y2="132" class="s-line" stroke-width="1.2" marker-end="url(#f43a-dim)"/><text x="270" y="125" class="t-math dim" text-anchor="end"><tspan font-style="italic">q</tspan></text><line x1="137" y1="230" x2="137" y2="24" class="s-line" stroke-width="1.2" marker-end="url(#f43a-dim)"/><text x="144" y="30" class="t-math dim" text-anchor="start"><tspan font-style="italic">p</tspan></text><path d="M137 82.8 L152.8 83.8 L166.1 86.5 L180 91.4 L190.7 97.2 L196.1 101 L200.7 105.2 L207.2 113.2 L211.3 121.8 L212.6 126.9 L213 132 L212.6 137.1 L211.3 142.2 L207.2 150.8 L200.7 158.8 L196.1 163 L190.7 166.8 L180 172.6 L166.1 177.5 L152.8 180.2 L137 181.2 L123.2 180.4 L107.9 177.5 L95.6 173.3 L89.2 170.3 L83.3 166.8 L77.9 163 L73.3 158.8 L66.8 150.8 L62.7 142.2 L61.4 137.1 L61 132 L61.2 128.1 L62.3 123 L64.1 118 L66.8 113.2 L70.2 108.5 L74.4 104.1 L83.3 97.2 L89.2 93.7 L95.6 90.7 L107.9 86.5 L121.2 83.8 L137 82.8 Z" class="s-line" stroke-width="1.4" fill="none"/><path d="M137 64.6 L156 65.7 L166.6 67.4 L176.8 69.7 L193.7 75.5 L202.5 79.6 L210.6 84.3 L217.9 89.6 L222.8 93.8 L228.5 99.8 L233.1 106.2 L236.8 112.8 L238.8 118 L240.5 125 L241.1 132 L240.5 139 L238.8 146 L236.8 151.2 L233.1 157.8 L228.5 164.2 L222.8 170.2 L216.1 175.8 L210.6 179.7 L202.5 184.4 L193.7 188.5 L176.8 194.3 L158.6 198 L147.9 199.1 L137 199.4 L126.1 199.1 L115.4 198 L97.2 194.3 L80.3 188.5 L71.5 184.4 L63.4 179.7 L57.9 175.8 L51.2 170.2 L45.5 164.2 L40.9 157.8 L37.2 151.2 L35.2 146 L33.5 139 L32.9 132 L33.5 125 L35.2 118 L37.2 112.8 L40.9 106.2 L44.3 101.4 L49.7 95.3 L56.1 89.6 L63.4 84.3 L71.5 79.6 L80.3 75.5 L97.2 69.7 L115.4 66 L126.1 64.9 L137 64.6 Z" class="s-line" stroke-width="1.4" fill="none"/><line x1="137" y1="132" x2="181" y2="64.5" class="s-grid" stroke-dasharray="3 3"/><line x1="137" y1="132" x2="245.9" y2="112.4" class="s-grid" stroke-dasharray="3 3"/><line x1="143" y1="199.4" x2="135" y2="199.4" class="s-acc" stroke-width="1.6" marker-end="url(#f43a-acc)"/><text x="12" y="22" class="t-b" text-anchor="start">(가) (<tspan font-style="italic">q</tspan>, <tspan font-style="italic">p</tspan>) 평면</text></svg><!--/fig:4-3a--><!--fig:4-3b--><svg viewBox="0 0 280 252" role="img" aria-label="Q P 평면에서 같은 영역은 넓이가 같은 직사각형이다"><defs><marker id="f43b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f43b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f43b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><rect x="48.3" y="96.1" width="32.1" height="58.7" class="f-acc-soft" stroke-width="1.6"/><line x1="34" y1="222" x2="268" y2="222" class="s-line" stroke-width="1.2" marker-end="url(#f43b-dim)"/><line x1="146" y1="222" x2="146" y2="226" class="s-line" stroke-width="1.2"/><text x="146" y="239" class="t-dim" text-anchor="middle">π</text><line x1="258" y1="222" x2="258" y2="226" class="s-line" stroke-width="1.2"/><text x="258" y="239" class="t-dim" text-anchor="middle">2π</text><text x="270" y="215" class="t-math dim" text-anchor="end"><tspan font-style="italic">Q</tspan></text><line x1="34" y1="222" x2="34" y2="40" class="s-line" stroke-width="1.2" marker-end="url(#f43b-dim)"/><line x1="30" y1="154.9" x2="34" y2="154.9" class="s-line" stroke-width="1.2"/><text font-size="14" x="27" y="158.9" class="t-math dim" text-anchor="end"><tspan font-style="italic">P</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="30" y1="96.1" x2="34" y2="96.1" class="s-line" stroke-width="1.2"/><text font-size="14" x="27" y="100.1" class="t-math dim" text-anchor="end"><tspan font-style="italic">P</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text x="41" y="46" class="t-math dim" text-anchor="start"><tspan font-style="italic">P</tspan></text><line x1="34" y1="154.9" x2="258" y2="154.9" class="s-line" stroke-width="1.4"/><line x1="34" y1="96.1" x2="258" y2="96.1" class="s-line" stroke-width="1.4"/><line x1="192" y1="96.1" x2="200" y2="96.1" class="s-acc" stroke-width="1.6" marker-end="url(#f43b-acc)"/><text font-size="14" x="198" y="88.1" class="t-math acc" text-anchor="middle"><tspan font-style="italic">Q</tspan> = <tspan font-style="italic">ω</tspan><tspan font-style="italic">t</tspan> + <tspan font-style="italic">Q</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><text x="12" y="22" class="t-b" text-anchor="start">(나) (<tspan font-style="italic">Q</tspan>, <tspan font-style="italic">P</tspan>) 평면</text></svg><!--/fig:4-3b--></div>
+      <figcaption><b>그림 4-3.</b> 작용-각 변수로의 정준 변환은 넓이를 보존한다. (가) \((q, p)\) 평면에서 두 에너지 사이, 두 각도 사이의 영역. (나) 같은 영역을 \((Q, P)\) 평면에서 본 직사각형. 넓이는 둘 다 \(\Delta Q\,\Delta P\)이다. 에너지가 일정한 타원은 수평선 \(P = E/\omega\)가 되고, 시간이 흐르면 점은 이 선을 따라 일정한 빠르기 \(\omega\)로 오른쪽으로 간다.</figcaption>
+    </figure>
+
+    <h3 id="s4-generator">무한소 정준 변환과 생성자</h3>
+    <p>항등 변환에 아주 가까운 정준 변환을 생각하자. 위상 공간의 함수 \(g(q, p)\)와 작은 수 \(\varepsilon\)으로</p>
+    <div class="formula" id="eq-infinitesimal">\[ \bar q = q + \varepsilon\,\frac{\partial g}{\partial p}, \qquad \bar p = p - \varepsilon\,\frac{\partial g}{\partial q} \]</div>
+    <p>로 둔다. 기본 괄호를 계산하면</p>
+    <div class="formula">\[ \begin{aligned} \{\bar q, \bar p\} &= \Big(1 + \varepsilon\frac{\partial^2 g}{\partial q\,\partial p}\Big)\Big(1 - \varepsilon\frac{\partial^2 g}{\partial p\,\partial q}\Big) \\ &\quad - \varepsilon\frac{\partial^2 g}{\partial p^2}\cdot\Big(-\varepsilon\frac{\partial^2 g}{\partial q^2}\Big) \\ &= 1 + O(\varepsilon^2) \end{aligned} \]</div>
+    <p>로, \(\varepsilon\)의 1차까지 정준이다(섞인 2계 편미분은 순서와 상관없이 같다). 이 변환에서 임의의 물리량 \(\omega\)가 변하는 양은 \(\omega(\bar q, \bar p) - \omega(q, p) = \varepsilon\big(\frac{\partial\omega}{\partial q}\frac{\partial g}{\partial p} - \frac{\partial\omega}{\partial p}\frac{\partial g}{\partial q}\big)\), 곧</p>
+    <div class="formula" id="eq-generator">\[ \delta\omega = \varepsilon\,\{\omega, g\} \]</div>
+    <p>이다. \(g\)를 이 변환의 <span class="term">생성자</span> <span class="en">(generator)</span>라 한다. 중요한 세 가지 예를 보자.</p>
+    <ul>
+      <li><b>\(g = p\)</b>: \(\delta q = \varepsilon\{q, p\} = \varepsilon\), \(\delta p = \varepsilon\{p, p\} = 0\). 위치를 \(\varepsilon\)만큼 평행 이동한다. <b>운동량은 평행 이동의 생성자다.</b></li>
+      <li><b>\(g = \ell = xp_y - yp_x\)</b>: \(\delta x = \varepsilon\,\partial\ell/\partial p_x = -\varepsilon y\), \(\delta y = \varepsilon x\)이고, \(\delta p_x = -\varepsilon\,\partial\ell/\partial x = -\varepsilon p_y\), \(\delta p_y = \varepsilon p_x\)이다. 위치와 운동량을 함께 각도 \(\varepsilon\)만큼 돌린다. <b>각운동량은 회전의 생성자다.</b></li>
+      <li><b>\(g = H\), \(\varepsilon = dt\)</b>: \(\delta\omega = dt\,\{\omega, H\} = \frac{d\omega}{dt}\,dt\)는 시간이 \(dt\)만큼 흐를 때의 변화다. <b>해밀토니안은 시간 변화의 생성자다.</b> 운동 자체가 정준 변환이므로, 시간이 흘러도 위상 공간의 넓이는 보존된다(<a class="ref" href="#prob-liouville"></a>).</li>
+    </ul>
+    <p>이것은 양자역학에서 이미 본 구조다. <a href="ch03.html#ex-translation">3장 예제 3.7</a>에서 \(e^{-i\hat p a/\hbar}\)가 파동함수를 평행 이동했고, <a href="ch02.html#ex-exp-pauli">2장 예제 2.11</a>에서 에르미트 행렬 \(\sigma_y\)의 지수 함수가 회전이었다. 6장에서는 \(e^{-i\hat H t/\hbar}\)가 시간 변화를 만든다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>변환</th><th>고전 생성자</th><th>양자역학의 연산자</th></tr></thead>
+      <tbody>
+        <tr><td>평행 이동</td><td>\(p\)</td><td>\(e^{-i\hat p a/\hbar}\) (3장)</td></tr>
+        <tr><td>회전</td><td>\(\ell_z\)</td><td>\(e^{-i\hat L_z\theta/\hbar}\) (14장)</td></tr>
+        <tr><td>시간 변화</td><td>\(H\)</td><td>\(e^{-i\hat H t/\hbar}\) (6장)</td></tr>
+      </tbody>
+    </table></div>
   </section>
 
+  <!-- ============================================================ 4.5 -->
   <section id="s5">
     <h2>대칭과 보존 법칙</h2>
-    <p class="slot" data-slot="4.5절">아직 쓰지 않은 절입니다.</p>
+    <p>공간 어디서나 물리 법칙이 같으면 운동량이 보존되고, 어느 방향으로나 같으면 각운동량이, 언제나 같으면 에너지가 보존된다. 대칭이 보존 법칙을 낳는다는 이 생각을 라그랑주 형식과 해밀턴 형식에서 차례로 정리한다.</p>
+
+    <h3 id="s5-noether">라그랑주 형식: 뇌터 정리</h3>
+    <div class="box thm" id="thm-noether"><div class="box-h">뇌터 정리</div>
+      <p>좌표를 \(q_i \to q_i + \varepsilon\,\delta q_i(q)\)로 바꾸어도 라그랑지안이 \(\varepsilon\)의 1차까지 변하지 않으면(\(\delta L = 0\)), 다음 양은 운동하는 동안 보존된다.</p>
+      <div class="formula" id="eq-noether">\[ Q = \sum_i p_i\,\delta q_i \]</div>
+      <details class="proof" open><summary>증명</summary>
+        <p>경로 \(q_i(t)\)를 \(q_i + \varepsilon\,\delta q_i\)로 바꾸면 속도는 \(\dot q_i + \varepsilon\,\frac{d}{dt}\delta q_i\)가 된다. 라그랑지안의 변화는</p>
+        <div class="formula">\[ \begin{aligned} 0 = \delta L &= \varepsilon\sum_i\Big(\frac{\partial L}{\partial q_i}\,\delta q_i + \frac{\partial L}{\partial\dot q_i}\,\frac{d}{dt}\delta q_i\Big) \\ &= \varepsilon\sum_i\Big(\dot p_i\,\delta q_i + p_i\,\frac{d}{dt}\delta q_i\Big) \\ &= \varepsilon\,\frac{d}{dt}\sum_i p_i\,\delta q_i \end{aligned} \]</div>
+        <p>이다. 둘째 줄에서 오일러-라그랑주 방정식 \(\partial L/\partial q_i = \dot p_i\)와 정의 \(p_i = \partial L/\partial\dot q_i\)를 썼다.</p>
+      </details>
+    </div>
+    <p>순환 좌표는 이 정리의 가장 간단한 경우다. \(q_k\)만 \(\varepsilon\)만큼 옮기는 변환(\(\delta q_k = 1\), 나머지 0)에 대해 \(L\)이 변하지 않으면 \(Q = p_k\)가 보존된다.</p>
+    <div class="box ex" id="ex-two-body"><div class="box-h">작용·반작용은 대칭에서 나온다</div>
+      <p>직선 위의 두 입자가 서로의 거리에만 달린 힘을 주고받는다고 하자.</p>
+      <div class="formula">\[ L = \tfrac12 m_1\dot x_1^2 + \tfrac12 m_2\dot x_2^2 - V(x_1 - x_2) \]</div>
+      <p>두 입자를 함께 \(\varepsilon\)만큼 옮겨도(\(\delta x_1 = \delta x_2 = 1\)) \(x_1 - x_2\)와 속도가 그대로이므로 \(L\)은 변하지 않는다. 뇌터 정리에 따라 \(p_1 + p_2\), 곧 전체 운동량이 보존된다. 운동 방정식으로 직접 보면 \(\dot p_1 = -V'(x_1 - x_2)\), \(\dot p_2 = +V'(x_1 - x_2)\)여서 두 힘이 크기가 같고 방향이 반대다. 뉴턴의 제3법칙이 '공간은 어디나 같다'는 대칭의 결과로 나온 것이다.</p>
+    </div>
+    <p>시간에 대한 대칭도 마찬가지다. 라그랑지안이 시간을 직접 포함하지 않으면 \(\partial H/\partial t = -\partial L/\partial t = 0\)이므로 식 <a class="ref" href="#eq-energy"></a>에 따라 에너지 \(H\)가 보존된다.</p>
+
+    <h3 id="s5-hamilton">해밀턴 형식: 생성자와 보존량</h3>
+    <p>해밀턴 형식에서는 대칭과 보존이 한 줄로 이어진다. 생성자 \(g\)가 만드는 변환으로 해밀토니안이 변하지 않는다는 것은 식 <a class="ref" href="#eq-generator"></a>에 따라 \(\delta H = \varepsilon\{H, g\} = 0\)이라는 뜻이다. 한편 \(g\)가 보존된다는 것은 식 <a class="ref" href="#eq-pb-eom"></a>에 따라 \(dg/dt = \{g, H\} = 0\)이라는 뜻이다. 성질 (가)에 따라 \(\{g, H\} = -\{H, g\}\)이므로 두 조건은 같다.</p>
+    <div class="box thm" id="thm-symmetry"><div class="box-h">대칭과 보존</div>
+      <p>시간을 직접 포함하지 않는 \(g(q, p)\)에 대해 다음 셋은 같은 말이다.</p>
+      <ul>
+        <li>\(\{g, H\} = 0\)이다.</li>
+        <li>\(g\)가 만드는 정준 변환에 대해 \(H\)가 변하지 않는다(대칭).</li>
+        <li>\(g\)가 운동하는 동안 보존된다.</li>
+      </ul>
+    </div>
+    <p>'해밀토니안이 \(g\)의 변환에 대해 변하지 않으면, \(g\)도 해밀토니안이 만드는 변환(시간 변화)에 대해 변하지 않는다'는 대칭적인 문장이다. <a class="ref" href="#ex-pb-angular"></a>의 계산이 바로 이 정리의 예다. 회전은 \(r\)과 \(|\mathbf p|\)를 바꾸지 않으므로 중심력의 \(H\)는 회전에 대해 변하지 않고, 회전의 생성자인 각운동량이 보존된다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>대칭</th><th>생성자</th><th>보존량</th></tr></thead>
+      <tbody>
+        <tr><td>공간 평행 이동</td><td>\(p\)</td><td>운동량</td></tr>
+        <tr><td>회전</td><td>\(\ell\)</td><td>각운동량</td></tr>
+        <tr><td>시간 평행 이동</td><td>\(H\)</td><td>에너지</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout tip"><strong>양자역학에서는</strong><p>13장에서 같은 이야기를 연산자로 한다. 대칭 변환은 유니타리 연산자 \(e^{-i\varepsilon\hat G/\hbar}\)이고, 생성자는 에르미트 연산자 \(\hat G\)이며, 대칭은 \([\hat G, \hat H] = 0\)과 같은 말이고, 그때 \(\hat G\)의 측정값의 확률 분포가 시간에 따라 변하지 않는다. 양자역학에만 있는 새로운 점도 있다. 거울 반사 \(x \to -x\) 같은 이산 대칭은 연속적인 생성자가 없어 고전역학에서는 보존량을 주지 않지만, 양자역학에서는 패리티라는 보존되는 양자수를 준다.</p></div>
+    <div class="callout deep"><strong>숨은 대칭</strong><p>위 정리는 거꾸로도 읽힌다. 보존되는 양이 있으면 그것이 생성하는 변환은 반드시 해밀토니안의 대칭이다. 그 대칭이 눈에 보이지 않을 때도 있다. 케플러 문제(\(V = -k/r\))에는 각운동량 말고도 궤도 타원의 방향을 가리키는 보존 벡터(라플라스-룽게-렌츠 벡터)가 있고, 그것이 생성하는 '숨은 대칭' 때문에 15장의 수소 원자에서 에너지 준위가 예상보다 많이 겹친다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>라그랑지안은 \(L = T - V\)이고, 작용 \(S = \int L\,dt\)는 경로마다 정해지는 범함수다. 실제 경로는 양 끝을 고정한 경로 가운데 작용이 정류인 경로다.</li>
+      <li>정류 조건에서 오일러-라그랑주 방정식 \(\frac{d}{dt}\frac{\partial L}{\partial\dot q_i} = \frac{\partial L}{\partial q_i}\)가 나오고, 이것은 뉴턴 방정식과 같은 내용이다. 이 방정식은 어떤 일반화 좌표에서나 같은 꼴이다.</li>
+      <li>정준 운동량은 \(p_i = \partial L/\partial\dot q_i\)이다. 순환 좌표의 정준 운동량은 보존된다. 전자기장 속에서는 \(\mathbf p = m\mathbf v + q\mathbf A\)로 \(m\mathbf v\)와 다르다.</li>
+      <li>해밀토니안 \(H = \sum p_i\dot q_i - L\)은 라그랑지안의 르장드르 변환이다. 해밀턴 방정식 \(\dot q = \partial H/\partial p\), \(\dot p = -\partial H/\partial q\)는 위상 공간의 1계 방정식이다. \(H\)가 시간을 직접 포함하지 않으면 보존된다.</li>
+      <li>푸아송 괄호로 쓰면 \(d\omega/dt = \{\omega, H\}\)이고, 기본 괄호는 \(\{q_i, p_j\} = \delta_{ij}\)이다. 괄호의 성질은 교환자와 같고, \(\{\,,\} \to [\,,]/i\hbar\)가 고전역학과 양자역학을 잇는 길잡이다.</li>
+      <li>정준 변환은 기본 괄호를 보존하는 변환이다. 모든 괄호와 해밀턴 방정식이 보존되고, 위상 공간의 넓이도 보존된다. 작용-각 변수로 바꾸면 진동자의 해밀토니안은 \(H = \omega P\)가 된다.</li>
+      <li>무한소 정준 변환은 \(\delta\omega = \varepsilon\{\omega, g\}\)로 생성자 \(g\)가 만든다. 운동량은 평행 이동을, 각운동량은 회전을, 해밀토니안은 시간 변화를 만든다.</li>
+      <li>대칭은 보존량을 낳는다(뇌터 정리). 해밀턴 형식에서는 \(\{g, H\} = 0\)이 '\(g\)가 대칭을 생성한다'와 '\(g\)가 보존된다'를 동시에 뜻한다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 최소 작용의 원리에서 작용을 비교하는 경로들은 어떤 조건을 함께 만족하는가?</p><div class="opts">
+        <button class="opt">처음 위치와 처음 속도가 같다.</button>
+        <button class="opt" data-correct>처음과 나중의 시각과 위치가 같다.</button>
+        <button class="opt">전체 에너지가 같다.</button>
+        <button class="opt">걸린 시간만 같으면 된다.</button>
+      </div><div class="quiz-exp">양 끝점 \(x(t_1) = x_1\), \(x(t_2) = x_2\)를 고정한다. 그래야 부분 적분의 경계 항이 사라져 오일러-라그랑주 방정식이 나온다. 처음 위치와 속도를 정하는 것은 뉴턴 방정식을 푸는 방식이다.</div></div>
+      <div class="quiz-q"><p>2. 정준 운동량 \(p = \partial L/\partial\dot q\)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">언제나 \(m\dot q\)이다.</button>
+        <button class="opt">각도 좌표에는 정의되지 않는다.</button>
+        <button class="opt" data-correct>전자기장 속에서는 \(m\mathbf v + q\mathbf A\)로, \(m\mathbf v\)와 다를 수 있다.</button>
+        <button class="opt">언제나 보존된다.</button>
+      </div><div class="quiz-exp">진자의 \(p_\theta = m\ell^2\dot\theta\)처럼 각도 좌표에도 정준 운동량이 있다. 보존되는 것은 순환 좌표의 정준 운동량뿐이다. 전자기장에서는 \(q\mathbf v\cdot\mathbf A\) 항 때문에 \(q\mathbf A\)가 더해진다(<a class="ref" href="#ex-em"></a>).</div></div>
+      <div class="quiz-q"><p>3. 해밀턴 방정식으로 옳은 것은?</p><div class="opts">
+        <button class="opt">\(\dot q = -\partial H/\partial p\), \(\dot p = \partial H/\partial q\)</button>
+        <button class="opt" data-correct>\(\dot q = \partial H/\partial p\), \(\dot p = -\partial H/\partial q\)</button>
+        <button class="opt">\(\dot q = \partial H/\partial q\), \(\dot p = \partial H/\partial p\)</button>
+        <button class="opt">\(\dot q = p/m\), \(\dot p = 0\)</button>
+      </div><div class="quiz-exp">\(H = p^2/2m + V\)로 확인하면 \(\dot q = p/m\), \(\dot p = -V'\)이 되어야 한다. 부호는 이것으로 기억하면 된다.</div></div>
+      <div class="quiz-q"><p>4. 위상 공간의 함수 \(\omega(q, p)\)가 보존될 조건은? (\(\omega\)는 시간을 직접 포함하지 않는다.)</p><div class="opts">
+        <button class="opt">\(\{\omega, q\} = 0\)</button>
+        <button class="opt">\(\{\omega, p\} = 0\)</button>
+        <button class="opt" data-correct>\(\{\omega, H\} = 0\)</button>
+        <button class="opt">\(\{\omega, \omega\} = 0\)</button>
+      </div><div class="quiz-exp">\(d\omega/dt = \{\omega, H\}\)이다. \(\{\omega, \omega\} = 0\)은 반대칭성 때문에 어떤 함수에서나 성립하므로 아무것도 말해 주지 않는다.</div></div>
+      <div class="quiz-q"><p>5. 다음 가운데 정준 변환은?</p><div class="opts">
+        <button class="opt">\(\bar q = q\), \(\bar p = p^3\)</button>
+        <button class="opt" data-correct>\(\bar q = p\), \(\bar p = -q\)</button>
+        <button class="opt">\(\bar q = 2q\), \(\bar p = 2p\)</button>
+        <button class="opt">\(\bar q = qp\), \(\bar p = p\)</button>
+      </div><div class="quiz-exp">\(\{p, -q\} = 1\)이다. 나머지의 \(\{\bar q, \bar p\}\)는 차례로 \(3p^2\), 4, \(p\)여서 1이 아니다. 위상 공간의 넓이를 바꾸는 변환은 정준이 아니다.</div></div>
+      <div class="quiz-q"><p>6. \(\{g, H\} = 0\)일 때 옳지 <b>않은</b> 것은?</p><div class="opts">
+        <button class="opt">\(g\)는 운동하는 동안 보존된다.</button>
+        <button class="opt">\(g\)가 생성하는 무한소 정준 변환으로 \(H\)가 변하지 않는다.</button>
+        <button class="opt" data-correct>\(g\)는 반드시 \(H\)의 함수다.</button>
+        <button class="opt">\(H\)가 생성하는 시간 변화로 \(g\)가 변하지 않는다.</button>
+      </div><div class="quiz-exp">처음 두 문장과 넷째 문장은 <a class="ref" href="#thm-symmetry"></a>의 내용이다. 중심력의 각운동량 \(\ell\)은 \(\{\ell, H\} = 0\)이지만 \(H\)의 함수가 아니다. 같은 에너지에서도 각운동량은 여러 값을 가질 수 있다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-el-spring" data-level="1"><p>(가) 용수철에 매달린 물체의 라그랑지안 \(L = \tfrac12 m\dot x^2 - \tfrac12 kx^2\)에서 운동 방정식을 구하라. (나) 퍼텐셜이 없는 평면 위의 입자를 극좌표로 쓴 \(L = \tfrac12 m(\dot r^2 + r^2\dot\theta^2)\)에서 두 운동 방정식을 구하고, 각운동량이 보존됨을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\partial L/\partial\dot x = m\dot x\), \(\partial L/\partial x = -kx\)이므로 \(m\ddot x = -kx\)이다.</p>
+        <p>(나) \(r\): \(m\ddot r = mr\dot\theta^2\). \(\theta\): \(\frac{d}{dt}(mr^2\dot\theta) = 0\). \(\theta\)가 순환 좌표이므로 \(p_\theta = mr^2\dot\theta\)가 보존된다. 힘이 없는데도 \(r\) 방정식에 \(mr\dot\theta^2\)이 나오는 것은 직선 운동을 극좌표로 보았기 때문이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-atwood" data-level="1"><p>질량이 \(m_1\), \(m_2\)(\(m_1 > m_2\))인 두 물체를 줄로 이어 고정 도르래에 걸었다(애트우드 기계). 줄과 도르래의 질량과 마찰은 무시한다. \(m_1\)이 내려간 거리 \(x\) 하나로 라그랑지안을 쓰고 가속도를 구하라. \(m_1 = 3\ \mathrm{kg}\), \(m_2 = 2\ \mathrm{kg}\)이면 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(m_1\)이 \(x\)만큼 내려가면 \(m_2\)는 \(x\)만큼 올라가므로 두 물체의 속력은 모두 \(\dot x\)이다. \(L = \tfrac12(m_1 + m_2)\dot x^2 + m_1 gx - m_2 gx\)이고, 오일러-라그랑주 방정식은 \((m_1 + m_2)\ddot x = (m_1 - m_2)g\)이다. 따라서 \(\ddot x = \frac{m_1 - m_2}{m_1 + m_2}\,g = \frac15\cdot 9.8 = 1.96\ \mathrm{m/s^2}\)이다. 줄의 장력은 계산에 나오지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-pb-calc" data-level="1"><p>\(\{x, p^2\}\), \(\{x^2, p\}\), \(\{xp, x\}\), \(\{xp, p\}\)를 계산하라. 각 결과에 \(i\hbar\)를 곱한 것을 대응하는 교환자 \([\hat x, \hat p^2]\), \([\hat x^2, \hat p]\)(<a href="ch03.html#prob-comm">3장 문제 3.3</a>)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>식 <a class="ref" href="#eq-poisson"></a>로 \(\{x, p^2\} = 1\cdot 2p = 2p\), \(\{x^2, p\} = 2x\cdot 1 = 2x\), \(\{xp, x\} = p\cdot 0 - x\cdot 1 = -x\), \(\{xp, p\} = p\cdot 1 - x\cdot 0 = p\)이다.</p>
+        <p>3장 문제 3.3에서 \([\hat x, \hat p^2] = 2i\hbar\,\hat p = i\hbar\cdot 2p\)이고 \([\hat x^2, \hat p] = 2i\hbar\,\hat x = i\hbar\cdot 2x\)였다. 대응 \([\,,] = i\hbar\{\,,\}\)이 성립한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-total-derivative" data-level="2"><p>(가) 라그랑지안에 어떤 함수 \(F(q, t)\)의 시간 전미분을 더한 \(L' = L + dF/dt\)도 같은 운동 방정식을 줌을 보여라. (나) 전자기 퍼텐셜을 \(\mathbf A \to \mathbf A + \nabla\chi\), \(\phi \to \phi - \partial\chi/\partial t\)로 바꾸면(게이지 변환) 식 <a class="ref" href="#eq-em-lagrangian"></a>의 라그랑지안이 어떻게 바뀌는지 보이고, 운동이 그대로인 이유를 설명하라. 정준 운동량은 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 두 작용의 차이는 \(\int_{t_1}^{t_2}\frac{dF}{dt}dt = F(q(t_2), t_2) - F(q(t_1), t_1)\)이다. 양 끝점을 고정한 경로들만 비교하므로 이 값은 모든 경로에서 같고, 비틀어도 변하지 않는다. 따라서 \(\delta S' = \delta S\)이고 정류 조건, 곧 운동 방정식이 같다.</p>
+        <p>(나) \(L' = \tfrac12 mv^2 - q\phi + q\frac{\partial\chi}{\partial t} + q\mathbf v\cdot\mathbf A + q\mathbf v\cdot\nabla\chi = L + q\Big(\frac{\partial\chi}{\partial t} + \mathbf v\cdot\nabla\chi\Big) = L + q\frac{d\chi}{dt}\)이다. (가)에 따라 운동은 그대로다. 실제로 \(\mathbf E\)와 \(\mathbf B\)는 게이지 변환으로 바뀌지 않는다. 정준 운동량은 \(\mathbf p' = m\mathbf v + q\mathbf A + q\nabla\chi\)로 바뀌지만, \(m\mathbf v = \mathbf p - q\mathbf A\)는 그대로다. 정준 운동량은 게이지에 따라 값이 달라지는 양이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-relativistic" data-level="2"><p>상대론적 자유 입자의 라그랑지안은 \(L = -mc^2\sqrt{1 - v^2/c^2}\)이다(1차원). 정준 운동량과 해밀토니안을 구하라. \(v \ll c\)에서 \(L\)과 \(H\)는 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(p = \partial L/\partial v = \dfrac{mv}{\sqrt{1 - v^2/c^2}} = \gamma mv\)이다. \(v\)에 대해 풀면 \(v = \dfrac{pc}{\sqrt{p^2 + m^2c^2}}\)이고</p>
+        <div class="formula">\[ \begin{aligned} H &= pv - L = \gamma mv^2 + \frac{mc^2}{\gamma} = \gamma mc^2 \\ &= \sqrt{p^2c^2 + m^2c^4} \end{aligned} \]</div>
+        <p>이다(\(\gamma mv^2 + mc^2/\gamma = \gamma m(v^2 + c^2 - v^2) = \gamma mc^2\)). \(v \ll c\)이면 \(L \approx -mc^2 + \tfrac12 mv^2\), \(H \approx mc^2 + p^2/2m\)로, 상수 \(mc^2\)를 빼면 뉴턴 역학의 꼴이다. 23장의 디랙 방정식은 이 \(H\)에서 출발한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-cyclotron" data-level="2"><p>\(z\) 방향의 균일한 자기장 \(B\)는 \(\mathbf A = \tfrac12 B(-y, x, 0)\)으로 쓸 수 있다(\(\nabla\times\mathbf A = B\hat z\)임을 확인하라). \(xy\) 평면에서 움직이는 전하 \(q\)의 라그랑지안을 쓰고, 오일러-라그랑주 방정식이 로런츠 힘 \(q\mathbf v\times\mathbf B\)와 같음을 보여라. 원운동의 각진동수를 구하라. 정준 운동량 \(p_x\)는 \(m\dot x\)와 같은가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\nabla\times\mathbf A\)의 \(z\) 성분은 \(\partial_x A_y - \partial_y A_x = \tfrac B2 + \tfrac B2 = B\)이다. 라그랑지안은</p>
+        <div class="formula">\[ L = \tfrac12 m(\dot x^2 + \dot y^2) + \tfrac{qB}{2}\,(x\dot y - y\dot x) \]</div>
+        <p>이다. \(p_x = \partial L/\partial\dot x = m\dot x - \tfrac12 qBy\)이고 \(\partial L/\partial x = \tfrac12 qB\dot y\)이므로, \(\frac{d}{dt}p_x = \partial L/\partial x\)는 \(m\ddot x - \tfrac12 qB\dot y = \tfrac12 qB\dot y\), 곧 \(m\ddot x = qB\dot y\)이다. 같은 방법으로 \(m\ddot y = -qB\dot x\)이다. 한편 \(q\mathbf v\times\mathbf B = q(\dot yB, -\dot xB, 0)\)이므로 같다.</p>
+        <p>두 식을 합치면 \(\dddot x = \frac{qB}{m}\ddot y = -\big(\frac{qB}{m}\big)^2\dot x\)이므로 속도가 각진동수 \(\omega_c = qB/m\)(사이클로트론 진동수)로 돈다. \(p_x = m\dot x - \tfrac12 qBy\)로 \(m\dot x\)와 다르다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-angular-pb" data-level="2"><p>3차원에서 \(\ell_x = yp_z - zp_y\), \(\ell_y = zp_x - xp_z\), \(\ell_z = xp_y - yp_x\)이다. (가) \(\{\ell_x, \ell_y\} = \ell_z\)임을 보여라. (나) \(\{\ell_z, \ell^2\} = 0\)임을 보여라(\(\ell^2 = \ell_x^2 + \ell_y^2 + \ell_z^2\)). 14장에서 이것은 \([\hat L_x, \hat L_y] = i\hbar\hat L_z\)가 된다.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 성질 (나)로 펼치면</p>
+        <div class="formula">\[ \begin{aligned} \{\ell_x, \ell_y\} = \;&\{yp_z, zp_x\} - \{yp_z, xp_z\} \\ &- \{zp_y, zp_x\} + \{zp_y, xp_z\} \end{aligned} \]</div>
+        <p>이다. 가운데 두 괄호에는 서로 짝인 변수(\(z\)와 \(p_z\) 같은)가 없어서 0이다. 첫째 괄호에서 짝은 \(p_z\)와 \(z\)뿐이므로 성질 (다)로 \(\{yp_z, zp_x\} = yp_x\{p_z, z\} = -yp_x\)이고, 넷째 괄호도 같은 방법으로 \(\{zp_y, xp_z\} = xp_y\{z, p_z\} = xp_y\)이다. 따라서 \(\{\ell_x, \ell_y\} = xp_y - yp_x = \ell_z\)이다.</p>
+        <p>(나) (가)를 순환시키면 \(\{\ell_y, \ell_z\} = \ell_x\), \(\{\ell_z, \ell_x\} = \ell_y\)이다. 성질 (다)로 \(\{\ell_z, \ell_x^2\} = 2\ell_x\{\ell_z, \ell_x\} = 2\ell_x\ell_y\), \(\{\ell_z, \ell_y^2\} = 2\ell_y\{\ell_z, \ell_y\} = -2\ell_y\ell_x\), \(\{\ell_z, \ell_z^2\} = 0\)이므로 합은 0이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-canonical-check" data-level="2"><p>다음 변환이 정준 변환인지 판별하라. (가) \(\bar q = q\cos\alpha - p\sin\alpha\), \(\bar p = q\sin\alpha + p\cos\alpha\) (나) \(\bar q = q^2\), \(\bar p = p/2q\) (\(q > 0\)) (다) \(\bar q = q + p\), \(\bar p = p\) (라) \(\bar q = qp\), \(\bar p = p\)</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\{\bar q, \bar p\} = \frac{\partial\bar q}{\partial q}\frac{\partial\bar p}{\partial p} - \frac{\partial\bar q}{\partial p}\frac{\partial\bar p}{\partial q}\)를 계산한다.</p>
+        <p>(가) \(\cos\alpha\cdot\cos\alpha - (-\sin\alpha)\sin\alpha = 1\). 정준이다. 위상 공간의 회전이다. (\(\alpha = \pi/2\)이면 <a class="ref" href="#ex-canonical"></a> (나)의 맞바꾸기다.)</p>
+        <p>(나) \(2q\cdot\frac{1}{2q} - 0 = 1\). 정준이다. <a class="ref" href="#ex-canonical"></a> (가)에서 \(f(q) = q^2\)인 경우다.</p>
+        <p>(다) \(1\cdot 1 - 1\cdot 0 = 1\). 정준이다. 위상 공간을 비스듬히 미는 변환으로, 모양은 바뀌지만 넓이는 그대로다.</p>
+        <p>(라) \(p\cdot 1 - q\cdot 0 = p\). 정준이 아니다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-generator-x" data-level="2"><p>생성자 \(g = -x\)가 만드는 무한소 정준 변환을 구하라. 이 결과를 <a href="ch03.html#prob-momentum-kick">3장 문제 3.10</a>의 연산자 \(e^{iq\hat x/\hbar}\)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>식 <a class="ref" href="#eq-generator"></a>로 \(\delta x = \varepsilon\{x, -x\} = 0\), \(\delta p = \varepsilon\{p, -x\} = \varepsilon\{x, p\} = \varepsilon\)이다. 위치는 그대로 두고 운동량만 \(\varepsilon\)만큼 민다. 3장 문제 3.10의 \(e^{iq\hat x/\hbar} = e^{-iq(-\hat x)/\hbar}\)는 생성자 \(-\hat x\)로 쓴 꼴이고, 운동량 분포를 \(q\)만큼 밀었다. 고전과 양자에서 같은 생성자가 같은 변환을 만든다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-two-body" data-level="2"><p><a class="ref" href="#ex-two-body"></a>의 두 입자를 질량 중심 좌표 \(X = (m_1x_1 + m_2x_2)/M\)(\(M = m_1 + m_2\))와 상대 좌표 \(x = x_1 - x_2\)로 쓰면</p>
+      <div class="formula">\[ L = \tfrac12 M\dot X^2 + \tfrac12\mu\dot x^2 - V(x), \qquad \mu = \frac{m_1 m_2}{m_1 + m_2} \]</div>
+      <p>가 됨을 보여라. 어떤 좌표가 순환 좌표이고, 무엇이 보존되는가? 이 분리는 15장 수소 원자의 출발점이다.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>거꾸로 풀면 \(x_1 = X + \frac{m_2}{M}x\), \(x_2 = X - \frac{m_1}{M}x\)이다. 운동 에너지에 넣으면 \(\dot X\dot x\)가 붙은 교차항은 \(m_1\frac{m_2}{M} - m_2\frac{m_1}{M} = 0\)으로 사라지고, \(\dot X^2\)의 계수는 \(\tfrac12(m_1 + m_2)\), \(\dot x^2\)의 계수는 \(\tfrac12\big(m_1\frac{m_2^2}{M^2} + m_2\frac{m_1^2}{M^2}\big) = \tfrac12\frac{m_1m_2}{M}\)이다. \(X\)가 순환 좌표이므로 \(P_X = M\dot X = m_1\dot x_1 + m_2\dot x_2\), 곧 전체 운동량이 보존되고, 남은 문제는 질량 \(\mu\)인 입자 하나가 \(V(x)\) 속에서 움직이는 문제가 된다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-sho-action" data-level="3"><p>조화 진동자 \(L = \tfrac12 m\dot x^2 - \tfrac12 m\omega^2x^2\)에서 \(x(0) = 0\), \(x(T) = 0\)인 실제 경로는 \(x(t) = 0\)이다(\(T\)가 반주기 \(\pi/\omega\)의 정수배가 아닐 때). 이 경로를 \(\eta(t) = a\sin(n\pi t/T)\)(\(n = 1, 2, \ldots\))만큼 비틀었을 때 작용의 변화를 구하라. \(T &lt; \pi/\omega\)이면 실제 경로가 작용의 최소이지만, \(T > \pi/\omega\)이면 최소가 아님을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>실제 경로가 0이므로 작용의 변화는 비튼 경로의 작용 그 자체다. \(\int_0^T\cos^2(n\pi t/T)\,dt = \int_0^T\sin^2(n\pi t/T)\,dt = T/2\)이므로</p>
+        <div class="formula">\[ \Delta S = \frac{ma^2}{2}\cdot\frac{T}{2}\Big[\Big(\frac{n\pi}{T}\Big)^2 - \omega^2\Big] \]</div>
+        <p>이다. \(T &lt; \pi/\omega\)이면 모든 \(n \ge 1\)에서 \(n\pi/T > \omega\)이므로 \(\Delta S > 0\)이다(사인 함수들은 양 끝이 0인 모든 경로를 전개할 수 있고, 서로 다른 \(n\)의 항은 적분에서 섞이지 않는다). \(T > \pi/\omega\)이면 \(n = 1\)에서 \(\Delta S &lt; 0\)이고 큰 \(n\)에서는 \(\Delta S > 0\)이므로, 실제 경로는 어떤 방향으로는 작용이 줄고 어떤 방향으로는 느는 안장점이다. 그래도 1차 변분은 0이므로 정류 조건은 만족한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-liouville" data-level="3"><p>(가) 조화 진동자의 해 \(q(t) = q_0\cos\omega t + \frac{p_0}{m\omega}\sin\omega t\), \(p(t) = p_0\cos\omega t - m\omega q_0\sin\omega t\)에 대해 \(\{q(t), p(t)\}_{q_0,p_0} = 1\)을 보여라. 곧 처음 상태 \((q_0, p_0)\)를 나중 상태 \((q(t), p(t))\)로 보내는 변환은 정준이다. (나) 임의의 해밀토니안에 대해, 짧은 시간 \(dt\) 동안의 변환이 \(dt\)의 1차까지 정준임을 보이고, 이것을 이어 붙여 유한한 시간 동안에도 위상 공간의 넓이가 보존됨을 설명하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\frac{\partial q}{\partial q_0}\frac{\partial p}{\partial p_0} - \frac{\partial q}{\partial p_0}\frac{\partial p}{\partial q_0} = \cos\omega t\cdot\cos\omega t - \frac{\sin\omega t}{m\omega}\cdot(-m\omega\sin\omega t) = 1\)이다.</p>
+        <p>(나) \(q(dt) = q + dt\,\partial H/\partial p\), \(p(dt) = p - dt\,\partial H/\partial q\)는 식 <a class="ref" href="#eq-infinitesimal"></a>에서 \(g = H\), \(\varepsilon = dt\)인 경우이므로 \(dt\)의 1차까지 정준이고, 넓이를 \(1 + O(dt^2)\)배로 바꾼다. 시간 \(t\)를 \(N = t/dt\)개로 나누어 이어 붙이면 넓이는 \(\big(1 + O(dt^2)\big)^{t/dt} = 1 + O(dt)\)배가 되고, \(dt \to 0\)에서 정확히 보존된다. 정준 변환을 이어 붙인 것도 정준 변환이기 때문이다. 이것이 리우빌 정리이며, 통계역학에서 위상 공간의 분포가 흐르는 동안 밀도가 유지된다는 사실의 바탕이다.</p>
+      </details>
+    </div>
   </section>
 </main>
 </body>
