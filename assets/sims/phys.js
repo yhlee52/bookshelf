@@ -1,6 +1,6 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · incline · atwood · pendulum · oscillator · orbit · waves · double-slit · efield
+   projectile · incline · atwood · banked-curve · pendulum · oscillator · orbit · waves · double-slit · efield
    random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
@@ -377,7 +377,163 @@
   });
 
   /* ======================================================================
-     4. 진자와 위상 공간
+     4. 원운동과 구심력 (경사 커브)
+     ====================================================================== */
+  Lab.register({
+    id: "banked-curve", field: "phys", thumb: "banked",
+    title: "경사 커브 — 원운동의 구심력은 누가 낼까",
+    desc: "커브 반지름, 경사각, 노면 마찰 계수, 자동차 속력을 바꾸며 수직항력과 마찰력이 구심력을 어떻게 나눠 내는지 보고, 미끄러지지 않는 속력 범위와 이상 속력 √(gR tan θ)를 확인합니다.",
+    tags: ["역학", "원운동", "구심력", "마찰"],
+    note: "해볼 것: 경사각을 0°로 두면 평평한 도로라서 구심력을 마찰력만 냅니다. 이때 최대 속력은 √(μgR)입니다. 경사를 주면 수직항력의 안쪽 성분이 구심력을 보태 안전한 속력 범위가 넓어지고, 이상 속력 √(gR tan θ)에서는 마찰 없이도 커브를 돕니다. 빙판에서 경사가 있는 커브를 너무 천천히 돌면 안쪽으로 미끄러져 내려가는 것도 확인해 보세요.",
+    mount(S) {
+      const g = 9.81, KMH = 3.6, VMAX = 200; // 속력 슬라이더와 그래프의 최대값 (km/h)
+      const MU = { dry: 0.8, wet: 0.5, snow: 0.25, ice: 0.1 }; // 노면별 정지 마찰 계수 대략값
+      const st = { v: 70, R: 80, th: 15, mu: 0.5 };
+      const rad = (d) => (d * Math.PI) / 180;
+      let phi = 0; // 위에서 본 궤도 위 자동차의 각도
+      // 수평으로 중심을 향하는 구심력 mv²/R을 수직항력 N과 도로 면을 따라 안쪽(아래)으로 향하는 마찰력 f가 함께 낸다:
+      //   N sin θ + f cos θ = mv²/R,  N cos θ − f sin θ = mg.  모두 mg 단위로 돌려준다 (ac = v²/gR)
+      function need(v, th = rad(st.th)) {
+        const ac = (v * v) / (g * st.R);
+        return { N: Math.cos(th) + ac * Math.sin(th), f: ac * Math.cos(th) - Math.sin(th), ac };
+      }
+      /** 미끄러지지 않는 속력 범위 [v_min, v_max] (m/s). |f| ≤ μN에서 나온다. 위쪽 한계가 없으면 Infinity */
+      function range(th = rad(st.th)) {
+        const s = Math.sin(th), c = Math.cos(th), m = st.mu, eps = 1e-9; // eps: 45°, μ = 1처럼 정확히 0이어야 할 분모의 반올림 오차
+        const lo = s - m * c <= eps ? 0 : Math.sqrt((g * st.R * (s - m * c)) / (c + m * s));
+        const hi = c - m * s <= eps ? Infinity : Math.sqrt((g * st.R * (s + m * c)) / (c - m * s));
+        return [lo, hi];
+      }
+      const ideal = (th = rad(st.th)) => Math.sqrt(g * st.R * Math.tan(th));
+      const state = () => { const n = need(st.v / KMH); return Object.assign(n, { ok: Math.abs(n.f) <= st.mu * n.N + 1e-12 }); };
+      const [left, right] = S.split(2);
+      const cvS = S.canvas({ parent: left, aspect: 0.95, maxHeight: 440 }, (ctx, w, h) => {
+        const P = VZ.palette(), s = state(), th = rad(st.th), c = Math.cos(th), sn = Math.sin(th);
+        const slip = s.ok ? 0 : s.f > 0 ? 1 : -1; // 1: 바깥쪽으로, −1: 안쪽으로 미끄러짐
+        const carCol = slip ? P.bad : P.accent;
+        // 화살표: 길이가 4px 미만이면 생략하고, 이름은 차를 비켜 단다. vpos("above"·"below")를 주면 이름을 화살표 끝의 위·아래에 단다
+        const arrow = (C, dx, dy, col, label, dash, clear, vpos) => {
+          const len = Math.hypot(dx, dy);
+          if (len < 4) return;
+          const ux = dx / len, uy = dy / len, side = Math.abs(ux) > 0.35;
+          ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = dash ? 1.6 : 2.4; ctx.setLineDash(dash ? [5, 4] : []);
+          VZ.arrow(ctx, C[0], C[1], C[0] + dx, C[1] + dy, 8); ctx.setLineDash([]);
+          if (!label) return;
+          const r = Math.max(len, clear), lx = C[0] + ux * r, ly = C[1] + uy * r;
+          ctx.font = VZ.font(11.5, false, 700);
+          ctx.textAlign = side && ux < 0 ? "right" : "left";
+          if (vpos) { ctx.textBaseline = vpos === "above" ? "bottom" : "top"; ctx.fillText(label, lx, ly + (vpos === "above" ? -5 : 5)); return; }
+          ctx.textBaseline = side ? (uy > 0.35 ? "top" : uy < -0.35 ? "bottom" : "middle") : "middle";
+          ctx.fillText(label, side ? lx + ux * 6 : lx + 8, side ? ly + uy * 6 : ly - 4);
+        };
+        // ── 위에서 본 모습: 원 궤도를 시계 반대 방향으로 도는 자동차
+        const top = h * 0.38, ox = w / 2, oy = top / 2 + 10, r = Math.min(w * 0.28, top / 2 - 18);
+        ctx.strokeStyle = VZ.alpha(P.dim, 0.22); ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(ox, oy, r, 0, 7); ctx.stroke();
+        ctx.strokeStyle = VZ.alpha(P.dim, 0.6); ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox - r * 0.707, oy + r * 0.707); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = P.dim; ctx.beginPath(); ctx.arc(ox, oy, 3, 0, 7); ctx.fill();
+        ctx.font = VZ.font(11.5, false); ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+        ctx.fillText(`R = ${st.R} m`, ox - r * 0.36 - 4, oy + r * 0.36);
+        const cp = [ox + r * Math.cos(phi), oy - r * Math.sin(phi)], tv = [-Math.sin(phi), -Math.cos(phi)], tc = [-Math.cos(phi), Math.sin(phi)];
+        ctx.save(); ctx.translate(cp[0], cp[1]); ctx.rotate(Math.atan2(tv[1], tv[0]));
+        ctx.fillStyle = carCol; ctx.fillRect(-9, -5, 18, 10); ctx.restore();
+        if (st.v > 0) {
+          arrow(cp, tv[0] * 34, tv[1] * 34, P.text, "v", false, 12);
+          arrow(cp, tc[0] * 26, tc[1] * 26, P.accent2, "a", false, 12);
+        }
+        if (slip) arrow(cp, -tc[0] * slip * 24, -tc[1] * slip * 24, P.bad); // 미끄러지는 쪽
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("위에서 본 모습 · 4배속", 10, 8);
+        ctx.fillText(st.v > 0 ? `한 바퀴 ${((2 * Math.PI * st.R) / (st.v / KMH)).toFixed(1)} s` : "정지", 10, 26);
+        // ── 앞에서 본 단면: 도로는 바깥쪽(오른쪽)이 높고, 곡선 중심은 왼쪽에 있다
+        const y0 = top + 4;
+        ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, y0); ctx.lineTo(w - 10, y0); ctx.stroke();
+        ctx.fillStyle = P.dim; ctx.fillText("앞에서 본 단면 · 자유물체도", 10, y0 + 6);
+        ctx.fillText("← 곡선 중심 쪽", 10, y0 + 24);
+        const O = [w * 0.56, h - 58], d = [c, -sn], n = [-sn, -c], q = [-c, sn]; // 바퀴가 닿는 점, 도로 방향(바깥쪽 위), 도로 법선, 도로를 따라 안쪽 아래
+        ctx.save(); ctx.beginPath(); ctx.rect(0, y0, w, h - y0); ctx.clip();
+        ctx.fillStyle = VZ.alpha(P.dim, 0.14); ctx.strokeStyle = P.dim; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(O[0] - d[0] * w, O[1] - d[1] * w); ctx.lineTo(O[0] + d[0] * w, O[1] + d[1] * w); ctx.lineTo(w + 10, h + 10); ctx.lineTo(-10, h + 10); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(O[0] - d[0] * w, O[1] - d[1] * w); ctx.lineTo(O[0] + d[0] * w, O[1] + d[1] * w); ctx.stroke();
+        ctx.restore();
+        const C = [O[0] + n[0] * 15, O[1] + n[1] * 15]; // 차의 질량 중심
+        ctx.save(); ctx.translate(C[0], C[1]); ctx.rotate(-th);
+        ctx.fillStyle = VZ.alpha(carCol, 0.25); ctx.strokeStyle = carCol; ctx.lineWidth = 1.6;
+        ctx.fillRect(-30, -20, 60, 24); ctx.strokeRect(-30, -20, 60, 24);
+        ctx.fillStyle = P.text; [-18, 18].forEach((x) => { ctx.beginPath(); ctx.arc(x, 9, 6, 0, 7); ctx.fill(); });
+        ctx.restore();
+        ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(C[0], C[1], 3, 0, 7); ctx.fill();
+        // 힘은 mg 단위. 미끄러질 때는 마찰력이 최대 정지 마찰력 μN에서 멈추므로 필요한 구심력에 못 미친다
+        const fShow = VZ.clamp(s.f, -st.mu * s.N, st.mu * s.N), unit = Math.min(64, 120 / Math.max(1, s.N, Math.abs(fShow), s.ac));
+        arrow(C, 0, unit, P.text, "mg", false, 34);
+        arrow(C, n[0] * unit * s.N, n[1] * unit * s.N, P.ok, `N = ${s.N.toFixed(2)} mg`, false, 34);
+        // 마찰력과 구심력은 둘 다 왼쪽을 향하기 쉬우니 이름을 아래·위로 나눠 단다
+        arrow(C, q[0] * unit * fShow, q[1] * unit * fShow, P.accent, `f = ${Math.abs(fShow).toFixed(2)} mg${slip ? " (최대)" : ""}`, false, 34, "below");
+        arrow(C, -unit * s.ac, 0, P.accent2, `mv²/R = ${s.ac.toFixed(2)} mg`, true, 34, "above");
+      });
+      const cvG = S.canvas({ parent: right, aspect: 0.95, maxHeight: 440 }, (ctx, w, h) => {
+        const P = VZ.palette(), s = state(), [lo, hi] = range(), v0 = ideal() * KMH, vs = VZ.linspace(0, VMAX, 201);
+        const at = (v) => need(v / KMH), dotCol = s.ok ? P.ok : P.bad;
+        VZ.chart(ctx, { x: 0, y: 0, w, h: h * 0.52 }, {
+          x: [0, VMAX], y: [-1.5, 1.5], xLabel: "속력 (km/h)", title: "속력에 따른 필요한 마찰력 f (mg 단위)",
+          bands: [{ x0: Math.min(lo * KMH, VMAX), x1: Math.min(hi * KMH, VMAX), color: VZ.alpha(P.ok, 0.12) }],
+          series: [
+            { data: vs.map((v) => [v, st.mu * at(v).N]), color: P.accent2, width: 1.4, dash: [4, 4] },
+            { data: vs.map((v) => [v, -st.mu * at(v).N]), color: P.accent2, width: 1.4, dash: [4, 4] },
+            { data: vs.map((v) => [v, at(v).f]), color: P.accent, width: 2.4 },
+          ],
+          hlines: [{ y: 0, color: P.axis, dash: [] }],
+          vlines: v0 <= VMAX ? [{ x: v0, color: P.faint, label: "이상 속력" }] : [],
+          points: [{ x: st.v, y: s.f, color: dotCol, r: 6 }],
+          texts: [{ x: VMAX - 3, y: 1.32, text: "+ 마찰이 안쪽으로", align: "right", sans: true }, { x: VMAX - 3, y: -1.32, text: "− 마찰이 바깥쪽으로", align: "right", sans: true }],
+        });
+        // 경사각을 훑으며 안전 속력 범위를 칠한다. 위쪽 한계가 없으면 그래프 위끝까지
+        const ths = VZ.linspace(0, 45, 181), rr = ths.map((a) => range(rad(a))), cap = (v) => Math.min(v * KMH, VMAX);
+        const C = VZ.chart(ctx, { x: 0, y: h * 0.52, w, h: h * 0.48 }, {
+          x: [0, 45], y: [0, VMAX], xLabel: "경사각 θ (°)", title: "경사각에 따른 안전 속력 범위 (km/h)",
+          series: [
+            { data: ths.map((a, i) => [a, cap(rr[i][1])]), color: P.accent2, width: 1.6, dash: [4, 4] },
+            { data: ths.map((a, i) => [a, cap(rr[i][0])]), color: P.accent2, width: 1.6, dash: [4, 4] },
+            { data: ths.map((a) => [a, cap(ideal(rad(a)))]), color: P.dim, width: 1.4, dash: [6, 4] },
+          ],
+          vlines: [{ x: st.th, color: P.faint }],
+          points: [{ x: st.th, y: Math.min(st.v, VMAX), color: dotCol, r: 6 }],
+        });
+        ctx.fillStyle = VZ.alpha(P.ok, 0.12); ctx.beginPath();
+        ths.forEach((a, i) => (i ? ctx.lineTo(C.X(a), C.Y(cap(rr[i][1]))) : ctx.moveTo(C.X(a), C.Y(cap(rr[i][1])))));
+        for (let i = ths.length - 1; i >= 0; i--) ctx.lineTo(C.X(ths[i]), C.Y(cap(rr[i][0])));
+        ctx.closePath(); ctx.fill();
+      });
+      S.legend([
+        { label: "필요한 마찰력", color: (P) => P.accent },
+        { label: "최대 정지 마찰력 ±μN", color: (P) => P.accent2, dash: true },
+        { label: "이상 속력", color: (P) => P.dim, dash: true },
+        { label: "미끄러지지 않는 범위", color: (P) => VZ.alpha(P.ok, 0.45) },
+      ]);
+      const set = S.stats([{ k: "st", label: "상태" }, { k: "v0", label: "이상 속력 √(gR tan θ)" }, { k: "rg", label: "미끄러지지 않는 속력" }, { k: "f", label: "필요한 마찰 / 최대 정지 마찰" }, { k: "ac", label: "구심 가속도 v²/R" }]);
+      function readouts() {
+        const s = state(), [lo, hi] = range(), kmh = (x) => (x * KMH).toFixed(1);
+        set("st", !s.ok ? `<span style="color:var(--bad)">${s.f > 0 ? "바깥쪽" : "안쪽"}으로 미끄러짐</span>`
+          : Math.abs(s.f) < 0.005 ? "안전 <small>마찰 없이 돎</small>" : `안전 <small>마찰이 ${s.f > 0 ? "안쪽" : "바깥쪽"}으로</small>`);
+        set("v0", kmh(ideal()) + "<small>km/h</small>");
+        set("rg", `${kmh(lo)} ~ ${isFinite(hi) ? kmh(hi) : "∞"}<small>km/h</small>`);
+        set("f", `${Math.abs(s.f).toFixed(2)} / ${(st.mu * s.N).toFixed(2)}<small>mg</small>`);
+        set("ac", (s.ac * g).toFixed(2) + `<small>m/s² · ${s.ac.toFixed(2)} g</small>`);
+      }
+      S.range({ label: "속력 v", min: 0, max: VMAX, step: 1, value: st.v, fmt: (v) => v + " km/h", onInput: (v) => (st.v = v) });
+      S.range({ label: "커브 반지름 R", min: 20, max: 300, step: 5, value: st.R, fmt: (v) => v + " m", onInput: (v) => (st.R = v) });
+      S.range({ label: "경사각 θ", min: 0, max: 45, step: 0.5, value: st.th, fmt: (v) => v + "°", onInput: (v) => (st.th = v) });
+      const road = S.seg({ label: "노면 (대략값)", options: [["dry", "마른 도로"], ["wet", "젖은 도로"], ["snow", "눈길"], ["ice", "빙판"]], value: "wet", onChange: (key) => { st.mu = MU[key]; rMu.set(st.mu, false); } });
+      const rMu = S.range({ label: "정지 마찰 계수 μₛ", min: 0, max: 1.2, step: 0.01, value: st.mu, fmt: (v) => v.toFixed(2), onInput: (v) => { st.mu = v; road.set("", false); } });
+      S.loop((dt) => {
+        phi += (st.v / KMH / st.R) * dt * 4; // 4배속
+        cvS.redraw(); cvG.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     5. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -462,7 +618,7 @@
   });
 
   /* ======================================================================
-     5. 강제 감쇠 진동자와 공명
+     6. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -524,7 +680,7 @@
   });
 
   /* ======================================================================
-     6. 케플러 궤도
+     7. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -604,7 +760,7 @@
   });
 
   /* ======================================================================
-     7. 파동의 중첩
+     8. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -655,7 +811,7 @@
   });
 
   /* ======================================================================
-     8. 이중 슬릿 간섭
+     9. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -707,7 +863,7 @@
   });
 
   /* ======================================================================
-     9. 전기장과 전위
+     10. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -789,7 +945,7 @@
   });
 
   /* ======================================================================
-     10. 랜덤 워크와 확산
+     11. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -847,7 +1003,7 @@
   });
 
   /* ======================================================================
-     11. 열 확산 (2D 열방정식)
+     12. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -909,7 +1065,7 @@
   });
 
   /* ======================================================================
-     12. 이징 모형
+     13. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -968,7 +1124,7 @@
   });
 
   /* ======================================================================
-     13. 이중 진자 — 카오스
+     14. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -1039,7 +1195,7 @@
   });
 
   /* ======================================================================
-     14. 로렌츠 끌개 (3D)
+     15. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -1106,7 +1262,7 @@
   });
 
   /* ======================================================================
-     15. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     16. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
