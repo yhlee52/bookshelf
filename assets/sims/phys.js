@@ -1,6 +1,6 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · pendulum · oscillator · orbit · waves · double-slit · efield
+   projectile · incline · pendulum · oscillator · orbit · waves · double-slit · efield
    random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
@@ -95,7 +95,170 @@
   });
 
   /* ======================================================================
-     2. 진자와 위상 공간
+     2. 빗면 위의 물체와 마찰
+     ====================================================================== */
+  Lab.register({
+    id: "incline", field: "phys", thumb: "incline",
+    title: "빗면과 마찰 — 언제 미끄러지기 시작할까",
+    desc: "경사각과 마찰 계수를 바꾸며 빗면 위 블록에 작용하는 중력, 수직항력, 마찰력을 자유물체도로 보고, 미끄러지기 시작하는 임계각과 가속도를 확인합니다.",
+    tags: ["역학", "마찰", "자유물체도", "뉴턴 법칙"],
+    note: "해볼 것: 경사각을 천천히 올려 보세요. tan θ가 μₛ를 넘는 임계각에서 블록이 미끄러지기 시작하고, 마찰력이 최대 정지 마찰력에서 운동 마찰력으로 뚝 떨어집니다. 미끄러지는 동안 경사를 다시 낮추면 임계각보다 낮아도 계속 미끄러지다가, tan θ가 μₖ보다 작아져야 감속해 멈춥니다. 질량을 바꾸면 모든 힘이 같은 비율로 바뀌므로 가속도 g(sin θ − μₖ cos θ)는 그대로입니다.",
+    mount(S) {
+      const g = 9.81, L = 4, BL = 0.5, D = L - BL; // 빗면 길이, 블록 길이, 블록이 미끄러질 수 있는 거리 (m)
+      const MAT = { ice: [0.1, 0.03], wood: [0.5, 0.2], steel: [0.74, 0.57], rubber: [1, 0.8] }; // [μₛ, μₖ] 대략값
+      const st = { th: 15, mus: 0.5, muk: 0.2, m: 2, comp: true };
+      const rad = (d) => (d * Math.PI) / 180;
+      // 블록: 빗면 위 끝에서 잰 위치 x (m), 속도 v, 미끄러진 시간 t. clean은 출발한 뒤 θ·μₖ를 바꾸지 않았다는 뜻
+      let x, v, t, vPeak, sliding, atBottom, clean, hist;
+      function reset() { x = 0; v = 0; t = 0; vPeak = 0; sliding = false; atBottom = false; clean = true; hist = []; }
+      reset();
+      const accel = () => g * (Math.sin(rad(st.th)) - st.muk * Math.cos(rad(st.th)));
+      const thC = () => (Math.atan(st.mus) * 180) / Math.PI;
+      /** 지금 마찰력. 미끄러지면 운동 마찰 μₖN, 멈춰 있으면 정지 마찰이 mg sin θ만큼 버틴다. 바닥에 닿은 뒤에는 null */
+      function friction() {
+        if (atBottom) return null;
+        const th = rad(st.th);
+        return sliding ? { f: st.muk * st.m * g * Math.cos(th), kind: "운동" } : { f: st.m * g * Math.sin(th), kind: "정지" };
+      }
+      /** 최근 0.25초 동안의 v–t 기울기 */
+      function slope() {
+        if (hist.length < 2 || (!sliding && !atBottom)) return null;
+        const [t1, v1] = hist[hist.length - 1];
+        for (let i = hist.length - 2; i >= 0; i--) if (t1 - hist[i][0] >= 0.25) return (v1 - hist[i][1]) / (t1 - hist[i][0]);
+        return null;
+      }
+      const [left, right] = S.split(2);
+      const cvS = S.canvas({ parent: left, aspect: 0.95, maxHeight: 400 }, (ctx, w, h) => {
+        const P = VZ.palette(), th = rad(st.th), c = Math.cos(th), s = Math.sin(th);
+        // 가장 가파른 60°에서도 빗면이 들어가고, 왼쪽에는 마찰력 화살표 자리가 남게 한다
+        const xb = w - 24, yb = h - 70, Lpx = Math.min(w - 114, (yb - 30) / Math.sin(rad(60))), k = Lpx / L;
+        const T = [xb - Lpx * c, yb - Lpx * s], u = [c, s], n = [s, -c]; // 빗면 위 끝, 빗면 아래 방향, 빗면 바깥 방향
+        ctx.fillStyle = VZ.alpha(P.dim, 0.1); ctx.fillRect(0, yb, w, h - yb);
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, yb); ctx.lineTo(w, yb); ctx.stroke();
+        ctx.fillStyle = VZ.alpha(P.dim, 0.16); ctx.strokeStyle = P.dim;
+        ctx.beginPath(); ctx.moveTo(T[0], T[1]); ctx.lineTo(xb, yb); ctx.lineTo(T[0], yb); ctx.closePath(); ctx.fill(); ctx.stroke();
+        if (th > 0) { ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(xb, yb, 40, Math.PI, Math.PI + th); ctx.stroke(); }
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12); ctx.textAlign = "right"; ctx.textBaseline = "middle";
+        ctx.fillText(`θ = ${st.th}°`, xb - 52 * Math.cos(th / 2), yb - 52 * Math.sin(th / 2));
+        // 블록 (가운데 점이 자유물체도의 출발점)
+        const bw = BL * k, bh = bw * 0.62, d = x * k + bw / 2;
+        const C = [T[0] + u[0] * d + n[0] * (bh / 2), T[1] + u[1] * d + n[1] * (bh / 2)];
+        ctx.save(); ctx.translate(C[0], C[1]); ctx.rotate(th);
+        ctx.fillStyle = VZ.alpha(P.accent, 0.22); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.6;
+        ctx.fillRect(-bw / 2, -bh / 2, bw, bh); ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
+        ctx.restore();
+        ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(C[0], C[1], 3, 0, 7); ctx.fill();
+        const fr = friction();
+        if (fr) {
+          const mg = st.m * g, N = mg * c, F = 70; // F: mg 화살표 길이(px). 다른 힘은 mg에 비례해 그린다
+          // 옆으로 향한 화살표는 끝 너머에, 위아래로 향한 화살표는 끝 오른쪽에 이름을 단다
+          const arrow = (dx, dy, col, label, thin) => {
+            const len = Math.hypot(dx, dy);
+            if (len < 4) return;
+            const ex = C[0] + dx, ey = C[1] + dy, ux = dx / len, uy = dy / len, side = Math.abs(ux) > 0.35;
+            ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = thin ? 1.4 : 2.6; ctx.setLineDash(thin ? [5, 4] : []);
+            VZ.arrow(ctx, C[0], C[1], ex, ey, thin ? 6 : 9); ctx.setLineDash([]);
+            if (!label) return;
+            // 블록보다 짧은 화살표도 이름은 블록 바깥에 단다
+            const r = Math.max(len, Math.hypot(bw, bh) / 2 + 4), lx = C[0] + ux * r, ly = C[1] + uy * r;
+            ctx.font = VZ.font(11.5, false, 700);
+            ctx.textAlign = side && ux < 0 ? "right" : "left";
+            ctx.textBaseline = side ? (uy > 0.35 ? "top" : uy < -0.35 ? "bottom" : "middle") : "middle";
+            ctx.fillText(label, side ? lx + ux * 6 : lx + 8, side ? ly + uy * 6 : ly - 4);
+          };
+          if (st.comp) {
+            const cc = VZ.alpha(P.text, 0.45);
+            arrow(u[0] * F * s, u[1] * F * s, cc, "", true);
+            arrow(-n[0] * F * c, -n[1] * F * c, cc, "", true);
+          }
+          arrow(0, F, P.text, `mg = ${mg.toFixed(1)} N`);
+          arrow(n[0] * F * c, n[1] * F * c, P.ok, `N = ${N.toFixed(1)} N`);
+          arrow((-u[0] * F * fr.f) / mg, (-u[1] * F * fr.f) / mg, P.accent, `f = ${fr.f.toFixed(1)} N`);
+        }
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        if (atBottom) {
+          ctx.fillText(`도착 ${t.toFixed(2)} s · 도착 속력 ${v.toFixed(2)} m/s`, 10, 8);
+          if (clean) ctx.fillText(`이론 √(2d/a) = ${Math.sqrt((2 * D) / accel()).toFixed(2)} s (d = ${D} m)`, 10, 26);
+          ctx.fillText("‘다시 놓기’로 처음부터", 10, clean ? 44 : 26);
+        } else ctx.fillText(`t = ${t.toFixed(2)} s · v = ${v.toFixed(2)} m/s`, 10, 8);
+      });
+      const cvG = S.canvas({ parent: right, aspect: 0.95, maxHeight: 400 }, (ctx, w, h) => {
+        const P = VZ.palette(), mg = st.m * g, tc = thC(), sinC = mg * Math.sin(rad(tc)), kinC = st.muk * mg * Math.cos(rad(tc));
+        const ths = VZ.linspace(0, 60, 241), N = (a) => mg * Math.cos(rad(a)), fr = friction();
+        // 경사를 천천히 올릴 때의 마찰력: 임계각까지는 mg sin θ를 따라 오르다가 운동 마찰력으로 떨어진다
+        const below = ths.filter((a) => a < tc).concat(tc <= 60 ? [tc] : []), above = tc <= 60 ? [tc].concat(ths.filter((a) => a > tc)) : [];
+        VZ.chart(ctx, { x: 0, y: 0, w, h: h * 0.56 }, {
+          x: [0, 60], y: [0, mg * Math.max(1.08, st.mus * 1.05)], xLabel: "경사각 θ (°)", title: "경사각에 따른 마찰력 (N)",
+          series: [
+            { data: ths.map((a) => [a, mg * Math.sin(rad(a))]), color: P.dim, width: 1.4, dash: [6, 4] },
+            { data: ths.map((a) => [a, st.mus * N(a)]), color: P.accent2, width: 1.4, dash: [4, 4] },
+            { data: ths.map((a) => [a, st.muk * N(a)]), color: VZ.alpha(P.accent2, 0.55), width: 1.4, dash: [2, 3] },
+            { data: below.map((a) => [a, mg * Math.sin(rad(a))]), color: P.accent, width: 2.8 },
+            { data: above.length ? [[tc, sinC], [tc, kinC]] : [], color: P.accent, width: 1.2, dash: [3, 3] },
+            { data: above.map((a) => [a, st.muk * N(a)]), color: P.accent, width: 2.8 },
+          ],
+          vlines: tc <= 60 ? [{ x: tc, color: P.faint, label: `θc ${tc.toFixed(1)}°` }] : [],
+          points: fr ? [{ x: st.th, y: fr.f, color: P.accent, r: 6 }] : [],
+        });
+        const theory = clean && hist.length ? [{ data: [[0, 0], [t, accel() * t]], color: P.dim, width: 1.4, dash: [5, 4] }] : [];
+        VZ.chart(ctx, { x: 0, y: h * 0.56, w, h: h * 0.44 }, {
+          x: [0, Math.max(2, t * 1.1)], y: [0, Math.max(1, vPeak * 1.15)], xLabel: "시간 (s)", title: "속도 v (m/s) — 기울기가 가속도",
+          series: theory.concat([{ data: hist, color: P.accent, width: 2.2 }]),
+          texts: hist.length ? [] : [{ x: 1, y: 0.5, text: "블록이 미끄러지면 여기에 그려집니다", align: "center", sans: true }],
+        });
+      });
+      S.legend([
+        { label: "마찰력 f", color: (P) => P.accent },
+        { label: "mg sin θ", color: (P) => P.dim, dash: true },
+        { label: "최대 정지 마찰력 μₛN", color: (P) => P.accent2, dash: true },
+        { label: "운동 마찰력 μₖN", color: (P) => VZ.alpha(P.accent2, 0.55), dash: true },
+      ]);
+      const set = S.stats([{ k: "st", label: "상태" }, { k: "tc", label: "임계각 tan⁻¹ μₛ" }, { k: "f", label: "마찰력 f" }, { k: "a", label: "가속도 (이론)" }, { k: "am", label: "v–t 기울기 (측정)" }]);
+      function readouts() {
+        const fr = friction(), a = accel(), am = slope();
+        set("st", atBottom ? `바닥 도착 <small>${t.toFixed(2)} s</small>` : !sliding ? "정지 <small>정지 마찰이 버팀</small>" : a > 1e-9 ? "미끄러지며 가속" : a < -1e-9 ? "미끄러지며 감속" : "등속으로 미끄러짐");
+        set("tc", thC().toFixed(1) + "°");
+        set("f", fr ? `${fr.f.toFixed(2)}<small>N · ${fr.kind}</small>` : "—");
+        set("a", atBottom ? "—" : (sliding ? a : 0).toFixed(2) + "<small>m/s²</small>");
+        set("am", am == null ? "—" : am.toFixed(2) + "<small>m/s²</small>");
+      }
+      S.range({ label: "경사각 θ", min: 0, max: 60, step: 0.5, value: st.th, fmt: (v) => v + "°", onInput: (v) => { st.th = v; if (sliding) clean = false; } });
+      const mat = S.seg({ label: "재질 (대략값)", options: [["ice", "얼음"], ["wood", "나무"], ["steel", "강철"], ["rubber", "고무·콘크리트"]], value: "wood", onChange: (key) => {
+        [st.mus, st.muk] = MAT[key]; rS.set(st.mus, false); rK.set(st.muk, false); if (sliding) clean = false;
+      } });
+      const rS = S.range({ label: "정지 마찰 계수 μₛ", min: 0, max: 1.2, step: 0.01, value: st.mus, fmt: (v) => v.toFixed(2), onInput: (v) => {
+        st.mus = v; mat.set("", false);
+        if (st.muk > v) { st.muk = v; rK.set(v, false); if (sliding) clean = false; } // 운동 마찰 계수는 정지 마찰 계수를 넘지 않는다
+      } });
+      const rK = S.range({ label: "운동 마찰 계수 μₖ", min: 0, max: 1.2, step: 0.01, value: st.muk, fmt: (v) => v.toFixed(2), onInput: (v) => {
+        if (v > st.mus) { v = st.mus; rK.set(v, false); }
+        st.muk = v; mat.set("", false); if (sliding) clean = false;
+      } });
+      S.range({ label: "질량 m", min: 0.5, max: 10, step: 0.5, value: st.m, fmt: (v) => v.toFixed(1) + " kg", onInput: (v) => (st.m = v) });
+      S.check({ label: "중력의 두 성분(점선) 보기", value: st.comp, onChange: (v) => (st.comp = v) });
+      S.button("다시 놓기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        const th = rad(st.th), sn = Math.sin(th), cs = Math.cos(th);
+        if (!atBottom) {
+          if (!sliding && sn > st.mus * cs) { sliding = true; if (!hist.length) hist.push([0, 0]); }
+          if (sliding) {
+            // 뉴턴 제2법칙: 빗면 방향 알짜힘 mg sin θ − μₖN을 질량으로 나눈다. 한 단계 안에서 가속도는 일정하다
+            const a = (st.m * g * sn - st.muk * st.m * g * cs) / st.m;
+            let h = dt;
+            if (x + v * h + 0.5 * a * h * h >= D) h = Math.abs(a) > 1e-12 ? (Math.sqrt(Math.max(0, v * v + 2 * a * (D - x))) - v) / a : (D - x) / v;
+            if (a < 0 && v + a * h <= 0) { h = -v / a; sliding = false; } // 감속하다 멈춤
+            x += v * h + 0.5 * a * h * h; v = sliding ? v + a * h : 0; t += h;
+            if (x >= D - 1e-9) { x = D; atBottom = true; sliding = false; }
+            hist.push([t, v]); vPeak = Math.max(vPeak, v);
+          }
+        }
+        cvS.redraw(); cvG.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     3. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -180,7 +343,7 @@
   });
 
   /* ======================================================================
-     3. 강제 감쇠 진동자와 공명
+     4. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -242,7 +405,7 @@
   });
 
   /* ======================================================================
-     4. 케플러 궤도
+     5. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -322,7 +485,7 @@
   });
 
   /* ======================================================================
-     5. 파동의 중첩
+     6. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -373,7 +536,7 @@
   });
 
   /* ======================================================================
-     6. 이중 슬릿 간섭
+     7. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -425,7 +588,7 @@
   });
 
   /* ======================================================================
-     7. 전기장과 전위
+     8. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -507,7 +670,7 @@
   });
 
   /* ======================================================================
-     8. 랜덤 워크와 확산
+     9. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -565,7 +728,7 @@
   });
 
   /* ======================================================================
-     9. 열 확산 (2D 열방정식)
+     10. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -627,7 +790,7 @@
   });
 
   /* ======================================================================
-     10. 이징 모형
+     11. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -686,7 +849,7 @@
   });
 
   /* ======================================================================
-     11. 이중 진자 — 카오스
+     12. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -757,7 +920,7 @@
   });
 
   /* ======================================================================
-     12. 로렌츠 끌개 (3D)
+     13. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -824,7 +987,7 @@
   });
 
   /* ======================================================================
-     13. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     14. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
