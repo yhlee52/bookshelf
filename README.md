@@ -4,7 +4,7 @@
 빌드 도구 없이 HTML · CSS · JavaScript 파일만으로 동작하므로 GitHub Pages에 그대로 올리면 됩니다.
 
 - 서재(허브): 홈 · 전체 책장 · 실험실(모든 실험 모음) · 실험 크게 보기
-- 책 4권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), 움직이는 물리학(챕터 슬롯 8개), 차근차근 양자역학(이론서, 6부 23장)
+- 책 4권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), 움직이는 물리학(3부 13장, 1부 고전역학부터 집필), 차근차근 양자역학(이론서, 6부 23장)
 - 집필 예정 책 2권: 물리 × 딥러닝, 딥러닝 기초 (표지만 있고 페이지는 없음)
 - 인터랙티브 실험 34개 (2D 캔버스 + 3D three.js), 책별 3D 첫 화면, 밝은/어두운 테마, 통합 검색
 
@@ -116,7 +116,7 @@ data/
 books/
   paper-review/         딥러닝 논문 리뷰  (index.html + chapters/p01~p06.html)
   timeseries-dl/        시계열 딥러닝     (index.html + chapters/ch01~ch08.html)
-  physics/              움직이는 물리학   (index.html + chapters/ch01~ch08.html)
+  physics/              움직이는 물리학   (index.html + chapters/ch01~ch13.html + GUIDE.md 집필 계획)
   quantum/              차근차근 양자역학 (index.html + chapters/ch01~ch23.html + GUIDE.md 집필 가이드)
 templates/
   chapter.html          새 교과서형 챕터 틀 (실험 중심 책)
@@ -169,7 +169,7 @@ assets/
 
 1. `templates/chapter.html`(논문이면 `templates/paper.html`)을 `books/<책>/chapters/<slug>.html`로 복사
 2. 파일 안 `<body ...>`의 `data-book`, `data-field`, `data-chapter`를 고침
-   (예: `data-book="physics" data-field="phys" data-chapter="ch09"`)
+   (예: `data-book="physics" data-field="phys" data-chapter="ch14"`)
 3. `data/books.js`의 그 책 `chapters` 배열에 한 줄 추가
 
 ### 4-4. 새 책 추가

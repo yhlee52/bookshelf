@@ -62,21 +62,32 @@ window.SHELF_DATA = {
     },
 
     /* ------------------------------------------------------------ 물리학 */
+    // 집필 계획: books/physics/GUIDE.md · 1부 슬롯의 desc는 그 장의 실험 목록이다. sims에는 구현된(등록된) 실험만 넣는다
     {
       id: "physics", field: "phys", status: "writing", kind: "textbook", motif: "orbit",
       series: "PhysBook", title: "움직이는 물리학", en: "Physics in Motion",
       tagline: "방정식을 직접 굴려 보기",
       desc: "포물선 운동, 진동, 궤도, 파동, 전기장, 확산, 상전이, 카오스까지 — 미분방정식을 브라우저에서 적분하며 배웁니다.",
       path: "books/physics/",
+      parts: [
+        { title: "고전역학", desc: "힘과 운동, 에너지와 운동량, 회전, 진동, 궤도까지 — 뉴턴 역학의 대표 실험을 매개변수를 바꿔 가며 확인합니다." },
+        { title: "파동과 장", desc: "파동의 중첩과 간섭, 전하가 만드는 장을 다룹니다." },
+        { title: "통계물리와 카오스", desc: "확산, 상전이, 카오스 — 많은 입자와 비선형이 만드는 현상을 다룹니다." },
+      ],
       chapters: [
-        { slug: "ch01", num: "01", status: "slot", title: "챕터 01 (제목 미정)", desc: "예시 실험: 공기 저항이 있는 포물선 운동.", sims: ["projectile"] },
-        { slug: "ch02", num: "02", status: "slot", title: "챕터 02 (제목 미정)", desc: "예시 실험: 진자의 위상 공간, 강제 진동과 공명.", sims: ["pendulum", "oscillator"] },
-        { slug: "ch03", num: "03", status: "slot", title: "챕터 03 (제목 미정)", desc: "예시 실험: 케플러 궤도와 면적 속도 일정.", sims: ["orbit"] },
-        { slug: "ch04", num: "04", status: "slot", title: "챕터 04 (제목 미정)", desc: "예시 실험: 파동의 중첩과 이중 슬릿 간섭.", sims: ["waves", "double-slit"] },
-        { slug: "ch05", num: "05", status: "slot", title: "챕터 05 (제목 미정)", desc: "예시 실험: 점전하가 만드는 전기장과 전위.", sims: ["efield"] },
-        { slug: "ch06", num: "06", status: "slot", title: "챕터 06 (제목 미정)", desc: "예시 실험: 랜덤 워크와 열 확산.", sims: ["random-walk", "heat"] },
-        { slug: "ch07", num: "07", status: "slot", title: "챕터 07 (제목 미정)", desc: "예시 실험: 이징 모형의 상전이 (몬테카를로).", sims: ["ising"] },
-        { slug: "ch08", num: "08", status: "slot", title: "챕터 08 (제목 미정)", desc: "예시 실험: 이중 진자와 로렌츠 끌개 — 카오스.", sims: ["double-pendulum", "lorenz3d"] },
+        { slug: "ch01", num: "01", part: 1, status: "slot", title: "포물선 운동", desc: "실험: 포물선 운동과 공기 저항", sims: ["projectile"] },
+        { slug: "ch02", num: "02", part: 1, status: "slot", title: "힘과 뉴턴 법칙", desc: "실험: 빗면 위의 물체와 마찰 · 애트우드 기계 · 원운동과 구심력 (경사 커브)" },
+        { slug: "ch03", num: "03", part: 1, status: "slot", title: "에너지와 운동량", desc: "실험: 역학적 에너지 보존 (연직 루프) · 충돌과 운동량 보존" },
+        { slug: "ch04", num: "04", part: 1, status: "slot", title: "강체의 회전", desc: "실험: 굴림 경주 (관성 모멘트)" },
+        { slug: "ch05", num: "05", part: 1, status: "slot", title: "진동", desc: "실험: 단진동과 감쇠 · 진자", sims: ["pendulum"] },
+        { slug: "ch06", num: "06", part: 1, status: "slot", title: "공명과 결합 진동", desc: "실험: 강제 진동과 공명 · 결합 진동자", sims: ["oscillator"] },
+        { slug: "ch07", num: "07", part: 1, status: "slot", title: "중력과 궤도", desc: "실험: 케플러 궤도 · 라그랑주 점", sims: ["orbit"] },
+        { slug: "ch08", num: "08", part: 1, status: "slot", title: "회전 기준계와 카오스", desc: "실험: 회전 기준계와 코리올리 힘 · 이중 진자와 카오스", sims: ["double-pendulum"] },
+        { slug: "ch09", num: "09", part: 2, status: "slot", title: "챕터 09 (제목 미정)", desc: "예시 실험: 파동의 중첩과 이중 슬릿 간섭.", sims: ["waves", "double-slit"] },
+        { slug: "ch10", num: "10", part: 2, status: "slot", title: "챕터 10 (제목 미정)", desc: "예시 실험: 점전하가 만드는 전기장과 전위.", sims: ["efield"] },
+        { slug: "ch11", num: "11", part: 3, status: "slot", title: "챕터 11 (제목 미정)", desc: "예시 실험: 랜덤 워크와 열 확산.", sims: ["random-walk", "heat"] },
+        { slug: "ch12", num: "12", part: 3, status: "slot", title: "챕터 12 (제목 미정)", desc: "예시 실험: 이징 모형의 상전이 (몬테카를로).", sims: ["ising"] },
+        { slug: "ch13", num: "13", part: 3, status: "slot", title: "챕터 13 (제목 미정)", desc: "예시 실험: 로렌츠 끌개 — 카오스.", sims: ["lorenz3d"] },
       ],
     },
 
