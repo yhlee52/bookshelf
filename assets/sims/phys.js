@@ -1,6 +1,6 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · incline · atwood · banked-curve · pendulum · oscillator · orbit · waves · double-slit · efield
+   projectile · incline · atwood · banked-curve · loop · pendulum · oscillator · orbit · waves · double-slit · efield
    random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
@@ -533,7 +533,215 @@
   });
 
   /* ======================================================================
-     5. 진자와 위상 공간
+     5. 역학적 에너지 보존 (연직 루프)
+     ====================================================================== */
+  Lab.register({
+    id: "loop", field: "phys", thumb: "loop",
+    title: "연직 루프 — 꼭대기를 돌려면 얼마나 높이서 출발해야 할까",
+    desc: "출발 높이, 루프 반지름, 마찰을 바꾸며 미끄러져 내려온 물체가 연직 루프를 도는지 봅니다. 운동·위치·열 에너지 막대와 꼭대기의 수직항력으로 최소 출발 높이 2.5R을 확인합니다.",
+    tags: ["역학", "에너지 보존", "원운동", "수직항력"],
+    note: "해볼 것: 마찰이 없을 때 출발 높이가 루프 반지름의 2.5배(2.5R)보다 낮으면 물체가 꼭대기에 닿기 전에 트랙에서 떨어집니다. 꼭대기에서도 원운동을 하려면 중력만으로 구심력이 되는 v² ≥ gR이 필요하기 때문입니다. h = 2R로 놓으면 떨어지는 높이가 5R/3인지 확인해 보세요. 마찰을 주면 열로 빠져나간 에너지만큼 더 높이서 출발해야 합니다. 에너지 막대의 합은 언제나 처음 위치 에너지 mgh와 같습니다. (굴러가는 공이라면 회전 운동 에너지 때문에 2.7R이 필요합니다.)",
+    mount(S) {
+      const g = 9.81, BETA = Math.PI / 4, RF = 0.6; // 비탈 기울기 45°, 비탈과 바닥을 잇는 오목한 곡선의 반지름 (m)
+      const st = { h: 2, R: 1, mu: 0, rate: 0.5 };
+      /** 출발 높이 h, 루프 반지름 R인 트랙. 트랙을 따라 잰 길이 s로 위치를 나타낸다.
+          45° 비탈 → 오목한 곡선 → 평지 → 루프(시계 반대 방향으로 한 바퀴) → 나가는 평지 */
+      function build(h, R) {
+        const sb = Math.sin(BETA), cb = Math.cos(BETA);
+        const d = (h - RF * (1 - cb)) / sb, xf = d * cb + RF * sb, gap = 0.3 + 0.5 * R, xL = xf + gap;
+        // 각 조각은 at(u) → 위치 p, 진행 방향 T, 트랙이 미는 방향 n, 곡률 k (n 쪽으로 휜 정도)
+        const line = (p0, T, len) => ({ len, at: (u) => ({ p: [p0[0] + T[0] * u, p0[1] + T[1] * u], T, n: [-T[1], T[0]], k: 0 }) });
+        const arc = (c, r, a0, sweep) => ({ len: r * sweep, at: (u) => {
+          const a = a0 + u / r, ca = Math.cos(a), sa = Math.sin(a);
+          return { p: [c[0] + r * ca, c[1] + r * sa], T: [-sa, ca], n: [-ca, -sa], k: 1 / r }; // 물체는 원의 안쪽에 있다
+        } });
+        const segs = [
+          line([0, h], [cb, -sb], d),
+          arc([xf, RF], RF, -Math.PI / 2 - BETA, BETA),
+          line([xf, 0], [1, 0], gap),
+          arc([xL, R], R, -Math.PI / 2, 2 * Math.PI),
+          line([xL, 0], [1, 0], 1.5 * R + 0.5),
+        ];
+        const starts = [];
+        let total = 0;
+        segs.forEach((sg) => { starts.push(total); total += sg.len; });
+        return {
+          segs, total, xL, xf, R, sFlat: starts[2], sTop: starts[3] + Math.PI * R,
+          at(s) { let i = segs.length - 1; while (i > 0 && s < starts[i]) i--; return Object.assign(segs[i].at(VZ.clamp(s - starts[i], 0, segs[i].len)), { seg: i }); },
+        };
+      }
+      // 트랙 위 운동 (질량 1 kg당): 수직항력 N = kv² + g nᵧ, 접선 가속도 = −g Tᵧ − μN sgn v. N이 음수면 트랙이 끌어당겨야 한다
+      const normal = (q, v) => q.k * v * v + g * q.n[1];
+      // 상태 [s, v, Q]. 마찰열 Q도 같은 단계로 적분해야 K + U + Q가 처음 mgh와 맞는다
+      const deriv = (tr) => ([s, v]) => {
+        const q = tr.at(s), fr = st.mu * Math.max(0, normal(q, v));
+        return [v, -g * q.T[1] - fr * Math.sign(v), fr * Math.abs(v)];
+      };
+      /** 한 단계 적분. 조각 경계(곡률이 갑자기 바뀌어 마찰력이 뛰는 곳)를 넘거나 방향이 바뀌면 잘게 나눠 다시 적분한다.
+          마찰이 있을 때 방향이 바뀌면 그 순간에서 멈추고 turned를 알린다 */
+      function advance(tr, y, h) {
+        const f = deriv(tr), flips = (a, b) => st.mu && a[1] && Math.sign(b[1]) !== Math.sign(a[1]);
+        let y1 = rk4(f, y, h);
+        if (tr.at(y1[0]).seg === tr.at(y[0]).seg && !flips(y, y1)) return { y: y1, turned: false };
+        y1 = y;
+        for (let i = 0; i < 64; i++) {
+          const y2 = rk4(f, y1, h / 64);
+          if (flips(y1, y2)) return { y: [y2[0], 0, y2[2]], turned: true };
+          y1 = y2;
+        }
+        return { y: y1, turned: false };
+      }
+      /** 출발 높이 h에서 꼭대기를 지날 때의 수직항력 (mg 단위). 꼭대기 높이까지 못 올라가면 null. 떨어지는 것은 따지지 않는다 */
+      function topN(h) {
+        if (!st.mu) return h >= 2 * st.R ? (2 * h) / st.R - 5 : null; // 에너지 보존: v² = 2g(h − 2R), N/mg = v²/gR − 1
+        const tr = build(h, st.R);
+        let y = [0, 0, 0];
+        for (let i = 0; i < 20000; i++) {
+          y = advance(tr, y, 0.002).y;
+          if (y[1] <= 0) return null;
+          if (y[0] >= tr.sTop) return (y[1] * y[1]) / (g * st.R) - 1;
+        }
+        return null;
+      }
+      // 출발 높이에 따른 꼭대기 수직항력 곡선과 그것이 0이 되는 최소 출발 높이. R·μ가 바뀔 때만 다시 계산한다
+      let curveKey = "", curve = [], hMin = null;
+      function topCurve() {
+        const key = st.R + "|" + st.mu;
+        if (key === curveKey) return;
+        curveKey = key; curve = []; hMin = null;
+        for (let i = 0; i <= 90; i++) { const h = 0.5 + i * 0.05; curve.push([h, topN(h)]); }
+        for (let i = 1; i < curve.length && hMin == null; i++) {
+          const [h0, a] = curve[i - 1], [h1, b] = curve[i];
+          if (a != null && b != null && a < 0 && b >= 0) hMin = h0 + (-a / (b - a)) * (h1 - h0);
+        }
+      }
+      // 한 번 출발한 상태: 트랙 위(track) → 트랙을 떠나 날아감(air) → 끝(done: pass·fell·stopped)
+      let tr, mode, s, v, p, vel, Q, t, tAir, trail, airPath, result, Ntop, detach;
+      function reset() {
+        topCurve();
+        tr = build(st.h, st.R); mode = "track"; s = 0; v = 0; Q = 0; t = 0; tAir = 0;
+        trail = []; airPath = []; result = null; Ntop = null; detach = null;
+      }
+      reset();
+      function step(dt) {
+        if (mode === "track") {
+          const s0 = s, r = advance(tr, [s, v, Q], dt);
+          [s, v, Q] = r.y;
+          if (s < 0) { s = 0; v = Math.max(0, v); } // 출발점보다 위로는 못 간다
+          const q = tr.at(s), N = normal(q, v);
+          if (s0 < tr.sTop && s >= tr.sTop && q.seg === 3) Ntop = N / g;
+          // 방향이 바뀌는 순간 정지 마찰이 버티면 멈춘다
+          if (r.turned && Math.abs(g * q.T[1]) <= st.mu * Math.max(0, normal(q, 0))) { mode = "done"; result = "stopped"; }
+          if (q.seg === 3 && N < 0) { // 루프에서 수직항력이 음수가 되면 트랙을 떠나 포물선 운동을 한다
+            mode = "air"; p = q.p.slice(); vel = [q.T[0] * v, q.T[1] * v]; detach = { y: q.p[1] }; airPath = [p.slice()];
+          } else if (s >= tr.total) { s = tr.total; mode = "done"; result = "pass"; }
+        } else if (mode === "air") {
+          p = [p[0] + vel[0] * dt, p[1] + vel[1] * dt - 0.5 * g * dt * dt]; vel[1] -= g * dt; tAir += dt;
+          airPath.push(p.slice());
+          if (tAir > 0.02 && Math.hypot(p[0] - tr.xL, p[1] - tr.R) >= tr.R) { mode = "done"; result = "fell"; } // 다시 루프에 닿음
+        }
+        t += dt;
+      }
+      const flying = () => mode === "air" || result === "fell";
+      const pos = () => (flying() ? p : tr.at(s).p);
+      const energy = () => (flying() ? { K: 0.5 * (vel[0] ** 2 + vel[1] ** 2), U: g * p[1] } : { K: 0.5 * v * v, U: g * tr.at(s).p[1] });
+      const cvS = S.canvas({ aspect: 0.46, minHeight: 240, maxHeight: 330 }, (ctx, w, hc) => {
+        const P = VZ.palette(), R = tr.R, xmin = -0.3, xmax = tr.xL + 1.5 * R + 0.7, ymax = Math.max(st.h, 2 * R, hMin || 0) + 0.35;
+        // 맨 위 30px는 진행 문구 자리로 남긴다
+        const Yg = hc - 24, k = Math.min((w - 20) / (xmax - xmin), (Yg - 34) / ymax), off = (w - 20 - (xmax - xmin) * k) / 2;
+        const X = (x) => 10 + off + (x - xmin) * k, Y = (y) => Yg - y * k;
+        ctx.fillStyle = VZ.alpha(P.dim, 0.1); ctx.fillRect(0, Yg, w, hc - Yg);
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, Yg); ctx.lineTo(w, Yg); ctx.stroke();
+        // 비탈 아래의 언덕과 트랙
+        const pts = [];
+        for (let u = 0; u <= tr.total + 1e-9; u += 0.02) pts.push(tr.at(u).p);
+        ctx.fillStyle = VZ.alpha(P.dim, 0.14); ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+        for (let u = 0; u <= tr.sFlat + 1e-9; u += 0.02) { const q = tr.at(u).p; ctx.lineTo(X(q[0]), Y(q[1])); }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 3; ctx.beginPath();
+        pts.forEach((q, i) => (i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])))); ctx.stroke();
+        // 기준선: 출발 높이와 최소 출발 높이
+        ctx.lineWidth = 1; ctx.setLineDash([5, 4]); ctx.font = VZ.font(11.5, false);
+        ctx.strokeStyle = P.faint; ctx.beginPath(); ctx.moveTo(X(0), Y(st.h)); ctx.lineTo(X(tr.xL + R), Y(st.h)); ctx.stroke();
+        ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.fillText(`출발 h = ${st.h.toFixed(2)} m`, X(0) + 12, Y(st.h) - 3);
+        if (hMin) {
+          ctx.strokeStyle = P.accent2; ctx.beginPath(); ctx.moveTo(X(tr.xf), Y(hMin)); ctx.lineTo(X(xmax), Y(hMin)); ctx.stroke();
+          ctx.fillStyle = P.accent2; ctx.textAlign = "right"; ctx.fillText(`최소 높이 ${hMin.toFixed(2)} m`, X(xmax) - 2, Y(hMin) - 3);
+        }
+        ctx.setLineDash([]);
+        // 지나온 길, 트랙을 떠난 뒤의 포물선, 물체
+        ctx.strokeStyle = VZ.alpha(P.accent, 0.35); ctx.lineWidth = 2; ctx.beginPath();
+        trail.forEach((q, i) => (i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])))); ctx.stroke();
+        if (airPath.length) {
+          ctx.strokeStyle = P.bad; ctx.setLineDash([4, 3]); ctx.beginPath();
+          airPath.forEach((q, i) => (i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])))); ctx.stroke(); ctx.setLineDash([]);
+        }
+        const b = pos(), bx = X(b[0]), by = Y(b[1]);
+        if (mode === "track") { // 수직항력과 중력 화살표 (mg = 22px)
+          const q = tr.at(s), N = Math.max(0, normal(q, v)) / g, len = Math.min(80, 22 * N);
+          ctx.lineWidth = 2.2; ctx.font = VZ.font(11.5, false, 700); ctx.textBaseline = "middle";
+          ctx.strokeStyle = P.text; ctx.fillStyle = P.text; VZ.arrow(ctx, bx, by, bx, by + 22, 7);
+          if (len >= 4) {
+            const ex = bx + q.n[0] * len, ey = by - q.n[1] * len;
+            ctx.strokeStyle = P.ok; ctx.fillStyle = P.ok; VZ.arrow(ctx, bx, by, ex, ey, 7);
+            ctx.textAlign = q.n[0] < -0.3 ? "right" : "left"; ctx.fillText(`N = ${N.toFixed(2)} mg`, ex + (q.n[0] < -0.3 ? -6 : 6), ey - (q.n[1] > 0.3 ? 8 : q.n[1] < -0.3 ? -8 : 0));
+          }
+        }
+        ctx.fillStyle = flying() ? P.bad : P.accent; ctx.beginPath(); ctx.arc(bx, by, 7, 0, 7); ctx.fill();
+        const speed = flying() ? Math.hypot(vel[0], vel[1]) : Math.abs(v);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`t = ${t.toFixed(2)} s · 속력 ${speed.toFixed(2)} m/s · ${st.rate === 1 ? "실제 속도" : st.rate + "배속"}`, 10, 8);
+      });
+      const [bl, br] = S.split(2);
+      const cvE = S.canvas({ parent: bl, height: 210 }, (ctx) => {
+        const P = VZ.palette(), E0 = g * st.h, { K, U } = energy(), names = ["운동 K", "위치 U", "열 Q", "합"];
+        VZ.chart(ctx, null, {
+          x: [-0.6, 3.6], y: [0, E0 * 1.18], xTicks: [0, 1, 2, 3], xFmt: (x) => names[Math.round(x)] || "", title: "에너지 (J, 질량 1 kg)",
+          series: [[K, P.accent], [U, P.accent2], [Q, P.warn], [K + U + Q, P.dim]].map(([e, col], i) => ({ type: "bar", data: [[i, e]], color: col, barWidth: 0.62 })),
+          hlines: [{ y: E0, color: P.faint, label: `처음 mgh = ${E0.toFixed(1)} J` }],
+        });
+      });
+      const cvN = S.canvas({ parent: br, height: 210 }, (ctx) => {
+        const P = VZ.palette(), i = Math.round((st.h - 0.5) / 0.05), cur = curve[i] && curve[i][1];
+        VZ.chart(ctx, null, {
+          x: [0.5, 5], y: [-1, 5], xLabel: "출발 높이 h (m)", title: "꼭대기 수직항력 N/mg",
+          hbands: [{ y0: -1, y1: 0, color: VZ.alpha(P.bad, 0.08) }],
+          series: [{ data: curve.map(([h, n]) => [h, n == null ? NaN : n]), color: P.accent, width: 2.2 }],
+          hlines: [{ y: 0, color: P.axis, dash: [] }],
+          vlines: hMin ? [{ x: hMin, color: P.accent2, label: `${(hMin / st.R).toFixed(2)}R`, align: hMin > 3.8 ? "right" : "left" }] : [],
+          points: cur != null ? [{ x: st.h, y: VZ.clamp(cur, -1, 5), color: P.accent, r: 5 }] : [],
+          // 곡선은 꼭대기에 닿을 수 있는 높이(2R 이상)부터 시작하므로 이 글은 곡선이 없는 왼쪽에 둔다
+          texts: [{ x: 0.6, y: -0.5, text: "꼭대기 전에 떨어짐", align: "left", sans: true, color: P.bad }],
+        });
+      });
+      const set = S.stats([{ k: "res", label: "결과" }, { k: "hmin", label: "최소 출발 높이" }, { k: "nt", label: "꼭대기 수직항력" }, { k: "det", label: "트랙을 떠난 높이" }, { k: "E", label: "K + U + Q" }]);
+      function readouts() {
+        const { K, U } = energy(), bad = (s) => `<span style="color:var(--bad)">${s}</span>`;
+        set("res", result === "pass" ? "루프 통과" : result === "fell" ? bad("루프에서 떨어짐") : result === "stopped" ? "마찰로 멈춤"
+          : mode === "air" ? bad("트랙을 떠남") : v < 0 ? "되돌아 내려오는 중" : "달리는 중");
+        set("hmin", hMin ? `${hMin.toFixed(2)}<small>m · ${(hMin / st.R).toFixed(2)}R</small>` : "5 m 넘음");
+        set("nt", Ntop != null ? Ntop.toFixed(2) + "<small>mg</small>" : "—");
+        set("det", detach ? `${detach.y.toFixed(2)}<small>m · ${(detach.y / st.R).toFixed(3)}R</small>` : "—");
+        set("E", (((K + U + Q) / (g * st.h)) * 100).toFixed(2) + "<small>% (처음 mgh 대비)</small>");
+      }
+      S.range({ label: "출발 높이 h", min: 0.5, max: 5, step: 0.05, value: st.h, fmt: (x) => x.toFixed(2) + " m", onInput: (x) => { st.h = x; reset(); } });
+      S.range({ label: "루프 반지름 R", min: 0.4, max: 1.5, step: 0.05, value: st.R, fmt: (x) => x.toFixed(2) + " m", onInput: (x) => { st.R = x; reset(); } });
+      S.range({ label: "운동 마찰 계수 μ", min: 0, max: 0.3, step: 0.01, value: st.mu, fmt: (x) => x.toFixed(2), onInput: (x) => { st.mu = x; reset(); } });
+      S.seg({ label: "재생 속도", options: [["0.25", "¼배"], ["0.5", "½배"], ["1", "실제"]], value: "0.5", onChange: (x) => (st.rate = Number(x)) });
+      S.button("다시 출발", () => reset(), { primary: true });
+      S.loop((dt) => {
+        if (mode !== "done") {
+          const T = dt * st.rate, n = Math.ceil(T / 0.001); // 1 ms보다 잘게 나눠 적분한다
+          for (let i = 0; i < n && mode !== "done"; i++) step(T / n);
+        }
+        trail.push(pos().slice()); if (trail.length > 600) trail.shift();
+        cvS.redraw(); cvE.redraw(); cvN.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     6. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -618,7 +826,7 @@
   });
 
   /* ======================================================================
-     6. 강제 감쇠 진동자와 공명
+     7. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -680,7 +888,7 @@
   });
 
   /* ======================================================================
-     7. 케플러 궤도
+     8. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -760,7 +968,7 @@
   });
 
   /* ======================================================================
-     8. 파동의 중첩
+     9. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -811,7 +1019,7 @@
   });
 
   /* ======================================================================
-     9. 이중 슬릿 간섭
+     10. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -863,7 +1071,7 @@
   });
 
   /* ======================================================================
-     10. 전기장과 전위
+     11. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -945,7 +1153,7 @@
   });
 
   /* ======================================================================
-     11. 랜덤 워크와 확산
+     12. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -1003,7 +1211,7 @@
   });
 
   /* ======================================================================
-     12. 열 확산 (2D 열방정식)
+     13. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -1065,7 +1273,7 @@
   });
 
   /* ======================================================================
-     13. 이징 모형
+     14. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -1124,7 +1332,7 @@
   });
 
   /* ======================================================================
-     14. 이중 진자 — 카오스
+     15. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -1195,7 +1403,7 @@
   });
 
   /* ======================================================================
-     15. 로렌츠 끌개 (3D)
+     16. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -1262,7 +1470,7 @@
   });
 
   /* ======================================================================
-     16. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     17. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
