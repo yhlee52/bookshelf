@@ -161,7 +161,7 @@
       </tbody>
     </table></div>
     <p>이 대응은 단순한 비유가 아니다. 곧 보겠지만 에르미트 연산자의 고유값은 실수이고, 유니타리 연산자의 고유값은 크기가 1이다(<a class="ref" href="#prob-unitary-eigen"></a>). 6장에서 측정할 수 있는 양을 에르미트 연산자로 나타내는 것은 측정값이 실수이기 때문이다.</p>
-    <p>행렬로 판별할 때는 식 <a class="ref" href="#eq-adjoint-matrix"></a>를 쓴다. 에르미트이면 \(\Omega_{ij} = \Omega_{ji}^*\)이므로 <b>대각 원소는 실수이고, 대각선을 사이에 두고 마주 보는 원소는 서로 켤레</b>다. <a href="ch01.html#ex-pauli">1장 예제 1.3</a>의 파울리 행렬 네 개는 모두 에르미트이고, \(\begin{pmatrix} 2 & 1-i \\ 1+i & 3 \end{pmatrix}\)도 에르미트다. 에르미트 연산자에서는 \(\langle V|\hat\Omega|V\rangle^* = \langle V|\hat\Omega^\dagger|V\rangle = \langle V|\hat\Omega|V\rangle\)이므로 \(\langle V|\hat\Omega|V\rangle\)가 언제나 실수다. 6장에서 이것이 측정의 평균값, 곧 기댓값이 된다.</p>
+    <p>행렬로 판별할 때는 식 <a class="ref" href="#eq-adjoint-matrix"></a>을 쓴다. 에르미트이면 \(\Omega_{ij} = \Omega_{ji}^*\)이므로 <b>대각 원소는 실수이고, 대각선을 사이에 두고 마주 보는 원소는 서로 켤레</b>다. <a href="ch01.html#ex-pauli">1장 예제 1.3</a>의 파울리 행렬 네 개는 모두 에르미트이고, \(\begin{pmatrix} 2 & 1-i \\ 1+i & 3 \end{pmatrix}\)도 에르미트다. 에르미트 연산자에서는 \(\langle V|\hat\Omega|V\rangle^* = \langle V|\hat\Omega^\dagger|V\rangle = \langle V|\hat\Omega|V\rangle\)이므로 \(\langle V|\hat\Omega|V\rangle\)가 언제나 실수다. 6장에서 이것이 측정의 평균값, 곧 기댓값이 된다.</p>
     <p>유니타리 연산자는 내적을 바꾸지 않는다. \(\hat U|V\rangle\)의 브라는 \(\langle V|\hat U^\dagger\)이므로</p>
     <div class="formula" id="eq-unitary-ip">\[ \big(\langle V|\hat U^\dagger\big)\big(\hat U|W\rangle\big) = \langle V|\hat U^\dagger\hat U|W\rangle = \langle V|W\rangle \]</div>
     <p>이다. 길이와 직교성이 그대로이므로, 정규직교 기저를 유니타리 연산자로 옮기면 다시 정규직교 기저가 된다. 화살표의 회전이 대표적인 예다. 행렬로는 \(U^\dagger U = I\)가 <b>\(U\)의 열들이 정규직교</b>라는 뜻이다. \((U^\dagger U)_{ij} = \sum_k U_{ki}^* U_{kj}\)는 \(i\)번째 열과 \(j\)번째 열의 내적이기 때문이다.</p>
@@ -242,10 +242,10 @@
     </div>
     <p>고유벡터 기저의 완비성 관계 \(\sum_i |\omega_i\rangle\langle\omega_i| = \hat I\)를 \(\hat\Omega\) 뒤에 붙이면, 에르미트 연산자를 고유값과 고유벡터로 다시 쓸 수 있다.</p>
     <div class="formula" id="eq-spectral">\[ \hat\Omega = \hat\Omega\sum_i |\omega_i\rangle\langle\omega_i| = \sum_i \omega_i\,|\omega_i\rangle\langle\omega_i| \]</div>
-    <p>이것을 <span class="term">스펙트럼 분해</span> <span class="en">(spectral decomposition)</span>라 한다. 에르미트 연산자는 "각 고유 방향으로의 투영에 고유값을 곱해 더한 것"이다. 예제 <a class="ref" href="#ex-eigen-2x2"></a>의 \(A\)라면 \(A = 3\cdot\tfrac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix} + 1\cdot\tfrac12\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix}\)이고, 더해 보면 \(\begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\)로 돌아온다.</p>
+    <p>이것을 <span class="term">스펙트럼 분해</span> <span class="en">(spectral decomposition)</span>라 한다. 에르미트 연산자는 "각 고유 방향으로의 투영에 고유값을 곱해 더한 것"이다. <a class="ref" href="#ex-eigen-2x2"></a>의 \(A\)라면 \(A = 3\cdot\tfrac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix} + 1\cdot\tfrac12\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix}\)이고, 더해 보면 \(\begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\)로 돌아온다.</p>
 
     <h3 id="s3-diag">대각화와 축퇴</h3>
-    <p>고유벡터의 성분을 열로 늘어놓은 행렬 \(U\)를 만들면, 열들이 정규직교이므로 \(U\)는 유니타리다. 식 <a class="ref" href="#eq-basis-change"></a>에 따라 고유벡터 기저에서 본 행렬은 \(U^\dagger\Omega U = \mathrm{diag}(\omega_1, \ldots, \omega_n)\)이다. 이것을 <span class="term">대각화</span> <span class="en">(diagonalization)</span>라 한다. 예제 <a class="ref" href="#ex-eigen-2x2"></a>라면</p>
+    <p>고유벡터의 성분을 열로 늘어놓은 행렬 \(U\)를 만들면, 열들이 정규직교이므로 \(U\)는 유니타리다. 식 <a class="ref" href="#eq-basis-change"></a>에 따라 고유벡터 기저에서 본 행렬은 \(U^\dagger\Omega U = \mathrm{diag}(\omega_1, \ldots, \omega_n)\)이다. 이것을 <span class="term">대각화</span> <span class="en">(diagonalization)</span>라 한다. <a class="ref" href="#ex-eigen-2x2"></a>이라면</p>
     <div class="formula">\[ U = \frac{1}{\sqrt 2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}, \qquad U^\dagger A\, U = \begin{pmatrix} 3 & 0 \\ 0 & 1 \end{pmatrix} \]</div>
     <p>이다. 특성 방정식이 중근을 가지면 같은 고유값에 독립인 고유벡터가 여럿 있다. 이를 <span class="term">축퇴</span> <span class="en">(degeneracy)</span>라 하고, 한 고유값에 속한 고유벡터 전체(와 영벡터)가 이루는 부분공간을 <span class="term">고유 공간</span> <span class="en">(eigenspace)</span>이라 한다. 에르미트 연산자에서는 스펙트럼 정리에 따라, 고유값이 \(m\)중근이면 그 고유 공간은 정확히 \(m\)차원이다. 대각 행렬에서 그 고유값이 \(m\)번 나오기 때문이다.</p>
     <div class="box ex" id="ex-degenerate"><div class="box-h">축퇴가 있는 3×3 행렬</div>
@@ -275,12 +275,12 @@
           <li>\(\omega\)가 축퇴되지 않았으면 \(\mathbb{V}_\omega\)는 1차원이므로 \(\hat\Lambda|\omega\rangle = \lambda|\omega\rangle\)이다. 곧 \(|\omega\rangle\)는 \(\hat\Lambda\)의 고유벡터이기도 하다.</li>
           <li>\(\omega\)가 축퇴되어 \(\mathbb{V}_\omega\)가 \(m\)차원이면, \(\hat\Lambda\)는 이 \(m\)차원 공간 안의 에르미트 연산자로 작용한다. 스펙트럼 정리를 이 공간 안에서 쓰면 \(\mathbb{V}_\omega\) 안에 \(\hat\Lambda\)의 고유벡터로 된 정규직교 기저가 있고, 이들은 여전히 \(\hat\Omega\)의 고유값 \(\omega\)의 고유벡터다.</li>
         </ul>
-        <p>모든 고유 공간에서 이렇게 고르면 전체 공간의 공통 고유벡터 기저가 된다. 서로 다른 고유 공간은 정리 <a class="ref" href="#thm-hermitian-eigen"></a>에 따라 서로 직교한다.</p>
+        <p>모든 고유 공간에서 이렇게 고르면 전체 공간의 공통 고유벡터 기저가 된다. 서로 다른 고유 공간은 <a class="ref" href="#thm-hermitian-eigen"></a>에 따라 서로 직교한다.</p>
       </details>
     </div>
     <p>공통 고유벡터에는 두 고유값을 함께 이름으로 붙여 \(|\omega, \lambda\rangle\)로 쓴다.</p>
     <div class="box ex" id="ex-simultaneous"><div class="box-h">축퇴를 푸는 두 번째 연산자</div>
-      <p>예제 <a class="ref" href="#ex-degenerate"></a>의 \(\Omega\)와, \(x\) 성분과 \(y\) 성분을 맞바꾸는 연산자</p>
+      <p><a class="ref" href="#ex-degenerate"></a>의 \(\Omega\)와, \(x\) 성분과 \(y\) 성분을 맞바꾸는 연산자</p>
       <div class="formula">\[ P = \begin{pmatrix} 0 & 1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1 \end{pmatrix} \]</div>
       <p>을 보자. \(P\)는 실대칭이므로 에르미트다. \(\Omega P\)는 \(\Omega\)의 첫째·둘째 열을, \(P\Omega\)는 첫째·둘째 행을 맞바꾼 것인데, 둘 다 \(\begin{pmatrix} 1 & 2 & 1 \\ 2 & 1 & 1 \\ 1 & 1 & 2 \end{pmatrix}\)로 같다. 따라서 \([\Omega, P] = 0\)이다.</p>
       <p>\(P\)의 고유값은 \(\pm 1\)이다. \(x\)와 \(y\)를 바꿔도 그대로인 벡터는 \(+1\), 부호만 바뀌는 벡터는 \(-1\)이다. 이제 \(\Omega\)의 고유 공간마다 \(P\)를 대각화한다.</p>
@@ -325,7 +325,7 @@
     <div class="formula" id="eq-function">\[ f(\hat\Omega) = \sum_i f(\omega_i)\,|\omega_i\rangle\langle\omega_i| \]</div>
     <p>이다. 연산자의 함수는 <b>고유 방향은 그대로 두고 고유값에만 함수를 씌운 것</b>이다. 급수는 모든 고유값에서 \(f\)의 급수가 수렴하면 수렴한다.</p>
     <div class="box ex" id="ex-exp-diag"><div class="box-h">대각화로 지수 함수 구하기</div>
-      <p>예제 <a class="ref" href="#ex-eigen-2x2"></a>의 \(A\)에 대해, 식 <a class="ref" href="#eq-function"></a>에 고유값 3, 1과 투영 행렬을 넣으면</p>
+      <p><a class="ref" href="#ex-eigen-2x2"></a>의 \(A\)에 대해, 식 <a class="ref" href="#eq-function"></a>에 고유값 3, 1과 투영 행렬을 넣으면</p>
       <div class="formula">\[ \begin{aligned} e^{tA} &= e^{3t}\cdot\frac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix} + e^{t}\cdot\frac12\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix} \\ &= \frac12\begin{pmatrix} e^{3t} + e^{t} & e^{3t} - e^{t} \\ e^{3t} - e^{t} & e^{3t} + e^{t} \end{pmatrix} \end{aligned} \]</div>
       <p>이다. \(t = 0\)을 넣으면 단위행렬이 되는 것으로 검산할 수 있다. 급수를 직접 더하는 것보다 훨씬 쉽다.</p>
     </div>
@@ -393,13 +393,13 @@
         <button class="opt" data-correct>고유값이 실수이고, 고유벡터로 된 정규직교 기저가 있다.</button>
         <button class="opt">고유값의 크기가 1이다.</button>
         <button class="opt">행렬 원소가 모두 실수다.</button>
-      </div><div class="quiz-exp">정리 <a class="ref" href="#thm-hermitian-eigen"></a>와 스펙트럼 정리다. 축퇴는 있을 수 있고, \(\sigma_y\)처럼 허수 원소를 가진 에르미트 행렬도 있다. 크기 1인 고유값은 유니타리 연산자의 성질이다.</div></div>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-hermitian-eigen"></a>과 스펙트럼 정리다. 축퇴는 있을 수 있고, \(\sigma_y\)처럼 허수 원소를 가진 에르미트 행렬도 있다. 크기 1인 고유값은 유니타리 연산자의 성질이다.</div></div>
       <div class="quiz-q"><p>5. 두 에르미트 연산자가 공통 고유벡터로 된 정규직교 기저를 가질 필요충분조건은?</p><div class="opts">
         <button class="opt">두 연산자의 고유값이 같다.</button>
         <button class="opt" data-correct>두 연산자가 교환한다.</button>
         <button class="opt">한 연산자가 축퇴를 가지지 않는다.</button>
         <button class="opt">두 연산자의 행렬식이 같다.</button>
-      </div><div class="quiz-exp">정리 <a class="ref" href="#thm-simultaneous"></a>다. \([\hat\Omega, \hat\Lambda] = 0\)이면 동시에 대각화되고, 거꾸로 공통 고유 기저에서는 둘 다 대각이라 교환한다.</div></div>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-simultaneous"></a>다. \([\hat\Omega, \hat\Lambda] = 0\)이면 동시에 대각화되고, 거꾸로 공통 고유 기저에서는 둘 다 대각이라 교환한다.</div></div>
       <div class="quiz-q"><p>6. \(e^{\hat A}e^{\hat B} = e^{\hat A + \hat B}\)가 보장되는 경우는?</p><div class="opts">
         <button class="opt">\(\hat A\)와 \(\hat B\)가 모두 에르미트일 때</button>
         <button class="opt">\(\hat A\)와 \(\hat B\)가 모두 유니타리일 때</button>
@@ -466,7 +466,7 @@
       </details>
     </div>
 
-    <div class="prob" id="prob-trace" data-level="2"><p>대각합 \(\mathrm{Tr}\,\Omega = \sum_i \Omega_{ii}\)에 대해 (가) \(\mathrm{Tr}(\Omega\Lambda) = \mathrm{Tr}(\Lambda\Omega)\), (나) 대각합과 행렬식은 기저를 바꿔도(\(\Omega \to U^\dagger\Omega U\)) 그대로임을 보여라. (다) 에르미트 행렬의 대각합은 고유값의 합, 행렬식은 고유값의 곱임을 보이고, (라) 예제 <a class="ref" href="#ex-degenerate"></a>의 \(\Omega\)로 확인하라.</p>
+    <div class="prob" id="prob-trace" data-level="2"><p>대각합 \(\mathrm{Tr}\,\Omega = \sum_i \Omega_{ii}\)에 대해 (가) \(\mathrm{Tr}(\Omega\Lambda) = \mathrm{Tr}(\Lambda\Omega)\), (나) 대각합과 행렬식은 기저를 바꿔도(\(\Omega \to U^\dagger\Omega U\)) 그대로임을 보여라. (다) 에르미트 행렬의 대각합은 고유값의 합, 행렬식은 고유값의 곱임을 보이고, (라) <a class="ref" href="#ex-degenerate"></a>의 \(\Omega\)로 확인하라.</p>
       <details class="sol"><summary>풀이</summary>
         <p>(가) \(\mathrm{Tr}(\Omega\Lambda) = \sum_i\sum_k \Omega_{ik}\Lambda_{ki} = \sum_k\sum_i \Lambda_{ki}\Omega_{ik} = \mathrm{Tr}(\Lambda\Omega)\).</p>
         <p>(나) (가)로 \(\mathrm{Tr}(U^\dagger\Omega U) = \mathrm{Tr}(\Omega UU^\dagger) = \mathrm{Tr}\,\Omega\). 행렬식은 \(\det(U^\dagger\Omega U) = \det U^\dagger\,\det\Omega\,\det U = \det\Omega\).</p>
@@ -487,7 +487,7 @@
       <details class="sol"><summary>풀이</summary>
         <p>(가) 급수가 1차에서 끝나므로 \(e^A = I + A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\), \(e^B = I + B = \begin{pmatrix} 1 & 0 \\ 1 & 1 \end{pmatrix}\).</p>
         <p>(나) \(e^A e^B = \begin{pmatrix} 2 & 1 \\ 1 & 1 \end{pmatrix}\).</p>
-        <p>(다) 예제 <a class="ref" href="#ex-exp-pauli"></a>와 같은 계산으로 \(e^{\sigma_x} = \cosh 1\, I + \sinh 1\,\sigma_x \approx \begin{pmatrix} 1.543 & 1.175 \\ 1.175 & 1.543 \end{pmatrix}\).</p>
+        <p>(다) <a class="ref" href="#ex-exp-pauli"></a>과 같은 계산으로 \(e^{\sigma_x} = \cosh 1\, I + \sinh 1\,\sigma_x \approx \begin{pmatrix} 1.543 & 1.175 \\ 1.175 & 1.543 \end{pmatrix}\).</p>
         <p>(라) 둘은 다르다. \(AB = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}\), \(BA = \begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}\)이므로 \([A, B] = \sigma_z \neq 0\)이다.</p>
       </details>
     </div>

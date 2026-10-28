@@ -213,10 +213,10 @@
         <div class="formula">\[ \begin{aligned} \langle Z|Z\rangle &= \langle Z|V\rangle - c\,\langle Z|W\rangle \\ &= \langle Z|V\rangle \end{aligned} \]</div>
         <p>이다(\(\langle Z|W\rangle = \langle W|Z\rangle^* = 0\)). 남은 항의 왼쪽 자리를 켤레 선형성으로 펼치면</p>
         <div class="formula">\[ \begin{aligned} \langle Z|V\rangle &= \langle V|V\rangle - c^*\langle W|V\rangle \\ &= \lVert V\rVert^2 - \frac{\langle W|V\rangle^*\langle W|V\rangle}{\lVert W\rVert^2} \\ &= \lVert V\rVert^2 - \frac{|\langle W|V\rangle|^2}{\lVert W\rVert^2} \end{aligned} \]</div>
-        <p>이다. 이것이 0 이상이므로 \(|\langle W|V\rangle|^2 \le \lVert V\rVert^2 \lVert W\rVert^2\)이고, \(|\langle W|V\rangle| = |\langle V|W\rangle^*| = |\langle V|W\rangle|\)이므로 식 <a class="ref" href="#eq-schwarz"></a>가 나온다. 등호는 \(\langle Z|Z\rangle = 0\), 곧 \(|Z\rangle = 0\), 곧 \(|V\rangle = c|W\rangle\)일 때만 성립한다.</p>
+        <p>이다. 이것이 0 이상이므로 \(|\langle W|V\rangle|^2 \le \lVert V\rVert^2 \lVert W\rVert^2\)이고, \(|\langle W|V\rangle| = |\langle V|W\rangle^*| = |\langle V|W\rangle|\)이므로 식 <a class="ref" href="#eq-schwarz"></a>이 나온다. 등호는 \(\langle Z|Z\rangle = 0\), 곧 \(|Z\rangle = 0\), 곧 \(|V\rangle = c|W\rangle\)일 때만 성립한다.</p>
       </details>
     </div>
-    <p>예제 <a class="ref" href="#ex-inner"></a>의 벡터로 확인해 보면 \(|\langle V|W\rangle| = |1 - i| = \sqrt 2 \approx 1.41\)이고 \(\lVert V\rVert\,\lVert W\rVert = \sqrt 2 \cdot \sqrt 6 = \sqrt{12} \approx 3.46\)이다.</p>
+    <p><a class="ref" href="#ex-inner"></a>의 벡터로 확인해 보면 \(|\langle V|W\rangle| = |1 - i| = \sqrt 2 \approx 1.41\)이고 \(\lVert V\rVert\,\lVert W\rVert = \sqrt 2 \cdot \sqrt 6 = \sqrt{12} \approx 3.46\)이다.</p>
     <div class="box thm" id="thm-triangle"><div class="box-h">삼각 부등식</div>
       <div class="formula" id="eq-triangle">\[ \lVert V + W\rVert \le \lVert V\rVert + \lVert W\rVert \]</div>
       <details class="proof"><summary>증명</summary>
@@ -327,7 +327,7 @@
     <div class="box def" id="def-subspace"><div class="box-h">부분공간</div>
       <p>벡터 공간 \(\mathbb{V}\)의 부분집합 \(\mathbb{V}_1\)이 \(\mathbb{V}\)와 같은 덧셈과 스칼라배에 대해 그 자체로 벡터 공간이면, \(\mathbb{V}_1\)을 \(\mathbb{V}\)의 <span class="term">부분공간</span> <span class="en">(subspace)</span>이라 한다.</p>
     </div>
-    <p>부분공간인지 판별하기는 생각보다 쉽다. 아홉 공리 가운데 교환법칙, 결합법칙, 분배법칙처럼 등식으로 된 것들은 큰 공간 \(\mathbb{V}\)에서 이미 성립하므로 부분집합에서도 저절로 성립한다. 영벡터와 역벡터도 정리 <a class="ref" href="#thm-zero"></a>에 따라 닫힘에서 따라 나온다(\(0 = 0|V\rangle\), \(-|V\rangle = (-1)|V\rangle\)). 따라서 <b>덧셈과 스칼라배에 닫혀 있는지만 확인하면 된다.</b> 특히 부분공간은 반드시 영벡터를 포함하므로, 원점을 지나지 않는 평면은 부분공간이 아니다.</p>
+    <p>부분공간인지 판별하기는 생각보다 쉽다. 아홉 공리 가운데 교환법칙, 결합법칙, 분배법칙처럼 등식으로 된 것들은 큰 공간 \(\mathbb{V}\)에서 이미 성립하므로 부분집합에서도 저절로 성립한다. 영벡터와 역벡터도 <a class="ref" href="#thm-zero"></a>에 따라 닫힘에서 따라 나온다(\(0 = 0|V\rangle\), \(-|V\rangle = (-1)|V\rangle\)). 따라서 <b>덧셈과 스칼라배에 닫혀 있는지만 확인하면 된다.</b> 특히 부분공간은 반드시 영벡터를 포함하므로, 원점을 지나지 않는 평면은 부분공간이 아니다.</p>
     <p>벡터 몇 개의 모든 선형결합을 모은 집합은 언제나 부분공간이다. 선형결합끼리 더하거나 숫자를 곱해도 여전히 선형결합이기 때문이다. 이것을 그 벡터들이 <span class="term">생성하는</span> <span class="en">(span)</span> 부분공간이라 한다.</p>
 
     <h3 id="s5-complement">직교 여공간과 직합</h3>
@@ -472,9 +472,9 @@
       </details>
     </div>
 
-    <div class="prob" id="prob-matrix-ip" data-level="2"><p>2×2 복소 행렬 공간에서 \(\langle A|B\rangle = \mathrm{Tr}(A^\dagger B)\)로 정의하자. \(A^\dagger\)는 \(A\)의 켤레 전치, \(\mathrm{Tr}\)은 대각합이다. (가) 이것이 내적의 세 성질을 만족함을 보여라. (나) 예제 <a class="ref" href="#ex-pauli"></a>의 \(I, \sigma_x, \sigma_y, \sigma_z\)가 서로 직교하고 각각의 노름이 \(\sqrt 2\)임을 보여라. (다) 예제의 성분 \(c_\mu\)를 내적으로 구하는 공식을 써라.</p>
+    <div class="prob" id="prob-matrix-ip" data-level="2"><p>2×2 복소 행렬 공간에서 \(\langle A|B\rangle = \mathrm{Tr}(A^\dagger B)\)로 정의하자. \(A^\dagger\)는 \(A\)의 켤레 전치, \(\mathrm{Tr}\)은 대각합이다. (가) 이것이 내적의 세 성질을 만족함을 보여라. (나) <a class="ref" href="#ex-pauli"></a>의 \(I, \sigma_x, \sigma_y, \sigma_z\)가 서로 직교하고 각각의 노름이 \(\sqrt 2\)임을 보여라. (다) 예제의 성분 \(c_\mu\)를 내적으로 구하는 공식을 써라.</p>
       <details class="sol"><summary>풀이</summary>
-        <p>(가) \(\mathrm{Tr}(A^\dagger B) = \sum_i\sum_j (A^\dagger)_{ij} B_{ji} = \sum_{i,j} A_{ji}^* B_{ji}\)이다. 행렬 원소 네 개를 \(\mathbb{C}^4\)의 성분처럼 늘어놓고 계산한 보통의 내적(식 <a class="ref" href="#eq-inner-components"></a>)과 같으므로, 세 성질이 그대로 성립한다.</p>
+        <p>(가) \(\mathrm{Tr}(A^\dagger B) = \sum_i\sum_j (A^\dagger)_{ij} B_{ji} = \sum_{i,j} A_{ji}^* B_{ji}\)이다. 행렬 원소 네 개를 \(\mathbb{C}^4\)의 성분처럼 늘어놓고 계산한 보통의 내적(식 <a class="ref" href="#eq-inner-components"></a>)와 같으므로, 세 성질이 그대로 성립한다.</p>
         <p>(나) 네 행렬은 모두 크기가 1인 원소를 정확히 두 개 가지므로 노름의 제곱은 \(1 + 1 = 2\)이다. 0이 아닌 원소의 자리가 겹치는 쌍은 \((I, \sigma_z)\)와 \((\sigma_x, \sigma_y)\)뿐이고, \(\langle I|\sigma_z\rangle = 1\cdot 1 + 1\cdot(-1) = 0\), \(\langle\sigma_x|\sigma_y\rangle = 1\cdot(-i) + 1\cdot i = 0\)이다. 나머지 쌍은 겹치는 자리가 없어 내적이 0이다.</p>
         <p>(다) 서로 직교하므로 \(M = \sum_\mu c_\mu\sigma_\mu\)와 \(\sigma_\nu\)의 내적을 취하면 \(\langle\sigma_\nu|M\rangle = c_\nu\langle\sigma_\nu|\sigma_\nu\rangle = 2c_\nu\)이다(\(\sigma_0 = I\)). 따라서 \(c_\mu = \tfrac12\mathrm{Tr}(\sigma_\mu^\dagger M) = \tfrac12\mathrm{Tr}(\sigma_\mu M)\)이다(네 행렬 모두 \(\sigma_\mu^\dagger = \sigma_\mu\)). 예를 들어 \(c_0 = \tfrac12\mathrm{Tr} M = \tfrac{a+d}{2}\)로 예제와 같다.</p>
       </details>
@@ -491,13 +491,13 @@
 
     <div class="prob" id="prob-schwarz-eq" data-level="2"><p>\(|V\rangle \neq 0\)이고 \(\langle V|W\rangle = \lVert V\rVert\,\lVert W\rVert\)(절댓값 없이 등호)이면 \(|W\rangle = c|V\rangle\)이고 \(c\)가 0 이상의 실수임을 보여라.</p>
       <details class="sol"><summary>풀이</summary>
-        <p>\(|\langle V|W\rangle| = \lVert V\rVert\,\lVert W\rVert\)이므로 정리 <a class="ref" href="#thm-schwarz"></a>의 등호 조건에 따라 두 벡터는 서로의 상수배이고, \(|V\rangle \neq 0\)이므로 \(|W\rangle = c|V\rangle\)로 쓸 수 있다. 그러면 \(\langle V|W\rangle = c\lVert V\rVert^2\), \(\lVert V\rVert\,\lVert W\rVert = |c|\,\lVert V\rVert^2\)이다. 둘이 같으므로 \(c = |c|\), 곧 \(c\)는 0 이상의 실수다. 화살표로 말하면 두 벡터가 같은 방향을 향할 때다.</p>
+        <p>\(|\langle V|W\rangle| = \lVert V\rVert\,\lVert W\rVert\)이므로 <a class="ref" href="#thm-schwarz"></a>의 등호 조건에 따라 두 벡터는 서로의 상수배이고, \(|V\rangle \neq 0\)이므로 \(|W\rangle = c|V\rangle\)로 쓸 수 있다. 그러면 \(\langle V|W\rangle = c\lVert V\rVert^2\), \(\lVert V\rVert\,\lVert W\rVert = |c|\,\lVert V\rVert^2\)이다. 둘이 같으므로 \(c = |c|\), 곧 \(c\)는 0 이상의 실수다. 화살표로 말하면 두 벡터가 같은 방향을 향할 때다.</p>
       </details>
     </div>
 
     <div class="prob" id="prob-complement" data-level="3"><p>\(\mathbb{V}\)가 \(n\)차원 내적 공간이고 \(\mathbb{V}_1\)이 \(m\)차원 부분공간일 때, \(\mathbb{V}_1^\perp\)의 차원이 \(n - m\)임을 보여라. (힌트: \(\mathbb{V}_1\)의 정규직교 기저를 전체 공간의 정규직교 기저로 넓혀라.)</p>
       <details class="sol"><summary>풀이</summary>
-        <p>\(\mathbb{V}_1\)의 정규직교 기저 \(|1\rangle, \ldots, |m\rangle\)을 잡는다(정리 <a class="ref" href="#thm-gs"></a>). \(m &lt; n\)이면 차원이 \(n\)이므로 이 벡터들의 선형결합이 아닌 벡터 \(|u\rangle\)가 있다. \(|u\rangle\)에 그람-슈미트 한 단계(식 <a class="ref" href="#eq-gs"></a>)를 적용하면 앞의 \(m\)개와 직교하는 단위 벡터 \(|m+1\rangle\)을 얻는다. 이를 반복해 정규직교 기저 \(|1\rangle, \ldots, |n\rangle\)을 만든다.</p>
+        <p>\(\mathbb{V}_1\)의 정규직교 기저 \(|1\rangle, \ldots, |m\rangle\)을 잡는다(<a class="ref" href="#thm-gs"></a>). \(m &lt; n\)이면 차원이 \(n\)이므로 이 벡터들의 선형결합이 아닌 벡터 \(|u\rangle\)가 있다. \(|u\rangle\)에 그람-슈미트 한 단계(식 <a class="ref" href="#eq-gs"></a>)을 적용하면 앞의 \(m\)개와 직교하는 단위 벡터 \(|m+1\rangle\)을 얻는다. 이를 반복해 정규직교 기저 \(|1\rangle, \ldots, |n\rangle\)을 만든다.</p>
         <p>이제 \(\mathbb{V}_1^\perp\)가 \(|m+1\rangle, \ldots, |n\rangle\)이 생성하는 부분공간과 같음을 보인다. 이 벡터들은 \(|1\rangle, \ldots, |m\rangle\)과 직교하므로 그 선형결합은 \(\mathbb{V}_1\)의 모든 벡터와 직교한다. 거꾸로 \(|W\rangle \in \mathbb{V}_1^\perp\)이면 \(i \le m\)에서 \(\langle i|W\rangle = 0\)이므로 식 <a class="ref" href="#eq-expansion-ip"></a>에서 \(|W\rangle = \sum_{i>m}|i\rangle\langle i|W\rangle\)이다. 따라서 \(\mathbb{V}_1^\perp\)는 정규직교(따라서 독립)인 \(n - m\)개의 벡터가 생성하고, 차원은 \(n - m\)이다.</p>
       </details>
     </div>
