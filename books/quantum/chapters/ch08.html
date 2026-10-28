@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>08 조화 진동자 · QuantumBook</title>
-<meta name="description" content="좌표 표현과 에르미트 다항식 · 사다리 연산자 · 수 연산자 기저 · 결맞음 상태">
+<meta name="description" content="평형점 근처의 작은 진동을 나타내는 조화 진동자를 좌표 표현의 급수 풀이(에르미트 다항식)와 사다리 연산자의 대수로 풀고, 수 연산자 기저의 행렬 계산과 고전 진동을 닮은 결맞음 상태를 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,56 +24,416 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch08">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">08</span></div>
     <h1 data-fill="chapter-title">조화 진동자</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">안정한 평형점 근처에서 퍼텐셜은 거의 언제나 포물선 모양이다. 그래서 분자의 진동, 결정의 격자 진동, 덫에 갇힌 이온, 전자기장의 한 모드처럼 평형점 근처에서 흔들리는 계는 모두 조화 진동자로 다룰 수 있다. 이 장에서는 조화 진동자를 두 가지 방법으로 푼다. 하나는 7장처럼 좌표 표현에서 미분 방정식을 푸는 방법이고, 다른 하나는 교환 관계만으로 에너지의 사다리를 세우는 대수적 방법이다. 둘째 방법에서 나오는 사다리 연산자는 결맞음 상태를 거쳐 고전적인 진동으로 이어지고, 뒤에서 각운동량과 장의 양자화를 다룰 때 다시 쓰인다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>매끄러운 퍼텐셜이 극소점 근처에서 조화 진동자로 근사됨을 보이고, 진동자의 자연 길이 \(b\)와 에너지 규모 \(\hbar\omega\)를 계산할 수 있다.</li>
+      <li>좌표 표현에서 급수 풀이로 에너지 \(E_n = (n + \frac12)\hbar\omega\)와 에르미트 다항식으로 된 고유함수를 유도할 수 있다.</li>
+      <li>사다리 연산자의 교환 관계만으로 스펙트럼을 구하고, \(\hat a\)와 \(\hat a^\dagger\)가 \(|n\rangle\)에 작용한 결과를 쓸 수 있다.</li>
+      <li>수 연산자 기저에서 \(\hat x\), \(\hat p\)의 행렬 원소를 구하고, 이를 써서 기댓값과 불확정도를 적분 없이 계산할 수 있다.</li>
+      <li>결맞음 상태를 정의하고, 이것이 모양을 유지한 채 고전 궤도를 따라 진동하는 최소 불확정 상태임을 보일 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>2장(교환자, 수반 연산자), 3장(가우스 적분), 4장(조화 진동자의 위상 공간), 6장(정준 교환 관계, 기댓값의 시간 변화, 에너지 고유 상태로 전개해 풀기), 7장(1차원 속박 상태의 일반 정리)</p>
   </header>
 
+  <!-- ============================================================ 8.1 -->
   <section id="s1">
-    <h2>좌표 표현과 에르미트 다항식</h2>
-    <p class="slot" data-slot="8.1절">아직 쓰지 않은 절입니다.</p>
+    <h2>왜 조화 진동자인가</h2>
+    <p>입자가 퍼텐셜 \(V(x)\)의 극소점 \(x_0\) 근처에 있다고 하자. 극소점에서는 \(V'(x_0) = 0\)이므로 테일러 전개에 1차 항이 없다.</p>
+    <div class="formula" id="eq-taylor">\[ \begin{aligned} V(x) = V(x_0) &+ \frac12V''(x_0)(x - x_0)^2 \\ &+ \frac16V'''(x_0)(x - x_0)^3 + \cdots \end{aligned} \]</div>
+    <p>상수 \(V(x_0)\)는 에너지의 기준점을 옮길 뿐이므로 버리고, 좌표의 원점을 \(x_0\)으로 옮기자. 변위가 작아서 3차 항이 2차 항보다 훨씬 작으면(\(|x| \ll 3V''/|V'''|\)) 남는 것은 \(\frac12kx^2\), \(k = V''(x_0) > 0\)뿐이다. 용수철의 퍼텐셜이다. \(\omega = \sqrt{k/m}\)으로 쓰면 해밀토니안은</p>
+    <div class="formula" id="eq-ho-hamiltonian">\[ \hat H = \frac{\hat p^2}{2m} + \frac12m\omega^2\hat x^2 \]</div>
+    <p>이다. 이 계를 <span class="term">조화 진동자</span> <span class="en">(harmonic oscillator)</span>라 한다. 퍼텐셜의 바닥이 매끄럽기만 하면 어떤 계든 작게 흔들릴 때는 조화 진동자다. 원자 사이의 결합으로 묶인 분자의 진동이 대표적인 예다.</p>
+    <div class="callout deep"><strong>진동자가 여럿이어도</strong><p>원자 여러 개가 결합으로 이어진 분자나 결정에서도, 평형점 근처의 퍼텐셜은 변위들의 2차식이다. 질량을 고려해 좌표를 잘 고르면(정규 좌표) 이 2차식이 대각화되어, 서로 독립인 진동자 여러 개로 갈라진다. 전자기장도 공동 안의 모드 하나하나가 진동자다. 5장의 플랑크 계산이 바로 이 모드들의 평균 에너지를 구한 것이었다. 그래서 진동자 하나를 양자역학으로 풀면 결정의 격자 진동과 빛의 양자론을 얻는 셈이다. 이 이야기는 2권에서 이어진다.</p></div>
+
+    <h3 id="s1-classical">고전 진동자</h3>
+    <p><a href="ch04.html#ex-sho-phase">4장 예제 4.4</a>에서 본 고전 해는 \(x(t) = A\cos(\omega t + \varphi)\)이다. 에너지가 \(E = \frac12m\omega^2A^2\)이면 입자는 <span class="term">고전적 되돌이점</span> <span class="en">(classical turning point)</span> \(\pm A\) 사이를 오간다. 아무 때나 사진을 찍었을 때 입자가 \(x\)와 \(x + dx\) 사이에 있을 확률은 그 구간에 머무는 시간에 비례한다. 반주기 \(\pi/\omega\) 동안 입자는 구간을 한 번 지나고, 지나는 데 걸리는 시간은 \(dx/|v|\)이다. \(|v| = \omega\sqrt{A^2 - x^2}\)이므로</p>
+    <div class="formula" id="eq-classical-density">\[ P_{\mathrm{cl}}(x) = \frac{1}{\pi/\omega}\cdot\frac{1}{\omega\sqrt{A^2 - x^2}} = \frac{1}{\pi\sqrt{A^2 - x^2}} \]</div>
+    <p>이다(\(|x| &lt; A\)). 입자는 빨리 지나가는 가운데보다, 느려지는 되돌이점 근처에서 더 자주 발견된다. 8.2절에서 이것을 양자 확률 분포와 비교한다.</p>
+
+    <h3 id="s1-scales">자연 단위와 바닥 에너지 어림</h3>
+    <p>조화 진동자의 양자역학에 들어오는 상수는 \(m\), \(\omega\), \(\hbar\) 셋뿐이다. 이 셋으로 만들 수 있는 에너지는 \(\hbar\omega\) 하나이고, 길이와 운동량도 하나씩이다.</p>
+    <div class="formula" id="eq-ho-scales">\[ b = \sqrt{\frac{\hbar}{m\omega}}, \qquad \frac{\hbar}{b} = \sqrt{m\hbar\omega}, \qquad \hbar\omega \]</div>
+    <p>\(\hbar/m\omega\)의 단위는 \(\mathrm{J\,s}/(\mathrm{kg\,s^{-1}}) = \mathrm m^2\)이다. 이 \(b\)를 진동자의 자연 길이라 하자. 답은 모두 \(E = (\text{수})\times\hbar\omega\), \(\Delta x = (\text{수})\times b\)꼴일 수밖에 없다.</p>
+    <p>그 수를 어림해 보자. 9장에서 증명할 불확정성 관계 \(\Delta x\,\Delta p \ge \hbar/2\)를 빌려 쓴다. 일반적으로 \(\langle x^2\rangle = (\Delta x)^2 + \langle x\rangle^2 \ge (\Delta x)^2\)이고 운동량도 같으므로, 어떤 상태에서든</p>
+    <div class="formula">\[ \langle H\rangle \ge \frac{(\Delta p)^2}{2m} + \frac12m\omega^2(\Delta x)^2 \ge \frac{\hbar^2}{8m(\Delta x)^2} + \frac12m\omega^2(\Delta x)^2 \]</div>
+    <p>이다. 첫 항은 입자를 좁게 모을수록 커지고 둘째 항은 넓게 퍼질수록 커진다. 오른쪽을 \(\Delta x\)로 미분해 0으로 두면 \((\Delta x)^2 = \hbar/2m\omega = b^2/2\)에서 최소이고, 이때 두 항이 \(\hbar\omega/4\)씩이다. 따라서 <b>조화 진동자의 에너지는 \(\hbar\omega/2\)보다 낮을 수 없다.</b> 다음 절에서 정확히 풀면 바닥 상태의 에너지가 정확히 \(\hbar\omega/2\)이고 \(\Delta x\)도 정확히 \(b/\sqrt2\)임을 알게 된다.</p>
+    <div class="box ex" id="ex-co"><div class="box-h">일산화탄소 분자의 진동</div>
+      <p>CO 분자의 진동은 두 원자 사이 거리의 진동이다. 질량 자리에는 환산 질량 \(\mu = m_\mathrm{C}m_\mathrm{O}/(m_\mathrm{C} + m_\mathrm{O}) = 6.856\ \mathrm u = 1.139\times10^{-26}\ \mathrm{kg}\)이 들어간다(<a href="ch04.html#ex-two-body">4장 예제 4.10</a>). 분광학 자료에 따르면 CO의 조화 진동 파수는 \(\tilde\nu = \omega/2\pi c = 2170\ \mathrm{cm^{-1}}\)이다.</p>
+      <ul>
+        <li>각진동수는 \(\omega = 2\pi c\tilde\nu = 4.09\times10^{14}\ \mathrm{s^{-1}}\)이고, 결합의 용수철 상수는 \(k = \mu\omega^2 = 1.90\times10^3\ \mathrm{N/m}\)이다.</li>
+        <li>준위 간격은 \(\hbar\omega = 0.269\ \mathrm{eV}\)이다. 300 K의 열에너지 \(k_BT = 0.0259\ \mathrm{eV}\)의 10배가 넘으므로, 상온의 CO 분자는 거의 모두 진동의 바닥 상태에 있다(첫 들뜬 상태의 볼츠만 인자가 \(e^{-\hbar\omega/k_BT} = 3\times10^{-5}\)이다).</li>
+        <li>자연 길이는 \(b = \sqrt{\hbar/\mu\omega} = 4.76\ \mathrm{pm}\)이다. 바닥 상태에서 결합 길이의 흔들림 \(b/\sqrt2 = 3.4\ \mathrm{pm}\)은 결합 길이 113 pm의 3%다.</li>
+      </ul>
+      <p>흔들림이 결합 길이보다 훨씬 작으므로 포물선 근사가 잘 맞는다.</p>
+    </div>
   </section>
 
+  <!-- ============================================================ 8.2 -->
   <section id="s2">
-    <h2>사다리 연산자</h2>
-    <p class="slot" data-slot="8.2절">아직 쓰지 않은 절입니다.</p>
+    <h2>좌표 표현과 에르미트 다항식</h2>
+    <p>위치 표현에서 시간에 무관한 슈뢰딩거 방정식(<a href="ch06.html#eq-tise">6장 식 (6.12)</a>)은</p>
+    <div class="formula">\[ -\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2} + \frac12m\omega^2x^2\psi = E\psi \]</div>
+    <p>이다. 8.1절의 자연 단위로 길이와 에너지를 재자. \(y = x/b\), \(\varepsilon = E/\hbar\omega\)로 두고 양변을 \(\hbar\omega\)로 나눈다. \(d^2/dx^2 = b^{-2}\,d^2/dy^2\)이므로 두 계수는 \(\hbar/(2m\omega b^2) = \frac12\), \(m\omega b^2/2\hbar = \frac12\)이 되고, \(-2\)를 곱해 정리하면</p>
+    <div class="formula" id="eq-ho-dimless">\[ \frac{d^2\psi}{dy^2} + (2\varepsilon - y^2)\,\psi = 0 \]</div>
+    <p>을 얻는다. 상수가 모두 사라지고 숫자 \(\varepsilon\) 하나만 남았다.</p>
+
+    <h3 id="s2-asymptotic">먼 곳에서의 모양</h3>
+    <p>\(|y|\)가 크면 \(y^2\)이 \(2\varepsilon\)보다 훨씬 커서 방정식은 대략 \(\psi'' = y^2\psi\)이다. \(e^{\pm y^2/2}\)을 넣어 보면 \((e^{\pm y^2/2})'' = (y^2 \pm 1)e^{\pm y^2/2}\)이므로 큰 \(|y|\)에서 맞는다. \(e^{+y^2/2}\)은 정규화할 수 없으므로 버린다. 그래서 \(\psi\)를 감쇠하는 인자와 나머지로 나누어 \(\psi(y) = u(y)\,e^{-y^2/2}\)로 쓰자. 미분하면</p>
+    <div class="formula">\[ \begin{aligned} \psi' &= (u' - yu)\,e^{-y^2/2}, \\ \psi'' &= \big(u'' - 2yu' + (y^2 - 1)u\big)\,e^{-y^2/2} \end{aligned} \]</div>
+    <p>이다. 식 <a class="ref" href="#eq-ho-dimless"></a>에 넣으면 \(y^2u\) 항이 지워지고</p>
+    <div class="formula" id="eq-hermite-eq">\[ u'' - 2yu' + (2\varepsilon - 1)\,u = 0 \]</div>
+    <p>이 남는다. 이것을 <span class="term">에르미트 방정식</span> <span class="en">(Hermite equation)</span>이라 한다.</p>
+
+    <h3 id="s2-series">급수 풀이와 에너지 양자화</h3>
+    <p>\(u = \sum_k c_ky^k\)로 놓자. \(u'' = \sum_k (k + 2)(k + 1)c_{k+2}\,y^k\)(합의 첨자를 2만큼 옮겼다)이고 \(-2yu' = \sum_k(-2k)c_k\,y^k\)이므로, \(y^k\)의 계수를 맞추면</p>
+    <div class="formula" id="eq-recursion">\[ c_{k+2} = \frac{2k + 1 - 2\varepsilon}{(k + 1)(k + 2)}\,c_k \]</div>
+    <p>이다. \(c_0\)에서 짝수 차수의 계수가, \(c_1\)에서 홀수 차수의 계수가 차례로 정해진다. 짝수 차수만 있는 급수는 짝함수, 홀수 차수만 있는 급수는 홀함수다. 퍼텐셜이 대칭이면 속박 상태가 짝 또는 홀이라는 <a href="ch07.html#thm-real-parity">7장 정리 7.2</a>와 맞는다.</p>
+    <p>그런데 급수가 끝없이 이어지면 문제가 생긴다. \(k\)가 크면 식 <a class="ref" href="#eq-recursion"></a>의 비는 \(c_{k+2}/c_k \approx 2/k\)이다. \(e^{y^2} = \sum_j y^{2j}/j!\)의 계수도 \(k = 2j\)로 쓰면 비가 \(\frac{j!}{(j + 1)!} = \frac{1}{j + 1} \approx \frac2k\)로 같다. 계수가 같은 방식으로 줄어드는 두 급수는 큰 \(y\)에서 같은 빠르기로 자라므로, \(u\)는 \(e^{y^2}\)처럼 커지고 \(\psi = ue^{-y^2/2}\)는 \(e^{y^2/2}\)처럼 커진다. 예를 들어 \(\varepsilon = 0.6\)이면 짝수 급수가 \(u(5)/e^{25} \approx -0.015\), \(u(7)/e^{49} \approx -0.010\)이다. 이런 해는 정규화할 수 없다.</p>
+    <p>정규화할 수 있는 해를 얻는 길은 하나뿐이다. 급수가 어느 차수에서 끊겨 다항식이 되어야 한다. 식 <a class="ref" href="#eq-recursion"></a>에서 \(k = n\)일 때 분자 \(2n + 1 - 2\varepsilon\)이 0이면 \(c_{n+2}\)부터 모두 0이 된다. 다른 쪽 홀짝의 급수는 첫 계수를 0으로 두어 없앤다. 따라서 \(\varepsilon = n + \frac12\), 곧</p>
+    <div class="formula" id="eq-ho-energy">\[ E_n = \Big(n + \frac12\Big)\hbar\omega, \qquad n = 0, 1, 2, \ldots \]</div>
+    <p>이다. 무한 우물에서는 벽의 경계 조건이 에너지를 띄엄띄엄하게 만들었고, 여기서는 무한히 먼 곳에서 \(\psi \to 0\)이라는 조건이 같은 일을 한다. 에너지 준위는 \(\hbar\omega\) 간격으로 고르게 놓인다(무한 우물의 준위는 \(n^2\)에 비례했다). 가장 낮은 에너지는 0이 아니라 \(\frac12\hbar\omega\)이다. 이것을 <span class="term">영점 에너지</span> <span class="en">(zero-point energy)</span>라 한다. 8.1절의 하한에 정확히 닿는 값이다.</p>
+    <div class="callout deep"><strong>플랑크의 가정과 비교</strong><p>5장에서 플랑크는 진동수 \(\nu\)인 모드의 에너지를 \(nh\nu\)로 가정했다(<a href="ch05.html#eq-planck-quanta">5장 식 (5.2)</a>). 양자역학의 답 \((n + \frac12)h\nu\)는 간격이 \(h\nu\)로 같고, 모든 준위가 \(\frac12h\nu\)씩 올라가 있다. 준위를 모두 같은 양만큼 올려도 흡수하고 내놓는 에너지인 준위 사이의 간격은 그대로이므로, 플랑크 법칙은 바뀌지 않는다(<a class="ref" href="#prob-thermal"></a>).</p></div>
+
+    <h3 id="s2-hermite">에르미트 다항식과 고유함수</h3>
+    <p>\(\varepsilon = n + \frac12\)일 때 끊긴 다항식은 \(n\)차다. 최고차 계수가 \(2^n\)이 되도록 맞춘 것을 <span class="term">에르미트 다항식</span> <span class="en">(Hermite polynomial)</span> \(H_n(y)\)라 한다. 식 <a class="ref" href="#eq-recursion"></a>로 직접 만들어 보자. \(n = 2\)이면 \(\varepsilon = \frac52\)이고 \(c_2 = \frac{1 - 5}{2}c_0 = -2c_0\)이므로, \(c_0 = -2\)로 두면 \(H_2 = 4y^2 - 2\)이다. \(n = 3\)이면 \(c_3 = \frac{3 - 7}{6}c_1 = -\frac23c_1\)이므로, \(c_1 = -12\)로 두면 \(H_3 = 8y^3 - 12y\)이다. 처음 다섯 개는 다음과 같다.</p>
+    <div class="formula">\[ \begin{aligned} H_0 &= 1, & H_1 &= 2y, \\ H_2 &= 4y^2 - 2, & H_3 &= 8y^3 - 12y, \\ H_4 &= 16y^4 - 48y^2 + 12 \end{aligned} \]</div>
+    <p>정규화까지 마친 에너지 고유함수는</p>
+    <div class="formula" id="eq-ho-eigenfunctions">\[ \psi_n(x) = \Big(\frac{1}{\pi b^2}\Big)^{1/4}\frac{1}{\sqrt{2^nn!}}\,H_n\Big(\frac xb\Big)\,e^{-x^2/2b^2} \]</div>
+    <p>이다. 정규화 상수는 아래 수학 상자의 직교 관계 식 <a class="ref" href="#eq-hermite-ortho"></a>에서 나온다. \(dx = b\,dy\)이므로 \(\int|\psi_n|^2dx = \frac{1}{\sqrt\pi\,2^nn!}\int H_n^2e^{-y^2}dy = 1\)이다.</p>
+    <div class="box math" id="math-hermite"><div class="box-h">에르미트 다항식의 성질</div>
+      <ul>
+        <li><b>생성 함수</b>: 다음 식의 왼쪽을 \(t\)의 거듭제곱으로 전개했을 때 \(t^n/n!\)의 계수가 \(H_n(y)\)이다.
+          <div class="formula" id="eq-hermite-gen">\[ e^{2ty - t^2} = \sum_{n=0}^\infty H_n(y)\,\frac{t^n}{n!} \]</div>
+          예를 들어 \(e^{2ty}e^{-t^2} = (1 + 2ty + 2t^2y^2 + \cdots)(1 - t^2 + \cdots)\)에서 \(t^2\)의 계수는 \(2y^2 - 1\)이고, \(2!\)을 곱하면 \(H_2 = 4y^2 - 2\)이다.</li>
+        <li><b>점화식</b>: 생성 함수의 양변을 \(y\)로 미분하면 왼쪽은 \(2t\)배가 되므로 \(H_n' = 2nH_{n-1}\)이다. \(t\)로 미분하면 왼쪽은 \((2y - 2t)\)배가 되므로 \(H_{n+1} = 2yH_n - 2nH_{n-1}\)이다. 두 식을 합친 \(H_{n+1} = 2yH_n - H_n'\)을 미분하고 \(H_{n+1}' = 2(n + 1)H_n\)을 쓰면 \(H_n'' - 2yH_n' + 2nH_n = 0\)이 된다. 생성 함수로 정의한 \(H_n\)이 \(\varepsilon = n + \frac12\)인 에르미트 방정식의 다항식 해이고, 최고차 계수도 \(2^n\)으로 같다.</li>
+        <li><b>로드리게스 공식</b>: \(e^{2ty - t^2} = e^{y^2}e^{-(y - t)^2}\)이다. 이것을 \(t\)로 \(n\)번 미분하고 \(t = 0\)으로 둔다. \(e^{-(y - t)^2}\)에 \(\partial_t\)를 작용하는 것은 \(-\partial_y\)를 작용하는 것과 같으므로
+          <div class="formula">\[ H_n(y) = (-1)^ne^{y^2}\frac{d^n}{dy^n}e^{-y^2} \]</div></li>
+        <li><b>직교 관계</b>: 생성 함수 두 개를 곱해 적분한다. 지수를 완전제곱으로 바꾸면 \(2sy + 2ty - y^2 - s^2 - t^2 = -(y - s - t)^2 + 2st\)이므로
+          <div class="formula">\[ \begin{aligned} \int e^{2sy - s^2}e^{2ty - t^2}e^{-y^2}dy &= \sqrt\pi\,e^{2st} \\ &= \sqrt\pi\sum_n\frac{2^ns^nt^n}{n!} \end{aligned} \]</div>
+          이다. 양변에서 \(s^mt^n/(m!\,n!)\)의 계수를 비교하면
+          <div class="formula" id="eq-hermite-ortho">\[ \int_{-\infty}^{\infty}H_m(y)H_n(y)\,e^{-y^2}dy = \sqrt\pi\,2^nn!\,\delta_{mn} \]</div></li>
+      </ul>
+    </div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:8-1--><svg viewBox="0 0 360 300" role="img" aria-label="조화 진동자의 퍼텐셜과 처음 다섯 에너지 고유함수"><defs><marker id="f81-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f81-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f81-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="52" y1="270" x2="324" y2="270" class="s-line" stroke-width="1.2" marker-end="url(#f81-dim)"/><line x1="91.6" y1="270" x2="91.6" y2="274" class="s-line" stroke-width="1.2"/><text x="91.6" y="287" class="t-dim" text-anchor="middle">−3</text><line x1="122.1" y1="270" x2="122.1" y2="274" class="s-line" stroke-width="1.2"/><text x="122.1" y="287" class="t-dim" text-anchor="middle">−2</text><line x1="152.5" y1="270" x2="152.5" y2="274" class="s-line" stroke-width="1.2"/><text x="152.5" y="287" class="t-dim" text-anchor="middle">−1</text><line x1="183" y1="270" x2="183" y2="274" class="s-line" stroke-width="1.2"/><text x="183" y="287" class="t-dim" text-anchor="middle">0</text><line x1="213.5" y1="270" x2="213.5" y2="274" class="s-line" stroke-width="1.2"/><text x="213.5" y="287" class="t-dim" text-anchor="middle">1</text><line x1="243.9" y1="270" x2="243.9" y2="274" class="s-line" stroke-width="1.2"/><text x="243.9" y="287" class="t-dim" text-anchor="middle">2</text><line x1="274.4" y1="270" x2="274.4" y2="274" class="s-line" stroke-width="1.2"/><text x="274.4" y="287" class="t-dim" text-anchor="middle">3</text><text font-size="14" x="326" y="290" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan>/<tspan font-style="italic">b</tspan></text><path d="M81.5 12 L93.7 70.2 L106.5 123.6 L119.4 168.7 L125.5 187.2 L132.3 205.5 L138.3 220.1 L144.4 232.7 L151.2 244.7 L157.3 253.4 L163.4 260.4 L170.1 265.9 L176.2 268.9 L183 270 L189.1 269.1 L195.2 266.3 L201.3 261.6 L208 254.3 L214.8 244.7 L220.9 234 L227 221.6 L233.7 205.5 L239.8 189.1 L246.6 168.7 L259.5 123.6 L271.6 73.2 L284.5 12" class="s-line" stroke-width="2"/><line x1="52" y1="246.8" x2="314" y2="246.8" class="s-grid" stroke-dasharray="4 3"/><path d="M52 246.8 L96.5 246.4 L108.6 245.8 L119.1 244.6 L128 243 L136.9 240.6 L168.3 229.7 L175.7 228.1 L183 227.6 L190.3 228.1 L197.7 229.7 L229.1 240.6 L238 243 L246.9 244.6 L257.4 245.8 L269.5 246.4 L314 246.8" class="s-acc" stroke-width="2.1"/><circle cx="152.5" cy="246.8" r="3" class="f-dim"/><circle cx="213.5" cy="246.8" r="3" class="f-dim"/><text font-size="14" x="320" y="251.8" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 0</text><text font-size="14" x="46" y="251.8" class="t-math dim" text-anchor="end"><tspan font-style="italic">ħω</tspan>/2</text><line x1="52" y1="200.3" x2="314" y2="200.3" class="s-grid" stroke-dasharray="4 3"/><path d="M52 200.3 L84 200.7 L102.8 202.5 L117.5 206.1 L142.1 215.1 L147.4 216.3 L152.6 216.7 L159.9 215.7 L167.3 212.5 L174.6 207.5 L189.8 194.3 L196.1 189.6 L203.4 185.7 L210.8 183.9 L216.5 184 L222.8 185.2 L249 194.6 L264.2 198.2 L282.6 199.8 L314 200.3" class="s-acc2" stroke-width="2.1"/><circle cx="130.2" cy="200.3" r="3" class="f-dim"/><circle cx="235.8" cy="200.3" r="3" class="f-dim"/><text font-size="14" x="320" y="205.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 1</text><text font-size="14" x="46" y="205.3" class="t-math dim" text-anchor="end">3<tspan font-style="italic">ħω</tspan>/2</text><line x1="52" y1="153.8" x2="314" y2="153.8" class="s-grid" stroke-dasharray="4 3"/><path d="M52 153.7 L75.6 153.1 L91.3 151.3 L103.9 148 L125.4 139.8 L130.1 138.7 L134.8 138.2 L141.6 139.3 L147.9 142.2 L154.7 147.4 L171.5 162.8 L176.7 165.9 L182 167.3 L187.2 166.7 L192.4 164.2 L197.7 160.3 L210.2 148.3 L216 143.6 L222.3 140 L228.6 138.4 L233.8 138.4 L239.6 139.5 L262.6 148.1 L275.7 151.5 L290.9 153.2 L314 153.7" class="s-acc" stroke-width="2.1"/><circle cx="114.9" cy="153.8" r="3" class="f-dim"/><circle cx="251.1" cy="153.8" r="3" class="f-dim"/><text font-size="14" x="320" y="158.8" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 2</text><text font-size="14" x="46" y="158.8" class="t-math dim" text-anchor="end">5<tspan font-style="italic">ħω</tspan>/2</text><line x1="52" y1="107.3" x2="314" y2="107.3" class="s-grid" stroke-dasharray="4 3"/><path d="M52 107.5 L69.3 108.3 L81.9 110.1 L92.9 113.3 L112.3 120.8 L117 122 L121.2 122.3 L127.5 121.3 L133.2 118.5 L139.5 113.4 L154.7 98.8 L159.4 95.8 L163.6 94.7 L167.8 95.1 L172.5 97.4 L177.8 101.8 L191.4 115.7 L196.1 118.7 L200.3 119.9 L204.5 119.5 L209.2 117.3 L214.4 113.1 L225.4 102.1 L230.7 97.6 L237 93.9 L242.7 92.4 L247.5 92.4 L253.2 93.6 L273.7 101.5 L284.7 104.6 L297.2 106.4 L314 107.1" class="s-acc2" stroke-width="2.1"/><circle cx="102.4" cy="107.3" r="3" class="f-dim"/><circle cx="263.6" cy="107.3" r="3" class="f-dim"/><text font-size="14" x="320" y="112.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 3</text><text font-size="14" x="46" y="112.3" class="t-math dim" text-anchor="end">7<tspan font-style="italic">ħω</tspan>/2</text><line x1="52" y1="60.8" x2="314" y2="60.8" class="s-grid" stroke-dasharray="4 3"/><path d="M52 60.4 L64.1 59.4 L74 57.5 L82.9 54.8 L100.7 47.7 L104.9 46.6 L109.1 46.2 L114.9 47 L120.6 49.7 L126.4 54.4 L141.1 69 L145.3 71.7 L149.5 72.9 L153.7 72.4 L157.8 70.1 L162 66.3 L174.6 52.8 L178.8 50 L182.5 49.1 L186.1 49.6 L189.8 51.6 L194 55.3 L206.6 68.8 L210.8 71.7 L215 72.9 L219.2 72.4 L223.3 70.2 L227.5 66.7 L238 55.9 L243.3 51.2 L249 47.8 L254.3 46.3 L259 46.3 L264.2 47.4 L283.6 55 L293 57.8 L302.5 59.4 L314 60.4" class="s-acc" stroke-width="2.1"/><circle cx="91.6" cy="60.8" r="3" class="f-dim"/><circle cx="274.4" cy="60.8" r="3" class="f-dim"/><text font-size="14" x="320" y="65.8" class="t-math dim" text-anchor="start"><tspan font-style="italic">n</tspan> = 4</text><text font-size="14" x="46" y="65.8" class="t-math dim" text-anchor="end">9<tspan font-style="italic">ħω</tspan>/2</text></svg><!--/fig:8-1--></div>
+      <figcaption><b>그림 8-1.</b> 조화 진동자의 퍼텐셜 \(V = \frac12m\omega^2x^2\)(회색 곡선)과 처음 다섯 고유함수 \(\psi_n\). 각 \(\psi_n\)을 자기 에너지 \(E_n = (n + \frac12)\hbar\omega\)의 높이에 그렸다. 점은 고전적 되돌이점 \(x = \pm\sqrt{2n + 1}\,b\)이다. \(\psi_n\)은 마디가 \(n\)개이고, 짝함수와 홀함수가 번갈아 나오며, 되돌이점 바깥으로 조금 스며든다.</figcaption>
+    </figure>
+    <p>그림 8-1에서 세 가지를 읽을 수 있다. 첫째, \(\psi_n\)의 마디는 \(n\)개다(\(H_n\)은 실근이 \(n\)개다). 바닥 상태부터 세어 \(k\)번째 상태의 마디가 \(k - 1\)개라는 <a href="ch07.html#s7">7.7절</a>의 규칙과 같다. 둘째, \(n\)이 짝수이면 짝함수, 홀수이면 홀함수다. 셋째, 파동함수가 되돌이점 바깥, 곧 고전적으로 갈 수 없는 영역으로 스며든다.</p>
+    <div class="box ex" id="ex-ground"><div class="box-h">바닥 상태 들여다보기</div>
+      <p>바닥 상태 \(\psi_0(x) = (\pi b^2)^{-1/4}e^{-x^2/2b^2}\)는 <a href="ch06.html#ex-gauss-prob">6장 예제 6.4</a>의 가우스 파속에서 \(\sigma = b\), \(p_0 = 0\)으로 둔 것이다.</p>
+      <ul>
+        <li><b>불확정도</b>: <a href="ch06.html#ex-gauss-moments">6장 예제 6.6</a>에서 \(\langle x\rangle = \langle p\rangle = 0\), \(\Delta x = b/\sqrt2\), \(\Delta p = \hbar/\sqrt2\,b\)이므로 \(\Delta x\,\Delta p = \hbar/2\)이다. 불확정성 관계의 등호다.</li>
+        <li><b>에너지의 몫</b>: 운동 에너지는 \(\langle p^2\rangle/2m = \hbar^2/4mb^2 = \hbar\omega/4\)이고, 퍼텐셜 에너지는 \(\frac12m\omega^2\langle x^2\rangle = \frac14m\omega^2b^2 = \hbar\omega/4\)이다. 합이 \(E_0 = \hbar\omega/2\)이다. 8.1절의 어림에서 두 항이 같았던 것과 같다.</li>
+        <li><b>고전적으로 갈 수 없는 곳</b>: 에너지 \(\hbar\omega/2\)인 고전 진동자의 진폭은 \(\frac12m\omega^2A^2 = \frac12\hbar\omega\)에서 \(A = b\)이다. 바닥 상태의 입자가 \(|x| > b\)에서 발견될 확률은
+          <div class="formula">\[ \begin{aligned} 2\int_b^\infty|\psi_0|^2dx &= \frac{2}{\sqrt\pi}\int_1^\infty e^{-y^2}dy \\ &= \mathrm{erfc}(1) = 0.157 \end{aligned} \]</div>
+          이다(\(\mathrm{erfc} = 1 - \mathrm{erf}\)는 상보 오차 함수다). 열에 한 번 이상, 고전적으로는 갈 수 없는 곳에서 입자가 발견된다.</li>
+      </ul>
+    </div>
+    <p>\(n\)이 크면 어떻게 될까? 그림 8-2는 \(n = 20\)인 상태의 확률 밀도를 같은 에너지의 고전 확률 밀도(식 <a class="ref" href="#eq-classical-density"></a>)과 겹쳐 그린 것이다. 양자 확률 밀도는 빠르게 진동하지만, 진동을 고르게 평균하면 고전 분포를 따라간다. 예를 들어 \(|x| &lt; 3b\)에서 입자가 발견될 확률은 양자역학으로 0.304, 고전역학으로 0.310이다. 양자수가 커질수록 양자역학의 예측이 고전역학에 가까워지는 것이다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:8-2--><svg viewBox="0 0 360 220" role="img" aria-label="n = 20 상태의 확률 밀도가 고전 확률 밀도를 따라 진동한다"><defs><marker id="f82-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f82-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f82-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="50.6" y1="190" x2="50.6" y2="14" class="s-grid" stroke-dasharray="4 3"/><line x1="297.4" y1="190" x2="297.4" y2="14" class="s-grid" stroke-dasharray="4 3"/><line x1="16" y1="190" x2="342" y2="190" class="s-line" stroke-width="1.2" marker-end="url(#f82-dim)"/><line x1="58.4" y1="190" x2="58.4" y2="194" class="s-line" stroke-width="1.2"/><text x="58.4" y="207" class="t-dim" text-anchor="middle">−6</text><line x1="116.2" y1="190" x2="116.2" y2="194" class="s-line" stroke-width="1.2"/><text x="116.2" y="207" class="t-dim" text-anchor="middle">−3</text><line x1="174" y1="190" x2="174" y2="194" class="s-line" stroke-width="1.2"/><text x="174" y="207" class="t-dim" text-anchor="middle">0</text><line x1="231.8" y1="190" x2="231.8" y2="194" class="s-line" stroke-width="1.2"/><text x="231.8" y="207" class="t-dim" text-anchor="middle">3</text><line x1="289.6" y1="190" x2="289.6" y2="194" class="s-line" stroke-width="1.2"/><text x="289.6" y="207" class="t-dim" text-anchor="middle">6</text><text x="344" y="183" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan>/<tspan font-style="italic">b</tspan></text><path d="M16 190 L30.9 189.9 L36.3 188.8 L38.5 187.4 L40.4 185.2 L43.5 178.2 L46 167 L48.3 150.9 L56.1 64.7 L57.7 52.7 L59.1 48.8 L59.8 49.8 L60.6 53.2 L62 67.3 L67.6 168.8 L68.9 184.2 L70.1 190 L71 187.9 L71.9 180 L76.1 113.4 L77.1 103.9 L78 100.7 L78.9 103.6 L79.7 111.8 L83.4 175.5 L84.4 186.3 L85.2 190 L85.9 188.2 L86.8 180.8 L90.2 125.6 L91 117.1 L91.7 114.4 L92.5 116.8 L93.2 123.8 L96.4 177.8 L97.2 187.1 L97.9 190 L98.6 188.3 L99.3 181.7 L102.4 131.4 L103.1 123.9 L103.8 121.4 L105.1 129.8 L108.1 179.7 L109.4 190 L110.1 188.3 L110.7 182.6 L113.5 135.6 L114.3 128 L114.9 125.7 L115.5 127.8 L116.2 133.9 L118.9 180.3 L120.2 190 L120.7 188.9 L121.3 183.8 L124.1 138.7 L124.8 130.8 L125.4 128.6 L126.6 136.1 L129.2 180.4 L130.5 190 L131 188.7 L131.7 183.1 L134.3 139.5 L134.9 132.9 L135.6 130.6 L136.7 138.3 L139.1 179.5 L140.4 189.9 L140.9 188.9 L141.6 183.6 L144.1 141.5 L145.3 132 L146.5 139.4 L148.9 180.4 L150.1 189.9 L150.6 189.1 L151.2 183.8 L153.8 141.8 L154.4 135.1 L155 132.9 L156.1 139.8 L158.5 180.5 L159.7 189.9 L160.2 189 L160.8 183.5 L163.4 141.5 L164.5 133.4 L165.7 141.1 L168 180.4 L169 189.7 L169.3 190 L169.6 189.4 L170.2 184.7 L172.8 141.5 L174 133.6 L175.2 141.5 L177.8 184.7 L178.4 189.4 L178.7 190 L179.1 189.3 L180.1 178.9 L182.3 141.1 L183.5 133.4 L184.6 141.5 L187.2 183.5 L187.8 189 L188.3 189.9 L189.5 180.5 L191.9 139.8 L193 132.9 L193.6 135.1 L194.2 141.8 L196.8 183.8 L197.8 190 L199.1 180.4 L201.6 138.2 L202.7 132 L203.9 141.5 L206.4 183.6 L207.1 188.9 L207.6 189.9 L208.9 179.5 L211.3 138.3 L212.4 130.6 L213.1 132.9 L213.7 139.5 L216.3 183.1 L217 188.7 L217.5 190 L218.8 180.4 L221.4 136.1 L222.6 128.6 L223.2 130.8 L223.9 138.7 L226.7 183.8 L227.3 188.9 L227.8 190 L229.1 180.3 L231.8 133.9 L232.5 127.8 L233.1 125.7 L233.7 128 L234.5 135.6 L237.3 182.6 L237.9 188.3 L238.6 190 L239.9 179.7 L242.9 129.8 L244.2 121.4 L244.9 123.9 L245.6 131.4 L248.7 181.7 L249.4 188.3 L250.1 190 L250.8 187.1 L251.6 177.8 L254.8 123.8 L255.5 116.8 L256.3 114.4 L257 117.1 L257.8 125.6 L261.2 180.8 L262.1 188.2 L262.8 190 L263.6 186.3 L264.6 175.5 L268.3 111.8 L269.1 103.6 L270 100.7 L270.9 103.9 L271.9 113.4 L276.1 180 L277 187.9 L277.9 190 L279.1 184.2 L280.4 168.8 L286 67.3 L287.4 53.2 L288.2 49.8 L288.9 48.8 L290.3 52.7 L291.9 64.7 L299.7 150.9 L302 167 L304.5 178.2 L307.6 185.2 L309.5 187.4 L311.7 188.8 L317.1 189.9 L332 190" class="s-acc" stroke-width="1.8"/><path d="M52.3 19.7 L54 67.7 L55.2 85 L57.2 102.4 L59.6 114.7 L62.5 124 L66.1 131.8 L70.6 138.2 L76.7 144.1 L84 148.7 L93.3 152.7 L104.6 155.9 L118.4 158.4 L134.7 160.2 L153.7 161.4 L174 161.8 L194.3 161.4 L213.3 160.2 L229.6 158.4 L243.4 155.9 L254.7 152.7 L264 148.7 L271.3 144.1 L277.4 138.2 L281.9 131.8 L285.5 124 L288.4 114.7 L290.8 102.4 L292.8 85 L294 67.7 L295.7 19.7" class="s-acc2" stroke-width="2.2" stroke-dasharray="6 4"/><line x1="123.9" y1="22" x2="145.9" y2="22" class="s-acc" stroke-width="2"/><text font-size="14" x="151.9" y="27" class="t-math acc" text-anchor="start">|<tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%">20</tspan>|<tspan baseline-shift="super" font-size="72%">2</tspan></text><line x1="215.9" y1="22" x2="237.9" y2="22" class="s-acc2" stroke-width="2.2" stroke-dasharray="6 4"/><text font-size="14" x="243.9" y="27" class="t-math acc2" text-anchor="start"><tspan font-style="italic">P</tspan><tspan baseline-shift="sub" font-size="72%">cl</tspan></text></svg><!--/fig:8-2--></div>
+      <figcaption><b>그림 8-2.</b> \(n = 20\)인 상태의 확률 밀도 \(|\psi_{20}|^2\)(실선)과, 같은 에너지 \(E_{20} = 20.5\,\hbar\omega\)인 고전 진동자의 확률 밀도 \(P_\mathrm{cl}\)(점선). 고전적 되돌이점은 \(x = \pm\sqrt{41}\,b \approx \pm6.4\,b\)이다. 마디 20개 사이의 봉우리를 고르게 평균하면 고전 분포가 된다.</figcaption>
+    </figure>
   </section>
 
+  <!-- ============================================================ 8.3 -->
   <section id="s3">
-    <h2>수 연산자 기저</h2>
-    <p class="slot" data-slot="8.3절">아직 쓰지 않은 절입니다.</p>
+    <h2>사다리 연산자</h2>
+    <p>8.2절은 미분 방정식을 풀어 답을 얻었다. 이 절에서는 같은 답을 교환 관계 \([\hat x, \hat p] = i\hbar\)(<a href="ch06.html#eq-ccr-post">6장 식 (6.1)</a>)만으로 얻는다. 미분 방정식은 마지막에 1차 방정식 하나만 푼다. 이 방법은 계산이 짧을 뿐 아니라, 14장에서 각운동량의 스펙트럼을 구할 때 같은 생각으로 다시 쓰인다.</p>
+    <p>출발점은 인수분해다. 숫자라면 \(u^2 + v^2 = (u - iv)(u + iv)\)이다. 해밀토니안도 \(\hat H/\hbar\omega = \frac12\big(\hat x^2/b^2 + b^2\hat p^2/\hbar^2\big)\)으로 두 제곱의 합이므로 같은 방식으로 인수분해해 보자(\(b^2 = \hbar/m\omega\)를 쓰면 바로 확인된다). 연산자는 교환하지 않으므로 나머지가 생기는데, 그 나머지가 숫자라는 점이 핵심이다.</p>
+    <div class="box def" id="def-ladder"><div class="box-h">사다리 연산자</div>
+      <p>다음 두 연산자를 <span class="term">내림 연산자</span> <span class="en">(lowering operator)</span> \(\hat a\)와 <span class="term">올림 연산자</span> <span class="en">(raising operator)</span> \(\hat a^\dagger\)라 하고, 둘을 함께 <span class="term">사다리 연산자</span> <span class="en">(ladder operators)</span>라 한다.</p>
+      <div class="formula" id="eq-ladder-def">\[ \begin{gathered} \hat a = \frac{1}{\sqrt2}\Big(\frac{\hat x}{b} + \frac{ib\hat p}{\hbar}\Big), \\ \hat a^\dagger = \frac{1}{\sqrt2}\Big(\frac{\hat x}{b} - \frac{ib\hat p}{\hbar}\Big) \end{gathered} \]</div>
+      <p>\(\hat x\)와 \(\hat p\)가 에르미트이므로 \(\hat a^\dagger\)는 정말로 \(\hat a\)의 수반이다. \(\hat a\) 자신은 에르미트가 아니어서 관측량이 아니다. 소멸 연산자와 생성 연산자 <span class="en">(annihilation, creation operator)</span>라고도 한다.</p>
+    </div>
+    <p>교환자를 계산하자. \(\hat x\)끼리, \(\hat p\)끼리는 교환하므로 엇갈린 두 항만 남는다.</p>
+    <div class="formula" id="eq-ladder-comm">\[ \begin{aligned} [\hat a, \hat a^\dagger] &= \frac12\Big(-\frac{i}{\hbar}[\hat x, \hat p] + \frac{i}{\hbar}[\hat p, \hat x]\Big) \\ &= \frac12(1 + 1) = 1 \end{aligned} \]</div>
+    <p>이제 \(\hat a^\dagger\hat a\)를 펼치면 제곱 항 둘과 엇갈린 항 \(\frac{i}{2\hbar}(\hat x\hat p - \hat p\hat x)\)가 나온다.</p>
+    <div class="formula">\[ \hat a^\dagger\hat a = \frac12\Big(\frac{\hat x^2}{b^2} + \frac{b^2\hat p^2}{\hbar^2}\Big) + \frac{i}{2\hbar}[\hat x, \hat p] = \frac{\hat H}{\hbar\omega} - \frac12 \]</div>
+    <p>따라서</p>
+    <div class="formula" id="eq-ladder-H">\[ \hat H = \hbar\omega\Big(\hat N + \frac12\Big), \qquad \hat N = \hat a^\dagger\hat a \]</div>
+    <p>이다. \(\hat N\)을 <span class="term">수 연산자</span> <span class="en">(number operator)</span>라 한다. \(\hat N\)은 에르미트이고(\((\hat a^\dagger\hat a)^\dagger = \hat a^\dagger\hat a\)), \(\hat H\)를 대각화하는 문제가 \(\hat N\)을 대각화하는 문제로 바뀌었다. 거꾸로 \(\hat x\)와 \(\hat p\)를 사다리 연산자로 쓰면</p>
+    <div class="formula" id="eq-x-p-ladder">\[ \hat x = \frac{b}{\sqrt2}\big(\hat a + \hat a^\dagger\big), \qquad \hat p = \frac{i\hbar}{\sqrt2\,b}\big(\hat a^\dagger - \hat a\big) \]</div>
+    <p>이다. 다음 절에서 행렬 원소를 계산할 때 이 식을 쓴다.</p>
+
+    <h3 id="s3-ladder">사다리를 오르내리기</h3>
+    <p>\(\hat N\)과 사다리 연산자의 교환자는 곱의 규칙(<a href="ch02.html#eq-comm-product">2장 식 (2.6)</a>)과 식 <a class="ref" href="#eq-ladder-comm"></a>에서 바로 나온다. \([\hat a, \hat a^\dagger\hat a] = \hat a^\dagger[\hat a, \hat a] + [\hat a, \hat a^\dagger]\,\hat a = \hat a\)이고, 같은 방법으로 \([\hat a^\dagger, \hat a^\dagger\hat a] = -\hat a^\dagger\)이므로</p>
+    <div class="formula" id="eq-N-comm">\[ [\hat N, \hat a] = -\hat a, \qquad [\hat N, \hat a^\dagger] = \hat a^\dagger \]</div>
+    <p>이다. 이 식의 뜻을 보자. \(|\nu\rangle\)가 \(\hat N\)의 고유벡터이고 고유값이 \(\nu\)라면</p>
+    <div class="formula">\[ \hat N\big(\hat a|\nu\rangle\big) = \big(\hat a\hat N - \hat a\big)|\nu\rangle = (\nu - 1)\,\hat a|\nu\rangle \]</div>
+    <p>이다. 곧 \(\hat a|\nu\rangle\)는 (0 벡터가 아니라면) 고유값이 1 작은 고유벡터다. 같은 방법으로 \(\hat a^\dagger|\nu\rangle\)는 고유값이 1 큰 고유벡터다. \(\hat a\)는 사다리를 한 칸 내려가고 \(\hat a^\dagger\)는 한 칸 올라간다. 에너지로는 한 칸이 \(\hbar\omega\)다.</p>
+    <p>그런데 이 사다리는 아래쪽이 막혀 있어야 한다. \(\hat a|\nu\rangle\)의 노름의 제곱은</p>
+    <div class="formula" id="eq-norm-a">\[ \big\lVert\hat a|\nu\rangle\big\rVert^2 = \langle\nu|\hat a^\dagger\hat a|\nu\rangle = \nu\,\langle\nu|\nu\rangle \]</div>
+    <p>이고 노름의 제곱은 음수일 수 없으므로 \(\nu \ge 0\)이다. 한편 \(\hat a\)를 거듭 작용하면 고유값이 \(\nu - 1, \nu - 2, \ldots\)로 줄어 언젠가 음수가 된다. 이 모순을 피하는 길은 내려가던 도중에 \(\hat a\)를 작용한 결과가 0 벡터가 되는 것뿐이다. 식 <a class="ref" href="#eq-norm-a"></a>에 따르면 그런 일은 고유값이 정확히 0인 상태에서만 일어난다. 따라서 \(\nu\)에서 정수 칸만큼 내려가 정확히 0에 닿아야 하고, \(\nu\)는 0 이상의 정수다. 만약 \(\nu = 2.5\)라면 \(2.5 \to 1.5 \to 0.5 \to -0.5\)로 내려가 노름의 제곱이 음수인 벡터가 생긴다.</p>
+    <div class="box thm" id="thm-ladder"><div class="box-h">조화 진동자의 스펙트럼</div>
+      <p>\(\hat N = \hat a^\dagger\hat a\)의 고유값은 \(n = 0, 1, 2, \ldots\)이고, 에너지는 \(E_n = (n + \frac12)\hbar\omega\)다. 가장 낮은 상태 \(|0\rangle\)은 \(\hat a|0\rangle = 0\)을 만족한다. 정규화된 고유 상태 \(|n\rangle\)의 위상을 알맞게 고르면</p>
+      <div class="formula" id="eq-ladder-action">\[ \hat a|n\rangle = \sqrt n\,|n - 1\rangle, \qquad \hat a^\dagger|n\rangle = \sqrt{n + 1}\,|n + 1\rangle \]</div>
+      <details class="proof" open><summary>증명</summary>
+        <p>고유값이 정수라는 것은 위에서 보였다. 올림 쪽부터 보자. 식 <a class="ref" href="#eq-ladder-comm"></a>에서 \(\hat a\hat a^\dagger = \hat N + 1\)이므로 \(\lVert\hat a^\dagger|n\rangle\rVert^2 = \langle n|\hat a\hat a^\dagger|n\rangle = n + 1\)이다. 그래서 \(|n + 1\rangle = \hat a^\dagger|n\rangle/\sqrt{n + 1}\)로 정하면 정규화된 고유 상태다. 그러면 내림은 \(\hat a|n + 1\rangle = \hat a\hat a^\dagger|n\rangle/\sqrt{n + 1} = (\hat N + 1)|n\rangle/\sqrt{n + 1} = \sqrt{n + 1}\,|n\rangle\)이다.</p>
+      </details>
+    </div>
+    <p>바닥 상태에서 \(\hat a^\dagger\)를 거듭 작용하면 모든 상태를 얻는다.</p>
+    <div class="formula" id="eq-n-from-0">\[ |n\rangle = \frac{(\hat a^\dagger)^n}{\sqrt{n!}}\,|0\rangle \]</div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:8-3--><svg viewBox="0 0 340 290" role="img" aria-label="에너지 사다리. 올림 연산자는 한 칸 올리고 내림 연산자는 한 칸 내리며, 바닥에서 멈춘다"><defs><marker id="f83-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f83-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f83-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text font-size="14" x="148" y="20" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">â</tspan></text><text font-size="14" x="192" y="20" class="t-math acc" text-anchor="middle"><tspan font-style="italic">â</tspan><tspan baseline-shift="super" font-size="72%">†</tspan></text><text x="170" y="46" class="t-math dim" text-anchor="middle">⋮</text><line x1="116" y1="244" x2="224" y2="244" class="s-line" stroke-width="2.4"/><text font-size="14" x="106" y="249" class="t-math" text-anchor="end">|0⟩</text><text font-size="14" x="234" y="249" class="t-math dim" text-anchor="start"><tspan font-style="italic">ħω</tspan>/2</text><line x1="192" y1="239" x2="192" y2="209" class="s-acc" stroke-width="1.8" marker-end="url(#f83-acc)"/><line x1="148" y1="207" x2="148" y2="237" class="s-acc2" stroke-width="1.8" marker-end="url(#f83-acc2)"/><text font-size="14" x="141" y="228" class="t-math acc2" text-anchor="end">1</text><text font-size="14" x="199" y="228" class="t-math acc" text-anchor="start">1</text><line x1="116" y1="202" x2="224" y2="202" class="s-line" stroke-width="2.4"/><text font-size="14" x="106" y="207" class="t-math" text-anchor="end">|1⟩</text><text font-size="14" x="234" y="207" class="t-math dim" text-anchor="start">3<tspan font-style="italic">ħω</tspan>/2</text><line x1="192" y1="197" x2="192" y2="167" class="s-acc" stroke-width="1.8" marker-end="url(#f83-acc)"/><line x1="148" y1="165" x2="148" y2="195" class="s-acc2" stroke-width="1.8" marker-end="url(#f83-acc2)"/><text font-size="14" x="141" y="186" class="t-math acc2" text-anchor="end">√2</text><text font-size="14" x="199" y="186" class="t-math acc" text-anchor="start">√2</text><line x1="116" y1="160" x2="224" y2="160" class="s-line" stroke-width="2.4"/><text font-size="14" x="106" y="165" class="t-math" text-anchor="end">|2⟩</text><text font-size="14" x="234" y="165" class="t-math dim" text-anchor="start">5<tspan font-style="italic">ħω</tspan>/2</text><line x1="192" y1="155" x2="192" y2="125" class="s-acc" stroke-width="1.8" marker-end="url(#f83-acc)"/><line x1="148" y1="123" x2="148" y2="153" class="s-acc2" stroke-width="1.8" marker-end="url(#f83-acc2)"/><text font-size="14" x="141" y="144" class="t-math acc2" text-anchor="end">√3</text><text font-size="14" x="199" y="144" class="t-math acc" text-anchor="start">√3</text><line x1="116" y1="118" x2="224" y2="118" class="s-line" stroke-width="2.4"/><text font-size="14" x="106" y="123" class="t-math" text-anchor="end">|3⟩</text><text font-size="14" x="234" y="123" class="t-math dim" text-anchor="start">7<tspan font-style="italic">ħω</tspan>/2</text><line x1="192" y1="113" x2="192" y2="83" class="s-acc" stroke-width="1.8" marker-end="url(#f83-acc)"/><line x1="148" y1="81" x2="148" y2="111" class="s-acc2" stroke-width="1.8" marker-end="url(#f83-acc2)"/><text font-size="14" x="141" y="102" class="t-math acc2" text-anchor="end">√4</text><text font-size="14" x="199" y="102" class="t-math acc" text-anchor="start">√4</text><line x1="116" y1="76" x2="224" y2="76" class="s-line" stroke-width="2.4"/><text font-size="14" x="106" y="81" class="t-math" text-anchor="end">|4⟩</text><text font-size="14" x="234" y="81" class="t-math dim" text-anchor="start">9<tspan font-style="italic">ħω</tspan>/2</text><line x1="148" y1="249" x2="148" y2="270" class="s-acc2" stroke-width="1.8" marker-end="url(#f83-acc2)"/><text font-size="14" x="158" y="274" class="t-math acc2" text-anchor="start"><tspan font-style="italic">â</tspan>|0⟩ = 0</text></svg><!--/fig:8-3--></div>
+      <figcaption><b>그림 8-3.</b> 에너지 사다리. \(\hat a^\dagger\)는 한 칸 올리며 \(\sqrt{n + 1}\)을 곱하고, \(\hat a\)는 한 칸 내리며 \(\sqrt n\)을 곱한다. 맨 아래에서 \(\hat a|0\rangle = 0\)이므로 사다리는 \(\frac12\hbar\omega\)에서 끝난다.</figcaption>
+    </figure>
+
+    <h3 id="s3-to-x">에너지 기저에서 위치 표현으로</h3>
+    <p>바닥 상태의 파동함수를 구하자. 위치 표현에서 \(\hat p = -i\hbar\,d/dx\)이므로 \(ib\hat p/\hbar = b\,d/dx = d/dy\)이다(\(y = x/b\)). 따라서</p>
+    <div class="formula" id="eq-ladder-y">\[ \hat a = \frac{1}{\sqrt2}\Big(y + \frac{d}{dy}\Big), \qquad \hat a^\dagger = \frac{1}{\sqrt2}\Big(y - \frac{d}{dy}\Big) \]</div>
+    <p>이고, \(\hat a|0\rangle = 0\)은 1차 미분 방정식 \(\psi_0' = -y\psi_0\)가 된다. 해는 상수배를 빼면 \(\psi_0 = e^{-y^2/2}\) 하나뿐이다. 8.2절의 바닥 상태와 같고, 바닥 상태가 축퇴되지 않았다는 것도 확인된다. 들뜬 상태도 축퇴되지 않는다. 고유값이 \(n\)인 상태에 \(\hat a\)를 \(n\)번 작용하면 바닥 상태가 되고, 다시 \(\hat a^\dagger\)를 \(n\)번 작용하면 처음 상태로 돌아오기 때문이다(\((\hat a^\dagger)^n\hat a^n|n\rangle = n!\,|n\rangle\)). 들뜬 상태의 파동함수는 식 <a class="ref" href="#eq-n-from-0"></a>대로 \(\hat a^\dagger\)를 거듭 작용해 얻는다.</p>
+    <div class="formula">\[ \psi_n(y) = \frac{1}{\sqrt{2^nn!}}\Big(y - \frac{d}{dy}\Big)^n\psi_0(y) \]</div>
+    <div class="box ex" id="ex-raise"><div class="box-h">올림 연산자로 들뜬 상태 만들기</div>
+      <p>\(\frac{d}{dy}e^{-y^2/2} = -ye^{-y^2/2}\)이므로</p>
+      <div class="formula">\[ \Big(y - \frac{d}{dy}\Big)e^{-y^2/2} = 2y\,e^{-y^2/2} = H_1(y)\,e^{-y^2/2} \]</div>
+      <p>이다. 한 번 더 작용하면 \(\frac{d}{dy}(2ye^{-y^2/2}) = (2 - 2y^2)e^{-y^2/2}\)이므로</p>
+      <div class="formula">\[ \begin{aligned} \Big(y - \frac{d}{dy}\Big)\big(2y\,e^{-y^2/2}\big) &= (4y^2 - 2)\,e^{-y^2/2} \\ &= H_2(y)\,e^{-y^2/2} \end{aligned} \]</div>
+      <p>이다. 앞에 붙는 \(1/\sqrt{2^nn!}\)까지 합치면 식 <a class="ref" href="#eq-ho-eigenfunctions"></a>의 \(\psi_1\), \(\psi_2\)와 정확히 같다.</p>
+    </div>
+    <p>일반적인 \(n\)도 같다. 곱의 미분으로 \(\big(y - \frac{d}{dy}\big)f = -e^{y^2/2}\frac{d}{dy}\big(e^{-y^2/2}f\big)\)임을 확인할 수 있고, 이것을 \(n\)번 되풀이하면</p>
+    <div class="formula">\[ \Big(y - \frac{d}{dy}\Big)^ne^{-y^2/2} = (-1)^ne^{y^2/2}\frac{d^n}{dy^n}e^{-y^2} = H_n(y)\,e^{-y^2/2} \]</div>
+    <p>이다. 마지막 등호는 로드리게스 공식이다. 두 방법이 정확히 같은 고유함수를 준다.</p>
+    <div class="callout tip"><strong>두 방법은 무엇이 다른가</strong><p>좌표 표현의 풀이는 파동함수의 모양을 바로 보여 주지만 급수와 수렴을 따져야 한다. 대수적 풀이는 교환 관계 하나로 스펙트럼과 상태 사이의 관계를 주고, 다음 절에서 보듯 행렬 원소와 기댓값을 적분 없이 계산하게 해 준다. 파동함수가 필요할 때만 마지막에 위치 표현으로 옮기면 된다.</p></div>
   </section>
 
+  <!-- ============================================================ 8.4 -->
   <section id="s4">
+    <h2>수 연산자 기저</h2>
+    <p>\(\hat N\)의 고유 상태 \(|0\rangle, |1\rangle, |2\rangle, \ldots\)는 에르미트 연산자의 고유 상태이므로 정규직교 기저를 이룬다. 이 기저를 <span class="term">수 연산자 기저</span> <span class="en">(number basis)</span> 또는 에너지 기저라 한다. 이 기저에서는 식 <a class="ref" href="#eq-ladder-action"></a>만으로 모든 행렬 원소를 쓸 수 있다.</p>
+
+    <h3 id="s4-matrices">행렬로 쓰기</h3>
+    <p>\(\langle m|\hat a|n\rangle = \sqrt n\,\langle m|n - 1\rangle = \sqrt n\,\delta_{m,n-1}\)이므로 \(\hat a\)는 대각선 바로 위에만 \(\sqrt1, \sqrt2, \sqrt3, \ldots\)이 놓인 행렬이다. \(\hat a^\dagger\)는 그 전치 행렬이다(성분이 실수이므로 수반과 같다). \(\hat H\)는 대각 행렬이다.</p>
+    <div class="formula">\[ \begin{gathered} \hat a \leftrightarrow \begin{pmatrix} 0 & \sqrt1 & 0 & 0 & \cdots \\ 0 & 0 & \sqrt2 & 0 & \cdots \\ 0 & 0 & 0 & \sqrt3 & \cdots \\ \vdots & & & & \ddots \end{pmatrix}, \\ \hat H \leftrightarrow \hbar\omega\begin{pmatrix} \frac12 & 0 & 0 & \cdots \\ 0 & \frac32 & 0 & \cdots \\ 0 & 0 & \frac52 & \cdots \\ \vdots & & & \ddots \end{pmatrix} \end{gathered} \]</div>
+    <p>식 <a class="ref" href="#eq-x-p-ladder"></a>에 넣으면 위치와 운동량의 행렬 원소는</p>
+    <div class="formula" id="eq-x-matrix">\[ \begin{aligned} \langle m|\hat x|n\rangle &= \frac{b}{\sqrt2}\big(\sqrt n\,\delta_{m,n-1} + \sqrt{n + 1}\,\delta_{m,n+1}\big), \\ \langle m|\hat p|n\rangle &= \frac{i\hbar}{\sqrt2\,b}\big(\sqrt{n + 1}\,\delta_{m,n+1} - \sqrt n\,\delta_{m,n-1}\big) \end{aligned} \]</div>
+    <p>이다. \(\hat x\)는 \(|n\rangle\)을 바로 위아래의 이웃 \(|n \pm 1\rangle\)과만 잇는다. 여기에는 물리적인 결과가 따른다. 진동하는 전하가 빛을 흡수하거나 낼 때 그 세기는 \(\langle m|\hat x|n\rangle\)에 비례하므로(20장), 조화 진동자는 한 번에 한 칸씩만 오르내리고 진동수 \(\omega\)인 빛만 흡수한다. 8.1절의 CO 분자라면 파수 \(2170\ \mathrm{cm^{-1}}\), 파장 \(4.61\ \mu\mathrm m\)의 적외선이다. 실제로 흡수가 가장 강한 곳은 \(2143\ \mathrm{cm^{-1}}\)(\(4.67\ \mu\mathrm m\))로 1% 남짓 낮다. 퍼텐셜의 3차 이상 항(비조화 항)이 준위 간격을 조금씩 줄이기 때문이다.</p>
+    <div class="callout warn"><strong>잘라 낸 행렬에서 생기는 일</strong><p>수치 계산에서는 위 행렬을 \(N \times N\)으로 잘라 쓰기 쉽다. 그러면 \([\hat a, \hat a^\dagger]\)의 대각선이 \(1, 1, \ldots, 1, -(N - 1)\)이 된다. 마지막 칸에서는 \(\hat a\hat a^\dagger\)가 잘려 나간 \(|N\rangle\)을 거쳐야 해서 0이 되고 \(\hat a^\dagger\hat a\)만 남기 때문이다. <a href="ch03.html#s3-ccr">3.3절</a>에서 본 대로 유한한 행렬의 교환자는 대각합이 0이어서 \(i\hbar I\)가 될 수 없는데, 어긋난 마지막 칸이 대각합을 0으로 맞추는 것이다. 잘린 행렬은 맨 위 준위 근처에서만 틀리므로, 낮은 준위만 다루는 계산이라면 \(N\)을 충분히 크게 잡으면 된다.</p></div>
+
+    <h3 id="s4-moments">기댓값</h3>
+    <p>행렬로 쓰면 기댓값 계산이 산수가 된다. \(|n\rangle\)에서 \(\langle x\rangle = \langle p\rangle = 0\)이다(대각 원소가 0이다). 제곱의 기댓값은</p>
+    <div class="formula">\[ \begin{aligned} \langle n|\hat x^2|n\rangle &= \frac{b^2}{2}\langle n|(\hat a + \hat a^\dagger)^2|n\rangle \\ &= \frac{b^2}{2}\langle n|\hat a\hat a^\dagger + \hat a^\dagger\hat a|n\rangle = \frac{b^2}{2}(2n + 1) \end{aligned} \]</div>
+    <p>이다. \((\hat a + \hat a^\dagger)^2\)을 펼친 네 항 가운데 \(\hat a^2\)과 \((\hat a^\dagger)^2\)은 \(|n\rangle\)을 두 칸 옮기므로 대각 원소가 0이고, \(\hat a\hat a^\dagger = \hat N + 1\)과 \(\hat a^\dagger\hat a = \hat N\)만 남는다. 운동량도 같은 방법으로 계산하면</p>
+    <div class="formula" id="eq-moments">\[ \langle x^2\rangle_n = b^2\Big(n + \frac12\Big), \qquad \langle p^2\rangle_n = \frac{\hbar^2}{b^2}\Big(n + \frac12\Big) \]</div>
+    <p>이다.</p>
+    <div class="box ex" id="ex-moments"><div class="box-h">에너지의 몫과 불확정도</div>
+      <ul>
+        <li><b>에너지의 몫</b>: 퍼텐셜 에너지는 \(\frac12m\omega^2\langle x^2\rangle_n = \frac12m\omega^2b^2(n + \frac12) = \frac12\hbar\omega(n + \frac12) = \frac12E_n\)이다. 운동 에너지도 \(\langle p^2\rangle_n/2m = \frac12E_n\)이다. 어느 정상 상태에서나 에너지가 반씩 나뉜다. 고전 진동자에서 운동 에너지와 퍼텐셜 에너지의 시간 평균이 같은 것과 같은 결과다.</li>
+        <li><b>불확정도</b>: \(\Delta x\,\Delta p = \sqrt{\langle x^2\rangle_n\langle p^2\rangle_n} = (n + \frac12)\hbar\)이다. 바닥 상태만 하한 \(\hbar/2\)에 닿고, 들뜰수록 커진다.</li>
+        <li><b>고전 진동자와 비교</b>: 에너지가 \(E_n\)인 고전 진동자의 진폭은 \(A^2 = 2E_n/m\omega^2 = 2b^2(n + \frac12)\)이다. \(x^2 = A^2\cos^2\omega t\)의 시간 평균은 \(A^2/2 = b^2(n + \frac12)\)으로, 양자 기댓값 \(\langle x^2\rangle_n\)과 정확히 같다.</li>
+      </ul>
+    </div>
+
+    <h3 id="s4-time">시간 변화</h3>
+    <p>처음 상태 \(\sum_nc_n|n\rangle\)는 6장의 처방(<a href="ch06.html#eq-expansion-t">6장 식 (6.13)</a>)대로 \(\sum_nc_ne^{-i(n + 1/2)\omega t}|n\rangle\)로 변한다. 사다리 연산자의 기댓값이 어떻게 변하는지는 <a href="ch06.html#eq-heisenberg-expect">6장 식 (6.10)</a>으로 바로 알 수 있다. 식 <a class="ref" href="#eq-N-comm"></a>에서 \([\hat a, \hat H] = \hbar\omega[\hat a, \hat N] = \hbar\omega\,\hat a\)이므로</p>
+    <div class="formula" id="eq-a-t">\[ \frac{d}{dt}\langle a\rangle = \frac{1}{i\hbar}\big\langle[\hat a, \hat H]\big\rangle = -i\omega\langle a\rangle, \qquad \langle a\rangle(t) = \langle a\rangle(0)\,e^{-i\omega t} \]</div>
+    <p>이다. 식 <a class="ref" href="#eq-x-p-ladder"></a>에서 \(\langle x\rangle = \sqrt2\,b\,\mathrm{Re}\langle a\rangle\), \(\langle p\rangle = \sqrt2\,(\hbar/b)\,\mathrm{Im}\langle a\rangle\)이므로, 처음 값을 \(x_0 = \langle x\rangle(0)\), \(p_0 = \langle p\rangle(0)\)으로 쓰면</p>
+    <div class="formula" id="eq-x-t">\[ \begin{gathered} \langle x\rangle(t) = x_0\cos\omega t + \frac{p_0}{m\omega}\sin\omega t, \\ \langle p\rangle(t) = p_0\cos\omega t - m\omega x_0\sin\omega t \end{gathered} \]</div>
+    <p>이다. <b>어떤 상태에서든 위치와 운동량의 기댓값은 고전 진동자와 똑같이 움직인다.</b> 힘 \(-m\omega^2x\)가 위치의 1차식이어서 힘의 기댓값이 기댓값 위치에서의 힘과 정확히 같기 때문이다. 일반적인 퍼텐셜에서는 그렇지 않은데, 이것은 9장의 에렌페스트 정리에서 다룬다. 정상 상태 \(|n\rangle\)에서는 \(\langle a\rangle = 0\)이어서 아무것도 움직이지 않는다. \(\langle a\rangle \ne 0\)이려면 이웃한 \(|n\rangle\)과 \(|n + 1\rangle\)이 함께 섞여 있어야 한다.</p>
+    <div class="box ex" id="ex-two-state"><div class="box-h">가장 간단한 진동</div>
+      <p>처음 상태가 \((|0\rangle + |1\rangle)/\sqrt2\)이면 \(\langle a\rangle(0) = \frac12\langle0|\hat a|1\rangle = \frac12\)이므로 \(\langle x\rangle(t) = \frac{b}{\sqrt2}\cos\omega t\)이다. 확률 분포가 각진동수 \(\omega = (E_1 - E_0)/\hbar\)로 좌우로 출렁인다(<a href="ch06.html#eq-bohr-frequency">6장 식 (6.14)</a>). 한편 \(\langle x^2\rangle = \frac12\cdot\frac{b^2}{2} + \frac12\cdot\frac{3b^2}{2} = b^2\)으로 일정하므로</p>
+      <div class="formula">\[ (\Delta x)^2 = b^2 - \frac{b^2}{2}\cos^2\omega t \]</div>
+      <p>이다. 이 상태는 한 덩어리로 미끄러지듯 움직이지 않고, 움직이면서 모양이 바뀐다. 가운데를 지날 때(\(\cos\omega t = 0\)) 가장 넓고 양 끝에서 가장 좁다.</p>
+    </div>
+    <div class="callout deep"><strong>양자, 포논, 광자</strong><p>\(|n\rangle\)의 에너지는 바닥 에너지 위에 \(\hbar\omega\)짜리 덩어리가 \(n\)개 얹힌 것이다. 그래서 \(|n\rangle\)을 '에너지 양자가 \(n\)개 있는 상태'로, \(\hat a^\dagger\)를 양자를 하나 만드는 연산자로, \(\hat N\)을 양자의 개수를 세는 연산자로 읽을 수 있다. 결정의 진동 모드에서는 이 양자를 <span class="term">포논</span> <span class="en">(phonon)</span>, 전자기장의 모드에서는 <span class="term">광자</span> <span class="en">(photon)</span>라 한다. 이 읽기를 밀고 나가면 입자의 개수 자체가 바뀌는 이론, 곧 2권에서 다룰 장의 양자화에 이른다.</p></div>
+  </section>
+
+  <!-- ============================================================ 8.5 -->
+  <section id="s5">
     <h2>결맞음 상태</h2>
-    <p class="slot" data-slot="8.4절">아직 쓰지 않은 절입니다.</p>
+    <p>정상 상태 \(|n\rangle\)에서는 \(\langle x\rangle\)이 늘 0이어서 진동이 보이지 않는다. 그러나 용수철에 매단 추는 분명히 흔들린다. 고전적인 진동을 가장 닮은 양자 상태는 무엇일까? 8.4절에서 \(\langle a\rangle\)이 \(e^{-i\omega t}\)로 돌고 그것이 고전 운동을 준다는 것을 보았다. 그러니 \(\hat a\)의 값이 가장 확실하게 정해진 상태, 곧 \(\hat a\)의 고유 상태를 찾아보자.</p>
+    <div class="box def" id="def-coherent"><div class="box-h">결맞음 상태</div>
+      <p>내림 연산자의 고유 상태</p>
+      <div class="formula" id="eq-coherent-def">\[ \hat a|\alpha\rangle = \alpha|\alpha\rangle \]</div>
+      <p>를 <span class="term">결맞음 상태</span> <span class="en">(coherent state)</span>라 한다. \(\hat a\)는 에르미트가 아니므로 고유값 \(\alpha\)는 임의의 복소수일 수 있다.</p>
+    </div>
+    <p>\(|\alpha\rangle = \sum_nc_n|n\rangle\)로 전개해 넣자. \(\hat a|\alpha\rangle = \sum_nc_n\sqrt n\,|n - 1\rangle = \sum_nc_{n+1}\sqrt{n + 1}\,|n\rangle\)이므로 \(|n\rangle\)의 계수를 맞추면 \(c_{n+1} = \alpha c_n/\sqrt{n + 1}\), 곧 \(c_n = c_0\alpha^n/\sqrt{n!}\)이다. 정규화 조건 \(\sum_n|c_n|^2 = |c_0|^2\sum_n|\alpha|^{2n}/n! = |c_0|^2e^{|\alpha|^2} = 1\)에서 \(c_0 = e^{-|\alpha|^2/2}\)로 고르면</p>
+    <div class="formula" id="eq-coherent">\[ |\alpha\rangle = e^{-|\alpha|^2/2}\sum_{n=0}^\infty\frac{\alpha^n}{\sqrt{n!}}\,|n\rangle \]</div>
+    <p>이다. 복소수 \(\alpha\)마다 결맞음 상태가 하나씩 있고, \(\alpha = 0\)이면 바닥 상태다.</p>
+
+    <h3 id="s5-poisson">양자 수의 분포</h3>
+    <p>결맞음 상태에서 에너지를 재면 \(E_n\)을 얻을 확률은</p>
+    <div class="formula" id="eq-poisson">\[ P(n) = |\langle n|\alpha\rangle|^2 = e^{-|\alpha|^2}\,\frac{|\alpha|^{2n}}{n!} \]</div>
+    <p>이다. 평균이 \(|\alpha|^2\)인 <span class="term">푸아송 분포</span> <span class="en">(Poisson distribution)</span>다(그림 8-4 (가)). 직접 확인하면 \(\langle N\rangle = \langle\alpha|\hat a^\dagger\hat a|\alpha\rangle = \alpha^*\alpha = |\alpha|^2\)이다. 여기서 \(\hat a|\alpha\rangle = \alpha|\alpha\rangle\)과 그 수반 \(\langle\alpha|\hat a^\dagger = \alpha^*\langle\alpha|\)를 썼다. 또 \(\hat N^2 = \hat a^\dagger(\hat a^\dagger\hat a + 1)\hat a\)이므로 \(\langle N^2\rangle = |\alpha|^4 + |\alpha|^2\)이고 \(\Delta N = |\alpha|\)이다. 상대적인 흔들림 \(\Delta N/\langle N\rangle = 1/|\alpha|\)은 진폭이 클수록 작아진다. 에너지의 기댓값은 \(\langle H\rangle = \hbar\omega(|\alpha|^2 + \frac12)\)이다.</p>
+
+    <h3 id="s5-time">모양을 유지하는 진동</h3>
+    <p>결맞음 상태를 시간에 따라 변하게 하자. 각 성분에 \(e^{-i(n + 1/2)\omega t}\)를 붙이고 \(\alpha^ne^{-in\omega t} = (\alpha e^{-i\omega t})^n\)으로 묶으면</p>
+    <div class="formula" id="eq-coherent-t">\[ e^{-|\alpha|^2/2}\sum_n\frac{\alpha^n}{\sqrt{n!}}\,e^{-i(n + \frac12)\omega t}|n\rangle = e^{-i\omega t/2}\,\big|\alpha e^{-i\omega t}\big\rangle \]</div>
+    <p>이다(\(|\alpha e^{-i\omega t}| = |\alpha|\)이므로 정규화 인자도 그대로다). <b>결맞음 상태는 시간이 지나도 결맞음 상태로 남고</b>, 고유값만 \(\alpha(t) = \alpha e^{-i\omega t}\)로 복소평면에서 원을 그리며 돈다. 8.4절에 따라 \(\langle x\rangle = \sqrt2\,b\,\mathrm{Re}\,\alpha(t)\), \(\langle p\rangle = \sqrt2\,(\hbar/b)\,\mathrm{Im}\,\alpha(t)\)가 고전 궤도를 그린다. 처음 위치 \(x_0\)과 운동량 \(p_0\)을 주려면 \(\alpha = (x_0/b + ibp_0/\hbar)/\sqrt2\)로 두면 된다.</p>
+    <p>불확정도는 어떨까? \(\langle x^2\rangle = \frac{b^2}{2}\langle\alpha|(\hat a + \hat a^\dagger)^2|\alpha\rangle\)를 계산할 때 \(\hat a\hat a^\dagger\)를 \(\hat a^\dagger\hat a + 1\)로 바꾸어 \(\hat a^\dagger\)를 모두 왼쪽에 모으자. 그러면 \(\hat a\)는 오른쪽의 \(|\alpha\rangle\)에서 \(\alpha\)를, \(\hat a^\dagger\)는 왼쪽의 \(\langle\alpha|\)에서 \(\alpha^*\)를 내놓는다.</p>
+    <div class="formula">\[ \langle x^2\rangle = \frac{b^2}{2}\big(\alpha^2 + \alpha^{*2} + 2|\alpha|^2 + 1\big) = \frac{b^2}{2}\big[(\alpha + \alpha^*)^2 + 1\big] \]</div>
+    <p>\(\langle x\rangle^2 = \frac{b^2}{2}(\alpha + \alpha^*)^2\)이므로 \((\Delta x)^2 = b^2/2\)이다. 운동량도 같은 방법으로 \((\Delta p)^2 = \hbar^2/2b^2\)이다.</p>
+    <div class="formula" id="eq-coherent-uncertainty">\[ \Delta x = \frac{b}{\sqrt2}, \qquad \Delta p = \frac{\hbar}{\sqrt2\,b}, \qquad \Delta x\,\Delta p = \frac\hbar2 \]</div>
+    <p>모두 \(\alpha\)와 무관하므로 시간이 지나도 변하지 않는다. <b>결맞음 상태는 바닥 상태와 같은 최소 불확정도를 지키며 고전 궤도를 따라 움직인다.</b> 위상 공간에 그리면 불확정도만 한 원이 크기를 유지하며 고전 궤도 위를 돈다(그림 8-4 (나)).</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:8-4a--><svg viewBox="0 0 280 274" role="img" aria-label="결맞음 상태의 양자 수 분포는 평균 4인 푸아송 분포다"><defs><marker id="f84a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f84a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f84a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="44" y1="240" x2="44" y2="30" class="s-line" stroke-width="1.2" marker-end="url(#f84a-dim)"/><line x1="40" y1="153" x2="44" y2="153" class="s-line" stroke-width="1.2"/><text x="37" y="157" class="t-dim" text-anchor="end">0.1</text><line x1="40" y1="66.1" x2="44" y2="66.1" class="s-line" stroke-width="1.2"/><text x="37" y="70.1" class="t-dim" text-anchor="end">0.2</text><text x="51" y="36" class="t-math dim" text-anchor="start"><tspan font-style="italic">P</tspan>(<tspan font-style="italic">n</tspan>)</text><rect x="51" y="224.1" width="11.4" height="15.9" class="f-acc-soft" stroke-width="1.2"/><rect x="66.9" y="176.3" width="11.4" height="63.7" class="f-acc-soft" stroke-width="1.2"/><rect x="82.8" y="112.6" width="11.4" height="127.4" class="f-acc-soft" stroke-width="1.2"/><rect x="98.6" y="70.1" width="11.4" height="169.9" class="f-acc-soft" stroke-width="1.2"/><rect x="114.5" y="70.1" width="11.4" height="169.9" class="f-acc-soft" stroke-width="1.2"/><rect x="130.4" y="104.1" width="11.4" height="135.9" class="f-acc-soft" stroke-width="1.2"/><rect x="146.3" y="149.4" width="11.4" height="90.6" class="f-acc-soft" stroke-width="1.2"/><rect x="162.2" y="188.2" width="11.4" height="51.8" class="f-acc-soft" stroke-width="1.2"/><rect x="178" y="214.1" width="11.4" height="25.9" class="f-acc-soft" stroke-width="1.2"/><rect x="193.9" y="228.5" width="11.4" height="11.5" class="f-acc-soft" stroke-width="1.2"/><rect x="209.8" y="235.4" width="11.4" height="4.6" class="f-acc-soft" stroke-width="1.2"/><rect x="225.7" y="238.3" width="11.4" height="1.7" class="f-acc-soft" stroke-width="1.2"/><rect x="241.6" y="239.4" width="11.4" height="0.6" class="f-acc-soft" stroke-width="1.2"/><line x1="44" y1="240" x2="266" y2="240" class="s-line" stroke-width="1.2"/><text x="56.7" y="256" class="t-dim" text-anchor="middle">0</text><text x="88.5" y="256" class="t-dim" text-anchor="middle">2</text><text x="120.2" y="256" class="t-dim" text-anchor="middle">4</text><text x="152" y="256" class="t-dim" text-anchor="middle">6</text><text x="183.8" y="256" class="t-dim" text-anchor="middle">8</text><text x="215.5" y="256" class="t-dim" text-anchor="middle">10</text><text x="247.3" y="256" class="t-dim" text-anchor="middle">12</text><text font-size="14" x="260" y="232" class="t-math dim" text-anchor="end"><tspan font-style="italic">n</tspan></text><line x1="120.2" y1="40" x2="120.2" y2="240" class="s-grid" stroke-dasharray="4 3"/><text font-size="14" x="126.2" y="53" class="t-math dim" text-anchor="start">⟨<tspan font-style="italic">N</tspan>⟩ = 4</text><text x="12" y="22" class="t-b" text-anchor="start">(가) 양자 수의 분포</text></svg><!--/fig:8-4a--><!--fig:8-4b--><svg viewBox="0 0 280 274" role="img" aria-label="위상 공간에서 결맞음 상태의 평균은 원을 시계 방향으로 돌고, 불확정도의 원은 크기가 그대로다"><defs><marker id="f84b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f84b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f84b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="151" x2="273" y2="151" class="s-line" stroke-width="1.2" marker-end="url(#f84b-dim)"/><line x1="127" y1="262" x2="127" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f84b-dim)"/><text font-size="14" x="275" y="175" class="t-math dim" text-anchor="end">⟨<tspan font-style="italic">x</tspan>⟩/<tspan font-style="italic">b</tspan></text><text font-size="14" x="134" y="38" class="t-math dim" text-anchor="start">⟨<tspan font-style="italic">p</tspan>⟩<tspan font-style="italic">b</tspan>/<tspan font-style="italic">ħ</tspan></text><path d="M211.9 151 L211.4 142.1 L210 133.4 L207.7 124.8 L205.4 118.5 L201.6 110.5 L196.9 102.9 L191.5 95.9 L187 91 L180.4 85.1 L175.1 81.1 L167.5 76.4 L159.5 72.6 L153.2 70.3 L144.6 68 L135.9 66.6 L127 66.1 L118.1 66.6 L109.4 68 L100.8 70.3 L94.5 72.6 L86.5 76.4 L80.8 79.8 L73.6 85.1 L67 91 L62.5 95.9 L57.1 102.9 L52.4 110.5 L48.6 118.5 L46.3 124.8 L44 133.4 L42.6 142.1 L42.1 151 L42.6 159.9 L43.6 166.5 L45.6 175.1 L48.6 183.5 L52.4 191.5 L55.8 197.2 L61.1 204.4 L67 211 L71.9 215.5 L78.9 220.9 L86.5 225.6 L94.5 229.4 L102.9 232.4 L111.5 234.4 L118.1 235.4 L127 235.9 L133.7 235.6 L142.5 234.4 L151.1 232.4 L159.5 229.4 L167.5 225.6 L175.1 220.9 L180.4 216.9 L187 211 L192.9 204.4 L198.2 197.2 L201.6 191.5 L205.4 183.5 L208.4 175.1 L210 168.6 L211.4 159.9 L211.9 151 Z" class="s-line" stroke-width="1.5" stroke-dasharray="5 4"/><circle cx="211.9" cy="151" r="21.2" class="f-acc-soft" stroke-width="2" fill-opacity="1"/><circle cx="211.9" cy="151" r="2.2" class="f-acc"/><circle cx="187" cy="211" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="187" cy="211" r="2.2" class="f-acc2"/><circle cx="127" cy="235.9" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="127" cy="235.9" r="2.2" class="f-acc2"/><circle cx="67" cy="211" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="67" cy="211" r="2.2" class="f-acc2"/><circle cx="42.1" cy="151" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="42.1" cy="151" r="2.2" class="f-acc2"/><circle cx="67" cy="91" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="67" cy="91" r="2.2" class="f-acc2"/><circle cx="127" cy="66.1" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="127" cy="66.1" r="2.2" class="f-acc2"/><circle cx="187" cy="91" r="21.2" class="f-acc2-soft" stroke-width="1.2" fill-opacity="0.55"/><circle cx="187" cy="91" r="2.2" class="f-acc2"/><line x1="153.9" y1="70.3" x2="161.3" y2="73.4" class="s-line" stroke-width="1.6" marker-end="url(#f84b-dim)"/><line x1="100.1" y1="231.7" x2="92.7" y2="228.6" class="s-line" stroke-width="1.6" marker-end="url(#f84b-dim)"/><text font-size="14" x="229.1" y="123.8" class="t-math acc" text-anchor="start"><tspan font-style="italic">t</tspan> = 0</text><text font-size="14" x="152.2" y="261.1" class="t-math dim" text-anchor="start"><tspan font-style="italic">T</tspan>/4</text><text x="12" y="22" class="t-b" text-anchor="start">(나) 위상 공간</text></svg><!--/fig:8-4b--></div>
+      <figcaption><b>그림 8-4.</b> \(\alpha = 2\)인 결맞음 상태. (가) 에너지 양자 수의 분포 \(P(n)\)은 평균 \(|\alpha|^2 = 4\), 표준 편차 \(|\alpha| = 2\)인 푸아송 분포다. (나) 위상 공간에서 \((\langle x\rangle, \langle p\rangle)\)는 4장의 고전 궤도(<a href="ch04.html#ex-sho-phase">4장 예제 4.4</a>)와 같은 원을 시계 방향으로 돈다. 축을 \(b\)와 \(\hbar/b\)로 재면 타원이 원이 된다. 작은 원은 반지름이 불확정도 \(\Delta x/b = \Delta p\,b/\hbar = 1/\sqrt2\)이고, 돌아도 크기가 변하지 않는다.</figcaption>
+    </figure>
+    <p>위치 표현에서도 확인하자. 식 <a class="ref" href="#eq-ladder-y"></a>을 쓰면 고유값 방정식은 \(\psi' = (\sqrt2\,\alpha - y)\psi\)이고, 해는 \(\psi \propto e^{-(y - \sqrt2\alpha)^2/2}\)이다. \(\sqrt2\,\alpha = \langle x\rangle/b + ib\langle p\rangle/\hbar\)를 넣고 지수를 실수부와 허수부로 나누면</p>
+    <div class="formula" id="eq-coherent-wave">\[ \psi_\alpha(x) = \Big(\frac{1}{\pi b^2}\Big)^{1/4}\exp\Big[-\frac{(x - \langle x\rangle)^2}{2b^2} + \frac{i\langle p\rangle x}{\hbar} + i\theta\Big] \]</div>
+    <p>이다(\(\theta\)는 \(x\)와 무관한 위상). 바닥 상태의 가우스 함수를 \(\langle x\rangle\)만큼 옮기고 운동량 \(\langle p\rangle\)을 실어 준 것이다. 7장의 자유 입자 가우스 파속은 시간이 지나며 퍼졌지만(<a href="ch07.html#eq-spreading">7장 식 (7.2)</a>), 결맞음 상태는 폭 \(b\)를 그대로 지키며 왔다 갔다 한다(그림 8-5 (가)). 퍼지려는 경향을 퍼텐셜이 정확히 되돌려 놓는 것이다.</p>
+    <p>폭이 \(b\)가 아닌 가우스 함수에서 출발하면 사정이 다르다. 처음 폭이 \(s\)인 가우스 함수 \(e^{-(x - x_0)^2/2s^2}\)는 중심이 \(x_0\cos\omega t\)로 진동하는 동안 폭이</p>
+    <div class="formula" id="eq-breathing">\[ s(t)^2 = s^2\cos^2\omega t + \frac{b^4}{s^2}\sin^2\omega t \]</div>
+    <p>로 변한다(<a class="ref" href="#prob-breathing"></a>). \(s = b\)일 때만 폭이 일정하다. \(s = b/2\)이면 폭이 \(b/2\)와 \(2b\) 사이를 각진동수 \(2\omega\)로 오간다(그림 8-5 (나)). 4분의 1주기마다 위치 분포와 운동량 분포가 역할을 바꾸는 셈이다. 이처럼 한쪽 불확정도를 바닥 상태보다 줄인 상태를 <span class="term">압착 상태</span> <span class="en">(squeezed state)</span>라 한다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:8-5a--><svg viewBox="0 0 280 300" role="img" aria-label="결맞음 상태는 모양을 지키며 반대편으로 간다"><defs><marker id="f85a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f85a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f85a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="86.4" y1="270" x2="86.4" y2="43.3" class="s-grid" stroke-dasharray="4 3"/><line x1="219.6" y1="270" x2="219.6" y2="43.3" class="s-grid" stroke-dasharray="4 3"/><line x1="153" y1="270" x2="153" y2="43.3" class="s-grid"/><line x1="40" y1="270" x2="276" y2="270" class="s-line" stroke-width="1.2" marker-end="url(#f85a-dim)"/><line x1="58.8" y1="270" x2="58.8" y2="274" class="s-line" stroke-width="1.2"/><text x="58.8" y="287" class="t-dim" text-anchor="middle">−4</text><line x1="105.9" y1="270" x2="105.9" y2="274" class="s-line" stroke-width="1.2"/><text x="105.9" y="287" class="t-dim" text-anchor="middle">−2</text><line x1="153" y1="270" x2="153" y2="274" class="s-line" stroke-width="1.2"/><text x="153" y="287" class="t-dim" text-anchor="middle">0</text><line x1="200.1" y1="270" x2="200.1" y2="274" class="s-line" stroke-width="1.2"/><text x="200.1" y="287" class="t-dim" text-anchor="middle">2</text><line x1="247.2" y1="270" x2="247.2" y2="274" class="s-line" stroke-width="1.2"/><text x="247.2" y="287" class="t-dim" text-anchor="middle">4</text><text x="278" y="263" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan>/<tspan font-style="italic">b</tspan></text><path d="M40 120.2 L40 119.5 L48.7 117.3 L52.4 115.5 L56.2 113 L63 106.2 L78 87 L82.2 83.7 L86.3 82.5 L90.5 83.6 L95 87.2 L109.3 105.6 L115.7 112.2 L122.1 116.4 L129.3 118.9 L136.4 119.8 L147.4 120.2 L266 120.2 L266 120.2 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="120.2" x2="266" y2="120.2" class="s-faint"/><path d="M40 119.5 L48.7 117.3 L52.4 115.5 L56.2 113 L63 106.2 L78 87 L82.2 83.7 L86.3 82.5 L90.5 83.6 L95 87.2 L109.3 105.6 L115.7 112.2 L122.1 116.4 L129.3 118.9 L136.4 119.8 L147.4 120.2 L266 120.2" class="s-acc" stroke-width="2"/><text font-size="14" x="34" y="125.2" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan>/2</text><path d="M40 157.7 L40 157.7 L52.4 157.5 L60.3 156.8 L66.7 155.3 L72 152.9 L76.5 149.7 L81.1 145.3 L93.9 128.7 L98 124 L102.2 120.9 L105.9 120 L110.1 121.1 L114.6 124.7 L128.9 143.1 L134.9 149.4 L140.9 153.6 L148.1 156.2 L155.3 157.2 L165.8 157.6 L266 157.7 L266 157.7 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="157.7" x2="266" y2="157.7" class="s-faint"/><path d="M40 157.7 L52.4 157.5 L60.3 156.8 L66.7 155.3 L72 152.9 L76.5 149.7 L81.1 145.3 L93.9 128.7 L98 124 L102.2 120.9 L105.9 120 L110.1 121.1 L114.6 124.7 L128.9 143.1 L134.9 149.4 L140.9 153.6 L148.1 156.2 L155.3 157.2 L165.8 157.6 L266 157.7" class="s-acc" stroke-width="2"/><text font-size="14" x="34" y="162.7" class="t-math dim" text-anchor="end">3<tspan font-style="italic">T</tspan>/8</text><path d="M40 195.1 L40 195.1 L98 195 L107 194.3 L113.8 192.7 L119.5 190.2 L124.8 186.2 L130.4 180.1 L144.3 162.2 L148.9 158.5 L153 157.4 L157.1 158.5 L161.7 162.2 L175.6 180.1 L181.3 186.2 L186.5 190.2 L192.2 192.7 L199 194.3 L208 195 L266 195.1 L266 195.1 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="195.1" x2="266" y2="195.1" class="s-faint"/><path d="M40 195.1 L98 195 L107 194.3 L113.8 192.7 L119.5 190.2 L124.8 186.2 L130.4 180.1 L144.3 162.2 L148.9 158.5 L153 157.4 L157.1 158.5 L161.7 162.2 L175.6 180.1 L181.3 186.2 L186.5 190.2 L192.2 192.7 L199 194.3 L208 195 L266 195.1" class="s-acc" stroke-width="2"/><text font-size="14" x="34" y="200.1" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan>/4</text><path d="M40 232.6 L40 232.6 L140.2 232.5 L150.7 232.1 L157.9 231 L165.1 228.4 L171.1 224.3 L177.1 218 L191.4 199.6 L195.9 196 L200.1 194.8 L203.9 195.8 L208 198.9 L212.1 203.5 L224.9 220.2 L229.5 224.6 L234 227.8 L239.3 230.2 L245.7 231.7 L253.6 232.3 L266 232.5 L266 232.6 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="232.6" x2="266" y2="232.6" class="s-faint"/><path d="M40 232.6 L140.2 232.5 L150.7 232.1 L157.9 231 L165.1 228.4 L171.1 224.3 L177.1 218 L191.4 199.6 L195.9 196 L200.1 194.8 L203.9 195.8 L208 198.9 L212.1 203.5 L224.9 220.2 L229.5 224.6 L234 227.8 L239.3 230.2 L245.7 231.7 L253.6 232.3 L266 232.5" class="s-acc" stroke-width="2"/><text font-size="14" x="34" y="237.6" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan>/8</text><path d="M40 270 L40 270 L158.7 270 L169.6 269.6 L176.7 268.6 L183.9 266.2 L190.3 262 L196.7 255.3 L211 237 L215.5 233.4 L219.7 232.3 L223.8 233.5 L228 236.8 L243 256 L249.8 262.7 L253.6 265.3 L257.3 267.1 L266 269.2 L266 270 Z" class="f-elev" style="stroke:none"/><path d="M40 270 L158.7 270 L169.6 269.6 L176.7 268.6 L183.9 266.2 L190.3 262 L196.7 255.3 L211 237 L215.5 233.4 L219.7 232.3 L223.8 233.5 L228 236.8 L243 256 L249.8 262.7 L253.6 265.3 L257.3 267.1 L266 269.2" class="s-acc" stroke-width="2"/><text font-size="14" x="34" y="275" class="t-math dim" text-anchor="end">0</text><text x="12" y="22" class="t-b" text-anchor="start">(가) 결맞음 상태</text></svg><!--/fig:8-5a--><!--fig:8-5b--><svg viewBox="0 0 280 300" role="img" aria-label="압착 상태는 가운데에서 넓어졌다가 다시 좁아진다"><defs><marker id="f85b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f85b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f85b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="86.4" y1="270" x2="86.4" y2="43.3" class="s-grid" stroke-dasharray="4 3"/><line x1="219.6" y1="270" x2="219.6" y2="43.3" class="s-grid" stroke-dasharray="4 3"/><line x1="153" y1="270" x2="153" y2="43.3" class="s-grid"/><line x1="40" y1="270" x2="276" y2="270" class="s-line" stroke-width="1.2" marker-end="url(#f85b-dim)"/><line x1="58.8" y1="270" x2="58.8" y2="274" class="s-line" stroke-width="1.2"/><text x="58.8" y="287" class="t-dim" text-anchor="middle">−4</text><line x1="105.9" y1="270" x2="105.9" y2="274" class="s-line" stroke-width="1.2"/><text x="105.9" y="287" class="t-dim" text-anchor="middle">−2</text><line x1="153" y1="270" x2="153" y2="274" class="s-line" stroke-width="1.2"/><text x="153" y="287" class="t-dim" text-anchor="middle">0</text><line x1="200.1" y1="270" x2="200.1" y2="274" class="s-line" stroke-width="1.2"/><text x="200.1" y="287" class="t-dim" text-anchor="middle">2</text><line x1="247.2" y1="270" x2="247.2" y2="274" class="s-line" stroke-width="1.2"/><text x="247.2" y="287" class="t-dim" text-anchor="middle">4</text><text x="278" y="263" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan>/<tspan font-style="italic">b</tspan></text><path d="M40 120.2 L40 120.2 L55.4 120.2 L60.7 119.6 L64.9 117.6 L67.9 113.9 L70.9 107 L73.5 97.5 L82.6 52.4 L84.4 46.9 L85.6 45.2 L86.3 44.8 L87.1 45 L88.2 46.5 L90.5 53.2 L98 91.6 L101.8 106.5 L103.7 111.4 L105.5 114.8 L107.8 117.5 L110.4 119.1 L114.2 119.9 L120.6 120.2 L266 120.2 L266 120.2 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="120.2" x2="266" y2="120.2" class="s-faint"/><path d="M40 120.2 L55.4 120.2 L60.7 119.6 L64.9 117.6 L67.9 113.9 L70.9 107 L73.5 97.5 L82.6 52.4 L84.4 46.9 L85.6 45.2 L86.3 44.8 L87.1 45 L88.2 46.5 L90.5 53.2 L98 91.6 L101.8 106.5 L103.7 111.4 L105.5 114.8 L107.8 117.5 L110.4 119.1 L114.2 119.9 L120.6 120.2 L266 120.2" class="s-acc2" stroke-width="2"/><text font-size="14" x="34" y="125.2" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan>/2</text><path d="M40 157.7 L40 157 L52.1 155.5 L62.2 152.6 L72 147.9 L93.5 135 L99.9 132.6 L105.9 131.8 L111.9 132.6 L118.3 135 L139.1 147.5 L147.4 151.7 L154.9 154.3 L162.8 156 L172.6 157.1 L185.4 157.6 L266 157.7 L266 157.7 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="157.7" x2="266" y2="157.7" class="s-faint"/><path d="M40 157 L52.1 155.5 L62.2 152.6 L72 147.9 L93.5 135 L99.9 132.6 L105.9 131.8 L111.9 132.6 L118.3 135 L139.1 147.5 L147.4 151.7 L154.9 154.3 L162.8 156 L172.6 157.1 L185.4 157.6 L266 157.7" class="s-acc2" stroke-width="2"/><text font-size="14" x="34" y="162.7" class="t-math dim" text-anchor="end">3<tspan font-style="italic">T</tspan>/8</text><path d="M40 195.1 L40 195.1 L68.6 194.4 L88.2 192.3 L104.8 188.5 L136.4 178.5 L145.1 176.8 L153 176.3 L160.9 176.8 L169.6 178.5 L201.2 188.5 L217.8 192.3 L237.4 194.4 L266 195.1 L266 195.1 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="195.1" x2="266" y2="195.1" class="s-faint"/><path d="M40 195.1 L68.6 194.4 L88.2 192.3 L104.8 188.5 L136.4 178.5 L145.1 176.8 L153 176.3 L160.9 176.8 L169.6 178.5 L201.2 188.5 L217.8 192.3 L237.4 194.4 L266 195.1" class="s-acc2" stroke-width="2"/><text font-size="14" x="34" y="200.1" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan>/4</text><path d="M40 232.6 L40 232.6 L120.6 232.4 L133.4 232 L143.2 230.9 L151.1 229.2 L158.7 226.5 L166.9 222.4 L187.7 209.9 L194.1 207.5 L200.1 206.7 L206.1 207.5 L212.5 209.9 L234 222.8 L243.8 227.4 L253.9 230.4 L266 231.9 L266 232.6 Z" class="f-elev" style="stroke:none"/><line x1="40" y1="232.6" x2="266" y2="232.6" class="s-faint"/><path d="M40 232.6 L120.6 232.4 L133.4 232 L143.2 230.9 L151.1 229.2 L158.7 226.5 L166.9 222.4 L187.7 209.9 L194.1 207.5 L200.1 206.7 L206.1 207.5 L212.5 209.9 L234 222.8 L243.8 227.4 L253.9 230.4 L266 231.9" class="s-acc2" stroke-width="2"/><text font-size="14" x="34" y="237.6" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan>/8</text><path d="M40 270 L40 270 L185.4 270 L191.8 269.7 L195.6 268.8 L198.2 267.2 L200.5 264.6 L202.3 261.2 L204.2 256.3 L208 241.4 L215.5 203 L217.8 196.3 L218.9 194.8 L219.7 194.6 L220.4 194.9 L221.6 196.6 L223.4 202.2 L232.5 247.3 L235.1 256.8 L238.1 263.7 L241.1 267.4 L245.3 269.4 L250.6 269.9 L266 270 L266 270 Z" class="f-elev" style="stroke:none"/><path d="M40 270 L185.4 270 L191.8 269.7 L195.6 268.8 L198.2 267.2 L200.5 264.6 L202.3 261.2 L204.2 256.3 L208 241.4 L215.5 203 L217.8 196.3 L218.9 194.8 L219.7 194.6 L220.4 194.9 L221.6 196.6 L223.4 202.2 L232.5 247.3 L235.1 256.8 L238.1 263.7 L241.1 267.4 L245.3 269.4 L250.6 269.9 L266 270" class="s-acc2" stroke-width="2"/><text font-size="14" x="34" y="275" class="t-math dim" text-anchor="end">0</text><text x="12" y="22" class="t-b" text-anchor="start">(나) 압착 상태</text></svg><!--/fig:8-5b--></div>
+      <figcaption><b>그림 8-5.</b> 가우스 파속의 확률 밀도 \(|\psi(x, t)|^2\)를 \(t = 0\)부터 반주기 \(T/2 = \pi/\omega\)까지 \(T/8\) 간격으로 위로 쌓아 그렸다. 두 파속 모두 처음에 \(x = 2.8\,b\)에 정지해 있다. (가) 폭이 \(b\)인 결맞음 상태(\(\alpha = 2\))는 모양을 지키며 반대편으로 간다. (나) 폭이 \(b/2\)인 압착 상태는 가운데를 지날 때 폭이 \(2b\)로 넓어졌다가 반대편에서 다시 좁아진다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-macroscopic"><div class="box-h">용수철에 매단 추</div>
+      <p>질량 1 g인 추가 진동수 1 Hz(\(\omega = 2\pi\ \mathrm{s^{-1}}\)), 진폭 1 cm로 흔들린다. 이 진동을 결맞음 상태로 보자.</p>
+      <ul>
+        <li>에너지는 \(E = \frac12m\omega^2A^2 = 1.97\times10^{-6}\ \mathrm J\)이므로 \(|\alpha|^2 \approx E/\hbar\omega = 3.0\times10^{27}\)이다. 에너지 양자 수의 상대적 흔들림은 \(1/|\alpha| = 1.8\times10^{-14}\)이다.</li>
+        <li>위치의 불확정도는 \(\Delta x = b/\sqrt2 = \sqrt{\hbar/2m\omega} = 9.2\times10^{-17}\ \mathrm m\)이다. 진폭의 \(10^{-14}\)배이고, 양성자 반지름(약 0.84 fm)의 9분의 1쯤이다.</li>
+      </ul>
+      <p>추의 위치와 운동량은 사실상 완벽하게 정해져 있고, 기댓값은 고전 궤도를 정확히 따른다. 거시적인 진동이 고전적으로 보이는 까닭이다.</p>
+    </div>
+    <div class="callout deep"><strong>레이저 빛과 결맞음 상태</strong><p>결맞음 상태는 슈뢰딩거가 1926년에 고전 운동을 따르는 파속으로 처음 찾았고, 글라우버(R. Glauber)가 1963년 빛의 결맞음을 양자론으로 다루면서 지금의 이름을 붙였다. 잘 안정된 레이저가 내는 빛의 모드는 결맞음 상태에 가깝다. 그래서 일정한 시간 동안 검출기에 들어오는 광자의 수를 세면 푸아송 분포를 따른다. 압착 상태의 빛은 한쪽 흔들림이 결맞음 상태보다 작아서, 중력파 검출기 LIGO가 측정 잡음을 줄이는 데 쓰고 있다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>매끄러운 퍼텐셜은 극소점 근처에서 \(\frac12m\omega^2x^2\)으로 근사된다. 조화 진동자의 길이 규모는 \(b = \sqrt{\hbar/m\omega}\), 에너지 규모는 \(\hbar\omega\)이며, 불확정성 관계 때문에 에너지는 \(\hbar\omega/2\)보다 낮을 수 없다.</li>
+      <li>좌표 표현에서 \(\psi = u\,e^{-y^2/2}\)로 두면 \(u\)가 에르미트 방정식을 만족한다. 급수가 끊겨야 정규화되므로 \(E_n = (n + \frac12)\hbar\omega\)이고, 고유함수는 \(H_n(x/b)\,e^{-x^2/2b^2}\)에 비례한다.</li>
+      <li>\(\psi_n\)은 마디가 \(n\)개이고, 짝과 홀이 번갈아 나오며, 고전적으로 갈 수 없는 영역으로 스며든다. 바닥 상태는 \(\Delta x\,\Delta p = \hbar/2\)인 가우스 함수다. \(n\)이 크면 확률 밀도의 평균이 고전 분포 \(1/\pi\sqrt{A^2 - x^2}\)에 가까워진다.</li>
+      <li>사다리 연산자 \(\hat a = (\hat x/b + ib\hat p/\hbar)/\sqrt2\)는 \([\hat a, \hat a^\dagger] = 1\)을 만족하고 \(\hat H = \hbar\omega(\hat a^\dagger\hat a + \frac12)\)이다. \(\hat a|n\rangle = \sqrt n\,|n - 1\rangle\), \(\hat a^\dagger|n\rangle = \sqrt{n + 1}\,|n + 1\rangle\)이고, \(\hat a|0\rangle = 0\)이 사다리의 바닥이다.</li>
+      <li>수 연산자 기저에서 \(\hat x\)와 \(\hat p\)는 이웃한 준위만 잇는다. \(\langle x^2\rangle_n = b^2(n + \frac12)\)이고, 정상 상태에서 운동 에너지와 퍼텐셜 에너지는 \(E_n/2\)씩이다.</li>
+      <li>어떤 상태에서든 \(\langle a\rangle\)은 \(e^{-i\omega t}\)로 돌고, \(\langle x\rangle\)과 \(\langle p\rangle\)은 고전 진동자와 똑같이 움직인다. 정상 상태에서는 둘 다 0이다.</li>
+      <li>결맞음 상태 \(\hat a|\alpha\rangle = \alpha|\alpha\rangle\)는 에너지 양자 수가 푸아송 분포를 이루고, 시간이 지나도 결맞음 상태로 남는다. 폭 \(b\)인 가우스 파속이 \(\Delta x\,\Delta p = \hbar/2\)를 지키며 고전 궤도를 따라 진동한다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 조화 진동자의 이웃한 에너지 준위 사이의 간격은?</p><div class="opts">
+        <button class="opt">\(n\)이 클수록 넓어진다.</button>
+        <button class="opt">\(n\)이 클수록 좁아진다.</button>
+        <button class="opt" data-correct>모든 \(n\)에서 \(\hbar\omega\)로 같다.</button>
+        <button class="opt">바닥 상태와 첫 들뜬 상태 사이만 \(\hbar\omega/2\)이다.</button>
+      </div><div class="quiz-exp">\(E_n = (n + \frac12)\hbar\omega\)이므로 간격은 언제나 \(\hbar\omega\)다. 무한 우물(\(n^2\)에 비례)과 다르다. \(\frac12\hbar\omega\)는 바닥 에너지이지 간격이 아니다.</div></div>
+      <div class="quiz-q"><p>2. 조화 진동자의 바닥 에너지가 0이 될 수 없는 이유로 가장 알맞은 것은?</p><div class="opts">
+        <button class="opt">퍼텐셜의 최솟값이 0보다 크기 때문이다.</button>
+        <button class="opt" data-correct>에너지가 0이려면 위치와 운동량이 모두 정확히 0이어야 하는데, 불확정성 관계가 이를 막는다.</button>
+        <button class="opt">\(n = 0\)인 에르미트 다항식이 0이기 때문이다.</button>
+        <button class="opt">고전적 되돌이점에서 파동함수가 0이어야 하기 때문이다.</button>
+      </div><div class="quiz-exp">운동 에너지와 퍼텐셜 에너지는 모두 0 이상이므로, 합이 0이려면 \(\langle p^2\rangle = \langle x^2\rangle = 0\)이어야 한다. \(\Delta x\,\Delta p \ge \hbar/2\) 때문에 불가능하고, 하한이 정확히 \(\hbar\omega/2\)이다. \(H_0 = 1\)이다.</div></div>
+      <div class="quiz-q"><p>3. \(\hat a^\dagger|3\rangle\)는?</p><div class="opts">
+        <button class="opt">\(\sqrt3\,|4\rangle\)</button>
+        <button class="opt" data-correct>\(2\,|4\rangle\)</button>
+        <button class="opt">\(\sqrt3\,|2\rangle\)</button>
+        <button class="opt">\(4\,|4\rangle\)</button>
+      </div><div class="quiz-exp">\(\hat a^\dagger|n\rangle = \sqrt{n + 1}\,|n + 1\rangle\)이므로 \(\sqrt4\,|4\rangle = 2|4\rangle\)이다. \(\sqrt3\,|2\rangle\)는 \(\hat a|3\rangle\)이다.</div></div>
+      <div class="quiz-q"><p>4. 행렬 원소 \(\langle 2|\hat x|5\rangle\)는?</p><div class="opts">
+        <button class="opt">\(b\sqrt{5/2}\)</button>
+        <button class="opt">\(b\sqrt{3}\)</button>
+        <button class="opt" data-correct>0</button>
+        <button class="opt">\(b\sqrt{10}\)</button>
+      </div><div class="quiz-exp">\(\hat x \propto \hat a + \hat a^\dagger\)는 \(|n\rangle\)을 \(|n \pm 1\rangle\)로만 옮긴다. \(|5\rangle\)은 \(|4\rangle\)과 \(|6\rangle\)으로만 가므로 \(\langle 2|\hat x|5\rangle = 0\)이다.</div></div>
+      <div class="quiz-q"><p>5. 에너지 고유 상태 \(|n\rangle\)(\(n \ge 1\))에 있는 진동자의 \(\langle x\rangle(t)\)는?</p><div class="opts">
+        <button class="opt">\(\sqrt{2n + 1}\,b\cos\omega t\)로 진동한다.</button>
+        <button class="opt">\(n\omega\)의 각진동수로 진동한다.</button>
+        <button class="opt" data-correct>언제나 0이다.</button>
+        <button class="opt">처음 값에서 시작해 점점 0으로 줄어든다.</button>
+      </div><div class="quiz-exp">정상 상태에서는 모든 기댓값이 변하지 않고, \(\langle n|\hat x|n\rangle = 0\)이다. 진동이 보이려면 에너지가 이웃한 상태가 섞여 \(\langle a\rangle \ne 0\)이어야 한다.</div></div>
+      <div class="quiz-q"><p>6. 결맞음 상태 \(|\alpha\rangle\)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">에너지 고유 상태이다.</button>
+        <button class="opt">시간이 지나면 7장의 자유 파속처럼 점점 퍼진다.</button>
+        <button class="opt" data-correct>\(\Delta x\)와 \(\Delta p\)가 시간에 따라 변하지 않고, 곱이 \(\hbar/2\)이다.</button>
+        <button class="opt">에너지 양자 수가 정확히 \(|\alpha|^2\)으로 정해져 있다.</button>
+      </div><div class="quiz-exp">결맞음 상태는 \(\hat a\)의 고유 상태이지 \(\hat H\)의 고유 상태가 아니다. 양자 수는 평균 \(|\alpha|^2\), 표준 편차 \(|\alpha|\)인 푸아송 분포를 이룬다. 시간이 지나도 결맞음 상태로 남으므로 \(\Delta x = b/\sqrt2\), \(\Delta p = \hbar/\sqrt2\,b\)가 그대로다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-ion-trap" data-level="1"><p>질량 40 u인 이온을 각진동수 \(\omega = 2\pi\times1.0\ \mathrm{MHz}\)인 덫에 가뒀다(\(1\ \mathrm u = 1.6605\times10^{-27}\ \mathrm{kg}\)). (가) 자연 길이 \(b\)와 바닥 상태의 \(\Delta x\)를 구하라. (나) \(\hbar\omega/k_B\)는 몇 켈빈인가? (다) 이온을 온도 1 mK의 열평형까지 식혔을 때 바닥 상태에 있을 확률을 구하라(볼츠만 인자 \(e^{-E_n/k_BT}\)를 쓴다).</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(m\omega = 40\times1.6605\times10^{-27}\times6.283\times10^6 = 4.17\times10^{-19}\ \mathrm{kg/s}\)이므로 \(b = \sqrt{\hbar/m\omega} = 15.9\ \mathrm{nm}\), \(\Delta x = b/\sqrt2 = 11.2\ \mathrm{nm}\)이다.</p>
+        <p>(나) \(\hbar\omega/k_B = 1.055\times10^{-34}\times6.283\times10^6/1.381\times10^{-23} = 4.8\times10^{-5}\ \mathrm K\), 곧 48 μK이다.</p>
+        <p>(다) \(x = \hbar\omega/k_BT = 0.048\)로 두면 \(P_n \propto e^{-nx}\)이고 \(\sum_ne^{-nx} = 1/(1 - e^{-x})\)이므로 \(P_0 = 1 - e^{-x} = 0.047\)이다. 평균 양자 수는 \(1/(e^x - 1) = 20\)이다. 1 mK로는 부족하고, 바닥 상태에 두려면 \(\hbar\omega/k_B\)보다 훨씬 낮게 식혀야 한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-hermite-h5" data-level="1"><p>점화식 \(H_{n+1} = 2yH_n - 2nH_{n-1}\)으로 \(H_5\)를 구하라. \(H_5\)가 \(n = 5\)인 에르미트 방정식 \(u'' - 2yu' + 10u = 0\)을 만족함을 확인하고, 실근(곧 \(\psi_5\)의 마디)이 다섯 개임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(H_5 = 2yH_4 - 8H_3 = (32y^5 - 96y^3 + 24y) - (64y^3 - 96y) = 32y^5 - 160y^3 + 120y\)이다. \(H_5' = 160y^4 - 480y^2 + 120\), \(H_5'' = 640y^3 - 960y\)이므로 \(H_5'' - 2yH_5' + 10H_5\)의 \(y^5\) 계수는 \(-320 + 320 = 0\), \(y^3\) 계수는 \(640 + 960 - 1600 = 0\), \(y\) 계수는 \(-960 - 240 + 1200 = 0\)이다. \(H_5 = 8y(4y^4 - 20y^2 + 15)\)에서 \(y^2 = (5 \pm \sqrt{10})/2 = 4.081,\ 0.919\)이므로 근은 \(y = 0,\ \pm0.959,\ \pm2.020\)의 다섯 개다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-coherent-poisson" data-level="1"><p>\(|\alpha|^2 = 9\)인 결맞음 상태에서 (가) 에너지를 재어 가장 자주 나오는 \(n\)은? (나) 바닥 상태 에너지 \(\hbar\omega/2\)가 나올 확률은? (다) 에너지의 기댓값과 \(\Delta N\)은?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(P(n)/P(n - 1) = |\alpha|^2/n = 9/n\)이므로 \(n &lt; 9\)에서는 늘고 \(n > 9\)에서는 준다. \(P(8) = P(9) = 0.132\)로 두 값이 같이 가장 크다.</p>
+        <p>(나) \(P(0) = e^{-9} = 1.2\times10^{-4}\)이다.</p>
+        <p>(다) \(\langle H\rangle = \hbar\omega(9 + \frac12) = 9.5\,\hbar\omega\), \(\Delta N = |\alpha| = 3\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-forbidden-n1" data-level="2"><p>첫 들뜬 상태 \(\psi_1\)에서 입자가 고전적으로 갈 수 없는 영역에서 발견될 확률을 구하라. 부분 적분으로 \(\int_a^\infty y^2e^{-y^2}dy = \frac a2e^{-a^2} + \frac{\sqrt\pi}{4}\mathrm{erfc}(a)\)를 먼저 보여라(\(\mathrm{erfc}(\sqrt3) = 0.0143\)). 바닥 상태의 0.157과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\int y\cdot ye^{-y^2}dy\)에서 \(ye^{-y^2} = -\frac12(e^{-y^2})'\)이므로 \(\int_a^\infty y^2e^{-y^2}dy = \big[-\frac y2e^{-y^2}\big]_a^\infty + \frac12\int_a^\infty e^{-y^2}dy = \frac a2e^{-a^2} + \frac{\sqrt\pi}{4}\mathrm{erfc}(a)\)이다.</p>
+        <p>\(E_1 = \frac32\hbar\omega\)의 되돌이점은 \(y^2 = 3\)이다. \(|\psi_1|^2 = \frac{2}{\sqrt\pi}y^2e^{-y^2}\)(\(y\) 단위)이므로 확률은 \(2\cdot\frac{2}{\sqrt\pi}\big(\frac{\sqrt3}{2}e^{-3} + \frac{\sqrt\pi}{4}\mathrm{erfc}(\sqrt3)\big) = \frac{2\sqrt3}{\sqrt\pi}e^{-3} + \mathrm{erfc}(\sqrt3) = 0.0973 + 0.0143 = 0.112\)이다. 바닥 상태보다 작다. \(n\)이 커질수록 이 확률은 계속 줄어(\(n = 5\)에서 0.074) 고전적인 결과 0에 다가간다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-x4" data-level="2"><p>사다리 연산자로 \(\langle n|\hat x^4|n\rangle = \frac{3b^4}{4}(2n^2 + 2n + 1)\)을 보여라. \(n = 0\)일 때 가우스 적분으로 직접 확인하라. (19장의 섭동론에서 비조화 항 \(\lambda x^4\)이 에너지를 얼마나 옮기는지 계산할 때 이 결과를 쓴다.)</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\hat x^2|n\rangle = \frac{b^2}{2}(\hat a + \hat a^\dagger)^2|n\rangle = \frac{b^2}{2}\big(\sqrt{n(n - 1)}\,|n - 2\rangle + (2n + 1)|n\rangle + \sqrt{(n + 1)(n + 2)}\,|n + 2\rangle\big)\)이다. \(\langle n|\hat x^4|n\rangle = \lVert\hat x^2|n\rangle\rVert^2\)이므로 \(\frac{b^4}{4}\big(n(n - 1) + (2n + 1)^2 + (n + 1)(n + 2)\big) = \frac{b^4}{4}(6n^2 + 6n + 3)\)이다. \(n = 0\)이면 \(3b^4/4\)이다. 직접 계산하면 \(|\psi_0|^2\)은 분산 \(b^2/2\)인 가우스 분포이고 그 4차 모멘트는 \(3(b^2/2)^2 = 3b^4/4\)로 같다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-half-oscillator" data-level="2"><p>반쪽 진동자: \(x > 0\)에서 \(V = \frac12m\omega^2x^2\)이고 \(x &lt; 0\)에서 \(V = \infty\)이다(벽에 붙은 용수철). 에너지 고유값과 고유함수를 구하라. 바닥 에너지는 온전한 진동자의 몇 배인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(x > 0\)에서는 같은 방정식이고 경계 조건은 \(\psi(0) = 0\)이다. 온전한 진동자의 고유함수 가운데 \(x = 0\)에서 0인 것은 홀함수 \(\psi_1, \psi_3, \ldots\)이다. 이것들을 \(x > 0\)에서 잘라 \(\sqrt2\)를 곱하면(정규화) 해가 된다. 에너지는 \(E = (2k + \frac32)\hbar\omega = \frac32, \frac72, \frac{11}{2}, \ldots\)(\(\hbar\omega\) 단위)이고, 간격은 \(2\hbar\omega\)이다. 바닥 에너지 \(\frac32\hbar\omega\)는 온전한 진동자의 3배다. 공간이 절반으로 줄어 입자가 더 좁게 갇혔기 때문이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-thermal" data-level="2"><p>온도 \(T\)의 열평형에 있는 진동자를 생각하자. (가) 에너지가 \(E_n = (n + \frac12)\hbar\omega\)인 상태의 확률이 \(e^{-E_n/k_BT}\)에 비례할 때 평균 에너지가 \(\langle E\rangle = \frac12\hbar\omega + \hbar\omega/(e^{\hbar\omega/k_BT} - 1)\)임을 보여라. (나) 이것을 <a href="ch05.html#eq-planck-average">5장 식 (5.3)</a>과 비교하라. (다) 고온과 저온의 극한을 구하라. (라) 300 K에서 CO 분자의 평균 진동 양자 수를 구하라(<a class="ref" href="#ex-co"></a>).</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(x = \hbar\omega/k_BT\)로 두면 \(Z = \sum_ne^{-(n + 1/2)x} = e^{-x/2}/(1 - e^{-x})\)이고 \(\langle E\rangle = -\hbar\omega\,\frac{d}{dx}\ln Z = \hbar\omega\big(\frac12 + \frac{e^{-x}}{1 - e^{-x}}\big)\)이다.</p>
+        <p>(나) 둘째 항이 플랑크의 평균 에너지와 같고, 영점 에너지 \(\frac12\hbar\omega\)만 더해졌다. 상수는 복사의 세기를 바꾸지 않는다.</p>
+        <p>(다) \(k_BT \gg \hbar\omega\)이면 \(\langle E\rangle \approx k_BT\)(고전적 등분배)이고, \(k_BT \ll \hbar\omega\)이면 \(\langle E\rangle \to \frac12\hbar\omega\)이다.</p>
+        <p>(라) \(\hbar\omega/k_BT = 0.269/0.0259 = 10.4\)이므로 평균 양자 수는 \(1/(e^{10.4} - 1) = 3\times10^{-5}\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-displaced-trap" data-level="2"><p>진동자가 바닥 상태에 있을 때 퍼텐셜의 중심을 갑자기 \(d\)만큼 옮겼다. 새 퍼텐셜은 \(\frac12m\omega^2(x - d)^2\)이다. (가) 옮긴 직후의 상태가 새 진동자의 결맞음 상태임을 보이고 \(\alpha\)를 구하라. (나) 새 바닥 상태에 남아 있을 확률은? \(d = b\)이면? (다) 이후 \(\langle x\rangle(t)\)는?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 새 중심에서 잰 좌표 \(x' = x - d\)로 쓰면 상태는 \(e^{-(x' + d)^2/2b^2}\)으로, 바닥 상태를 \(-d\)만큼 옮긴 가우스 함수다. 식 <a class="ref" href="#eq-coherent-wave"></a>에서 \(\langle x'\rangle = -d\), \(\langle p\rangle = 0\)이므로 \(\alpha = -d/\sqrt2\,b\)이다.</p>
+        <p>(나) \(P(0) = e^{-|\alpha|^2} = e^{-d^2/2b^2}\)이다. \(d = b\)이면 \(e^{-1/2} = 0.61\)이다. 에너지의 기댓값은 \(\hbar\omega(|\alpha|^2 + \frac12) = \frac12\hbar\omega + \frac12m\omega^2d^2\)으로, 고전적으로 용수철을 \(d\)만큼 늘인 에너지가 더해진다.</p>
+        <p>(다) \(\langle x\rangle(t) = d - d\cos\omega t\)이다. 처음 자리 \(x = 0\)과 \(x = 2d\) 사이를 오간다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-sudden-spring" data-level="3"><p>진동자가 바닥 상태에 있을 때 용수철 상수를 갑자기 4배로 바꿨다(\(\omega \to \omega' = 2\omega\)). (가) 새 바닥 상태에 있을 확률을 구하라. (나) 새 해밀토니안의 에너지 기댓값은 얼마인가? (다) 새 진동자의 홀수 상태 \(|n'\rangle\)에 있을 확률은 왜 0인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 새 자연 길이는 \(b' = b/\sqrt2\)이다. 두 가우스 함수의 겹침은 \(\int(\pi bb')^{-1/2}e^{-x^2(1/b^2 + 1/b'^2)/2}dx = \sqrt{2bb'/(b^2 + b'^2)}\)이므로 확률은 \(2bb'/(b^2 + b'^2) = \frac{\sqrt2}{3/2} = 2\sqrt2/3 = 0.943\)이다.</p>
+        <p>(나) 바꾼 순간 상태는 그대로이므로 \(\langle p^2\rangle/2m = \hbar\omega/4\)이고, \(\frac12m\omega'^2\langle x^2\rangle = \frac12m(4\omega^2)\frac{b^2}{2} = \hbar\omega\)이다. 합은 \(\frac54\hbar\omega = \frac58\hbar\omega'\)으로, 새 바닥 에너지 \(\frac12\hbar\omega'\)보다 조금 크다.</p>
+        <p>(다) 처음 상태가 짝함수이고 퍼텐셜이 여전히 대칭이므로, 홀함수 \(\psi_{n'}\)과의 겹침 적분은 0이다. 남은 확률 0.057은 거의 모두 \(|2'\rangle\)(0.052)에 간다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-breathing" data-level="3"><p>(가) 식 <a class="ref" href="#eq-a-t"></a>과 같은 방법으로 \(\langle a^2\rangle(t) = \langle a^2\rangle(0)\,e^{-2i\omega t}\)이고 \(\langle a^\dagger a\rangle\)는 일정함을 보여라. (나) 이것을 써서 \(\langle x^2\rangle\)이 각진동수 \(2\omega\)로 진동함을 보여라. (다) 처음 상태가 원점에 중심을 둔 실수 가우스 함수 \(e^{-x^2/2s^2}\)이면(\(\langle x^2\rangle = s^2/2\), \(\langle p^2\rangle = \hbar^2/2s^2\), \(\langle\hat x\hat p + \hat p\hat x\rangle = 0\)) \(\langle x^2\rangle(t) = s(t)^2/2\)이고 \(s(t)\)가 식 <a class="ref" href="#eq-breathing"></a>과 같음을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \([\hat a^2, \hat N] = \hat a[\hat a, \hat N] + [\hat a, \hat N]\hat a = 2\hat a^2\)이므로 \(\frac{d}{dt}\langle a^2\rangle = \frac{\hbar\omega}{i\hbar}\cdot2\langle a^2\rangle = -2i\omega\langle a^2\rangle\)이다. \(\hat N\)은 \(\hat H\)와 교환하므로 일정하다.</p>
+        <p>(나) \(\langle x^2\rangle = \frac{b^2}{2}\big(\langle a^2\rangle + \langle a^2\rangle^* + 2\langle N\rangle + 1\big) = \frac{b^2}{2}\big(2\,\mathrm{Re}[\langle a^2\rangle(0)e^{-2i\omega t}] + 2\langle N\rangle + 1\big)\)이다.</p>
+        <p>(다) \(\langle a^2\rangle(0) = \frac12\big(\langle x^2\rangle/b^2 - b^2\langle p^2\rangle/\hbar^2 + \frac{i}{\hbar}\langle\hat x\hat p + \hat p\hat x\rangle\big) = \frac14\big(\frac{s^2}{b^2} - \frac{b^2}{s^2}\big)\)이고 \(\langle N\rangle + \frac12 = \frac14\big(\frac{s^2}{b^2} + \frac{b^2}{s^2}\big)\)이다. 넣으면 \(\langle x^2\rangle = \frac14\big[(s^2 - \frac{b^4}{s^2})\cos2\omega t + s^2 + \frac{b^4}{s^2}\big] = \frac12\big(s^2\cos^2\omega t + \frac{b^4}{s^2}\sin^2\omega t\big)\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-displacement" data-level="3"><p>변위 연산자 \(\hat D(\alpha) = e^{\alpha\hat a^\dagger - \alpha^*\hat a}\)를 생각하자. (가) \(\hat D\)가 유니타리임을 보여라. (나) \([\hat A, \hat B]\)가 \(\hat A\), \(\hat B\)와 교환할 때 성립하는 공식 \(e^{\hat A + \hat B} = e^{\hat A}e^{\hat B}e^{-[\hat A, \hat B]/2}\)를 써서 \(\hat D(\alpha)|0\rangle = |\alpha\rangle\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 지수 \(\hat G = \alpha\hat a^\dagger - \alpha^*\hat a\)는 \(\hat G^\dagger = \alpha^*\hat a - \alpha\hat a^\dagger = -\hat G\)이므로 \(i\hat G\)가 에르미트이다. 따라서 \(\hat D = e^{-i(i\hat G)}\)는 유니타리다(<a href="ch02.html#thm-exp-unitary">2장 정리 2.6</a>).</p>
+        <p>(나) \(\hat A = \alpha\hat a^\dagger\), \(\hat B = -\alpha^*\hat a\)로 두면 \([\hat A, \hat B] = -|\alpha|^2[\hat a^\dagger, \hat a] = |\alpha|^2\)이 숫자이므로 공식을 쓸 수 있다. \(\hat D = e^{\alpha\hat a^\dagger}e^{-\alpha^*\hat a}e^{-|\alpha|^2/2}\)이다. \(\hat a|0\rangle = 0\)이므로 \(e^{-\alpha^*\hat a}|0\rangle = |0\rangle\)이고, \(e^{\alpha\hat a^\dagger}|0\rangle = \sum_n\frac{\alpha^n}{n!}(\hat a^\dagger)^n|0\rangle = \sum_n\frac{\alpha^n}{\sqrt{n!}}|n\rangle\)이다(식 <a class="ref" href="#eq-n-from-0"></a>). 따라서 \(\hat D(\alpha)|0\rangle = e^{-|\alpha|^2/2}\sum_n\frac{\alpha^n}{\sqrt{n!}}|n\rangle = |\alpha\rangle\)이다.</p>
+      </details>
+    </div>
+
   </section>
 </main>
 </body>
