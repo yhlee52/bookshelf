@@ -1,6 +1,6 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · incline · pendulum · oscillator · orbit · waves · double-slit · efield
+   projectile · incline · atwood · pendulum · oscillator · orbit · waves · double-slit · efield
    random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
@@ -258,7 +258,126 @@
   });
 
   /* ======================================================================
-     3. 진자와 위상 공간
+     3. 애트우드 기계
+     ====================================================================== */
+  Lab.register({
+    id: "atwood", field: "phys", thumb: "atwood",
+    title: "애트우드 기계 — 두 추가 만드는 느린 낙하",
+    desc: "도르래에 걸린 두 추의 질량과 도르래 질량을 바꾸며 가속도와 양쪽 장력을 보고, a = (m₁ − m₂)g / (m₁ + m₂ + M/2)를 확인합니다.",
+    tags: ["역학", "뉴턴 법칙", "장력", "도르래"],
+    note: "해볼 것: 두 추의 질량을 거의 같게 하면 가속도가 g보다 훨씬 작아집니다. 낙하를 이렇게 느리게 만들어 관찰하는 것이 이 장치의 원래 목적입니다. 장력은 두 추의 무게 사이 값이라서 무거운 추의 무게보다 항상 작습니다. 도르래에 질량을 주면 두 장력이 달라지고, 그 차이 (M/2)a가 도르래를 돌립니다.",
+    mount(S) {
+      const g = 9.81, H = 1.5; // 처음 높이 (m). 내려가는 추가 이만큼 내려가면 바닥에 닿는다
+      const st = { m1: 1.2, m2: 1, M: 0 };
+      // 추 1이 내려간 거리 y (음수면 올라감)와 속도 v. 매개변수를 바꾸면 처음부터 다시 놓으므로 한 번 놓는 동안 가속도는 일정하다
+      let y, v, t, done, hist;
+      function reset() { y = 0; v = 0; t = 0; done = false; hist = [[0, 0]]; }
+      reset();
+      // 도르래는 균일한 원판(I = MR²/2)이고 줄은 미끄러지지 않는다: (T₁ − T₂)R = Iα, α = a/R
+      const accOf = (m1) => (Math.abs(m1 - st.m2) < 1e-9 ? 0 : ((m1 - st.m2) * g) / (m1 + st.m2 + st.M / 2));
+      const acc = () => accOf(st.m1);
+      const tens = () => { const a = acc(); return [st.m1 * (g - a), st.m2 * (g + a)]; };
+      const tEnd = () => (acc() ? Math.sqrt((2 * H) / Math.abs(acc())) : Infinity);
+      function slope() {
+        if (hist.length < 2) return null;
+        const [t1, v1] = hist[hist.length - 1];
+        for (let i = hist.length - 2; i >= 0; i--) if (t1 - hist[i][0] >= 0.25) return (v1 - hist[i][1]) / (t1 - hist[i][0]);
+        return null;
+      }
+      const [left, right] = S.split(2);
+      const cvS = S.canvas({ parent: left, aspect: 0.95, maxHeight: 400 }, (ctx, w, h) => {
+        const P = VZ.palette(), cx = w / 2, cy = 58, R = 34, yf = h - 44; // 도르래 중심·반지름, 바닥
+        const side = (m) => 22 + 14 * Math.cbrt(m); // 추 한 변 (px)
+        const s1 = side(st.m1), s2 = side(st.m2);
+        // 올라가는 추가 H만큼 올라가도 도르래에 닿지 않게 축척을 정한다
+        const k = Math.min(75, (yf - cy - R - 24 - Math.max(s1, s2)) / (2 * H));
+        const b1 = yf - (H - y) * k, b2 = yf - (H + y) * k, x1 = cx - R, x2 = cx + R; // 두 추의 아랫면, 두 줄의 x
+        ctx.fillStyle = VZ.alpha(P.dim, 0.1); ctx.fillRect(0, yf, w, h - yf);
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, yf); ctx.lineTo(w, yf); ctx.stroke();
+        ctx.strokeStyle = VZ.alpha(P.dim, 0.5); ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x1 - 50, yf - H * k); ctx.lineTo(x2 + 50, yf - H * k); ctx.stroke(); ctx.setLineDash([]);
+        // 천장, 도르래, 줄
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx - 16, 4); ctx.lineTo(cx + 16, 4); ctx.moveTo(cx, 4); ctx.lineTo(cx, cy); ctx.stroke();
+        ctx.strokeStyle = P.text; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(x1, b1 - s1); ctx.lineTo(x1, cy); ctx.arc(cx, cy, R, Math.PI, 2 * Math.PI); ctx.lineTo(x2, b2 - s2); ctx.stroke();
+        ctx.fillStyle = VZ.alpha(P.dim, 0.12 + 0.1 * Math.min(1, st.M / 2)); ctx.strokeStyle = P.dim; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(cx, cy, R - 2, 0, 7); ctx.fill(); ctx.stroke();
+        const phi = (-y * k) / (R - 2); // 왼쪽 줄이 내려가면 시계 반대 방향으로 돈다
+        ctx.lineWidth = 1.4; ctx.beginPath();
+        for (let i = 0; i < 3; i++) { const a = phi + (i * 2 * Math.PI) / 3; ctx.moveTo(cx, cy); ctx.lineTo(cx + (R - 4) * Math.cos(a), cy + (R - 4) * Math.sin(a)); }
+        ctx.stroke();
+        ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, 7); ctx.fill();
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(11.5, false); ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText(`도르래 M = ${st.M.toFixed(1)} kg`, cx + R + 10, cy - 14);
+        // 두 추
+        [[x1, b1, s1, P.accent, "m₁"], [x2, b2, s2, P.accent2, "m₂"]].forEach(([xc, b, s, col, name]) => {
+          ctx.fillStyle = VZ.alpha(col, 0.25); ctx.strokeStyle = col; ctx.lineWidth = 1.6;
+          ctx.fillRect(xc - s / 2, b - s, s, s); ctx.strokeRect(xc - s / 2, b - s, s, s);
+          ctx.fillStyle = P.text; ctx.font = VZ.font(11.5, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(name, xc, b - s / 2);
+        });
+        // 자유물체도: 추 바깥쪽에 장력(위)과 무게(아래). 네 힘을 같은 축척으로 그린다. 바닥에 닿으면 바닥이 받치므로 지운다
+        if (!done) {
+          const [T1, T2] = tens(), Fpx = 56 / Math.max(st.m1 * g, st.m2 * g, T1, T2);
+          [[x1 - s1 / 2 - 12, b1 - s1 / 2, T1, st.m1 * g, "T₁", "m₁g", -1], [x2 + s2 / 2 + 12, b2 - s2 / 2, T2, st.m2 * g, "T₂", "m₂g", 1]].forEach(([ax, ay, T, W, nT, nW, dir]) => {
+            ctx.textAlign = dir < 0 ? "right" : "left"; ctx.textBaseline = "middle"; ctx.font = VZ.font(11.5, false, 700);
+            [[T * Fpx, -1, P.ok, `${nT} = ${T.toFixed(2)} N`], [W * Fpx, 1, P.text, `${nW} = ${W.toFixed(2)} N`]].forEach(([len, up, col, label]) => {
+              ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.4;
+              if (len >= 4) VZ.arrow(ctx, ax, ay, ax, ay + up * len, 8);
+              ctx.fillText(label, ax + dir * 8, ay + up * Math.max(len - 6, 8));
+            });
+          });
+        }
+        // 왼쪽 위 안내 (좁은 화면에서도 도르래 왼쪽에 들어가게 짧은 줄로 나눈다)
+        const lines = !acc() ? ["균형: a = 0", "움직이지 않습니다"]
+          : done ? [`도착 ${t.toFixed(2)} s`, `이론 √(2h/a) = ${tEnd().toFixed(2)} s`, `h = ${H} m`]
+          : [`t = ${t.toFixed(2)} s`, `속력 ${Math.abs(v).toFixed(2)} m/s`];
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        lines.forEach((s, i) => ctx.fillText(s, 10, 8 + i * 18));
+      });
+      const cvG = S.canvas({ parent: right, aspect: 0.95, maxHeight: 400 }, (ctx, w, h) => {
+        const P = VZ.palette(), a = acc(), ms = VZ.linspace(0.1, 5, 246);
+        VZ.chart(ctx, { x: 0, y: 0, w, h: h * 0.56 }, {
+          x: [0, 5], y: [-g * 1.25, g * 1.25], xLabel: "m₁ (kg)", title: "m₁에 따른 가속도 a (m/s²)",
+          series: [{ data: ms.map((m) => [m, accOf(m)]), color: P.accent, width: 2.4 }],
+          hlines: [{ y: g, color: P.faint, label: "g" }, { y: -g, color: P.faint, label: "−g" }, { y: 0, color: P.axis, dash: [] }],
+          vlines: [{ x: st.m2, color: P.faint, label: "m₁ = m₂" }],
+          points: [{ x: st.m1, y: a, color: P.accent, r: 6 }],
+        });
+        const tE = tEnd(), aa = Math.abs(a);
+        VZ.chart(ctx, { x: 0, y: h * 0.56, w, h: h * 0.44 }, {
+          x: [0, a ? Math.max(1, tE * 1.05) : 2], y: [0, a ? Math.max(0.5, aa * tE * 1.15) : 1], xLabel: "시간 (s)", title: "속력 (m/s) — 기울기가 가속도의 크기",
+          series: a ? [{ data: [[0, 0], [tE, aa * tE]], color: P.dim, width: 1.4, dash: [5, 4] }, { data: hist, color: P.accent, width: 2.2 }] : [],
+          texts: a ? [] : [{ x: 1, y: 0.5, text: "a = 0 — 움직이지 않습니다", align: "center", sans: true }],
+        });
+      });
+      const set = S.stats([{ k: "a", label: "가속도 (이론)" }, { k: "am", label: "v–t 기울기 (측정)" }, { k: "T1", label: "장력 T₁ (왼쪽)" }, { k: "T2", label: "장력 T₂ (오른쪽)" }, { k: "dT", label: "T₁ − T₂ = (M/2)a" }]);
+      function readouts() {
+        const a = acc(), [T1, T2] = tens(), am = slope();
+        set("a", Math.abs(a).toFixed(3) + `<small>m/s²${a > 0 ? " · m₁이 내려감" : a < 0 ? " · m₂가 내려감" : ""}</small>`);
+        set("am", am == null ? "—" : am.toFixed(3) + "<small>m/s²</small>");
+        set("T1", T1.toFixed(2) + "<small>N</small>"); set("T2", T2.toFixed(2) + "<small>N</small>");
+        set("dT", (Math.abs(T1 - T2) < 5e-3 ? 0 : T1 - T2).toFixed(2) + "<small>N</small>"); // 반올림 오차로 "-0.00"이 찍히지 않게
+      }
+      S.range({ label: "추 1 질량 m₁ (왼쪽)", min: 0.1, max: 5, step: 0.1, value: st.m1, fmt: (v) => v.toFixed(1) + " kg", onInput: (v) => { st.m1 = v; reset(); } });
+      S.range({ label: "추 2 질량 m₂ (오른쪽)", min: 0.1, max: 5, step: 0.1, value: st.m2, fmt: (v) => v.toFixed(1) + " kg", onInput: (v) => { st.m2 = v; reset(); } });
+      S.range({ label: "도르래 질량 M (균일한 원판)", min: 0, max: 5, step: 0.1, value: st.M, fmt: (v) => v.toFixed(1) + " kg", onInput: (v) => { st.M = v; reset(); } });
+      S.button("다시 놓기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        const a = acc();
+        if (!done && a) {
+          // 정지 상태에서 놓았고 가속도가 일정하므로 y = ½at², v = at. 바닥에 닿는 시각에서 멈춘다
+          t = Math.min(t + dt, tEnd()); y = 0.5 * a * t * t; v = a * t;
+          if (t >= tEnd()) done = true;
+          hist.push([t, Math.abs(v)]);
+        }
+        cvS.redraw(); cvG.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     4. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -343,7 +462,7 @@
   });
 
   /* ======================================================================
-     4. 강제 감쇠 진동자와 공명
+     5. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -405,7 +524,7 @@
   });
 
   /* ======================================================================
-     5. 케플러 궤도
+     6. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -485,7 +604,7 @@
   });
 
   /* ======================================================================
-     6. 파동의 중첩
+     7. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -536,7 +655,7 @@
   });
 
   /* ======================================================================
-     7. 이중 슬릿 간섭
+     8. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -588,7 +707,7 @@
   });
 
   /* ======================================================================
-     8. 전기장과 전위
+     9. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -670,7 +789,7 @@
   });
 
   /* ======================================================================
-     9. 랜덤 워크와 확산
+     10. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -728,7 +847,7 @@
   });
 
   /* ======================================================================
-     10. 열 확산 (2D 열방정식)
+     11. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -790,7 +909,7 @@
   });
 
   /* ======================================================================
-     11. 이징 모형
+     12. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -849,7 +968,7 @@
   });
 
   /* ======================================================================
-     12. 이중 진자 — 카오스
+     13. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -920,7 +1039,7 @@
   });
 
   /* ======================================================================
-     13. 로렌츠 끌개 (3D)
+     14. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -987,7 +1106,7 @@
   });
 
   /* ======================================================================
-     14. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     15. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.

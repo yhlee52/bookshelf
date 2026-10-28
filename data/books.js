@@ -76,7 +76,7 @@ window.SHELF_DATA = {
       ],
       chapters: [
         { slug: "ch01", num: "01", part: 1, status: "slot", title: "포물선 운동", desc: "실험: 포물선 운동과 공기 저항", sims: ["projectile"] },
-        { slug: "ch02", num: "02", part: 1, status: "slot", title: "힘과 뉴턴 법칙", desc: "실험: 빗면 위의 물체와 마찰 · 애트우드 기계 · 원운동과 구심력 (경사 커브)", sims: ["incline"] },
+        { slug: "ch02", num: "02", part: 1, status: "slot", title: "힘과 뉴턴 법칙", desc: "실험: 빗면 위의 물체와 마찰 · 애트우드 기계 · 원운동과 구심력 (경사 커브)", sims: ["incline", "atwood"] },
         { slug: "ch03", num: "03", part: 1, status: "slot", title: "에너지와 운동량", desc: "실험: 역학적 에너지 보존 (연직 루프) · 충돌과 운동량 보존" },
         { slug: "ch04", num: "04", part: 1, status: "slot", title: "강체의 회전", desc: "실험: 굴림 경주 (관성 모멘트)" },
         { slug: "ch05", num: "05", part: 1, status: "slot", title: "진동", desc: "실험: 단진동과 감쇠 · 진자", sims: ["pendulum"] },
