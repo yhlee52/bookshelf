@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>13 대칭과 보존 · QuantumBook</title>
-<meta name="description" content="병진과 운동량 · 시간 병진과 에너지 · 패리티 · 시간 반전">
+<meta name="description" content="공간·시간 병진과 운동량·에너지 보존을 유도하고, 패리티 선택 규칙과 스핀 없는 입자의 시간 반전을 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,56 +24,205 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch13">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">13</span></div>
     <h1 data-fill="chapter-title">대칭과 보존</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">공간의 어느 곳에서 실험하든 법칙이 같다면 무엇이 보존될까? 시간을 옮겨도 법칙이 같다면 또 무엇이 보존될까? 이 장에서는 병진 대칭의 생성자에서 운동량과 에너지를 찾고, 거울처럼 뒤집는 패리티와 운동을 거꾸로 재생하는 시간 반전이 연속 대칭과 어떻게 다른지 살핀다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>공간 병진 연산자가 파동함수를 옮기는 방향을 유도하고 운동량 보존 조건을 판정할 수 있다.</li>
+      <li>시간 병진과 에너지 보존을 연결하고 시간 의존 해밀토니안의 에너지 변화를 계산할 수 있다.</li>
+      <li>패리티 고유값과 선택 규칙으로 행렬원소가 0인 경우를 찾을 수 있다.</li>
+      <li>스핀 없는 입자의 시간 반전이 반유니타리임을 설명하고 역재생한 파동함수를 만들 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (연산자와 교환자), <a href="ch03.html">3장</a> (위치·운동량 표현), <a href="ch04.html">4장</a> (고전역학의 대칭), <a href="ch06.html">6장</a> (슈뢰딩거 방정식), <a href="ch10.html">10장</a> (하이젠베르크 운동 방정식)</p>
   </header>
 
   <section id="s1">
-    <h2>병진과 운동량</h2>
-    <p class="slot" data-slot="13.1절">아직 쓰지 않은 절입니다.</p>
+    <h2>공간 병진과 운동량</h2>
+    <p>책상을 오른쪽으로 옮겨도 빈 공간의 물리 법칙은 같다. 양자역학에서 <span class="term">대칭</span> <span class="en">(symmetry)</span>은 상태에 가하는 변환과 해밀토니안의 관계로 표현한다. 연속적인 변환 \(\hat U(a)\)가 \(\hat U^\dagger(a)\hat H\hat U(a)=\hat H\)를 만족하면 해밀토니안은 그 변환에 대해 불변이다. 여기서는 오른쪽으로 거리 \(a\)만큼 옮기는 <em>능동적</em> 공간 병진을 택한다.</p>
+    <div class="box def" id="def-translation"><div class="box-h">공간 병진 연산자</div>
+      <div class="formula" id="eq-translation-def">\[ \hat T(a)=e^{-ia\hat p/\hbar},\qquad
+      \hat T(a)|x\rangle=|x+a\rangle,\qquad
+      (\hat T(a)\psi)(x)=\psi(x-a). \]</div>
+      <p>마지막 식은 \(\hat p=-i\hbar\,\partial_x\)를 대입해 \(\hat T(a)=e^{-a\partial_x}\)로 쓰거나, \(\langle x|\hat T(a)|\psi\rangle=\langle x-a|\psi\rangle\)로 확인할 수 있다. \(a&gt;0\)이면 파동함수의 봉우리는 오른쪽으로 간다.</p>
+    </div>
+    <p>부호를 한 번 더 확인하자. \(\hat T^\dagger(a)=e^{ia\hat p/\hbar}\)이고 \([\hat p,\hat x]=-i\hbar\)다. \(\hat F(a)=\hat T^\dagger(a)\hat x\hat T(a)\)를 미분하면</p>
+    <div class="formula" id="eq-translation-position">\[ \frac{d\hat F}{da}=\frac{i}{\hbar}\hat T^\dagger(a)[\hat p,\hat x]\hat T(a)=I,\qquad
+    \hat T^\dagger(a)\hat x\hat T(a)=\hat x+aI. \]</div>
+    <p>따라서 옮긴 상태의 위치 기댓값은 원래보다 \(a\) 크다. \(\hat T(a+b)=\hat T(a)\hat T(b)\)이며 \(\hat T(0)=I\)다. 작은 \(a\)에서는 \(\hat T(a)=I-ia\hat p/\hbar+O(a^2)\)이므로 운동량이 공간 병진의 <span class="term">생성자</span> <span class="en">(generator)</span>다.</p>
+    <div class="box ex" id="ex-translated-packet"><div class="box-h">가우스 파속을 2 cm 옮기기</div>
+      <p>\(\psi(x)=C\exp[-(x-x_0)^2/(4\sigma^2)]e^{ip_0x/\hbar}\)라고 하자. \(\hat T(a)\)를 작용시키면 \(\psi_a(x)=C\exp[-(x-a-x_0)^2/(4\sigma^2)]e^{ip_0(x-a)/\hbar}\)다. \(x_0=0\), \(a=2\ \mathrm{cm}\)이면 확률밀도의 중심은 \(2\ \mathrm{cm}\)로 옮겨지고 \(\langle p\rangle=p_0\)는 그대로다. 지수의 \(e^{-ip_0a/\hbar}\)는 이 파속 전체에 곱해진 공통 위상이다.</p>
+    </div>
+    <h3 id="s1-conservation">대칭이 보존 법칙이 되는 단계</h3>
+    <p>연속 유니타리 변환을 \(\hat U(a)=e^{-ia\hat G/\hbar}\)로 쓰자. \(\hat G\)는 에르미트이고 시간에 명시적으로 의존하지 않는다고 가정한다. \(\hat U^\dagger(a)\hat H\hat U(a)=\hat H\)를 \(a=0\)에서 미분하면 \((i/\hbar)[\hat G,\hat H]=0\)이다. <a href="ch10.html#eq-heis-equation">10장의 하이젠베르크 운동 방정식</a>을 기댓값에 적용하면</p>
+    <div class="box thm" id="thm-symmetry-conservation"><div class="box-h">연속 대칭의 생성자와 보존량</div>
+      <div class="formula" id="eq-generator-conservation">\[ \hat U^\dagger(a)\hat H\hat U(a)=\hat H\ \text{(모든 작은 }a\text{)}
+      \ \Longrightarrow\ [\hat H,\hat G]=0
+      \ \Longrightarrow\ \frac{d\langle\hat G\rangle}{dt}
+      =\frac{i}{\hbar}\langle[\hat H,\hat G]\rangle=0. \]</div>
+      <p>고전역학의 대칭·보존 관계(<a href="ch04.html">4장</a>)가 양자역학에서는 생성자와 교환자의 언어로 나타난다. 반대로 임의의 유니타리 변환이 아니라, 해밀토니안을 실제로 보존하는 변환이어야 한다.</p>
+    </div>
+    <p>한 입자의 \(\hat H=\hat p^2/(2m)+V(\hat x)\)에 대해 \(\hat T^\dagger(a)\hat H\hat T(a)=\hat p^2/(2m)+V(\hat x+a)\)다. 모든 \(a\)에서 같으려면 이 모형의 \(V\)가 위치에 무관해야 한다. 같은 결과를 교환자로 확인하면</p>
+    <div class="formula" id="eq-momentum-force">\[ [\hat H,\hat p]=[V(\hat x),\hat p]=i\hbar V'(\hat x),\qquad
+    \frac{d\langle\hat p\rangle}{dt}=-\langle V'(\hat x)\rangle. \]</div>
+    <p>즉 공간 병진 대칭이 있으면 운동량 기댓값이 일정하다. 식 <a class="ref" href="#eq-momentum-force"></a>는 <a href="ch09.html">9장</a>의 에렌페스트 정리와도 같다.</p>
+    <div class="callout warn"><strong>한 간격만큼의 병진과 모든 거리의 병진</strong><p>\(V(x+L)=V(x)\)인 주기 퍼텐셜은 \(L\)만큼 옮기는 <em>이산</em> 병진에는 불변이지만, 임의의 작은 \(a\)에 대한 병진에는 불변이 아니다. 따라서 이 장의 연속 병진 논증만으로 \(\langle p\rangle\) 보존을 주장할 수 없다.</p></div>
   </section>
 
   <section id="s2">
     <h2>시간 병진과 에너지</h2>
-    <p class="slot" data-slot="13.2절">아직 쓰지 않은 절입니다.</p>
+    <p>실험을 오늘 시작하든 내일 시작하든 해밀토니안 자체가 같다면 시간의 원점을 옮겨도 운동 법칙은 같다. 해밀토니안에 명시적인 시간 의존성이 없을 때, <a href="ch06.html">6장</a>의 시간 변화 연산자는 시간 간격 \(\tau\)에만 의존한다.</p>
+    <div class="formula" id="eq-time-translation">\[ \hat U(\tau)=e^{-i\tau\hat H/\hbar},\qquad
+    |\psi(t+\tau)\rangle=\hat U(\tau)|\psi(t)\rangle,\qquad
+    \hat U^\dagger(\tau)\hat H\hat U(\tau)=\hat H. \]</div>
+    <p>\(\hat U(\tau)=I-i\tau\hat H/\hbar+O(\tau^2)\)이므로 에너지를 나타내는 \(\hat H\)가 시간 병진의 생성자다. 공간 병진의 생성자가 운동량이었던 식 <a class="ref" href="#eq-translation-def"></a>과 짝을 이룬다. 여기서 시간은 변환의 매개변수이며, 이 논증에 별도의 '시간 관측량 연산자'는 필요하지 않다.</p>
+    <h3 id="s2-energy-balance">해밀토니안이 시간에 따라 바뀌면</h3>
+    <p>시간 의존 \(\hat H(t)\)를 허용하고 에너지 기댓값 \(E(t)=\langle\psi(t)|\hat H(t)|\psi(t)\rangle\)를 미분해 보자. 슈뢰딩거 방정식 \(i\hbar|\dot\psi\rangle=\hat H|\psi\rangle\)과 그 켤레를 각 항에 넣으면</p>
+    <div class="formula" id="eq-energy-derivation">\[ \begin{aligned}\frac{dE}{dt}
+    &amp;=\langle\dot\psi|\hat H|\psi\rangle
+      +\left\langle\frac{\partial\hat H}{\partial t}\right\rangle
+      +\langle\psi|\hat H|\dot\psi\rangle\\
+    &amp;=\frac{i}{\hbar}\langle\hat H^2\rangle
+      +\left\langle\frac{\partial\hat H}{\partial t}\right\rangle
+      -\frac{i}{\hbar}\langle\hat H^2\rangle
+     =\left\langle\frac{\partial\hat H}{\partial t}\right\rangle .
+    \end{aligned} \]</div>
+    <div class="box thm" id="thm-energy-balance"><div class="box-h">에너지 기댓값의 변화</div>
+      <div class="formula" id="eq-energy-balance">\[ \frac{d\langle\hat H\rangle}{dt}
+      =\left\langle\frac{\partial\hat H}{\partial t}\right\rangle . \]</div>
+      <p>닫힌 계에서 \(\partial\hat H/\partial t=0\)이면 에너지 기댓값은 보존된다. 상태가 정상 상태가 아니어도 성립한다. 외부 조작으로 \(\hat H\)를 바꾸면 오른쪽 항이 에너지 유입 또는 유출을 나타낸다.</p>
+    </div>
+    <div class="box ex" id="ex-driven-two-level"><div class="box-h">준위 간격을 바꾸는 두 준위계</div>
+      <p>\(\hat H(t)=\hbar\omega(t)\sigma_z/2\)이고 처음 상태가 \(|z{+}\rangle\)라고 하자. 모든 시각의 해밀토니안이 같은 \(\sigma_z\)에 비례하므로 상태는 전체 위상만 얻는다. 그러나 에너지 기댓값은 \(E(t)=\hbar\omega(t)/2\), 따라서 \(dE/dt=\hbar\dot\omega(t)/2\)다. 전이 확률이 0이라고 에너지 변화도 0인 것은 아니다. 외부에서 준위 간격을 바꾼 결과다.</p>
+    </div>
+    <div class="callout tip"><strong>일정한 에너지와 일정한 운동량은 다른 조건</strong><p>시간에 무관한 우물 \(V(x)\)은 에너지를 보존하지만 위치에 따라 힘이 작용하므로 운동량은 변할 수 있다. 반대로 공간에 균일한 \(V(t)\)는 운동량을 보존하면서 해밀토니안의 기댓값을 바꾼다. 이 경우의 변화는 공통 에너지 기준점의 이동이므로 파동함수에는 전체 위상만 준다. 각 보존량은 대응하는 대칭 조건을 따로 확인해야 한다.</p></div>
   </section>
 
   <section id="s3">
-    <h2>패리티</h2>
-    <p class="slot" data-slot="13.3절">아직 쓰지 않은 절입니다.</p>
+    <h2>패리티: 공간을 뒤집는 이산 대칭</h2>
+    <p>한 차원에서 원점에 거울을 놓고 \(x\)를 \(-x\)로 뒤집는 변환을 <span class="term">패리티</span> <span class="en">(parity)</span>라고 한다. 한 번 더 뒤집으면 원상복귀하므로 연속 병진과 달리 중간 단계의 작은 변환으로 만들지 않는다.</p>
+    <div class="box def" id="def-parity"><div class="box-h">패리티 연산자</div>
+      <div class="formula" id="eq-parity-def">\[ \hat\Pi|x\rangle=|-x\rangle,\qquad
+      (\hat\Pi\psi)(x)=\psi(-x),\qquad
+      \hat\Pi^2=I,\quad\hat\Pi^\dagger=\hat\Pi. \]</div>
+      <p>고유값은 \(+1\) 또는 \(-1\)이다. \(\hat\Pi|\psi_+\rangle=+|\psi_+\rangle\)이면 짝함수, \(\hat\Pi|\psi_-\rangle=-|\psi_-\rangle\)이면 홀함수다. 임의의 파동함수는 \(\psi_\pm(x)=[\psi(x)\pm\psi(-x)]/2\)로 짝·홀 성분에 투영할 수 있다. 이 성분들은 필요하면 각각 다시 정규화한다.</p>
+    </div>
+    <p>패리티는 위치와 운동량을 모두 반전한다. 위치는 \(\hat\Pi\hat x\hat\Pi=-\hat x\)이고, \(\hat p=-i\hbar\partial_x\)에 \(\psi(-x)\)를 대입하면 미분의 부호가 바뀌므로 \(\hat\Pi\hat p\hat\Pi=-\hat p\)다. 따라서</p>
+    <div class="formula" id="eq-parity-hamiltonian">\[ \hat\Pi\hat H\hat\Pi
+      =\frac{\hat p^2}{2m}+V(-\hat x),\qquad
+      V(-x)=V(x)\ \Longrightarrow\ [\hat H,\hat\Pi]=0. \]</div>
+    <p>대칭 퍼텐셜에서는 패리티가 시간에 따라 보존된다. 비축퇴 에너지 고유상태라면 \(\hat\Pi|n\rangle\)도 같은 에너지의 고유상태이므로 \(\hat\Pi|n\rangle=\pi_n|n\rangle\), \(\pi_n=\pm1\)이어야 한다. 축퇴가 있더라도 같은 에너지 부분공간 안에서 패리티 고유기저를 고를 수 있다.</p>
+    <h3 id="s3-selection">패리티로 행렬원소를 계산하기 전에 지우기</h3>
+    <p>연산자 \(\hat O\)가 패리티에 대해 \(\hat\Pi\hat O\hat\Pi=\eta_O\hat O\), \(\eta_O=\pm1\)라고 하자. 패리티 고유상태 \(|i\rangle,|f\rangle\)의 고유값을 \(\pi_i,\pi_f\)라 하면</p>
+    <div class="formula" id="eq-parity-selection">\[ \langle f|\hat O|i\rangle
+    =\langle f|\hat\Pi(\hat\Pi\hat O\hat\Pi)\hat\Pi|i\rangle
+    =\pi_f\eta_O\pi_i\langle f|\hat O|i\rangle. \]</div>
+    <div class="box thm" id="thm-parity-selection"><div class="box-h">패리티 선택 규칙</div>
+      <p>\(\pi_f\eta_O\pi_i=-1\)이면 \(\langle f|\hat O|i\rangle=0\)이다. 특히 \(\hat x\)는 홀수 연산자이므로 \(\langle f|\hat x|i\rangle\)가 0이 아니려면 두 상태의 패리티가 반대여야 한다. 같은 패리티 상태의 위치 기댓값 \(\langle i|\hat x|i\rangle\)은 0이다.</p>
+    </div>
+    <div class="box ex" id="ex-oscillator-parity"><div class="box-h">조화 진동자에서 적분 없이 판정하기</div>
+      <p><a href="ch08.html">8장</a>의 조화 진동자는 짝수 퍼텐셜을 갖고 \(n\)번째 고유상태의 패리티는 \((-1)^n\)이다. 따라서 \(\langle0|\hat x|0\rangle=\langle0|\hat x|2\rangle=0\)이다. \(n=0\)과 \(n=1\)은 패리티가 반대여서 허용된다. 실제로 \(\hat x=\sqrt{\hbar/(2m\omega)}(\hat a+\hat a^\dagger)\)와 \(\hat a|1\rangle=|0\rangle\)를 쓰면 \(\langle0|\hat x|1\rangle=\sqrt{\hbar/(2m\omega)}\)다.</p>
+    </div>
+    <div class="callout warn"><strong>패리티는 연속 대칭의 생성자가 아니다</strong><p>패리티 고유값 \(+1,-1\)은 대칭 퍼텐셜에서 유지되지만, 공간 병진처럼 작은 거리 \(a\)를 변화시키는 생성자는 없다. 패리티 선택 규칙은 유용한 보존 정보이며, 식 <a class="ref" href="#eq-generator-conservation"></a>의 연속 대칭 논증과는 구분한다.</p></div>
   </section>
 
   <section id="s4">
-    <h2>시간 반전</h2>
-    <p class="slot" data-slot="13.4절">아직 쓰지 않은 절입니다.</p>
+    <h2>시간 반전: 운동을 거꾸로 재생하기</h2>
+    <p>자유 입자의 영상을 거꾸로 틀면 위치는 같은 장면을 역순으로 지나지만 운동량은 반대 방향을 가리킨다. 양자역학에서는 단지 \(t\to-t\)만 대입하면 슈뢰딩거 방정식의 \(i\) 부호가 맞지 않는다. 이 절은 <em>스핀 없는 입자</em>와 실수의 정적인 스칼라 퍼텐셜에 집중한다.</p>
+    <div class="box def" id="def-time-reversal"><div class="box-h">스핀 없는 입자의 시간 반전</div>
+      <div class="formula" id="eq-time-reversal-def">\[ (\hat\Theta\psi)(x)=\psi^*(x),\qquad
+      \hat\Theta(c_1|\psi\rangle+c_2|\phi\rangle)
+      =c_1^*\hat\Theta|\psi\rangle+c_2^*\hat\Theta|\phi\rangle. \]</div>
+      <p>복소수를 켤레로 바꾸는 연산자를 <span class="term">반유니타리</span> <span class="en">(antiunitary)</span>라고 한다. \(\langle\hat\Theta\phi|\hat\Theta\psi\rangle=\langle\psi|\phi\rangle\)여서 확률과 노름은 보존한다. 이 위치 표현에서는 \(\hat\Theta\)가 복소 켤레 연산자이며 \(\hat\Theta^2=I\)다.</p>
+    </div>
+    <p>\(\hat\Theta i\hat\Theta^{-1}=-i\)다. 실수 함수 \(x\)는 그대로지만 \(\hat p=-i\hbar\partial_x\)는 \(i\)의 부호가 뒤집혀 반전한다.</p>
+    <div class="formula" id="eq-time-reversal-operators">\[ \hat\Theta\hat x\hat\Theta^{-1}=\hat x,\qquad
+      \hat\Theta\hat p\hat\Theta^{-1}=-\hat p,\qquad
+      \hat\Theta\hat H\hat\Theta^{-1}=\hat H
+      \quad\left(\hat H=\frac{\hat p^2}{2m}+V(\hat x),\ V\text{ 실수}\right). \]</div>
+    <p>실수의 시간 독립 \(V\)에서 \(i\hbar\partial_t\psi=\hat H\psi\)의 해 \(\psi(x,t)\)가 있다면, 시간을 뒤집고 복소 켤레를 취한 함수</p>
+    <div class="formula" id="eq-reversed-solution">\[ \psi_{\mathrm{rev}}(x,t)=\psi^*(x,-t) \]</div>
+    <p>도 해다. 실제로 \(s=-t\)라 쓰고 원래 방정식을 켤레 취하면 \(-i\hbar\,\partial_s\psi^*(x,s)=\hat H\psi^*(x,s)\)다. \(\partial_t\psi^*(x,-t)=-\partial_s\psi^*(x,s)|_{s=-t}\)를 대입하면 \(i\hbar\partial_t\psi_{\mathrm{rev}}=\hat H\psi_{\mathrm{rev}}\)가 된다.</p>
+    <div class="box ex" id="ex-reversed-plane-wave"><div class="box-h">오른쪽으로 가는 파동의 역재생</div>
+      <p>\(\psi(x,t)=e^{i(kx-\omega t)}\)에서 \(k&gt;0\), \(E=\hbar\omega=\hbar^2k^2/(2m)\)라고 하자. 식 <a class="ref" href="#eq-reversed-solution"></a>을 적용하면 \(\psi_{\mathrm{rev}}(x,t)=e^{-ikx-i\omega t}\)다. 에너지는 \(E\) 그대로이고 운동량은 \(+\hbar k\)에서 \(-\hbar k\)로 바뀐다. 평면파는 정규화된 실제 입자 상태가 아니지만 방향을 확인하는 데 편리하다.</p>
+    </div>
+    <h3 id="s4-not-conservation">시간 반전 대칭이 뜻하는 것</h3>
+    <p>시간 독립 \(\hat H\)에서 시간 반전은 진화를 역방향으로 바꾼다. 반유니타리성이 지수의 \(i\)를 뒤집으므로</p>
+    <div class="formula" id="eq-time-reversal-evolution">\[ \hat\Theta\hat U(t)\hat\Theta^{-1}
+      =\hat\Theta e^{-i\hat Ht/\hbar}\hat\Theta^{-1}
+      =e^{+i\hat Ht/\hbar}
+      =\hat U(-t). \]</div>
+    <p>이는 식 <a class="ref" href="#eq-parity-hamiltonian"></a>의 패리티처럼 같은 시간 방향의 진화와 교환한다는 뜻이 아니다. 시간 반전 대칭은 역재생한 운동도 허용된다는 말이지, 시간 반전의 고유값이라는 보존량이 있다는 말이 아니다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>변환</th><th>\(x\)</th><th>\(p\)</th><th>\(t\)</th><th>\(i\)</th><th>종류</th></tr></thead>
+      <tbody>
+        <tr><td>패리티 \(\hat\Pi\)</td><td>\(-x\)</td><td>\(-p\)</td><td>\(t\)</td><td>\(i\)</td><td>유니타리</td></tr>
+        <tr><td>시간 반전 \(\hat\Theta\)</td><td>\(x\)</td><td>\(-p\)</td><td>\(-t\)</td><td>\(-i\)</td><td>반유니타리</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout deep"><strong>스핀을 넣으면 복소 켤레만으로는 부족하다</strong><p>스핀은 시간 반전에서 방향이 바뀐다. 따라서 스핀 \(1/2\) 상태의 시간 반전 연산자는 단순한 복소 켤레보다 더 많은 변환을 포함하며, 이 절의 \(\hat\Theta^2=I\)도 그대로 적용되지 않는다. 스핀 자체는 <a href="ch16.html">16장</a>에서 도입한다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>오른쪽으로 \(a\)만큼 옮기는 연산자는 \(\hat T(a)=e^{-ia\hat p/\hbar}\)이며 \((\hat T\psi)(x)=\psi(x-a)\)다.</li>
+      <li>해밀토니안이 연속 유니타리 변환에 불변이면 그 시간 독립 생성자는 해밀토니안과 교환하고 보존된다.</li>
+      <li>공간 병진 대칭의 생성자는 운동량이다. \(d\langle p\rangle/dt=-\langle V'(x)\rangle\)가 이를 확인한다.</li>
+      <li>시간 병진 대칭의 생성자는 에너지다. 일반적으로 \(d\langle H\rangle/dt=\langle\partial H/\partial t\rangle\)다.</li>
+      <li>대칭 퍼텐셜에서 패리티 고유값은 \(\pm1\)이고, 홀수 연산자의 행렬원소는 같은 패리티 상태 사이에서 0이다.</li>
+      <li>스핀 없는 입자의 시간 반전은 복소 켤레를 포함하는 반유니타리 변환으로 \(x\)를 유지하고 \(p\)와 \(t\)를 뒤집는다.</li>
+      <li>시간 반전은 \(\hat\Theta\hat U(t)\hat\Theta^{-1}=\hat U(-t)\)를 뜻하며, 연속 병진처럼 새로운 보존량을 주지 않는다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
-    <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <h2>확인 퀴즈</h2><p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \(\hat T(a)=e^{-ia\hat p/\hbar}\)를 상태에 작용시키면 위치 파동함수는?</p><div class="opts">
+        <button class="opt" data-correct>\(\psi(x-a)\)</button><button class="opt">\(\psi(x+a)\)</button><button class="opt">\(e^{-iax/\hbar}\psi(x)\)</button>
+      </div><div class="quiz-exp">오른쪽으로 옮긴 봉우리는 \(x-a\)가 원래 봉우리 위치일 때 나타난다.</div></div>
+      <div class="quiz-q"><p>2. \(\hat H=\hat p^2/(2m)+V(\hat x)\)에서 운동량 기댓값이 모든 상태에 대해 보존되기 위한 이 장의 충분한 조건은?</p><div class="opts">
+        <button class="opt">\(V(x)\)가 짝함수다.</button><button class="opt" data-correct>\(V(x)\)가 위치에 무관하다.</button><button class="opt">\(V(x)\)가 시간에 무관하다.</button>
+      </div><div class="quiz-exp">모든 거리의 공간 병진에 불변이어야 \([\hat H,\hat p]=0\)이다.</div></div>
+      <div class="quiz-q"><p>3. 시간 의존 해밀토니안에서 에너지 기댓값의 변화율은?</p><div class="opts">
+        <button class="opt">항상 0이다.</button><button class="opt">항상 \(\langle[\hat H,\hat p]\rangle\)이다.</button><button class="opt" data-correct>\(\langle\partial\hat H/\partial t\rangle\)이다.</button>
+      </div><div class="quiz-exp">상태 변화에서 생기는 두 항은 서로 상쇄되고 해밀토니안의 명시적 시간 변화만 남는다.</div></div>
+      <div class="quiz-q"><p>4. 짝수 퍼텐셜의 패리티 고유상태 두 개가 같은 패리티일 때 반드시 0인 행렬원소는?</p><div class="opts">
+        <button class="opt" data-correct>\(\langle f|\hat x|i\rangle\)</button><button class="opt">\(\langle f|\hat x^2|i\rangle\)</button><button class="opt">\(\langle f|I|i\rangle\)</button>
+      </div><div class="quiz-exp">\(\hat x\)는 패리티에 홀수라 같은 패리티 사이의 행렬원소가 사라진다.</div></div>
+      <div class="quiz-q"><p>5. 스핀 없는 입자의 시간 반전에서 옳은 것은?</p><div class="opts">
+        <button class="opt">위치와 운동량이 모두 부호가 바뀐다.</button><button class="opt" data-correct>위치는 그대로, 운동량과 \(i\)의 부호가 바뀐다.</button><button class="opt">시간 반전은 언제나 선형 유니타리다.</button>
+      </div><div class="quiz-exp">복소 켤레를 취하는 반유니타리 변환이므로 \(i\to-i\), \(p=-i\hbar\partial_x\to-p\)다.</div></div>
+      <div class="quiz-q"><p>6. 시간 독립 해밀토니안이 시간 반전 대칭일 때 \(\hat\Theta\hat U(t)\hat\Theta^{-1}\)는?</p><div class="opts">
+        <button class="opt">\(\hat U(t)\)</button><button class="opt" data-correct>\(\hat U(-t)\)</button><button class="opt">항등 연산자</button>
+      </div><div class="quiz-exp">반유니타리 변환은 지수의 \(i\)를 켤레로 바꾸어 시간 진화 방향을 반전한다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-translate-wave" data-level="1"><p>\(\psi(x)=C e^{-x^2/(4\sigma^2)}\)에 \(\hat T(a)\)를 작용시켜 확률밀도의 중심을 구하라. 작은 \(a\)에서 \(\hat T(a)\psi=\psi-a\psi'+O(a^2)\)도 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat T(a)\psi(x)=\psi(x-a)=C e^{-(x-a)^2/(4\sigma^2)}\)다. 따라서 \(|\psi_a(x)|^2=|C|^2 e^{-(x-a)^2/(2\sigma^2)}\)는 \(x=a\)에 중심이 있다. 테일러 전개 \(\psi(x-a)=\psi(x)-a\psi'(x)+O(a^2)\)가 작은 병진식이다.</p></details></div>
+    <div class="prob" id="prob-translation-sign" data-level="2"><p>\(\hat F(a)=\hat T^\dagger(a)\hat x\hat T(a)\)를 \(a\)에 대해 미분하여 식 <a class="ref" href="#eq-translation-position"></a>을 유도하라. 그 결과로 \(\hat T(a)|x_0\rangle\)의 위치 고유값을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(d\hat F/da=(i/\hbar)\hat T^\dagger[\hat p,\hat x]\hat T=I\), \(\hat F(0)=\hat x\)이므로 \(\hat F(a)=\hat x+a\)다. \(\hat x\hat T|x_0\rangle=\hat T(\hat T^\dagger\hat x\hat T)|x_0\rangle=(x_0+a)\hat T|x_0\rangle\)이어서 고유값은 \(x_0+a\)다.</p></details></div>
+    <div class="prob" id="prob-harmonic-force" data-level="1"><p>\(V(x)=m\omega^2x^2/2\)인 조화 진동자에서 식 <a class="ref" href="#eq-momentum-force"></a>으로 \(d\langle p\rangle/dt\)를 구하라. 이 계는 공간 병진 대칭인가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(V'(x)=m\omega^2x\)이므로 \(d\langle p\rangle/dt=-m\omega^2\langle x\rangle\)다. \(V(x+a)\ne V(x)\)인 일반 \(a\)가 있으므로 공간 병진 대칭은 아니다.</p></details></div>
+    <div class="prob" id="prob-periodic-potential" data-level="2"><p>\(V(x)=V_0\cos(2\pi x/L)\)일 때 \(\hat T(L)\)은 해밀토니안의 대칭인지 확인하라. 모든 작은 \(a\)에 대해 대칭인지도 확인하고 \(d\langle p\rangle/dt\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(V(x+L)=V(x)\)이므로 \(\hat T^\dagger(L)\hat H\hat T(L)=\hat H\)다. 하지만 임의의 작은 \(a\)에는 일반적으로 \(V(x+a)\ne V(x)\)다. \(V'(x)=-(2\pi V_0/L)\sin(2\pi x/L)\)이므로 \(d\langle p\rangle/dt=(2\pi V_0/L)\langle\sin(2\pi\hat x/L)\rangle\)다.</p></details></div>
+    <div class="prob" id="prob-energy-drive" data-level="2"><p>\(\hat H(t)=\hbar\omega(t)\sigma_z/2\), \(|\psi(0)\rangle=|z{+}\rangle\)일 때 상태의 시간 변화와 에너지 기댓값을 구하라. \(\omega(t)=\omega_0+\alpha t\)이면 \(dE/dt\)는?</p>
+      <details class="sol"><summary>풀이</summary><p>\(|z{+}\rangle\)는 모든 시각에 \(\sigma_z\)의 고유값 \(+1\)을 가지므로 \(|\psi(t)\rangle=\exp[-\frac i2\int_0^t\omega(s)\,ds]|z{+}\rangle\)다. \(E(t)=\hbar\omega(t)/2\)이고 \(\omega(t)=\omega_0+\alpha t\)이면 \(dE/dt=\hbar\alpha/2\)다.</p></details></div>
+    <div class="prob" id="prob-parity-components" data-level="2"><p>정규화된 \(\psi(x)\)에 대해 \(\psi_\pm(x)=[\psi(x)\pm\psi(-x)]/2\)가 짝·홀 함수이고 서로 직교함을 보여라. 이 둘이 항상 각각 정규화되는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\psi_+(-x)=\psi_+(x)\), \(\psi_-(-x)=-\psi_-(x)\)다. \(\psi_+^*(x)\psi_-(x)\)는 홀함수이므로 대칭 구간 또는 전체 실수에서 적분하면 0이다. \(\|\psi_+\|^2+\|\psi_-\|^2=1\)이지만 각각의 노름이 1일 필요는 없다. 한 성분이 0일 수도 있다.</p></details></div>
+    <div class="prob" id="prob-selection-rule" data-level="2"><p>\(\hat\Pi\hat O\hat\Pi=\eta_O\hat O\)이고 \(\hat\Pi|i\rangle=\pi_i|i\rangle\), \(\hat\Pi|f\rangle=\pi_f|f\rangle\)일 때 식 <a class="ref" href="#eq-parity-selection"></a>을 유도하라. \(\hat O=\hat x^2\)라면 어떤 패리티 조합에서 행렬원소가 반드시 0인가?</p>
+      <details class="sol"><summary>풀이</summary><p>항등 \(\hat\Pi^2=I\)를 \(\hat O\) 양옆에 넣고 브라와 켓에 \(\hat\Pi\)를 작용시키면 \(\langle f|\hat O|i\rangle=\pi_f\eta_O\pi_i\langle f|\hat O|i\rangle\)다. \(\hat x^2\)는 짝수여서 \(\eta_O=+1\)이다. \(\pi_f\pi_i=-1\), 곧 패리티가 반대이면 행렬원소는 0이다.</p></details></div>
+    <div class="prob" id="prob-real-eigenstate" data-level="3"><p>\(\hat H=\hat p^2/(2m)+V(\hat x)\)에서 \(V(x)\)가 실수이고, 에너지 \(E\)의 고유상태가 비축퇴라고 하자. 그 위치 파동함수를 전체 위상을 골라 실수로 만들 수 있음을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>위치 표현의 \(\hat H\)는 실수 계수의 미분 연산자이므로 \(\hat H\psi=E\psi\)를 켤레 취하면 \(\hat H\psi^*=E\psi^*\)다. 비축퇴이므로 \(\psi^*=e^{i\gamma}\psi\)인 상수 위상이 있다. \(\tilde\psi=e^{i\gamma/2}\psi\)라 놓으면 \(\tilde\psi^*=e^{-i\gamma/2}\psi^*=e^{i\gamma/2}\psi=\tilde\psi\)여서 실수다.</p></details></div>
+    <div class="prob" id="prob-time-reverse-current" data-level="3"><p>스핀 없는 입자의 확률 흐름 \(j[\psi](x,t)=\frac{\hbar}{m}\operatorname{Im}[\psi^*(x,t)\partial_x\psi(x,t)]\)에 대해 \(\psi_{\mathrm{rev}}(x,t)=\psi^*(x,-t)\)를 대입해 \(j[\psi_{\mathrm{rev}}](x,t)=-j[\psi](x,-t)\)를 보여라. 평면파의 경우에도 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\psi_{\mathrm{rev}}^*\partial_x\psi_{\mathrm{rev}}=\psi(x,-t)\partial_x\psi^*(x,-t)=[\psi^*(x,-t)\partial_x\psi(x,-t)]^*\)이므로 허수부가 음수다. \(e^{i(kx-\omega t)}\)에는 \(j=\hbar k/m\)에 비례하는 양의 흐름이 있고 역재생 파동 \(e^{-ikx-i\omega t}\)에는 같은 크기의 음의 흐름이 있다. 평면파는 정규화되지 않으므로 흐름의 단위 면적당 크기만 비교한다.</p></details></div>
+    <div class="prob" id="prob-time-reversal-evolution" data-level="2"><p>실수의 시간 독립 스핀 없는 해밀토니안에서 \(\hat\Theta\hat H\hat\Theta^{-1}=\hat H\)이지만, 일반적으로 \(\hat\Theta\hat U(t)\ne\hat U(t)\hat\Theta\)임을 식 <a class="ref" href="#eq-time-reversal-evolution"></a>으로 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>반유니타리성 때문에 \(\hat\Theta i\hat\Theta^{-1}=-i\)이고 \(\hat\Theta\hat U(t)\hat\Theta^{-1}=\hat U(-t)\)다. 따라서 \(\hat\Theta\hat U(t)=\hat U(-t)\hat\Theta\)이며, 일반적인 \(t\)에는 \(\hat U(-t)\ne\hat U(t)\)다. 시간 반전은 같은 방향의 시간 진화와 교환하는 유니타리 대칭이 아니다.</p></details></div>
   </section>
 </main>
 </body>
