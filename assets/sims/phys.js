@@ -1,7 +1,7 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · incline · atwood · banked-curve · loop · pendulum · oscillator · orbit · waves · double-slit · efield
-   random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
+   projectile · incline · atwood · banked-curve · loop · collision · pendulum · oscillator · orbit
+   waves · double-slit · efield · random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
   "use strict";
@@ -741,7 +741,301 @@
   });
 
   /* ======================================================================
-     6. 진자와 위상 공간
+     6. 충돌과 운동량 보존
+     ====================================================================== */
+  Lab.register({
+    id: "collision", field: "phys", thumb: "collision",
+    title: "충돌 — 운동량은 늘 보존되고, 운동 에너지는 탄성 충돌에서만 보존된다",
+    desc: "두 공의 질량, 반발 계수, 처음 속도를 바꾸며 일직선 충돌과 비껴 맞는 2차원 충돌을 봅니다. 충돌 전후의 운동량·운동 에너지 막대와 질량중심의 움직임으로 운동량 보존을 확인합니다.",
+    tags: ["역학", "운동량 보존", "충돌", "반발 계수"],
+    note: "해볼 것: 질량이 같은 두 공이 탄성 충돌(e = 1)하면 일직선에서는 속도를 맞바꾸고, 비껴 맞으면 직각(90°)으로 갈라집니다. 무거운 공이 멈춰 있는 가벼운 공을 때리면 가벼운 공은 처음 속도의 두 배 가까이로 튀어 나가고, 가벼운 공이 무거운 공을 때리면 거의 같은 속력으로 되튑니다. 반발 계수를 낮추면 운동 에너지는 줄지만 운동량의 합은 그대로이고, 질량중심(점선)은 충돌과 상관없이 같은 속도로 곧게 갑니다. 일직선에서 e = 0이면 두 공이 붙어서 질량중심과 함께 움직입니다. 위치–시간 그래프에서는 선이 많이 기울수록 빠르고, 멈춘 공은 세로선이 됩니다.",
+    mount(S) {
+      const L = 8, H = 2.2; // 화면의 가로 길이, 2차원 탁자의 세로 반폭 (m)
+      const st = { dim: 1, m1: 1, m2: 1, e: 1, v1: 2, v2: 0, b: 0.5, rate: 0.5 };
+      const rad = (m) => 0.22 * Math.cbrt(m); // 밀도가 같은 공이라 반지름은 질량의 세제곱근에 비례한다
+      const kin = (m, v) => 0.5 * m * (v[0] ** 2 + v[1] ** 2);
+      const f2 = (x) => (Math.abs(x) < 5e-3 ? 0 : x).toFixed(2); // 반올림 오차로 "-0.00"이 찍히지 않게
+      /** 매끄러운 두 공(마찰·회전 없음)의 충돌. 충격량은 접촉한 두 중심을 잇는 방향 n으로만 작용하고,
+          그 방향의 상대 속도가 e배로 줄며 뒤집힌다: J = (1 + e) m₁m₂/(m₁ + m₂) · (u₁ − u₂)·n */
+      function bounce(m1, m2, e, n, u1, u2) {
+        const J = ((1 + e) * m1 * m2 * ((u1[0] - u2[0]) * n[0] + (u1[1] - u2[1]) * n[1])) / (m1 + m2);
+        return [[u1[0] - (J / m1) * n[0], u1[1] - (J / m1) * n[1]], [u2[0] + (J / m2) * n[0], u2[1] + (J / m2) * n[1]]];
+      }
+      // 2차원: 공 2의 중심이 공 1의 진행선에서 d = b(r₁ + r₂)만큼 아래에 있을 때 접촉 순간 공 1 → 공 2 방향
+      const normalOf = (b) => [Math.sqrt(1 - b * b), -b];
+      /** 두 속도 벡터 사이의 각 (°). 한쪽이 멈추면 NaN */
+      const between = (a, b) => {
+        const la = Math.hypot(a[0], a[1]), lb = Math.hypot(b[0], b[1]);
+        return la < 1e-6 || lb < 1e-6 ? NaN : (Math.acos(VZ.clamp((a[0] * b[0] + a[1] * b[1]) / (la * lb), -1, 1)) * 180) / Math.PI;
+      };
+      // 한 번 굴린 상태. 충돌 전후 모두 등속 직선 운동이라 시각 t만 있으면 위치를 식으로 바로 구한다
+      let run, t;
+      function reset() {
+        const two = st.dim === 2, r1 = rad(st.m1), r2 = rad(st.m2), u1 = [st.v1, 0], u2 = [two ? 0 : st.v2, 0];
+        run = { u1, u2, n: two ? normalOf(st.b) : [1, 0] };
+        if (!two && st.v1 <= st.v2) { // 공 1이 공 2를 따라잡지 못한다
+          Object.assign(run, { tc: null, p1: [1.2, 0], p2: [4.4, 0], w1: u1, w2: u2, tEnd: 2.5 });
+        } else {
+          // 접촉 위치를 화면 가운데쯤에 두고 거슬러 올라가 출발 위치를 정한다. 접촉까지는 1.5 s 이하이고 두 공 모두 화면 안에서 출발한다
+          const c2 = [4.2, two ? -st.b * (r1 + r2) : 0], c1 = [c2[0] - (r1 + r2) * run.n[0], c2[1] - (r1 + r2) * run.n[1]];
+          let tc = Math.min(1.5, (c1[0] - 0.5) / u1[0]);
+          if (u2[0] < 0) tc = Math.min(tc, (L - 0.5 - c2[0]) / -u2[0]);
+          const [w1, w2] = bounce(st.m1, st.m2, st.e, run.n, u1, u2);
+          Object.assign(run, { tc, w1, w2, p1: [c1[0] - u1[0] * tc, c1[1]], p2: [c2[0] - u2[0] * tc, c2[1]], tEnd: tc + 2.5 });
+        }
+        // 오른쪽 그래프: 1차원은 질량비 m₂/m₁에 따른 충돌 후 속도와 질량중심 속도, 2차원은 b에 따른 갈라지는 각
+        run.curve = two
+          ? VZ.linspace(0.005, 0.995, 199).map((b) => [b, between(...bounce(st.m1, st.m2, st.e, normalOf(b), u1, u2))])
+          : VZ.linspace(-1, 1, 161).map((l) => { const r = 10 ** l, [w1, w2] = bounce(1, r, st.e, [1, 0], u1, u2); return [r, w1[0], w2[0], (u1[0] + r * u2[0]) / (1 + r)]; });
+        t = 0;
+      }
+      reset();
+      const hit = () => run.tc != null && t >= run.tc;
+      /** 공 i(0, 1)의 시각 s 위치와 속도 */
+      function at(i, s) {
+        const p = i ? run.p2 : run.p1, u = i ? run.u2 : run.u1;
+        if (run.tc == null || s <= run.tc) return { p: [p[0] + u[0] * s, p[1] + u[1] * s], v: u };
+        const w = i ? run.w2 : run.w1, d = s - run.tc;
+        return { p: [p[0] + u[0] * run.tc + w[0] * d, p[1] + u[1] * run.tc + w[1] * d], v: w };
+      }
+      const cm = (s) => {
+        const a = at(0, s).p, b = at(1, s).p, M = st.m1 + st.m2;
+        return [(st.m1 * a[0] + st.m2 * b[0]) / M, (st.m1 * a[1] + st.m2 * b[1]) / M];
+      };
+      function ball(ctx, x, y, r, col, name) {
+        ctx.fillStyle = VZ.alpha(col, 0.3); ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = VZ.palette().text; ctx.font = VZ.font(11, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(name, x, y + 0.5);
+      }
+      const path = (ctx, pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
+      /** 1차원: 위는 트랙 위의 두 공과 속도 화살표, 아래는 같은 가로축을 쓰는 위치–시간 그래프 */
+      function line(ctx, w, h, P, cols, kv) {
+        const k = (w - 20) / L, X = (x) => 10 + x * k, Yt = 64 + 2 * rad(5) * k; // 트랙 높이. 가장 큰 공 위에도 화살표와 값이 들어간다
+        ctx.fillStyle = VZ.alpha(P.dim, 0.1); ctx.fillRect(0, Yt, w, 6);
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5; path(ctx, [[0, Yt], [w, Yt]]);
+        const xc = X(cm(t)[0]); // 질량중심 표시
+        ctx.fillStyle = P.dim; ctx.beginPath(); ctx.moveTo(xc, Yt + 1); ctx.lineTo(xc - 5, Yt + 10); ctx.lineTo(xc + 5, Yt + 10); ctx.closePath(); ctx.fill();
+        [0, 1].forEach((i) => { const r = rad(i ? st.m2 : st.m1) * k; ball(ctx, X(at(i, t).p[0]), Yt - r, r, cols[i], String(i + 1)); });
+        // 공 바로 위의 속도 화살표와 값. 두 값이 겹치면 공 1의 값을 공 2의 값보다 한 줄 위로 올린다
+        ctx.font = VZ.font(11.5, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.lineWidth = 2.2;
+        const tags = [0, 1].map((i) => {
+          const { p, v } = at(i, t), x = X(p[0]), ya = Yt - 2 * rad(i ? st.m2 : st.m1) * k - 10, len = v[0] * kv, s = Math.abs(v[0]) < 5e-3 ? "정지" : `${f2(v[0])} m/s`;
+          ctx.strokeStyle = cols[i]; ctx.fillStyle = cols[i];
+          if (Math.abs(len) >= 4) VZ.arrow(ctx, x, ya, x + len, ya, 7);
+          return { x: x + len / 2, y: ya - 5, s, wd: ctx.measureText(s).width };
+        });
+        if (Math.abs(tags[0].x - tags[1].x) < (tags[0].wd + tags[1].wd) / 2 + 8 && Math.abs(tags[0].y - tags[1].y) < 14) tags[0].y = Math.min(tags[0].y, tags[1].y - 14);
+        tags.forEach((g, i) => { ctx.fillStyle = cols[i]; ctx.fillText(g.s, g.x, g.y); });
+        // 위치–시간 그래프 (아래로 갈수록 나중)
+        const y0 = Yt + 34, y1 = h - 12, T = (s) => y0 + (s / run.tEnd) * (y1 - y0);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("위치–시간 그래프 · 아래로 갈수록 나중", 10, Yt + 14);
+        ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.strokeRect(X(0), y0, L * k, y1 - y0);
+        ctx.font = VZ.font(11, false); ctx.fillText("0 s", X(0) + 4, y0 + 3);
+        ctx.textBaseline = "bottom"; ctx.fillText(`${run.tEnd.toFixed(1)} s`, X(0) + 4, y1 - 3);
+        if (run.tc != null) {
+          ctx.strokeStyle = P.faint; ctx.setLineDash([5, 4]); path(ctx, [[X(0), T(run.tc)], [X(L), T(run.tc)]]); ctx.setLineDash([]);
+          ctx.textAlign = "right"; ctx.fillText(`충돌 ${run.tc.toFixed(2)} s`, X(L) - 4, T(run.tc) - 2);
+        }
+        ctx.save(); ctx.beginPath(); ctx.rect(X(0), y0, L * k, y1 - y0); ctx.clip();
+        const times = hit() ? [0, run.tc, t] : [0, t];
+        ctx.lineWidth = 2.2;
+        [0, 1].forEach((i) => { ctx.strokeStyle = cols[i]; path(ctx, times.map((s) => [X(at(i, s).p[0]), T(s)])); });
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); path(ctx, [[X(cm(0)[0]), T(0)], [X(cm(t)[0]), T(t)]]); ctx.setLineDash([]);
+        [0, 1].forEach((i) => { ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.arc(X(at(i, t).p[0]), T(t), 3.5, 0, 7); ctx.fill(); });
+        ctx.restore();
+      }
+      /** 2차원: 위에서 본 탁자. 지나온 길, 질량중심의 길, 충돌 뒤 두 공이 갈라지는 각 */
+      function table(ctx, w, h, P, cols, kv) {
+        const k = Math.min((w - 20) / L, (h - 40) / (2 * H)), ox = (w - L * k) / 2, oy = 30 + (h - 30 - 2 * H * k) / 2;
+        const X = (x) => ox + x * k, Y = (y) => oy + (H - y) * k;
+        ctx.fillStyle = VZ.alpha(P.dim, 0.07); ctx.fillRect(X(0), Y(H), L * k, 2 * H * k);
+        ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.strokeRect(X(0), Y(H), L * k, 2 * H * k);
+        ctx.save(); ctx.beginPath(); ctx.rect(X(0), Y(H), L * k, 2 * H * k); ctx.clip();
+        // 공 1의 진행선과 공 2 중심을 지나는 평행선. 둘 사이 거리가 d = b(r₁ + r₂)
+        const d = -run.p2[1];
+        ctx.strokeStyle = P.faint; ctx.setLineDash([5, 4]);
+        path(ctx, [[X(0), Y(0)], [X(L), Y(0)]]); path(ctx, [[X(0.3), Y(-d)], [X(run.p2[0]), Y(-d)]]); ctx.setLineDash([]);
+        if (d * k > 6) {
+          ctx.strokeStyle = P.dim; path(ctx, [[X(0.35), Y(0)], [X(0.35), Y(-d)]]);
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("d", X(0.35) + 5, Y(-d / 2));
+        }
+        const times = hit() ? [0, run.tc, t] : [0, t];
+        ctx.lineWidth = 2;
+        [0, 1].forEach((i) => { ctx.strokeStyle = VZ.alpha(cols[i], 0.5); path(ctx, times.map((s) => { const q = at(i, s).p; return [X(q[0]), Y(q[1])]; })); });
+        const c0 = cm(0), c1 = cm(t);
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); path(ctx, [[X(c0[0]), Y(c0[1])], [X(c1[0]), Y(c1[1])]]); ctx.setLineDash([]);
+        // 충돌 뒤: 접촉 순간 공 1의 중심에서 두 공의 진행 방향과 그 사이 각. 공 2는 두 중심을 잇는 선을 따라 나가므로 같은 점에서 그릴 수 있다
+        const phi = between(run.w1, run.w2);
+        if (hit() && isFinite(phi)) {
+          const c = at(0, run.tc).p, cx = X(c[0]), cy = Y(c[1]), a1 = Math.atan2(-run.w1[1], run.w1[0]), a2 = Math.atan2(-run.w2[1], run.w2[0]);
+          let da = a2 - a1;
+          if (da > Math.PI) da -= 2 * Math.PI; else if (da < -Math.PI) da += 2 * Math.PI;
+          ctx.strokeStyle = P.text; ctx.lineWidth = 1.2;
+          [a1, a2].forEach((a) => path(ctx, [[cx, cy], [cx + 64 * Math.cos(a), cy + 64 * Math.sin(a)]]));
+          ctx.beginPath(); ctx.arc(cx, cy, 30, a1, a1 + da, da < 0); ctx.stroke();
+          const am = a1 + da / 2;
+          ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(`${phi.toFixed(1)}°`, cx + 48 * Math.cos(am), cy + 48 * Math.sin(am));
+        }
+        [0, 1].forEach((i) => {
+          const { p, v } = at(i, t), x = X(p[0]), y = Y(p[1]), r = rad(i ? st.m2 : st.m1) * k, sp = Math.hypot(v[0], v[1]);
+          ball(ctx, x, y, r, cols[i], String(i + 1));
+          if (sp * kv >= 4) { // 공 가장자리에서 시작하는 속도 화살표
+            const ux = v[0] / sp, uy = -v[1] / sp;
+            ctx.strokeStyle = cols[i]; ctx.fillStyle = cols[i]; ctx.lineWidth = 2.2;
+            VZ.arrow(ctx, x + ux * r, y + uy * r, x + ux * (r + sp * kv), y + uy * (r + sp * kv), 7);
+          }
+        });
+        const cx = X(c1[0]), cy = Y(c1[1]); // 질량중심 ×
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 2; path(ctx, [[cx - 5, cy - 5], [cx + 5, cy + 5]]); path(ctx, [[cx - 5, cy + 5], [cx + 5, cy - 5]]);
+        ctx.restore();
+      }
+      S.legend([{ label: "공 1", color: (P) => P.accent, dot: true }, { label: "공 2", color: (P) => P.accent2, dot: true }, { label: "질량중심 · 합", color: (P) => P.dim, dash: true }]);
+      const cvS = S.canvas({ aspect: 0.5, minHeight: 300, maxHeight: 420 }, (ctx, w, h) => {
+        const P = VZ.palette(), cols = [P.accent, P.accent2], kv = Math.min(16, w / 45); // 속도 화살표: 1 m/s당 px
+        (st.dim === 2 ? table : line)(ctx, w, h, P, cols, kv);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`t = ${t.toFixed(2)} s · ${st.rate === 1 ? "실제 속도" : st.rate + "배속"}`, 10, 8);
+      });
+      /** 충돌 전·후 두 묶음의 막대 (공 1, 공 2, 합). 충돌하기 전에는 충돌 후 막대를 옅게 그린다. 점선은 충돌 전의 합 */
+      function bars(ctx, box, title, before, after) {
+        const P = VZ.palette(), cols = [P.accent, P.accent2, P.dim], all = before.concat(after);
+        const lo = Math.min(0, ...all), hi = Math.max(0, ...all), pad = 0.18 * (hi - lo || 1);
+        const c = VZ.chart(ctx, box, {
+          x: [-0.55, 1.55], y: [lo < 0 ? lo - pad : 0, hi + pad], xTicks: [0, 1], xFmt: () => "", title,
+          series: [before, after].flatMap((vals, j) => vals.map((v, i) => ({ type: "bar", data: [[j + (i - 1) * 0.28, v]], color: j && !hit() ? VZ.alpha(cols[i], 0.3) : cols[i], barWidth: 0.24 }))),
+          hlines: [{ y: 0, color: P.axis, dash: [] }, { y: before[2], color: P.faint }],
+        });
+        // 눈금 글꼴은 고정폭이라 한글 묶음 이름은 따로 쓴다
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(11.5, false); ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ["충돌 전", "충돌 후"].forEach((s, j) => ctx.fillText(s, c.X(j), c.box.y + c.box.h + 5));
+      }
+      /** 2차원 운동량 벡터: 처음 운동량 p₁(= 합)이 충돌 뒤 p₁′ + p₂′로 나뉜다 (공 2는 처음에 멈춰 있다) */
+      function vectors(ctx, box) {
+        const P = VZ.palette(), pt = [st.m1 * run.u1[0], st.m1 * run.u1[1]], pa = [st.m1 * run.w1[0], st.m1 * run.w1[1]];
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12.5, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("운동량 벡터 p₁ = p₁′ + p₂′", box.x + 44, box.y + 4);
+        const xs = [0, pa[0], pt[0]], ys = [0, pa[1], pt[1]], x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const s = Math.min((box.w - 80) / Math.max(x1 - x0, 1e-6), (box.h - 70) / Math.max(y1 - y0, 1e-6));
+        const cx = box.x + box.w / 2, cy = box.y + 26 + (box.h - 26) / 2;
+        const X = (x) => cx + (x - (x0 + x1) / 2) * s, Y = (y) => cy - (y - (y0 + y1) / 2) * s;
+        const O = [X(0), Y(0)], A = [X(pa[0]), Y(pa[1])], B = [X(pt[0]), Y(pt[1])], G = [(O[0] + A[0] + B[0]) / 3, (O[1] + A[1] + B[1]) / 3];
+        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = P.dim; ctx.fillStyle = P.dim; ctx.setLineDash([5, 4]); VZ.arrow(ctx, O[0], O[1], B[0], B[1], 8); ctx.setLineDash([]);
+        ctx.globalAlpha = hit() ? 1 : 0.3;
+        if (Math.hypot(A[0] - O[0], A[1] - O[1]) > 3) { ctx.strokeStyle = P.accent; ctx.fillStyle = P.accent; VZ.arrow(ctx, O[0], O[1], A[0], A[1], 8); }
+        ctx.strokeStyle = P.accent2; ctx.fillStyle = P.accent2; VZ.arrow(ctx, A[0], A[1], B[0], B[1], 8);
+        const phi = between(run.w1, run.w2);
+        if (Math.abs(phi - 90) < 0.5) { // 직각 표시
+          const u = [O[0] - A[0], O[1] - A[1]], v = [B[0] - A[0], B[1] - A[1]], lu = Math.hypot(...u), lv = Math.hypot(...v), q = 9;
+          ctx.strokeStyle = P.text; ctx.lineWidth = 1.2;
+          path(ctx, [[A[0] + (u[0] / lu) * q, A[1] + (u[1] / lu) * q], [A[0] + (u[0] / lu + v[0] / lv) * q, A[1] + (u[1] / lu + v[1] / lv) * q], [A[0] + (v[0] / lv) * q, A[1] + (v[1] / lv) * q]]);
+        }
+        // 이름은 선분 바깥쪽(세 꼭짓점의 무게중심 반대편)에. 세 점이 한 줄이면 sgn 쪽(1 아래, −1 위)
+        ctx.font = VZ.font(12, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const tag = (p, q, text, col, sgn) => {
+          const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2, l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+          let nx = -(q[1] - p[1]) / l, ny = (q[0] - p[0]) / l;
+          const side = (mx - G[0]) * nx + (my - G[1]) * ny;
+          if (Math.abs(side) > 1 ? side < 0 : ny * sgn < 0) { nx = -nx; ny = -ny; }
+          ctx.fillStyle = col; ctx.fillText(text, mx + nx * 14, my + ny * 14);
+        };
+        if (Math.hypot(A[0] - O[0], A[1] - O[1]) > 3) tag(O, A, "p₁′", P.accent, -1);
+        tag(A, B, "p₂′", P.accent2, -1);
+        ctx.globalAlpha = 1;
+        tag(O, B, "p₁ (처음)", P.dim, 1);
+      }
+      const [bl, br] = S.split(2);
+      const cvP = S.canvas({ parent: bl, aspect: 0.95, maxHeight: 380 }, (ctx, w, h) => {
+        const top = { x: 0, y: 0, w, h: h * 0.52 }, bot = { x: 0, y: h * 0.52, w, h: h * 0.48 };
+        if (st.dim === 2) vectors(ctx, top);
+        else {
+          const pb = [st.m1 * run.u1[0], st.m2 * run.u2[0]], pa = [st.m1 * run.w1[0], st.m2 * run.w2[0]];
+          bars(ctx, top, "운동량 (kg·m/s, 오른쪽이 +)", [pb[0], pb[1], pb[0] + pb[1]], [pa[0], pa[1], pa[0] + pa[1]]);
+        }
+        const kb = [kin(st.m1, run.u1), kin(st.m2, run.u2)], ka = [kin(st.m1, run.w1), kin(st.m2, run.w2)];
+        bars(ctx, bot, "운동 에너지 (J)", [kb[0], kb[1], kb[0] + kb[1]], [ka[0], ka[1], ka[0] + ka[1]]);
+      });
+      const cvG = S.canvas({ parent: br, aspect: 0.95, maxHeight: 380 }, (ctx) => {
+        const P = VZ.palette();
+        if (st.dim === 2) {
+          const cur = between(run.w1, run.w2);
+          VZ.chart(ctx, null, {
+            x: [0, 1], y: [0, 180], yTicks: [0, 45, 90, 135, 180], xLabel: "비껴 맞는 정도 b = d / (r₁ + r₂)", title: "두 공이 갈라지는 각 (°)",
+            series: [{ data: run.curve, color: P.accent, width: 2.4 }],
+            hlines: [{ y: 90, color: P.faint }],
+            points: isFinite(cur) ? [{ x: st.b, y: cur, color: P.accent, r: 6 }] : [],
+            // b → 1이면 질량과 상관없이 곡선이 90°로 모이므로 이름은 왼쪽 끝에 단다
+            texts: [{ x: 0.015, y: 90, text: "90°", baseline: "bottom", color: P.dim }],
+          });
+          return;
+        }
+        if (run.tc == null) {
+          VZ.chart(ctx, null, {
+            x: [0.1, 10], logX: true, xTicks: [0.1, 0.2, 0.5, 1, 2, 5, 10], y: [-1, 1], xLabel: "질량비 m₂ / m₁ (로그 눈금)", title: "질량비에 따른 충돌 후 속도 (m/s)",
+            texts: [{ x: 1, y: 0, text: "v₁ ≤ v₂라서 부딪히지 않습니다", align: "center", sans: true }],
+          });
+          return;
+        }
+        const ys = run.curve.flatMap((c) => c.slice(1)), lo = Math.min(0, ...ys), hi = Math.max(0, ...ys), pad = 0.12 * (hi - lo);
+        const first = run.curve[0], last = run.curve[run.curve.length - 1];
+        VZ.chart(ctx, null, {
+          x: [0.1, 10], logX: true, xTicks: [0.1, 0.2, 0.5, 1, 2, 5, 10], y: [lo - pad, hi + pad], xLabel: "질량비 m₂ / m₁ (로그 눈금)", title: "질량비에 따른 충돌 후 속도 (m/s)",
+          series: [
+            { data: run.curve.map((c) => [c[0], c[3]]), color: P.dim, width: 1.5, dash: [5, 4] },
+            { data: run.curve.map((c) => [c[0], c[1]]), color: P.accent, width: 2.4 },
+            { data: run.curve.map((c) => [c[0], c[2]]), color: P.accent2, width: 2.4 },
+          ],
+          vlines: [{ x: 1, color: P.faint, label: "m₁ = m₂" }], hlines: [{ y: 0, color: P.axis, dash: [] }],
+          points: [{ x: st.m2 / st.m1, y: run.w1[0], color: P.accent, r: 6 }, { x: st.m2 / st.m1, y: run.w2[0], color: P.accent2, r: 6 }],
+          // 오른쪽 끝에서는 v₂′가 질량중심 속도에 붙으므로 v₁′은 오른쪽 끝, v₂′는 왼쪽 끝에 이름을 단다
+          texts: [{ x: 9.4, y: last[1], text: "v₁′", align: "right", baseline: "bottom", color: P.accent, size: 12, sans: true }, { x: 0.107, y: first[2], text: "v₂′", baseline: "bottom", color: P.accent2, size: 12, sans: true }],
+        });
+      });
+      const set = S.stats([{ k: "v1", label: "공 1 충돌 후" }, { k: "v2", label: "공 2 충돌 후" }, { k: "p", label: "운동량 합 (전 → 후)" }, { k: "K", label: "운동 에너지 합 (전 → 후)" }, { k: "cm", label: "질량중심 속도 (전 → 후)" }, { k: "x", label: "" }]);
+      const lastLabel = S.el.querySelector(".sim-readout").lastElementChild.querySelector(".k"); // 1차원과 2차원에서 이름이 다르다
+      function readouts() {
+        const two = st.dim === 2, M = st.m1 + st.m2;
+        lastLabel.textContent = two ? "갈라진 각" : "반발 계수 (측정)";
+        if (run.tc == null) { set("v1", "부딪히지 않음"); ["v2", "p", "K", "cm", "x"].forEach((k) => set(k, "—")); return; }
+        const p0 = [st.m1 * run.u1[0] + st.m2 * run.u2[0], st.m1 * run.u1[1] + st.m2 * run.u2[1]], p1 = [st.m1 * run.w1[0] + st.m2 * run.w2[0], st.m1 * run.w1[1] + st.m2 * run.w2[1]];
+        const K0 = kin(st.m1, run.u1) + kin(st.m2, run.u2), K1 = kin(st.m1, run.w1) + kin(st.m2, run.w2), loss = (1 - K1 / K0) * 100;
+        const vel = (v) => {
+          const sp = Math.hypot(v[0], v[1]), a = (Math.atan2(v[1], v[0]) * 180) / Math.PI;
+          if (sp < 5e-3) return "0.00<small>m/s · 멈춤</small>";
+          if (!two) return `${f2(v[0])}<small>m/s${v[0] < 0 ? " · 왼쪽으로" : ""}</small>`;
+          return `${sp.toFixed(2)}<small>m/s · ${Math.abs(a) < 0.05 ? "곧장 앞으로" : `${Math.abs(a).toFixed(1)}° ${a > 0 ? "위로" : "아래로"}`}</small>`;
+        };
+        set("v1", vel(run.w1)); set("v2", vel(run.w2));
+        set("p", `${f2(p0[0])} → ${f2(p1[0])}<small>kg·m/s${two ? ` · 옆(y) ${f2(p0[1])} → ${f2(p1[1])}` : ""}</small>`);
+        set("K", `${K0.toFixed(2)} → ${K1.toFixed(2)}<small>J · ${loss < 0.05 ? "그대로" : loss.toFixed(1) + "% 잃음"}</small>`);
+        const vc = (p) => (two ? Math.hypot(p[0], p[1]) : p[0]) / M;
+        set("cm", `${f2(vc(p0))} → ${f2(vc(p1))}<small>m/s</small>`);
+        if (two) { const phi = between(run.w1, run.w2); set("x", isFinite(phi) ? phi.toFixed(1) + "°" : "—<small>공 1이 멈춤</small>"); }
+        else set("x", ((run.w2[0] - run.w1[0]) / (run.u1[0] - run.u2[0])).toFixed(2) + "<small>(v₂′ − v₁′) / (v₁ − v₂)</small>");
+      }
+      const show = (g, on) => (g.el.closest(".ctrl").style.display = on ? "" : "none");
+      let v2c, bc;
+      S.seg({ label: "충돌 방식", options: [["1", "일직선 (1차원)"], ["2", "비껴 맞음 (2차원)"]], value: "1", onChange: (x) => { st.dim = Number(x); show(v2c, st.dim === 1); show(bc, st.dim === 2); reset(); } });
+      S.range({ label: "공 1 질량 m₁", min: 0.5, max: 5, step: 0.1, value: st.m1, fmt: (x) => x.toFixed(1) + " kg", onInput: (x) => { st.m1 = x; reset(); } });
+      S.range({ label: "공 2 질량 m₂", min: 0.5, max: 5, step: 0.1, value: st.m2, fmt: (x) => x.toFixed(1) + " kg", onInput: (x) => { st.m2 = x; reset(); } });
+      S.range({ label: "반발 계수 e", min: 0, max: 1, step: 0.05, value: st.e, fmt: (x) => x.toFixed(2) + (x === 1 ? " 탄성" : x === 0 ? " 완전 비탄성" : ""), onInput: (x) => { st.e = x; reset(); } });
+      S.range({ label: "공 1 처음 속도 v₁", min: 0.5, max: 5, step: 0.1, value: st.v1, fmt: (x) => x.toFixed(1) + " m/s", onInput: (x) => { st.v1 = x; reset(); } });
+      v2c = S.range({ label: "공 2 처음 속도 v₂ (왼쪽이 −)", min: -3, max: 3, step: 0.1, value: st.v2, fmt: (x) => x.toFixed(1) + " m/s", onInput: (x) => { st.v2 = x; reset(); } });
+      bc = S.range({ label: "비껴 맞는 정도 b = d / (r₁ + r₂)", min: 0, max: 0.95, step: 0.05, value: st.b, fmt: (x) => x.toFixed(2), onInput: (x) => { st.b = x; reset(); } });
+      show(bc, false);
+      S.seg({ label: "재생 속도", options: [["0.25", "¼배"], ["0.5", "½배"], ["1", "실제"]], value: "0.5", onChange: (x) => (st.rate = Number(x)) });
+      S.button("다시 굴리기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        t = Math.min(run.tEnd, t + dt * st.rate);
+        cvS.redraw(); cvP.redraw(); cvG.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     7. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -826,7 +1120,7 @@
   });
 
   /* ======================================================================
-     7. 강제 감쇠 진동자와 공명
+     8. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -888,7 +1182,7 @@
   });
 
   /* ======================================================================
-     8. 케플러 궤도
+     9. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -968,7 +1262,7 @@
   });
 
   /* ======================================================================
-     9. 파동의 중첩
+     10. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -1019,7 +1313,7 @@
   });
 
   /* ======================================================================
-     10. 이중 슬릿 간섭
+     11. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -1071,7 +1365,7 @@
   });
 
   /* ======================================================================
-     11. 전기장과 전위
+     12. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -1153,7 +1447,7 @@
   });
 
   /* ======================================================================
-     12. 랜덤 워크와 확산
+     13. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -1211,7 +1505,7 @@
   });
 
   /* ======================================================================
-     13. 열 확산 (2D 열방정식)
+     14. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -1273,7 +1567,7 @@
   });
 
   /* ======================================================================
-     14. 이징 모형
+     15. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -1332,7 +1626,7 @@
   });
 
   /* ======================================================================
-     15. 이중 진자 — 카오스
+     16. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -1403,7 +1697,7 @@
   });
 
   /* ======================================================================
-     16. 로렌츠 끌개 (3D)
+     17. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -1470,7 +1764,7 @@
   });
 
   /* ======================================================================
-     17. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     18. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
