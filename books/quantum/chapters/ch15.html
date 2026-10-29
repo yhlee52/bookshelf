@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>15 수소 원자 · QuantumBook</title>
-<meta name="description" content="2체 문제의 분리 · 지름 방정식과 라게르 다항식 · 에너지 준위와 축퇴 · 오비탈의 모양">
+<meta name="description" content="수소 원자의 두 입자 운동을 환산 질량으로 분리하고, 쿨롱 지름 방정식에서 에너지 준위와 오비탈을 유도한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,56 +24,229 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch15">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">15</span></div>
     <h1 data-fill="chapter-title">수소 원자</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">수소 원자는 전자 하나와 양성자 하나로 이루어졌지만, 두 입자가 모두 움직인다. 두 운동을 분리하면 상대 운동은 <a href="ch14.html">14장</a>의 중심 퍼텐셜 문제가 되고, 경계 조건에서 정수 양자수와 이산 에너지가 나온다. 이 장에서는 그 과정을 끝까지 따라가며 오비탈이 확률 분포라는 뜻까지 살핀다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>전자·양성자의 운동을 질량중심과 상대 운동으로 분리하고 환산 질량을 계산할 수 있다.</li>
+      <li>쿨롱 지름 방정식의 경계 조건에서 주양자수와 라게르 다항식이 나오는 과정을 유도할 수 있다.</li>
+      <li>수소 원자의 에너지 준위, 전이 에너지, 궤도 축퇴도를 계산할 수 있다.</li>
+      <li>1s·2s·2p 오비탈의 마디와 확률 분포를 식으로 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch03.html">3장</a> (위치·운동량 표현), <a href="ch06.html">6장</a> (정상 상태), <a href="ch12.html">12장</a> (두 입자), <a href="ch14.html#thm-radial-equation">14장</a> (구면 조화 함수와 지름 방정식)</p>
   </header>
 
   <section id="s1">
-    <h2>2체 문제의 분리</h2>
-    <p class="slot" data-slot="15.1절">아직 쓰지 않은 절입니다.</p>
+    <h2>두 입자의 운동을 분리하기</h2>
+    <p>전자 질량을 \(m_e\), 양성자 질량을 \(m_p\)라 하자. 두 입자는 서로 끌어당기며, 퍼텐셜은 둘 사이의 거리만 본다. 양성자를 원점에 고정하면 쉬워 보이지만 실제로는 양성자도 움직인다. 다음 변수로 둘의 공통 이동과 서로에 대한 이동을 나눈다.</p>
+    <div class="box def" id="def-relative-coordinates"><div class="box-h">질량중심·상대 좌표와 환산 질량</div>
+      <div class="formula" id="eq-relative-coordinates">\[ \begin{gathered}
+      M=m_e+m_p,\qquad \mu=\frac{m_em_p}{M},\\
+      \hat{\boldsymbol R}=\frac{m_e\hat{\boldsymbol r}_e+m_p\hat{\boldsymbol r}_p}{M},
+      \qquad \hat{\boldsymbol r}=\hat{\boldsymbol r}_e-\hat{\boldsymbol r}_p,\\
+      \hat{\boldsymbol P}=\hat{\boldsymbol p}_e+\hat{\boldsymbol p}_p,\qquad
+      \hat{\boldsymbol p}=\mu\left(\frac{\hat{\boldsymbol p}_e}{m_e}
+      -\frac{\hat{\boldsymbol p}_p}{m_p}\right).
+      \end{gathered} \]</div>
+      <p>\(\boldsymbol r\)은 양성자에서 전자로 향하는 상대 위치다. \(\mu^{-1}=m_e^{-1}+m_p^{-1}\)이므로 \(\mu&lt;m_e\). 양성자를 매우 무겁게 보내는 극한에서 \(\mu\to m_e\)가 된다.</p>
+    </div>
+    <p>각 입자의 \([\hat r_{a,i},\hat p_{b,j}]=i\hbar\delta_{ab}\delta_{ij}\)를 이용하면 \([\hat R_i,\hat P_j]=[\hat r_i,\hat p_j]=i\hbar\delta_{ij}\), \([\hat R_i,\hat p_j]=[\hat r_i,\hat P_j]=0\)이다. 즉 새 좌표와 운동량도 서로 독립된 두 정준 쌍이다. 식 <a class="ref" href="#eq-relative-coordinates"></a>을 뒤집으면</p>
+    <div class="formula" id="eq-momentum-inverse">\[ \hat{\boldsymbol p}_e=\frac{m_e}{M}\hat{\boldsymbol P}+\hat{\boldsymbol p},
+      \qquad
+      \hat{\boldsymbol p}_p=\frac{m_p}{M}\hat{\boldsymbol P}-\hat{\boldsymbol p}. \]</div>
+    <p>원래 운동에너지에 대입해 섞인 항을 확인하자. \(\hat{\boldsymbol P}\cdot\hat{\boldsymbol p}\)의 계수는 \(1/M-1/M=0\), \(\hat{\boldsymbol p}^{\,2}\)의 계수는 \((1/m_e+1/m_p)/2=1/(2\mu)\)다. 따라서</p>
+    <div class="box thm" id="thm-hydrogen-separation"><div class="box-h">수소 원자 해밀토니안의 분리</div>
+      <div class="formula" id="eq-hydrogen-hamiltonian">\[ \begin{aligned}
+      \hat H
+      &amp;=\frac{\hat{\boldsymbol p}_e^{\,2}}{2m_e}
+       +\frac{\hat{\boldsymbol p}_p^{\,2}}{2m_p}
+       -\frac{e^2}{4\pi\epsilon_0|\hat{\boldsymbol r}_e-\hat{\boldsymbol r}_p|}\\
+      &amp;=\frac{\hat{\boldsymbol P}^{\,2}}{2M}
+       +\underbrace{\left(\frac{\hat{\boldsymbol p}^{\,2}}{2\mu}
+       -\frac{\kappa}{r}\right)}_{\hat H_{\mathrm{rel}}},
+       \qquad \kappa=\frac{e^2}{4\pi\epsilon_0}.
+      \end{aligned} \]</div>
+      <p>첫 항은 질량 \(M\)인 자유 질량중심의 운동이고, 둘째 항은 질량 \(\mu\)인 한 입자가 쿨롱 중심 퍼텐셜에서 움직이는 상대 운동이다. 여기서 \(r=|\boldsymbol r|\)는 상대 거리다. <a href="ch14.html#thm-radial-equation">14장의 지름 방정식</a>에 \(M\) 대신 \(\mu\)를 넣으면 된다.</p>
+    </div>
+    <div class="box ex" id="ex-reduced-mass"><div class="box-h">양성자 질량을 무한대로 보낼 때</div>
+      <p>\(\mu=m_e/(1+m_e/m_p)\)다. \(m_p\to\infty\)이면 \(\mu\to m_e\), \(\boldsymbol R\to\boldsymbol r_p\), \(\boldsymbol r=\boldsymbol r_e-\boldsymbol r_p\)가 된다. 그 극한에서 양성자를 고정한 한 입자 문제가 정확해진다. 실제 수소에서는 \(m_e/m_p\)가 작아도 0은 아니므로 준위의 크기를 계산할 때 환산 질량을 쓴다.</p>
+    </div>
+    <p>전체 파동함수는 \(\Psi(\boldsymbol R,\boldsymbol r)=\Phi_{\mathrm{CM}}(\boldsymbol R)\psi_{\mathrm{rel}}(\boldsymbol r)\)로 분리된다. 고정된 총운동량 \(\boldsymbol P\)의 평면파를 쓰면 \(E_{\mathrm{total}}=P^2/(2M)+E_{\mathrm{rel}}\)이다. 평면파는 공간 전체에서 정규화되지 않으므로 실제로는 파속 또는 상자 정규화를 생각한다. 앞으로 말하는 ‘수소 준위’는 원자의 자유 병진 에너지를 제외한 <em>내부 에너지</em> \(E_{\mathrm{rel}}\)이다.</p>
   </section>
 
   <section id="s2">
     <h2>지름 방정식과 라게르 다항식</h2>
-    <p class="slot" data-slot="15.2절">아직 쓰지 않은 절입니다.</p>
+    <p>상대 운동의 퍼텐셜은 \(V(r)=-\kappa/r\)로 모든 방향에서 같다. 따라서 <a href="ch14.html#def-spherical-harmonics">구면 조화 함수</a>로 \(\psi_{\mathrm{rel}}=R(r)Y_l^m(\theta,\phi)\)를 분리할 수 있다. \(u=rR\)를 쓰는 <a href="ch14.html#eq-radial-u">지름 방정식</a>에 쿨롱 퍼텐셜을 넣으면</p>
+    <div class="formula" id="eq-coulomb-radial">\[ \frac{d^2u}{dr^2}
+      +\left[\frac{2\mu E}{\hbar^2}
+      +\frac{2\mu\kappa}{\hbar^2r}
+      -\frac{l(l+1)}{r^2}\right]u=0,\qquad E&lt;0. \]</div>
+    <p>속박 상태는 \(E&lt;0\)이므로 \(q=\sqrt{-2\mu E}/\hbar&gt;0\)로 둔다. 길이 \(a_\mu=\hbar^2/(\mu\kappa)\), 무차원 거리 \(\rho=2qr\), 무차원 상수 \(\lambda=1/(qa_\mu)\)를 정의하면 식 <a class="ref" href="#eq-coulomb-radial"></a>은</p>
+    <div class="formula" id="eq-coulomb-dimensionless">\[ \frac{d^2u}{d\rho^2}
+      +\left[-\frac14+\frac{\lambda}{\rho}
+      -\frac{l(l+1)}{\rho^2}\right]u=0. \]</div>
+    <p>먼 곳에서는 \(-1/4\)항이 우세해 감소하는 해 \(e^{-\rho/2}\)를 택한다. 원점에서는 \(u\sim\rho^s\)를 넣어 \(s(s-1)=l(l+1)\)을 얻는다. \(s=l+1\)과 \(s=-l\) 가운데 정칙인 해는 \(s=l+1\)이다. 두 경계 거동을 떼어 내고 \(u=\rho^{l+1}e^{-\rho/2}F(\rho)\)로 쓴다.</p>
+    <p>이 치환을 실제로 미분해 보자. \(A=(l+1)/\rho-1/2\)라 놓으면 \(u'= \rho^{l+1}e^{-\rho/2}(F'+AF)\), \(u''=\rho^{l+1}e^{-\rho/2}[F''+2AF'+(A^2+A')F]\)다. \(A^2+A'=l(l+1)/\rho^2-(l+1)/\rho+1/4\)를 식 <a class="ref" href="#eq-coulomb-dimensionless"></a>에 넣으면 \(1/\rho^2\)항과 상수항이 사라져</p>
+    <div class="formula" id="eq-laguerre-ode">\[ \rho F''+(2l+2-\rho)F'+(\lambda-l-1)F=0. \]</div>
+    <p>\(F(\rho)=\sum_{k=0}^{\infty}c_k\rho^k\)를 넣어 같은 차수의 계수를 맞추면</p>
+    <div class="formula" id="eq-laguerre-recurrence">\[ (k+1)(k+2l+2)c_{k+1}+(\lambda-l-1-k)c_k=0,
+      \qquad
+      c_{k+1}=\frac{k+l+1-\lambda}{(k+1)(k+2l+2)}c_k. \]</div>
+    <p>급수가 끝나지 않으면 원점에서 정칙인 해의 먼 거리 거동에 \(e^{+\rho/2}\) 성분이 생겨 정규화할 수 없다. \(k=n_r\)에서 분자가 0이 되면 급수가 멈춘다. 따라서 \(\lambda=n_r+l+1\equiv n\), \(n_r=0,1,2,\ldots\)이다. \(n\)이 <span class="term">주양자수</span> <span class="en">(principal quantum number)</span>, \(n_r\)이 지름 마디 수다.</p>
+    <div class="box math" id="math-laguerre"><div class="box-h">일반화 라게르 다항식</div>
+      <p>식 <a class="ref" href="#eq-laguerre-ode"></a>에서 \(k=n_r\), \(\alpha=2l+1\)로 두면 \(F\)는 \(L_k^\alpha(\rho)\)에 비례한다. 이 책의 관례는 다음과 같다.</p>
+      <div class="formula" id="eq-laguerre-definition">\[ L_k^\alpha(\rho)=\frac{e^\rho\rho^{-\alpha}}{k!}
+      \frac{d^k}{d\rho^k}\left(e^{-\rho}\rho^{k+\alpha}\right),
+      \qquad L_0^\alpha=1,\quad L_1^\alpha=\alpha+1-\rho. \]</div>
+      <p>예를 들어 \(n=2,l=0\)이면 \(k=1,\alpha=1\)이라서 \(L_1^1=2-\rho\)다. 일부 자료에서는 다항식에 상수 배수나 부호를 달리 붙이므로, 파동함수를 비교할 때 이 정의를 먼저 확인한다.</p>
+    </div>
+    <p>\(a_\mu=\hbar^2/(\mu\kappa)\), \(\rho=2r/(na_\mu)\)를 쓰고 \(\int_0^\infty |R|^2r^2dr=1\)로 정규화한 결과는 다음과 같다. 정규화 계수는 \(\int_0^\infty e^{-\rho}\rho^{\alpha+1}[L_k^\alpha(\rho)]^2d\rho=(2k+\alpha+1)(k+\alpha)!/k!\)에 \(k=n-l-1,\alpha=2l+1\)을 넣어 얻는다.</p>
+    <div class="box thm" id="thm-hydrogen-radial"><div class="box-h">정규화된 수소 지름 함수</div>
+      <div class="formula" id="eq-hydrogen-radial">\[ R_{nl}(r)=
+      \left(\frac{2}{na_\mu}\right)^{3/2}
+      \sqrt{\frac{(n-l-1)!}{2n(n+l)!}}\,
+      e^{-\rho/2}\rho^l L_{n-l-1}^{2l+1}(\rho),
+      \qquad \rho=\frac{2r}{na_\mu}. \]</div>
+      <p>\(n=1,2,\ldots\), \(l=0,\ldots,n-1\)이다. \(u=rR\)는 원점에서 \(r^{l+1}\)처럼 시작하고 무한대에서 지수적으로 줄어든다. 다항식의 차수 \(n-l-1\)이 양의 반지름에서 만나는 지름 마디 수다.</p>
+    </div>
+    <div class="box ex" id="ex-low-radial"><div class="box-h">1s, 2s, 2p 지름 함수</div>
+      <p>이하에서 \(a=a_\mu\)라 줄여 쓰자. 식 <a class="ref" href="#eq-hydrogen-radial"></a>에 \(L_0^1=1\), \(L_1^1=2-\rho\), \(L_0^3=1\)을 넣으면</p>
+      <div class="formula" id="eq-low-radial">\[ \begin{aligned}
+      R_{10}(r)&amp;=\frac{2}{a^{3/2}}e^{-r/a},\\
+      R_{20}(r)&amp;=\frac{1}{2\sqrt2\,a^{3/2}}
+                     \left(2-\frac ra\right)e^{-r/(2a)},\\
+      R_{21}(r)&amp;=\frac{1}{2\sqrt6\,a^{3/2}}
+                     \frac ra\,e^{-r/(2a)} .
+      \end{aligned} \]</div>
+      <p>\(R_{20}\)은 \(r=2a\)에서 부호가 바뀌지만 \(R_{21}\)에는 양의 \(r\)에서 지름 마디가 없다. \(r=0\)에서 \(R_{21}=0\)인 것은 경계 거동이며 지름 마디 수에 포함하지 않는다.</p>
+    </div>
   </section>
 
   <section id="s3">
     <h2>에너지 준위와 축퇴</h2>
-    <p class="slot" data-slot="15.3절">아직 쓰지 않은 절입니다.</p>
+    <p>앞 절의 종료 조건은 \(\lambda=n=1/(qa_\mu)\)였다. \(q=1/(na_\mu)\)를 \(q^2=-2\mu E/\hbar^2\)에 넣으면 에너지는 \(n\) 하나로 정해진다.</p>
+    <div class="box thm" id="thm-hydrogen-spectrum"><div class="box-h">비상대론적 쿨롱 모형의 속박 준위</div>
+      <div class="formula" id="eq-hydrogen-spectrum">\[ E_n=-\frac{\mu\kappa^2}{2\hbar^2n^2}
+      =-\frac{\kappa}{2a_\mu n^2},\qquad
+      n=1,2,\ldots,\quad l=0,\ldots,n-1,\quad m=-l,\ldots,l. \]</div>
+      <p>에너지의 영점은 전자와 양성자가 무한히 멀리 떨어져 상대 운동이 멈춘 상태다. \(E_n&lt;0\)이므로 속박 상태이며 \(n\to\infty\)에서 0에 가까워진다. 핵의 스핀, 전자의 스핀, 상대론적 효과와 복사 보정은 이 모형에서 제외했다.</p>
+    </div>
+    <p>왜 \(l\)이 달라도 같은 에너지일까? 지름 방정식에는 원심 항 \(l(l+1)\)이 들어가지만, 정상적으로 끝나는 급수의 조건은 \(n=n_r+l+1\)이다. \(n\)을 고정하고 \(l\)을 늘리면 지름 마디 수 \(n_r\)가 줄어들어 같은 에너지에 도달한다. 이 추가 축퇴는 일반적인 중심 퍼텐셜에는 없고 \(1/r\) 퍼텐셜의 특별한 성질이다.</p>
+    <div class="formula" id="eq-hydrogen-degeneracy">\[ g_n^{\mathrm{orb}}=\sum_{l=0}^{n-1}(2l+1)
+      =2\frac{n(n-1)}2+n=n^2. \]</div>
+    <div class="box ex" id="ex-n-two-states"><div class="box-h">\(n=2\)의 네 궤도 상태</div>
+      <p>\(l=0\)에는 \(m=0\)인 2s 상태 하나가 있다. \(l=1\)에는 \(m=-1,0,1\)인 2p 상태 셋이 있다. 네 상태 모두 식 <a class="ref" href="#eq-hydrogen-spectrum"></a>에서 \(E_2=E_1/4\)다. 회전 대칭은 세 2p 상태의 동등함을 보장하지만, 2s와 2p의 동등함까지 보장하는 것은 쿨롱 퍼텐셜의 특별한 구조다.</p>
+    </div>
+    <h3 id="s3-scales">실제 수소의 길이와 에너지 눈금</h3>
+    <p>핵을 무한히 무겁게 보낸 보어 반지름을 \(a_0=4\pi\epsilon_0\hbar^2/(m_e e^2)\)라 쓰면 \(a_\mu=a_0(m_e/\mu)=a_0(1+m_e/m_p)\)다. <a href="https://physics.nist.gov/cuu/pdf/wall_2022.pdf">NIST 2022 CODATA</a>의 \(a_0=5.291\,772\,105\,44\times10^{-11}\ \mathrm m\), \(m_e/m_p=5.446\,170\,214\,889\times10^{-4}\), \(R_\infty hc=13.605\,693\,122\,990\ \mathrm{eV}\)를 쓰면, 이 모형의 수소에 대해</p>
+    <div class="formula" id="eq-hydrogen-numbers">\[ a_\mu\simeq 5.295\times10^{-11}\ \mathrm m,\qquad
+      E_1=-\frac{\mu}{m_e}R_\infty hc\simeq-13.5983\ \mathrm{eV}. \]</div>
+    <p>여기서 \(R_\infty hc\)는 무한히 무거운 핵에 대한 에너지 눈금이고 \(\mu/m_e\)가 유한 양성자 질량의 보정이다. 표시한 근삿값은 이 단순한 비상대론적 쿨롱 모형의 결과다. 실제 원자의 정밀 분광에는 이 장에서 생략한 효과가 들어간다.</p>
+    <p>높은 준위 \(n_i\)에서 낮은 준위 \(n_f\)로 허용된 한 광자 전이가 일어나면, 두 준위의 <em>에너지 차이</em>는 방출되는 광자의 에너지와 같다.</p>
+    <div class="formula" id="eq-photon-energy">\[ h\nu=E_{n_i}-E_{n_f}
+      =\frac{\mu\kappa^2}{2\hbar^2}
+        \left(\frac1{n_f^2}-\frac1{n_i^2}\right),
+      \qquad n_i&gt;n_f. \]</div>
+    <div class="box ex" id="ex-lyman-alpha"><div class="box-h">2p에서 1s로</div>
+      <p>식 <a class="ref" href="#eq-photon-energy"></a>에 \(n_i=2,n_f=1\)을 넣으면 \(h\nu=(3/4)|E_1|\simeq10.1987\ \mathrm{eV}\)다. 광자 에너지는 준위의 절댓값 하나가 아니라 두 준위의 차이다. 2s와 2p가 같은 에너지를 가져도 허용 전이의 조건은 다르며, 전이의 세기는 광자와의 상호작용을 넣어야 알 수 있다.</p>
+    </div>
   </section>
 
   <section id="s4">
     <h2>오비탈의 모양</h2>
-    <p class="slot" data-slot="15.4절">아직 쓰지 않은 절입니다.</p>
+    <p><span class="term">오비탈</span> <span class="en">(orbital)</span>은 전자가 따르는 고전적인 궤도가 아니라 상대 좌표 \(\boldsymbol r\)에 대한 정상 상태 파동함수 \(\psi_{nlm}=R_{nl}Y_l^m\)다. 원자 전체의 위치는 별도의 질량중심 파동함수 \(\Phi_{\mathrm{CM}}\)가 기술한다. 양성자에 대한 전자의 상대 위치 확률밀도는 \(|\psi_{nlm}|^2\)이며, 공간 적분에는 \(d^3r=r^2dr\,d\Omega\)가 들어간다.</p>
+    <div class="box ex" id="ex-one-s-orbital"><div class="box-h">1s: 구형이지만 정해진 반지름은 없다</div>
+      <p><a href="ch14.html#eq-low-spherical-harmonics">\(Y_0^0=1/\sqrt{4\pi}\)</a>와 식 <a class="ref" href="#eq-low-radial"></a>을 곱하면 \(a=a_\mu\)에 대해</p>
+      <div class="formula" id="eq-one-s-density">\[ \psi_{100}(\boldsymbol r)=\frac{e^{-r/a}}{\sqrt{\pi a^3}},\qquad
+      |\psi_{100}|^2=\frac{e^{-2r/a}}{\pi a^3},\qquad
+      p_{1s}(r)=r^2\!\int d\Omega\,|\psi_{100}|^2
+      =\frac{4r^2}{a^3}e^{-2r/a}. \]</div>
+      <p>\(|\psi_{100}|^2\)는 원점에서 가장 크다. 그러나 반지름 \(r\)의 얇은 껍질에 있을 확률 \(p_{1s}(r)dr\)은 껍질의 부피 때문에 \(r=0\)에서 0이다. \(\frac{d}{dr}\log p_{1s}=2/r-2/a=0\)으로부터 가장 가능성 큰 <em>반지름</em>은 \(r=a\)다.</p>
+    </div>
+    <div class="box ex" id="ex-two-s-two-p"><div class="box-h">2s의 구형 마디와 2p의 평면 마디</div>
+      <p>식 <a class="ref" href="#eq-low-radial"></a>의 \(R_{20},R_{21}\)에 <a href="ch14.html#eq-low-spherical-harmonics">\(Y_0^0,Y_1^0\)</a>를 곱하면</p>
+      <div class="formula" id="eq-two-orbitals">\[ \begin{aligned}
+      \psi_{200}&amp;=\frac{(2-r/a)e^{-r/(2a)}}{4\sqrt{2\pi a^3}},\\
+      \psi_{210}&amp;=\frac{(r/a)\cos\theta\,e^{-r/(2a)}}{4\sqrt{2\pi a^3}}.
+      \end{aligned} \]</div>
+      <p>2s는 \(r=2a\)인 구면에서 0이 된다. 그 안과 밖에서 파동함수의 부호가 다르지만, 관측 확률은 양쪽 모두 양수다. 2p의 \(m=0\) 상태는 \(z=r\cos\theta\)에 비례하므로 \(z=0\) 평면에서 0이며 위아래 엽의 부호가 반대다. \(\psi_{210}\)에는 양의 반지름에서 지름 마디가 없다.</p>
+    </div>
+    <h3 id="s4-real-p">방향을 가리키는 실수 2p 오비탈</h3>
+    <p>\(m=+1,-1\)의 구면 조화 함수는 \(e^{\pm i\phi}\)를 포함하므로 각각의 확률밀도는 \(z\)축 둘레로 대칭이다. 두 상태는 같은 에너지이므로 선형 결합도 정상 상태다. <a href="ch14.html#eq-low-spherical-harmonics">14장의 위상 관례</a>에서 다음 결합을 택하면 실수의 방향성 오비탈이 된다.</p>
+    <div class="formula" id="eq-real-p-orbitals">\[ \begin{aligned}
+      Y_{p_x}&amp;=\frac{Y_1^{-1}-Y_1^{1}}{\sqrt2}
+               =\sqrt{\frac3{4\pi}}\frac{x}{r},\\
+      Y_{p_y}&amp;=\frac{i(Y_1^{-1}+Y_1^{1})}{\sqrt2}
+               =\sqrt{\frac3{4\pi}}\frac{y}{r},\\
+      Y_{p_z}&amp;=Y_1^0=\sqrt{\frac3{4\pi}}\frac{z}{r}.
+      \end{aligned} \]</div>
+    <p>이 세 함수에 같은 \(R_{21}(r)\)를 곱하면 각각 \(x,y,z\)에 비례하는 2p 파동함수가 된다. 예를 들어 \(p_x\)의 마디는 \(x=0\) 평면이다. 한쪽 엽을 ‘양’, 다른 쪽을 ‘음’으로 표시하는 것은 전하의 부호가 아니라 <em>파동함수의 상대 위상</em>을 나타낸다.</p>
+    <div class="callout warn"><strong>마디와 확률 0을 구별해서 읽기</strong><p>오비탈의 표면 그림은 대개 일정한 \(|\psi|^2\) 값을 연결한 등밀도면이다. 전자가 그 표면에만 있다는 뜻이 아니다. 2s의 구면 마디와 2p의 평면 마디처럼 \(\psi=0\)인 곳에서는 확률밀도도 0이며, 부호가 바뀌는 위치는 파동함수에서 확인한다.</p></div>
+    <p><a href="ch13.html#s3">13장의 패리티</a>를 쓰면 \(s\) 상태는 짝함수, \(p\) 상태는 홀함수다. 일반적으로 \(\psi_{nlm}(-\boldsymbol r)=(-1)^l\psi_{nlm}(\boldsymbol r)\)이다. 스핀과 자기장에 따른 세부 구조는 뒤의 <a href="ch16.html">16장</a>과 <a href="ch19.html">19장</a>에서 다룬다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>전자·양성자 해밀토니안은 자유 질량중심과 질량 \(\mu=m_em_p/(m_e+m_p)\)인 상대 운동으로 분리된다.</li>
+      <li>SI 단위의 상대 퍼텐셜은 \(-e^2/(4\pi\epsilon_0r)\)이며 자연스러운 길이는 \(a_\mu=4\pi\epsilon_0\hbar^2/(\mu e^2)\)다.</li>
+      <li>정칙성과 정규화 조건을 함께 적용하면 \(n=n_r+l+1\)이 정수로 제한된다.</li>
+      <li>비상대론적 쿨롱 모형의 내부 에너지는 \(E_n=-\mu\kappa^2/(2\hbar^2n^2)\)다.</li>
+      <li>스핀을 세지 않은 한 \(n\) 준위의 궤도 상태 수는 \(\sum_l(2l+1)=n^2\)다.</li>
+      <li>1s의 공간 확률밀도는 원점에서 최대지만, 지름 확률밀도 \(p_{1s}(r)\)의 최대는 \(r=a_\mu\)다.</li>
+      <li>2s에는 \(r=2a_\mu\)의 구형 마디가 있고 실수 2p 오비탈에는 방향에 수직인 평면 마디가 있다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 양성자 질량을 무한히 크게 보내면 환산 질량 \(\mu\)는 어디에 가까워지는가?</p><div class="opts">
+        <button class="opt" data-correct>\(m_e\)</button><button class="opt">\(m_p\)</button><button class="opt">\(0\)</button>
+      </div><div class="quiz-exp">\(\mu=m_em_p/(m_e+m_p)=m_e/(1+m_e/m_p)\)이므로 \(\mu\to m_e\)다.</div></div>
+      <div class="quiz-q"><p>2. \(n=3,l=1\) 속박 상태의 지름 마디 수 \(n_r\)는?</p><div class="opts">
+        <button class="opt">0개</button><button class="opt" data-correct>1개</button><button class="opt">2개</button>
+      </div><div class="quiz-exp">종료 조건 \(n=n_r+l+1\)에서 \(n_r=3-1-1=1\)이다.</div></div>
+      <div class="quiz-q"><p>3. 이 장의 쿨롱 모형에서 \(E_2\)는 \(E_1\)의 몇 배인가?</p><div class="opts">
+        <button class="opt">2배</button><button class="opt" data-correct>\(1/4\)배</button><button class="opt">4배</button>
+      </div><div class="quiz-exp">\(E_n=E_1/n^2\)이며 두 에너지는 모두 음수다.</div></div>
+      <div class="quiz-q"><p>4. 스핀을 세지 않을 때 \(n=3\) 준위의 궤도 상태 수는?</p><div class="opts">
+        <button class="opt">3개</button><button class="opt">6개</button><button class="opt" data-correct>9개</button>
+      </div><div class="quiz-exp">\(l=0,1,2\)의 \(m\) 개수 \(1+3+5=9=3^2\)다.</div></div>
+      <div class="quiz-q"><p>5. 1s 상태의 지름 확률밀도 \(p_{1s}(r)\)가 가장 큰 반지름은?</p><div class="opts">
+        <button class="opt">\(r=0\)</button><button class="opt" data-correct>\(r=a_\mu\)</button><button class="opt">\(r=2a_\mu\)</button>
+      </div><div class="quiz-exp">\(p_{1s}(r)=4r^2e^{-2r/a_\mu}/a_\mu^3\)을 미분하면 \(r=a_\mu\)에서 최대다.</div></div>
+      <div class="quiz-q"><p>6. 실수 2p<sub>z</sub> 오비탈의 파동함수가 0인 평면은?</p><div class="opts">
+        <button class="opt">\(x=0\)</button><button class="opt">\(y=0\)</button><button class="opt" data-correct>\(z=0\)</button>
+      </div><div class="quiz-exp">\(\psi_{210}\propto r\cos\theta=z\)이므로 \(z=0\) 평면이 마디다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-canonical-pairs" data-level="2"><p>식 <a class="ref" href="#eq-relative-coordinates"></a>과 각 입자의 기본 교환자를 이용해 \([\hat R_i,\hat p_j]=0\), \([\hat r_i,\hat P_j]=0\)을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>서로 다른 입자의 좌표와 운동량은 교환한다. \([\hat R_i,\hat p_j]=(\mu/M)[m_e/m_e-m_p/m_p]i\hbar\delta_{ij}=0\)이다. \([\hat r_i,\hat P_j]=[\hat r_{e,i}-\hat r_{p,i},\hat p_{e,j}+\hat p_{p,j}]=(1-1)i\hbar\delta_{ij}=0\)이다.</p></details></div>
+    <div class="prob" id="prob-reduced-mass-ratio" data-level="1"><p>\(m_p=1836m_e\)라고 근사하면 \(\mu/m_e\)와 \(a_\mu/a_0\)는 각각 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\mu/m_e=m_p/(m_p+m_e)=1836/1837\approx0.999456\)이다. \(a_\mu/a_0=m_e/\mu=1837/1836\approx1.000545\)다. 유한한 핵 질량 때문에 상대 운동의 길이 눈금이 조금 커진다.</p></details></div>
+    <div class="prob" id="prob-ground-termination" data-level="2"><p>\(l=0,n_r=0\)일 때 식 <a class="ref" href="#eq-laguerre-recurrence"></a>이 \(F\)를 상수로 만드는 과정을 보이고 \(E_1\)을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\lambda=n_r+l+1=1\)이므로 \(k=0\)에서 \(c_1=(1-\lambda)c_0/2=0\)이다. 뒤의 계수도 모두 0이라서 \(F=c_0\), \(u\propto\rho e^{-\rho/2}\)다. \(q=1/a_\mu\)이므로 \(E_1=-\hbar^2q^2/(2\mu)=-\mu\kappa^2/(2\hbar^2)\)다.</p></details></div>
+    <div class="prob" id="prob-two-s-radial-check" data-level="3"><p>\(x=r/a_\mu\), \(u(x)\propto x(2-x)e^{-x/2}\)를 \(l=0,n=2\)의 지름 방정식 \(u_{xx}+[-1/4+2/x]u=0\)에 직접 대입해 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(f=x(2-x)\)라 두면 \(u_{xx}=e^{-x/2}(f''-f'+f/4)=e^{-x/2}[-4+(5/2)x-x^2/4]\)다. 한편 \((-1/4+2/x)u=e^{-x/2}[4-(5/2)x+x^2/4]\)라 두 항의 합은 0이다. \(x=2\)가 지름 마디다.</p></details></div>
+    <div class="prob" id="prob-three-p-count" data-level="1"><p>\(n=3,l=1\) 상태의 지름 마디 수, 허용되는 \(m\), 같은 \(n=3\) 준위의 전체 궤도 상태 수를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(n_r=n-l-1=1\), \(m=-1,0,1\)이다. \(n=3\)에서는 \(l=0,1,2\)가 가능하며 각 \(m\) 상태 수는 \(1,3,5\)이므로 전체는 \(1+3+5=9\)개다.</p></details></div>
+    <div class="prob" id="prob-one-s-normalization" data-level="2"><p>\(R_{10}=2a^{-3/2}e^{-r/a}\)가 \(\int_0^\infty r^2|R_{10}|^2dr=1\)을 만족함을 적분으로 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\int_0^\infty r^2e^{-\beta r}dr=2/\beta^3\)를 \(\beta=2/a\)에 적용하면 적분은 \(a^3/4\)다. 따라서 \(\int_0^\infty r^2|R_{10}|^2dr=(4/a^3)(a^3/4)=1\)이다. 각도 함수 \(Y_0^0\)도 별도로 정규화되어 있다.</p></details></div>
+    <div class="prob" id="prob-one-s-inside-a" data-level="2"><p>1s 상태에서 상대 거리 \(r\)가 \(a=a_\mu\)보다 작을 확률을 구하라. \(a\)가 확률의 경계인지도 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-one-s-density"></a>을 적분한다. \(y=2r/a\)로 바꾸면 \(P(r&lt;a)=\frac12\int_0^2y^2e^{-y}dy=1-5e^{-2}\approx0.3233\)이다. \(a\)는 지름 확률밀도가 최대인 곳이지만, 그 안에 있을 확률은 약 32%이며 전자가 그 밖에도 분포한다.</p></details></div>
+    <div class="prob" id="prob-real-p-x" data-level="2"><p>식 <a class="ref" href="#eq-real-p-orbitals"></a>을 이용해 실수 2p<sub>x</sub>의 파동함수가 \(x=0\)에서 0임을 보이고, \(x\)의 부호를 바꾸면 파동함수와 확률밀도가 각각 어떻게 되는지 말하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\psi_{2p_x}=R_{21}(r)Y_{p_x}\propto R_{21}(r)x/r\)다. \(x=0\)이 마디 평면이다. \(x\to-x\)이면 같은 \(r\)에서 파동함수의 부호는 바뀌고 확률밀도 \(|\psi_{2p_x}|^2\)는 그대로다.</p></details></div>
+    <div class="prob" id="prob-three-to-two" data-level="2"><p>이 장의 모형에서 허용되는 \(n_i=3\)에서 \(n_f=2\)로의 한 광자 전이에 대해 광자 에너지를 \(|E_1|\)로 표현하고, \(|E_1|=13.5983\ \mathrm{eV}\)로 계산하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(h\nu=|E_1|(1/2^2-1/3^2)=5|E_1|/36\)이다. 주어진 값을 넣으면 \(h\nu\approx1.88865\ \mathrm{eV}\)다. \(E_3\)와 \(E_2\) 자체는 음수지만 방출 광자의 에너지는 양수다.</p></details></div>
+    <div class="prob" id="prob-parity-selection" data-level="2"><p>패리티만으로 \(\langle1s|\hat z|2s\rangle\)와 \(\langle1s|\hat z|2p_z\rangle\) 가운데 어느 행렬원소가 반드시 0인지 판정하라.</p>
+      <details class="sol"><summary>풀이</summary><p>1s와 2s는 짝함수이고 \(\hat z\)는 홀 연산자다. 따라서 \(\langle1s|\hat z|2s\rangle\)의 적분 함수는 홀함수라 0이다. 2p<sub>z</sub>는 홀함수이므로 \(\langle1s|\hat z|2p_z\rangle\)의 적분 함수는 짝함수다. 패리티만으로는 0이라고 결론낼 수 없다. <a href="ch13.html#s3">13장의 선택 규칙</a>을 적용한 것이다.</p></details></div>
   </section>
 </main>
 </body>
