@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>14 각운동량 · QuantumBook</title>
-<meta name="description" content="2차원 회전 · 교환 관계 · 사다리 연산자로 푸는 고유값 문제 · 구면 조화 함수 · 중심력 문제">
+<meta name="description" content="회전의 생성자에서 각운동량 교환 관계를 유도하고, 사다리 연산자·구면 조화 함수·중심 퍼텐셜의 지름 방정식을 계산한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,61 +24,217 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch14">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">14</span></div>
     <h1 data-fill="chapter-title">각운동량</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">원 위를 도는 입자의 파동함수는 한 바퀴 뒤에 같은 값을 가져야 한다. 이 단순한 조건에서 각운동량의 이산적인 값이 나온다. 3차원에서는 회전축마다 생성자가 달라지므로 세 성분을 동시에 정확히 알 수 없지만, 사다리 연산자와 구면 조화 함수로 허용되는 상태를 체계적으로 찾을 수 있다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>평면 회전 연산자와 원 위 입자의 각운동량 고유값을 유도할 수 있다.</li>
+      <li>궤도 각운동량의 교환 관계를 계산하고 회전 대칭에서 보존량을 판정할 수 있다.</li>
+      <li>사다리 연산자로 허용되는 \(j,m\)과 전이 계수를 구할 수 있다.</li>
+      <li>구면 조화 함수의 정규화와 중심 퍼텐셜의 지름 방정식을 적용할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (교환자와 고유값), <a href="ch03.html">3장</a> (위치 표현), <a href="ch07.html">7장</a> (경계 조건), <a href="ch13.html">13장</a> (대칭과 생성자)</p>
   </header>
 
   <section id="s1">
-    <h2>2차원 회전</h2>
-    <p class="slot" data-slot="14.1절">아직 쓰지 않은 절입니다.</p>
+    <h2>평면 회전: 원 위의 입자</h2>
+    <p><a href="ch13.html#def-translation">13장의 병진</a>에서는 위치를 조금 옮기는 연산자의 생성자가 운동량이었다. 이제 평면에서 위치를 각도 \(\alpha\)만큼 돌린다. 양의 각도는 \(x\)축에서 \(y\)축으로 도는 방향이다. 입자의 궤도 각운동량 \(\hat L_z=\hat x\hat p_y-\hat y\hat p_x\)가 이 회전의 생성자다.</p>
+    <div class="box def" id="def-plane-rotation"><div class="box-h">평면 회전 연산자</div>
+      <div class="formula" id="eq-plane-rotation">\[ \hat R_z(\alpha)=e^{-i\alpha\hat L_z/\hbar},\qquad
+      (\hat R_z(\alpha)\psi)(r,\phi)=\psi(r,\phi-\alpha). \]</div>
+      <p>마지막 식은 상태를 실제로 돌리는 <em>능동적</em> 회전이다. 원래 \(\phi=0\)에 있던 밀도 봉우리가 \(\alpha\)로 이동한다. \(\hat R_z(\alpha+\beta)=\hat R_z(\alpha)\hat R_z(\beta)\)이고 \(\hat R_z(0)=I\)다.</p>
+    </div>
+    <p>위치 표현의 \(\hat p_x=-i\hbar\partial_x\), \(\hat p_y=-i\hbar\partial_y\)를 넣자. 극좌표의 연쇄 법칙으로 \(\partial_\phi=-y\partial_x+x\partial_y\)이므로</p>
+    <div class="formula" id="eq-lz-derivative">\[ \hat L_z=-i\hbar(x\partial_y-y\partial_x)=-i\hbar\partial_\phi,\qquad
+    e^{-i\alpha\hat L_z/\hbar}=e^{-\alpha\partial_\phi}. \]</div>
+    <p>따라서 식 <a class="ref" href="#eq-plane-rotation"></a>의 방향도 확인된다. 반지름 \(a\)인 가느다란 고리에 질량 \(M\)의 입자를 가두면 \(I=Ma^2\)이고 \(\hat H=\hat L_z^2/(2I)\)다. \(\hat L_z\Phi=\hbar m\Phi\)를 풀면 \(\Phi=C e^{im\phi}\)다. 파동함수의 단일값 조건 \(\Phi(\phi+2\pi)=\Phi(\phi)\)에서 \(m\in\mathbb Z\)가 나온다.</p>
+    <div class="box thm" id="thm-ring-spectrum"><div class="box-h">고리 위 자유 입자의 스펙트럼</div>
+      <div class="formula" id="eq-ring-spectrum">\[ \Phi_m(\phi)=\frac{e^{im\phi}}{\sqrt{2\pi}},\qquad
+      L_z=\hbar m,\qquad E_m=\frac{\hbar^2m^2}{2I},\qquad m=0,\pm1,\pm2,\ldots . \]</div>
+      <p>\(\int_0^{2\pi}|\Phi_m|^2d\phi=1\)이다. \(m\)과 \(-m\)은 \(m\ne0\)일 때 에너지는 같지만 회전 방향은 반대인 별개의 상태다. 여기서는 보통의 스칼라 파동함수에 단일값 조건을 적용했다.</p>
+    </div>
+    <div class="box ex" id="ex-ring-energy"><div class="box-h">두 번째 들뜬 에너지</div>
+      <p>\(E_0=0\), \(E_{\pm1}=\hbar^2/(2I)\), \(E_{\pm2}=4\hbar^2/(2I)\)다. 서로 다른 에너지값을 낮은 순서로 세면 두 번째 들뜬 에너지는 \(E_{\pm2}\)이며 두 상태로 축퇴한다. \(|\Phi_2|^2=1/(2\pi)\)여서 위치 확률은 균일하지만, \(L_z=+2\hbar\)인 확률 흐름은 \(m=-2\)와 반대 방향이다.</p>
+    </div>
+    <div class="callout tip"><strong>회전의 각도와 양자수</strong><p>고리에서 정수 \(m\)이 나온 까닭은 한 바퀴의 경계 조건이다. 뒤에서 만나는 추상적인 각운동량 대수는 반정수 \(j\)도 허용한다. 위치의 회전에서 만든 <em>궤도</em> 각운동량과 <a href="ch16.html">16장</a>의 스핀을 구별해야 한다.</p></div>
   </section>
 
   <section id="s2">
-    <h2>교환 관계</h2>
-    <p class="slot" data-slot="14.2절">아직 쓰지 않은 절입니다.</p>
+    <h2>3차원 회전과 교환 관계</h2>
+    <p>세 축으로 회전할 수 있는 3차원에서는 \(\hat{\boldsymbol L}=\hat{\boldsymbol r}\times\hat{\boldsymbol p}\)를 쓴다. 성분을 펼치면 \(\hat L_x=\hat y\hat p_z-\hat z\hat p_y\), \(\hat L_y=\hat z\hat p_x-\hat x\hat p_z\), \(\hat L_z=\hat x\hat p_y-\hat y\hat p_x\)다. 서로 다른 좌표와 운동량의 교환자는 0이고 \([\hat x_i,\hat p_j]=i\hbar\delta_{ij}\)다.</p>
+    <p>먼저 \(z\)축 회전이 좌표를 어떻게 바꾸는지 보자. \([\hat L_z,\hat x]=i\hbar\hat y\), \([\hat L_z,\hat y]=-i\hbar\hat x\)이다. \(\hat R_z^\dagger(\alpha)\hat x\hat R_z(\alpha)\)를 \(\alpha\)로 미분하면 \((i/\hbar)\hat R_z^\dagger[\hat L_z,\hat x]\hat R_z=-\hat R_z^\dagger\hat y\hat R_z\)이다. 따라서</p>
+    <div class="formula" id="eq-rotation-coordinate">\[ \hat R_z^\dagger\hat x\hat R_z=\hat x\cos\alpha-\hat y\sin\alpha,\qquad
+    \hat R_z^\dagger\hat y\hat R_z=\hat x\sin\alpha+\hat y\cos\alpha. \]</div>
+    <p>식 <a class="ref" href="#eq-rotation-coordinate"></a>를 원래 상태에서 평균하면 돌린 상태의 좌표 \(\langle x\rangle'=\langle x\rangle\cos\alpha-\langle y\rangle\sin\alpha\), \(\langle y\rangle'=\langle x\rangle\sin\alpha+\langle y\rangle\cos\alpha\)가 된다. 고전적인 평면 벡터의 회전과 같은 방향이다.</p>
+    <p>이제 각운동량 성분끼리의 교환자를 계산한다. \([\hat L_x,\hat L_y]\)의 네 항 가운데 0이 아닌 두 항은 다음과 같다.</p>
+    <div class="formula" id="eq-l-commutator-derivation">\[ \begin{aligned}
+    [\hat L_x,\hat L_y]&amp;=[\hat y\hat p_z,\hat z\hat p_x]+[-\hat z\hat p_y,-\hat x\hat p_z]\\
+    &amp;=-i\hbar\hat y\hat p_x+i\hbar\hat x\hat p_y
+    =i\hbar\hat L_z .
+    \end{aligned} \]</div>
+    <div class="box thm" id="thm-angular-commutators"><div class="box-h">각운동량 대수</div>
+      <div class="formula" id="eq-angular-commutators">\[ [\hat L_i,\hat L_j]=i\hbar\sum_k\varepsilon_{ijk}\hat L_k,\qquad
+      \hat L^2=\hat L_x^2+\hat L_y^2+\hat L_z^2,\qquad
+      [\hat L^2,\hat L_i]=0. \]</div>
+      <p>예를 들어 \([\hat L^2,\hat L_z]\)에서는 \([\hat L_x^2,\hat L_z]=-i\hbar(\hat L_x\hat L_y+\hat L_y\hat L_x)\), \([\hat L_y^2,\hat L_z]=+i\hbar(\hat L_y\hat L_x+\hat L_x\hat L_y)\)가 서로 지워진다. 세 성분은 함께 대각화할 수 없지만 \(\hat L^2\)와 한 성분은 가능하다.</p>
+    </div>
+    <p>\(\hat H=\hat{\boldsymbol p}^{\,2}/(2M)+V(r)\)가 반지름 \(r=|\boldsymbol r|\)에만 의존하면 모든 회전에 불변이다. <a href="ch13.html#thm-symmetry-conservation">13장의 대칭·보존 정리</a>에 따라 \([\hat H,\hat L_i]=0\)이다. \(z\)축에 대해서만 대칭인 퍼텐셜이라면 \(\hat L_z\)만 보존될 수 있다. 회전 대칭의 범위를 먼저 확인해야 한다.</p>
   </section>
 
   <section id="s3">
     <h2>사다리 연산자로 푸는 고유값 문제</h2>
-    <p class="slot" data-slot="14.3절">아직 쓰지 않은 절입니다.</p>
+    <p>각운동량의 크기와 \(z\)성분을 함께 측정하는 기저를 \(|j,m\rangle\)이라 쓰자. 지금은 식 <a class="ref" href="#eq-angular-commutators"></a>만 가정한 <em>추상적인</em> 각운동량 \(\hat{\boldsymbol J}\)를 쓴다. 궤도 각운동량 \(\hat{\boldsymbol L}\)과 다음 장의 스핀 \(\hat{\boldsymbol S}\)에 같은 대수가 적용되기 때문이다.</p>
+    <div class="box def" id="def-angular-ladders"><div class="box-h">올림·내림 연산자</div>
+      <div class="formula" id="eq-ladder-algebra">\[ \hat J_\pm=\hat J_x\pm i\hat J_y,\qquad
+      [\hat J_z,\hat J_\pm]=\pm\hbar\hat J_\pm,\qquad
+      [\hat J^2,\hat J_\pm]=0,\qquad \hat J_\pm^\dagger=\hat J_\mp. \]</div>
+      <p>예를 들어 \([\hat J_z,\hat J_x]=i\hbar\hat J_y\), \([\hat J_z,\hat J_y]=-i\hbar\hat J_x\)를 더하면 \([\hat J_z,\hat J_+]=\hbar\hat J_+\)다. 따라서 \(\hat J_+|j,m\rangle\)는 0이 아니면 같은 \(J^2\) 고유값을 갖고 \(J_z\) 고유값만 \(\hbar\) 커진다.</p>
+    </div>
+    <p>계수를 정하려면 길이의 제곱을 계산한다. 식 <a class="ref" href="#eq-ladder-algebra"></a>에서 \(\hat J_-\hat J_+=\hat J_x^2+\hat J_y^2+i[\hat J_x,\hat J_y]\)이므로</p>
+    <div class="formula" id="eq-ladder-products">\[ \hat J_-\hat J_+=\hat J^2-\hat J_z^2-\hbar\hat J_z,\qquad
+    \hat J_+\hat J_-=\hat J^2-\hat J_z^2+\hbar\hat J_z. \]</div>
+    <p>\(\hat J^2|j,m\rangle=\hbar^2\lambda|j,m\rangle\), \(\hat J_z|j,m\rangle=\hbar m|j,m\rangle\)로 두면, \(\|\hat J_+|j,m\rangle\|^2=\hbar^2[\lambda-m(m+1)]\ge0\)이고 \(\|\hat J_-|j,m\rangle\|^2=\hbar^2[\lambda-m(m-1)]\ge0\)다. 양자수 \(m\)은 한 번에 1씩 바뀌며, 이 부등식 때문에 위아래로 무한히 갈 수 없다.</p>
+    <p>맨 위의 \(m_{\max}\)에서는 \(\hat J_+|j,m_{\max}\rangle=0\), 맨 아래의 \(m_{\min}\)에서는 \(\hat J_-|j,m_{\min}\rangle=0\)이다. 따라서 \(\lambda=m_{\max}(m_{\max}+1)=m_{\min}(m_{\min}-1)\). 이 식을 인수분해하면 \((m_{\max}+m_{\min})(m_{\max}-m_{\min}+1)=0\)이다. 최고·최저의 순서에서 두 번째 인수는 양수이므로 \(m_{\min}=-m_{\max}\)다. \(j=m_{\max}\)라 놓으면 \(2j\)는 최고에서 최저까지 내리는 정수 횟수다.</p>
+    <div class="box thm" id="thm-angular-spectrum"><div class="box-h">각운동량 고유값과 사다리 계수</div>
+      <div class="formula" id="eq-angular-spectrum">\[ \begin{gathered}
+      \hat J^2|j,m\rangle=\hbar^2j(j+1)|j,m\rangle,\qquad
+      \hat J_z|j,m\rangle=\hbar m|j,m\rangle,\\
+      j=0,\tfrac12,1,\tfrac32,\ldots,\qquad m=-j,-j+1,\ldots,j,\\
+      \hat J_\pm|j,m\rangle=\hbar\sqrt{j(j+1)-m(m\pm1)}\,|j,m\pm1\rangle .
+      \end{gathered} \]</div>
+      <p>위상은 사다리 계수가 음이 아닌 실수가 되도록 정했다. 가능한 \(m\)은 \(2j+1\)개다. 이는 한 <em>기약</em> \(j\) 다중항의 차원이며, 다른 양자수 때문에 같은 \(j\) 다중항이 여러 번 나타날 수도 있다.</p>
+    </div>
+    <div class="box ex" id="ex-j-one"><div class="box-h">\(j=1\)의 세 상태</div>
+      <p>\(m=-1,0,1\)이고 모든 상태의 \(J^2\) 고유값은 \(2\hbar^2\)다. 예를 들어 \(\hat J_+|1,0\rangle=\sqrt2\hbar|1,1\rangle\), \(\hat J_-|1,-1\rangle=0\), \(\hat J_-|1,1\rangle=\sqrt2\hbar|1,0\rangle\)다. \(|1,0\rangle\)에서 \(J_z=0\)이어도 \(J^2\ne0\)이다.</p>
+    </div>
+    <div class="callout warn"><strong>왜 \(\sqrt{j(j+1)}\hbar\)가 \(J_z\)의 최댓값이 아닐까?</strong><p>\(J^2\)와 \(J_z\)는 동시에 정할 수 있지만 \(J_x,J_y,J_z\)는 동시에 정할 수 없다. 따라서 고전적인 화살표의 길이를 각 성분의 확정된 값들로 피타고라스 합산할 수 없다. 최고 상태에서도 \(J_z=j\hbar\), \(J^2=j(j+1)\hbar^2\)다.</p></div>
   </section>
 
   <section id="s4">
     <h2>구면 조화 함수</h2>
-    <p class="slot" data-slot="14.4절">아직 쓰지 않은 절입니다.</p>
+    <p>추상 상태 \(|j,m\rangle\)를 3차원 <em>위치</em> 파동함수로 나타내자. 구면좌표는 \(x=r\sin\theta\cos\phi\), \(y=r\sin\theta\sin\phi\), \(z=r\cos\theta\)로 정의한다. 여기서 \(\theta\in[0,\pi]\)는 \(z\)축과 이루는 각, \(\phi\in[0,2\pi)\)는 방위각이다. 궤도 각운동량은 \(r\)에 작용하지 않고 각도에만 작용한다.</p>
+    <div class="box math" id="math-spherical-coordinates"><div class="box-h">구면좌표의 면적과 체적</div>
+      <div class="formula" id="eq-solid-angle">\[ d\Omega=\sin\theta\,d\theta\,d\phi,\qquad
+      d^3r=r^2dr\,d\Omega,\qquad \int d\Omega=4\pi. \]</div>
+      <p>\(\theta\)가 같은 띠의 둘레가 \(2\pi r\sin\theta\)이므로 \(\sin\theta\)가 면적 요소에 들어간다. 각도만 적분할 때는 \(d\Omega\), 공간 전체를 적분할 때는 \(r^2dr\,d\Omega\)를 쓴다.</p>
+    </div>
+    <p>앞 절에서 얻은 \(\hat L_z=-i\hbar\partial_\phi\)에 더해, 직교좌표의 \(\hat{\boldsymbol L}\)을 구면좌표로 바꾸면 다음과 같다.</p>
+    <div class="formula" id="eq-angular-differential">\[ \begin{aligned}
+      \hat L_\pm&=\hbar e^{\pm i\phi}\bigl(\pm\partial_\theta+i\cot\theta\,\partial_\phi\bigr),\\
+      \hat L^2&=-\hbar^2\left[
+      \frac1{\sin\theta}\partial_\theta\!\left(\sin\theta\,\partial_\theta\right)
+      +\frac1{\sin^2\theta}\partial_\phi^2\right].
+    \end{aligned} \]</div>
+    <p>이를 \(\hat L_zY=\hbar mY\)에 넣으면 \(Y(\theta,\phi)=f(\theta)e^{im\phi}\)다. \(\phi\)를 한 바퀴 돌렸을 때 값이 같아야 하므로 \(m\in\mathbb Z\)이다. 궤도 각운동량 다중항은 \(m=-l,\ldots,l\)이므로 \(l=0,1,2,\ldots\)도 정수다. 추상적인 \(j\)와 구별하여 궤도 양자수에는 \(l\)을 쓴다.</p>
+    <p>\(\hat L^2Y=\hbar^2l(l+1)Y\)에 \(u=\cos\theta\), \(Y=f(u)e^{im\phi}\)를 대입하자. \(\partial_\theta=-\sin\theta\,\partial_u\)를 두 번 적용하고 \(e^{im\phi}\)를 약분하면</p>
+    <div class="formula" id="eq-associated-legendre">\[ \frac{d}{du}\!\left[(1-u^2)\frac{df}{du}\right]
+      +\left[l(l+1)-\frac{m^2}{1-u^2}\right]f=0,\qquad -1&lt;u&lt;1. \]</div>
+    <p>극점 \(u=\pm1\)에서 유한하고 매끄러운 해가 필요하다. \(m\ge0\)에서 르장드르 다항식 \(P_l(u)=\frac{1}{2^l l!}\frac{d^l}{du^l}(u^2-1)^l\)로부터 다음 해를 만든다. 여기서는 콘던–쇼틀리 위상을 포함하는 관례를 쓴다.</p>
+    <div class="box def" id="def-spherical-harmonics"><div class="box-h">구면 조화 함수</div>
+      <div class="formula" id="eq-spherical-harmonics">\[ \begin{gathered}
+      P_l^m(u)=(-1)^m(1-u^2)^{m/2}\frac{d^mP_l(u)}{du^m},\qquad 0\le m\le l,\\
+      Y_l^m(\theta,\phi)=
+      \sqrt{\frac{2l+1}{4\pi}\frac{(l-m)!}{(l+m)!}}\,
+      P_l^m(\cos\theta)e^{im\phi},\\
+      Y_l^{-m}=(-1)^m\bigl(Y_l^m\bigr)^*,\qquad m&gt;0.
+      \end{gathered} \]</div>
+      <p>이 위상 관례에서는 \(\hat L_\pm Y_l^m=\hbar\sqrt{l(l+1)-m(m\pm1)}Y_l^{m\pm1}\)이다. 다른 책에서 \(P_l^m\)의 \((-1)^m\)을 생략하면 \(Y_l^m\)의 위상도 달라질 수 있지만 확률과 고유값은 같다.</p>
+    </div>
+    <p>정규화는 \(\int d\Omega\,(Y_l^m)^*Y_{l'}^{m'}=\delta_{ll'}\delta_{mm'}\)다. 방위각 적분이 서로 다른 \(m\)을 직교시킨다. 같은 \(m\)의 서로 다른 \(l\)은 식 <a class="ref" href="#eq-associated-legendre"></a>의 직교성으로 분리된다.</p>
+    <div class="box ex" id="ex-low-spherical-harmonics"><div class="box-h">가장 낮은 구면 조화 함수</div>
+      <div class="formula" id="eq-low-spherical-harmonics">\[ Y_0^0=\frac1{\sqrt{4\pi}},\qquad
+      Y_1^0=\sqrt{\frac3{4\pi}}\cos\theta,\qquad
+      Y_1^{\pm1}=\mp\sqrt{\frac3{8\pi}}\sin\theta\,e^{\pm i\phi}. \]</div>
+      <p>예를 들어 \(P_1(u)=u\), \(P_1^1(u)=-\sqrt{1-u^2}\)이므로 \(Y_1^1\)의 앞에 음수가 붙는다. \(Y_1^0\)의 각도 정규화는 \(\frac3{4\pi}(2\pi)\int_0^\pi\cos^2\theta\sin\theta\,d\theta=1\)이다. \(|Y_0^0|^2=1/(4\pi)\)는 모든 방향에서 같다.</p>
+    </div>
+    <div class="callout tip"><strong>각도 모양과 확률</strong><p>\(Y_l^m\) 자체는 복소 위상을 갖지만 각도 확률밀도는 \(|Y_l^m|^2\)다. \(Y_1^0\)의 부호는 적도에서 바뀌며, 적도에서 확률밀도는 0이다. 실제 공간에서 반지름 \(r\) 근처의 확률에는 \(r^2|R(r)|^2dr\)가 추가된다.</p></div>
   </section>
 
   <section id="s5">
     <h2>중심력 문제</h2>
-    <p class="slot" data-slot="14.5절">아직 쓰지 않은 절입니다.</p>
+    <p>입자가 퍼텐셜 \(V(r)\) 속에서 움직이면 회전 대칭 때문에 \(\hat H,\hat L^2,\hat L_z\)의 동시 고유상태를 찾을 수 있다. 파동함수를 \(\psi_{Elm}(r,\theta,\phi)=R_{El}(r)Y_l^m(\theta,\phi)\)로 분리한다. 지름 함수가 \(m\)에 의존하지 않는 것은 해밀토니안이 모든 방향을 똑같이 보기 때문이다.</p>
+    <p>구면좌표의 라플라시안을 각도 부분과 분리하면 \(\nabla^2=\frac1{r^2}\partial_r(r^2\partial_r)-\hat L^2/(\hbar^2r^2)\)다. 이를 \(\hat H=-\hbar^2\nabla^2/(2M)+V(r)\)에 넣고 \(Y_l^m\)을 약분하면</p>
+    <div class="formula" id="eq-radial-r">\[ -\frac{\hbar^2}{2M r^2}\frac{d}{dr}\!\left(r^2\frac{dR}{dr}\right)
+      +\left[V(r)+\frac{\hbar^2l(l+1)}{2Mr^2}\right]R=ER. \]</div>
+    <p>1차원 슈뢰딩거 방정식처럼 보이게 하려면 \(u(r)=rR(r)\)를 둔다. \(R=u/r\)에서 \(r^2R'=ru'-u\), \((r^2R')'=ru''\)이므로 식 <a class="ref" href="#eq-radial-r"></a>의 첫 항은 \(-\hbar^2u''/(2Mr)\)다. 양변에 \(r\)을 곱하면</p>
+    <div class="box thm" id="thm-radial-equation"><div class="box-h">중심 퍼텐셜의 지름 방정식</div>
+      <div class="formula" id="eq-radial-u">\[ -\frac{\hbar^2}{2M}\frac{d^2u}{dr^2}
+      +V_{\mathrm{eff}}(r)u=Eu,\qquad
+      V_{\mathrm{eff}}(r)=V(r)+\frac{\hbar^2l(l+1)}{2Mr^2},\qquad u=rR. \]</div>
+      <p>두 번째 항은 \(l&gt;0\)에서 양의 <span class="term">원심 장벽</span> <span class="en">(centrifugal barrier)</span>이다. 정규화는 \(\int_0^\infty |u(r)|^2dr=1\)로 간단해진다. 보통의 유한한 원점 퍼텐셜에서는 물리적인 \(R\)이 유한해야 하므로 \(u(0)=0\)을 택한다. 특이한 원점 퍼텐셜에는 경계 조건을 별도로 검토해야 한다.</p>
+    </div>
+    <div class="box ex" id="ex-spherical-well"><div class="box-h">무한 구형 우물의 \(l=0\) 상태</div>
+      <p>\(r&lt;a\)에서 \(V=0\), \(r\ge a\)에서 무한대인 우물을 생각하자. \(l=0\)이면 안쪽 식은 \(u''+k^2u=0\), \(k^2=2ME/\hbar^2\)다. \(u(0)=0\)에서 \(u=A\sin kr\)이고 벽의 \(u(a)=0\)에서 \(k=n\pi/a\), \(n=1,2,\ldots\)가 나온다. \(\int_0^a|u|^2dr=1\)로 정규화하면</p>
+      <div class="formula" id="eq-spherical-well">\[ u_{n0}(r)=\sqrt{\frac2a}\sin\frac{n\pi r}{a},\quad
+      R_{n0}(r)=\sqrt{\frac2a}\frac{\sin(n\pi r/a)}{r},\quad
+      E_{n0}=\frac{n^2\pi^2\hbar^2}{2Ma^2}\quad(0&lt;r&lt;a). \]</div>
+      <p>\(R_{n0}(0)\)은 \(0/0\)으로 보이지만 극한은 \(\sqrt{2/a}\,n\pi/a\)로 유한하다. 완전한 정규화 파동함수는 \(R_{n0}Y_0^0\)이다. \(l&gt;0\)에서는 원심 장벽이 있으므로 같은 사인 함수로 풀 수 없다.</p>
+    </div>
+    <p>한 \(l\)에 대해 \(m=-l,\ldots,l\)의 \(2l+1\)개 상태는 지름 방정식이 같아 같은 에너지를 갖는다. 이를 회전 대칭이 보장하는 <span class="term">자기 양자수 축퇴</span>라 한다. 퍼텐셜에 따라 서로 다른 \(l\)의 에너지가 우연히 같을 수도 있으나, 회전 대칭만으로 그런 추가 축퇴를 보장할 수는 없다. <a href="ch15.html">다음 장</a>에서는 쿨롱 퍼텐셜의 지름 해를 다룬다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>평면의 능동 회전은 \(\hat R_z(\alpha)=e^{-i\alpha\hat L_z/\hbar}\)이며 파동함수에 \(\psi(r,\phi-\alpha)\)로 작용한다.</li>
+      <li>고리 위의 스칼라 파동함수는 한 바퀴 뒤 같아야 하므로 \(L_z=\hbar m\), \(m\in\mathbb Z\)다.</li>
+      <li>\([\hat L_i,\hat L_j]=i\hbar\varepsilon_{ijk}\hat L_k\); \(\hat L^2\)와 한 성분은 함께 정할 수 있다.</li>
+      <li>각운동량 대수의 한 다중항은 \(J^2=\hbar^2j(j+1)\), \(J_z=\hbar m\), \(m=-j,\ldots,j\)의 \(2j+1\)개 상태를 갖는다.</li>
+      <li>궤도 각운동량은 \(l=0,1,2,\ldots\)이고 각도 고유함수 \(Y_l^m\)은 \(d\Omega=\sin\theta\,d\theta\,d\phi\)로 정규화한다.</li>
+      <li>중심 퍼텐셜에서는 \(u=rR\)가 \(V_{\mathrm{eff}}=V+\hbar^2l(l+1)/(2Mr^2)\)를 갖는 1차원형 지름 방정식을 따른다.</li>
+      <li>완전한 회전 대칭은 같은 \(l\)의 \(m=-l,\ldots,l\)에 대해 에너지를 같게 만든다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \(\phi=0\)에서 봉우리를 갖는 파동함수를 양의 각도 \(\alpha\)로 능동 회전하면 봉우리는 어디로 가는가?</p><div class="opts">
+        <button class="opt" data-correct>\(\phi=\alpha\)</button><button class="opt">\(\phi=-\alpha\)</button><button class="opt">항상 \(\phi=0\)</button>
+      </div><div class="quiz-exp">회전한 파동함수는 \(\psi(r,\phi-\alpha)\)이므로 \(\phi-\alpha=0\)에서 봉우리가 나타난다.</div></div>
+      <div class="quiz-q"><p>2. 고리 위 스칼라 파동함수 \(e^{im\phi}\)에 허용되는 \(m\)은?</p><div class="opts">
+        <button class="opt">모든 실수</button><button class="opt">모든 반정수만</button><button class="opt" data-correct>정수</button>
+      </div><div class="quiz-exp">\(e^{im(\phi+2\pi)}=e^{im\phi}\)에서 \(e^{2\pi im}=1\), 따라서 \(m\in\mathbb Z\)다.</div></div>
+      <div class="quiz-q"><p>3. 궤도 각운동량의 교환자 \([\hat L_x,\hat L_y]\)는?</p><div class="opts">
+        <button class="opt">\(-i\hbar\hat L_z\)</button><button class="opt" data-correct>\(i\hbar\hat L_z\)</button><button class="opt">\(0\)</button>
+      </div><div class="quiz-exp">좌표·운동량의 기본 교환자를 대입하면 \([\hat L_x,\hat L_y]=i\hbar\hat L_z\)다.</div></div>
+      <div class="quiz-q"><p>4. \(j=2\)인 한 다중항의 상태 수는?</p><div class="opts">
+        <button class="opt">3개</button><button class="opt" data-correct>5개</button><button class="opt">6개</button>
+      </div><div class="quiz-exp">\(m=-2,-1,0,1,2\)의 다섯 값, 즉 \(2j+1=5\)개다.</div></div>
+      <div class="quiz-q"><p>5. \(Y_1^0(\theta,\phi)\)의 확률밀도가 0인 방향은?</p><div class="opts">
+        <button class="opt">북극 \(\theta=0\)</button><button class="opt" data-correct>적도 \(\theta=\pi/2\)</button><button class="opt">남극 \(\theta=\pi\)</button>
+      </div><div class="quiz-exp">\(Y_1^0\propto\cos\theta\)이므로 적도에서 함수와 확률밀도 모두 0이다.</div></div>
+      <div class="quiz-q"><p>6. 중심 퍼텐셜에서 \(l=1\)의 지름 유효 퍼텐셜에 더해지는 항은?</p><div class="opts">
+        <button class="opt">\(0\)</button><button class="opt" data-correct>\(\hbar^2/(Mr^2)\)</button><button class="opt">\(-\hbar^2/(Mr^2)\)</button>
+      </div><div class="quiz-exp">\(\hbar^2l(l+1)/(2Mr^2)\)에 \(l=1\)을 대입하면 \(\hbar^2/(Mr^2)\)다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-ring-superposition" data-level="2"><p>고리의 정규화 상태 \(\Psi=(\Phi_1+\Phi_{-1})/\sqrt2\)에 대해 \(\Psi(\phi)\), 확률밀도, \(\langle\hat L_z\rangle\), \(\langle\hat H\rangle\)을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\Psi=(e^{i\phi}+e^{-i\phi})/\sqrt{4\pi}=\cos\phi/\sqrt\pi\)이므로 \(|\Psi|^2=\cos^2\phi/\pi\)다. 두 직교 상태의 \(L_z\) 고유값이 \(\pm\hbar\)이므로 \(\langle L_z\rangle=0\). 두 상태의 에너지는 \(\hbar^2/(2I)\)로 같아 \(\langle H\rangle=\hbar^2/(2I)\)다.</p></details></div>
+    <div class="prob" id="prob-ring-rotation" data-level="1"><p>고리 위 상태 \(\Psi(\phi)=\cos\phi/\sqrt\pi\)를 \(\alpha=\pi/2\)만큼 능동 회전한 파동함수를 구하라. 회전 전후 정규화도 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\((\hat R_z(\pi/2)\Psi)(\phi)=\cos(\phi-\pi/2)/\sqrt\pi=\sin\phi/\sqrt\pi\)다. \(\int_0^{2\pi}\cos^2\phi\,d\phi=\int_0^{2\pi}\sin^2\phi\,d\phi=\pi\)이므로 둘 다 정규화되어 있다.</p></details></div>
+    <div class="prob" id="prob-rotation-momentum" data-level="2"><p>\([\hat L_z,\hat p_x]\), \([\hat L_z,\hat p_y]\)를 계산하고, \(\hat R_z^\dagger(\alpha)\hat p_x\hat R_z(\alpha)\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat L_z=\hat x\hat p_y-\hat y\hat p_x\)에서 \([\hat L_z,\hat p_x]=i\hbar\hat p_y\), \([\hat L_z,\hat p_y]=-i\hbar\hat p_x\)다. 위치와 같은 미분 방정식을 만족하므로 \(\hat R_z^\dagger\hat p_x\hat R_z=\hat p_x\cos\alpha-\hat p_y\sin\alpha\)다.</p></details></div>
+    <div class="prob" id="prob-commutator-casimir" data-level="2"><p>식 <a class="ref" href="#eq-angular-commutators"></a>만 사용해 \([\hat J^2,\hat J_z]=0\)을 직접 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>\([\hat J_x,\hat J_z]=-i\hbar\hat J_y\), \([\hat J_y,\hat J_z]=i\hbar\hat J_x\)를 쓴다. \([\hat J_x^2,\hat J_z]=-i\hbar(\hat J_x\hat J_y+\hat J_y\hat J_x)\), \([\hat J_y^2,\hat J_z]=i\hbar(\hat J_y\hat J_x+\hat J_x\hat J_y)\), \([\hat J_z^2,\hat J_z]=0\)이므로 합은 0이다.</p></details></div>
+    <div class="prob" id="prob-j-three-halves" data-level="2"><p>\(j=3/2\) 다중항의 모든 \(m\)을 적고, \(m=-3/2,-1/2,1/2\)에서 \(\hat J_+\)의 계수를 각각 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(m=-3/2,-1/2,1/2,3/2\)다. 식 <a class="ref" href="#eq-angular-spectrum"></a>의 제곱근은 차례로 \(\sqrt3,2,\sqrt3\)이다. 따라서 \(\hat J_+|-3/2\rangle=\sqrt3\hbar|-1/2\rangle\), \(\hat J_+|-1/2\rangle=2\hbar|1/2\rangle\), \(\hat J_+|1/2\rangle=\sqrt3\hbar|3/2\rangle\)다. 이 문제의 켓에서는 공통 \(j=3/2\) 표기를 생략했다.</p></details></div>
+    <div class="prob" id="prob-highest-state-uncertainty" data-level="3"><p>최고 상태 \(|j,j\rangle\)에서 \(\langle J_x\rangle=\langle J_y\rangle=0\), \((\Delta J_x)^2=(\Delta J_y)^2=\hbar^2j/2\)임을 보이고, \(J_x,J_y\)의 불확정성 관계를 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat J_x=(\hat J_++\hat J_-)/2\), \(\hat J_y=(\hat J_+-\hat J_-)/(2i)\)다. 사다리 연산자는 \(m\)을 바꾸므로 두 평균은 0이다. \(z\)축에 대한 회전 대칭으로 \(\langle J_x^2\rangle=\langle J_y^2\rangle\); 또 합은 \(\langle J^2-J_z^2\rangle=\hbar^2[j(j+1)-j^2]=\hbar^2j\)다. 따라서 두 분산은 \(\hbar^2j/2\)이고 \(\Delta J_x\Delta J_y=\hbar^2j/2=(1/2)|\langle[J_x,J_y]\rangle|\)로 하한에 도달한다.</p></details></div>
+    <div class="prob" id="prob-harmonic-one-one" data-level="2"><p>\(Y_1^1=-C\sin\theta\,e^{i\phi}\)가 각도에 대해 정규화되도록 \(C&gt;0\)을 구하라. \(\hat L_zY_1^1\)도 계산하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\int d\Omega\,\sin^2\theta=2\pi\int_0^\pi\sin^3\theta\,d\theta=2\pi(4/3)=8\pi/3\)이다. 따라서 \(C=\sqrt{3/(8\pi)}\). \(-i\hbar\partial_\phi e^{i\phi}=\hbar e^{i\phi}\)이므로 \(\hat L_zY_1^1=\hbar Y_1^1\)이다.</p></details></div>
+    <div class="prob" id="prob-harmonic-two-zero" data-level="2"><p>\(P_2(u)=(3u^2-1)/2\)에서 \(Y_2^0(\theta,\phi)\)를 쓰고, \(\theta=0\)과 \(\theta=\pi/2\)에서 값의 비를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-spherical-harmonics"></a>에서 \(Y_2^0=\sqrt{5/(4\pi)}(3\cos^2\theta-1)/2=\sqrt{5/(16\pi)}(3\cos^2\theta-1)\)이다. 북극에서는 \(2\sqrt{5/(16\pi)}\), 적도에서는 \(-\sqrt{5/(16\pi)}\)이므로 값의 비는 \(-2\)다. 확률밀도의 비는 \(4\)다.</p></details></div>
+    <div class="prob" id="prob-spherical-well-probability" data-level="2"><p>무한 구형 우물의 \(l=0,n=1\) 상태에서 입자가 \(r&lt;a/4\) 안에 있을 확률을 구하라. \(R(r)\)를 적분할 때 필요한 측도도 명시하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(R\)을 쓴다면 \(r^2dr\), \(u=rR\)을 쓴다면 \(dr\)로 적분한다. 각도 함수는 정규화되어 있으므로 \(P=\int_0^{a/4}(2/a)\sin^2(\pi r/a)\,dr=[r/a-\sin(2\pi r/a)/(2\pi)]_0^{a/4}=1/4-1/(2\pi)\approx0.09085\)다.</p></details></div>
+    <div class="prob" id="prob-central-barrier" data-level="1"><p>같은 중심 퍼텐셜의 \(l=0\)과 \(l=1\)에 대해 \(r=a\)에서 유효 퍼텐셜의 차이를 구하라. \(l=1\)의 \(m\)은 몇 개인가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(V_{\mathrm{eff},1}(a)-V_{\mathrm{eff},0}(a)=\hbar^2\cdot1\cdot2/(2Ma^2)=\hbar^2/(Ma^2)\)다. \(m=-1,0,1\)의 세 값이 있으며, 완전한 회전 대칭에서는 같은 지름 상태를 공유할 때 에너지도 같다.</p></details></div>
   </section>
 </main>
 </body>
