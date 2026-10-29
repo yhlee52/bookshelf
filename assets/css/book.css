@@ -252,6 +252,16 @@ details.sol[open] { padding-bottom: 4px; }
 .ch-card p { margin: 0; color: var(--text-dim); font-size: 14.5px; line-height: 1.6; flex: 1; }
 .ch-card .tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .ch-card.is-slot { border-style: dashed; }
+/* 장 카드 안에 그 장의 실험을 넣은 모양 (data-sims-inside). 카드 안의 링크를 누르기 쉽게 카드는 움직이지 않는다 */
+.ch-card.has-sims:hover { transform: none; }
+.ch-card.has-sims h3 a { color: inherit; }
+.ch-card.has-sims h3 a:hover { color: var(--accent); text-decoration: none; }
+.ch-sims { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 6px; flex: 1; align-content: start; }
+.ch-sims a { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid transparent; background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; line-height: 1.35; }
+.ch-sims a:hover { text-decoration: none; border-color: var(--accent); }
+.ch-sims .ico { flex: none; width: 64px; aspect-ratio: 16 / 7; border-radius: 6px; background: color-mix(in srgb, var(--accent) 10%, var(--bg-elev)); color: var(--accent); display: grid; place-items: center; overflow: hidden; }
+.ch-sims .ico svg { width: 100%; height: 100%; }
+.ch-card .ch-foot { font-size: 12.5px; color: var(--text-faint); }
 .numbers { display: grid; gap: 1px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .numbers > div { background: var(--bg-elev); padding: 18px 20px; }
 .numbers b { display: block; font-family: var(--mono); font-size: 25px; letter-spacing: -0.02em; color: var(--text); }

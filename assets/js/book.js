@@ -4,7 +4,7 @@
    - 상단바: 챕터 서랍 · 책 로고 · 검색 · 서재로 · 테마 · 읽기 진행 막대
    - 챕터: 절 번호, 오른쪽 목차(스크롤 추적), 이전/다음, 퀴즈, KaTeX 수식
    - 교과서: 정의·정리·예제·수학 상자, 식, 연습문제 번호와 상호 참조 (textbook())
-   - 책 홈: [data-chapter-grid](부가 있으면 부별로), [data-book-sims], [data-paper-table], [data-fill]
+   - 책 홈: [data-chapter-grid](부가 있으면 부별로, data-sims-inside면 장 카드 안에 실험), [data-book-sims], [data-paper-table], [data-fill]
    ========================================================================== */
 (function () {
   "use strict";
@@ -221,13 +221,28 @@
     $$("[data-chapter-grid]").forEach((grid) => {
       // 부가 있는 책은 부마다 제목과 설명을 달고 카드 묶음을 나눈다
       if (book.parts) grid.classList.add("by-part");
-      grid.innerHTML = book.chapters.map((c, i) => partHead(c, i, (n, p) => `<div class="part-row"><span class="part-n">${n}부</span><div><h3>${esc(p.title)}</h3><p>${esc(p.desc || "")}</p></div></div>`) + `
+      // data-sims-inside: 실험이 있는 장은 카드 안에 실험(그림과 이름)을 넣는다. 카드 안에 링크가 여럿이라 카드 자체는 링크가 아니다
+      const inside = grid.hasAttribute("data-sims-inside");
+      const simsCard = (c, sims) => `
+        <div class="ch-card has-sims">
+          <span class="num"><span>CHAPTER ${esc(c.num)}</span><span class="pill acc">실험 ${sims.length}개</span></span>
+          <h3><a href="${url(c.href)}">${esc(c.title)}</a></h3>
+          ${c.status === "slot" ? "" : `<p>${esc(c.desc || "")}</p>`}
+          <ul class="ch-sims">${sims.map((s) => `<li><a href="${LS.simUrl(s.id)}"><span class="ico">${Lab.thumb(s)}</span><span>${esc(s.title.split(" — ")[0])}</span></a></li>`).join("")}</ul>
+          <span class="ch-foot">${c.status === "slot" ? "본문 준비 중" : esc(LS.chapterStatusLabel(c))}</span>
+        </div>`;
+      grid.innerHTML = book.chapters.map((c, i) => {
+        const head = partHead(c, i, (n, p) => `<div class="part-row"><span class="part-n">${n}부</span><div><h3>${esc(p.title)}</h3><p>${esc(p.desc || "")}</p></div></div>`);
+        const sims = inside && window.Lab ? c.sims.map((id) => Lab.get(id)).filter(Boolean) : [];
+        if (sims.length) return head + simsCard(c, sims);
+        return head + `
         <a class="ch-card${c.status === "slot" ? " is-slot" : ""}" href="${url(c.href)}">
           <span class="num"><span>${book.kind === "papers" ? "PAPER" : "CHAPTER"} ${esc(c.num)}</span>${c.status ? `<span class="pill${c.status === "slot" ? " slot" : c.status === "done" ? " acc" : ""}">${esc(LS.chapterStatusLabel(c))}</span>` : ""}</span>
           <h3>${esc(c.title)}</h3>
           <p>${esc(c.desc || "")}</p>
           <span class="tags">${(c.paper && c.paper.year ? [`<span class="pill">${esc(c.paper.year)}</span>`] : []).concat((c.tags || []).map((t) => `<span class="pill">${esc(t)}</span>`)).concat(c.sims.map((id) => `<span class="pill acc">${esc((window.Lab && Lab.get(id) ? Lab.get(id).title.split(" — ")[0] : id))}</span>`)).join("")}</span>
-        </a>`).join("");
+        </a>`;
+      }).join("");
     });
     $$("[data-book-sims]").forEach((grid) => {
       const ids = [...new Set(book.chapters.flatMap((c) => c.sims))].filter((id) => window.Lab && Lab.get(id));
