@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>10 세 가지 묘사 · QuantumBook</title>
-<meta name="description" content="유니타리 변환 · 슈뢰딩거 묘사 · 하이젠베르크 묘사 · 상호작용 묘사">
+<meta name="description" content="시간 의존 유니타리 변환에서 출발해 슈뢰딩거·하이젠베르크·상호작용 묘사를 유도하고 두 준위계의 시간 변화를 계산한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,56 +24,201 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch10">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">10</span></div>
     <h1 data-fill="chapter-title">세 가지 묘사</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">6장에서는 시간이 흐르면 상태가 유니타리 연산자에 따라 변한다고 했다. 그런데 9장의 에렌페스트 정리에서는 관측량 자체의 시간 변화를 쓰는 편이 더 간단했다. 시간 변화를 상태와 연산자 중 어디에 맡겨도 같은 측정 결과가 나올까? 이 장에서는 시간에 따라 움직이는 좌표계를 먼저 만들고, 그 선택에 따라 슈뢰딩거·하이젠베르크·상호작용 묘사를 차례로 유도한다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>시간 의존 유니타리 변환에서 상태, 관측량, 상태의 시간 변화 생성자가 어떻게 바뀌는지 유도할 수 있다.</li>
+      <li>슈뢰딩거 묘사의 상태 변화와 하이젠베르크 묘사의 연산자 변화를 같은 두 준위계에서 계산할 수 있다.</li>
+      <li>하이젠베르크 운동 방정식을 유도하고 자유 입자의 위치 연산자를 구할 수 있다.</li>
+      <li>해밀토니안을 자유 부분과 나머지로 나눠 상호작용 묘사를 만들고, 시간 순서가 필요한 까닭을 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>2장(유니타리 연산자, 교환자와 행렬 지수 함수), 6장(시간 변화 연산자와 슈뢰딩거 방정식), 8장(두 준위의 중첩과 위상), 9장(에렌페스트 정리)</p>
   </header>
 
   <section id="s1">
-    <h2>유니타리 변환</h2>
-    <p class="slot" data-slot="10.1절">아직 쓰지 않은 절입니다.</p>
+    <h2>유니타리 변환: 무엇을 움직일까?</h2>
+    <p>화살표를 고정된 좌표축에서 보아도 되고, 화살표를 따라 도는 좌표축에서 보아도 된다. 길이와 다른 화살표와 이루는 각은 같다. 양자역학에서 그 역할을 하는 것이 유니타리 연산자다. 여기서는 물리적 상태를 새로 만드는 조작이 아니라, <em>같은</em> 상태와 관측량을 함께 새 좌표계로 적는 변환을 다룬다.</p>
+
+    <h3 id="s1-static">상태와 관측량을 함께 바꾸기</h3>
+    <p>일단 시간을 고정하고 \(W^\dagger W = WW^\dagger = I\)인 연산자 \(W\)를 택하자. 원래 표기에는 아래첨자 \(S\), 새 표기에는 프라임을 붙인다.</p>
+    <div class="box def" id="def-picture-change"><div class="box-h">묘사의 유니타리 변환</div>
+      <div class="formula" id="eq-picture-change">\[ |\psi'\rangle = W^\dagger|\psi_S\rangle,\qquad \hat A' = W^\dagger\hat A_S W \]</div>
+      <p>브라도 함께 바뀌어 \(\langle\psi'| = \langle\psi_S|W\)이다. 여기서 \(W\)는 고정된 기저에서의 행렬로 생각해도 좋다.</p>
+    </div>
+    <p>새 표기에서 계산한 기댓값에 정의를 대입하면</p>
+    <div class="formula" id="eq-expect-invariant">\[ \langle\psi'|\hat A'|\psi'\rangle = \langle\psi_S|W(W^\dagger\hat A_SW)W^\dagger|\psi_S\rangle = \langle\psi_S|\hat A_S|\psi_S\rangle \]</div>
+    <p>이다. 가운데의 \(WW^\dagger\) 두 쌍이 항등 연산자가 되었기 때문이다. 같은 방식으로 고유값과 전이 확률도 보존된다. 상태만 바꾸고 관측량을 그대로 두면 일반적으로 <em>다른 물리적 질문</em>을 계산한다.</p>
+    <div class="box ex" id="ex-hadamard"><div class="box-h">두 성분의 좌표 바꾸기</div>
+      <p>2장에서 본 파울리 행렬 \(\sigma_z = \begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix}\)과 \(W = 2^{-1/2}\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}\)를 쓰자. 처음 상태가 \(|z{+}\rangle = (1,0)^{\mathsf T}\)이면 새 좌표에서는</p>
+      <div class="formula">\[ |\psi'\rangle = W^\dagger|z{+}\rangle = \frac1{\sqrt2}\begin{pmatrix}1\\1\end{pmatrix},\qquad \sigma_z' = W^\dagger\sigma_zW = \begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix} = \sigma_x. \]</div>
+      <p>따라서 새 좌표에서의 기댓값은 \(\langle\psi'|\sigma_x|\psi'\rangle = 1\)이다. 원래 좌표의 \(\langle z{+}|\sigma_z|z{+}\rangle = 1\)과 같다. \(+1\)이라는 측정값이 바뀐 것이 아니라, <em>같은 관측량의 행렬 표현</em>이 달라진 것이다.</p>
+    </div>
+
+    <h3 id="s1-moving">좌표계도 시간에 따라 돌면</h3>
+    <p>이제 \(W(t)\)가 시간에 따라 달라지게 하자. 슈뢰딩거 묘사에서 \(i\hbar\,d|\psi_S\rangle/dt = \hat H_S|\psi_S\rangle\)이다. 식 <a class="ref" href="#eq-picture-change"></a>의 상태를 미분하고, \(W^\dagger W = I\)를 미분한 \(\dot W^\dagger W = -W^\dagger\dot W\)를 쓰면</p>
+    <div class="formula" id="eq-moving-derivation">\[ \begin{aligned} i\hbar\frac{d|\psi'\rangle}{dt} &amp;= i\hbar\dot W^\dagger|\psi_S\rangle + W^\dagger\hat H_S|\psi_S\rangle \\ &amp;= \bigl(W^\dagger\hat H_SW - i\hbar W^\dagger\dot W\bigr)|\psi'\rangle. \end{aligned} \]</div>
+    <div class="box thm" id="thm-moving-generator"><div class="box-h">움직이는 묘사의 시간 변화 생성자</div>
+      <div class="formula" id="eq-moving-generator">\[ \hat G' = W^\dagger\hat H_SW - i\hbar W^\dagger\dot W,\qquad i\hbar\frac{d|\psi'\rangle}{dt} = \hat G'|\psi'\rangle. \]</div>
+      <p>첫 항은 원래 해밀토니안을 새 좌표로 쓴 것이다. 둘째 항은 좌표계 자체가 움직여서 생긴다. \(W^\dagger\dot W\)는 반에르미트이므로 \(\hat G'\)는 에르미트다.</p>
+    </div>
+    <p>예를 들어 \(\hat H_S = \hbar\omega\sigma_z/2\), \(W(t) = e^{-i\phi(t)\sigma_z/2}\)이면 \(W^\dagger\dot W = -i\dot\phi\sigma_z/2\)이고</p>
+    <div class="formula">\[ \hat G' = \frac{\hbar}{2}(\omega-\dot\phi)\sigma_z. \]</div>
+    <p>좌표계가 각속도 \(\dot\phi = \omega\)로 함께 돌면 새 좌표의 상태는 멈춘다. 이는 실제 실험 장치를 돌렸다는 뜻이 아니다. 측정 예측은 식 <a class="ref" href="#eq-expect-invariant"></a>처럼 그대로다.</p>
+    <div class="callout warn"><strong>변환된 해밀토니안과 시간 변화 생성자</strong><p>\(W^\dagger\hat H_SW\)는 에너지 관측량을 새 좌표로 나타낸 것이다. 시간에 따라 움직이는 좌표계에서 상태 변화를 만드는 연산자는 여기에 \(-i\hbar W^\dagger\dot W\)를 더한 \(\hat G'\)다. 두 연산자를 같은 이름으로 부르면 하이젠베르크 묘사에서 혼동이 생긴다.</p></div>
   </section>
 
   <section id="s2">
-    <h2>슈뢰딩거 묘사</h2>
-    <p class="slot" data-slot="10.2절">아직 쓰지 않은 절입니다.</p>
+    <h2>슈뢰딩거 묘사: 상태가 변한다</h2>
+    <p>지금까지 책에서 주로 사용한 방식이다. 기저와, 별도로 시간을 명시하지 않은 관측량 \(\hat A_S\)를 고정하고 상태 \(|\psi_S(t)\rangle\)를 움직인다. 시간 변화 연산자 \(U(t,t_0)\)는</p>
+    <div class="formula" id="eq-s-evolution">\[ |\psi_S(t)\rangle = U(t,t_0)|\psi_0\rangle,\qquad i\hbar\frac{\partial U(t,t_0)}{\partial t} = \hat H_S(t)U(t,t_0),\qquad U(t_0,t_0)=I \]</div>
+    <p>를 만족한다. \(\hat H_S\)가 시간에 무관하면 \(U(t,t_0)=e^{-i\hat H_S(t-t_0)/\hbar}\)이다. \(\hat H_S(t)\)가 시간에 따라 변해도, 서로 다른 시각의 해밀토니안이 교환하지 않으면 단순히 \(e^{-i\int\hat H_Sdt/\hbar}\)로 쓸 수 없다. 그 까닭은 10.4절에서 자세히 본다.</p>
+
+    <h3 id="s2-two-level">두 에너지 준위의 상대 위상</h3>
+    <p>이 예제부터 처음 시각을 \(t_0=0\)으로 둔다. 계산을 끝까지 따라가기 위해 \(\sigma_z\)의 고유벡터 \(|z{+}\rangle=(1,0)^{\mathsf T}\), \(|z{-}\rangle=(0,1)^{\mathsf T}\)를 택한다. 해밀토니안과 처음 상태를</p>
+    <div class="formula" id="eq-spin-setup">\[ \hat H_S=\frac{\hbar\omega}{2}\sigma_z,\qquad |\psi_0\rangle=|x{+}\rangle=\frac{|z{+}\rangle+|z{-}\rangle}{\sqrt2} \]</div>
+    <p>로 둔다. 각 고유상태에는 에너지에 비례한 위상이 붙는다.</p>
+    <div class="formula" id="eq-spin-state">\[ |\psi_S(t)\rangle=\frac1{\sqrt2}\begin{pmatrix}e^{-i\omega t/2}\\e^{i\omega t/2}\end{pmatrix}. \]</div>
+    <p>전체 위상은 측정에 영향을 주지 않지만, 두 성분의 <em>상대 위상</em> \(\omega t\)는 영향을 준다. 파울리 행렬 \(\sigma_x=\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}\), \(\sigma_y=\begin{pmatrix}0&amp;-i\\i&amp;0\end{pmatrix}\)를 끼워 넣어 계산하면</p>
+    <div class="formula" id="eq-spin-expect">\[ \langle\sigma_x\rangle_S = \cos\omega t,\qquad \langle\sigma_y\rangle_S = \sin\omega t,\qquad \langle\sigma_z\rangle_S=0. \]</div>
+    <p>예컨대 첫째 식은 \(\frac12(e^{i\omega t}+e^{-i\omega t})=\cos\omega t\)에서 나온다. \(\omega t=\pi/2\)이면 \(x\)성분은 0, \(y\)성분은 1이다. 상태의 두 성분이 바뀌었고 행렬은 그대로다.</p>
+    <div class="callout tip"><strong>왜 \(|z{+}\rangle\) 하나로 시작하지 않을까?</strong><p>에너지 고유상태 하나는 전체 위상만 얻는다. 따라서 시간에 무관한 관측량의 기댓값은 변하지 않는다. 두 에너지 준위를 겹쳐야 상대 위상이 생기고 회전이 드러난다. 이는 6장에서 배운 정상 상태와 중첩의 차이다.</p></div>
   </section>
 
   <section id="s3">
-    <h2>하이젠베르크 묘사</h2>
-    <p class="slot" data-slot="10.3절">아직 쓰지 않은 절입니다.</p>
+    <h2>하이젠베르크 묘사: 연산자가 변한다</h2>
+    <p>이번에는 식 <a class="ref" href="#eq-s-evolution"></a>의 \(U(t,t_0)\)를 10.1절의 \(W(t)\)로 택한다. \(U(t_0,t_0)=I\)이므로 변환된 상태는 처음 상태 그대로이고, 관측량이 시간에 따라 달라진다.</p>
+    <div class="box def" id="def-heisenberg"><div class="box-h">하이젠베르크 묘사</div>
+      <div class="formula" id="eq-heisenberg-def">\[ |\psi_H\rangle=U^\dagger(t,t_0)|\psi_S(t)\rangle=|\psi_0\rangle,\qquad \hat A_H(t)=U^\dagger(t,t_0)\hat A_S(t)U(t,t_0). \]</div>
+      <p>\(\hat A_S(t)\)의 괄호는 관측량에 외부에서 명시적인 시간 의존성이 있을 때만 필요하다. 대부분의 예제에서는 \(\hat A_S\)가 일정하다.</p>
+    </div>
+    <p>식 <a class="ref" href="#eq-moving-generator"></a>에 \(W=U\), \(i\hbar\dot U=\hat H_SU\)를 넣으면 상태의 시간 변화 생성자는 \(\hat G_H=U^\dagger\hat H_SU-i\hbar U^\dagger\dot U=0\)이다. 그렇다고 에너지가 0이라는 뜻은 아니다. 에너지 <em>관측량</em>은 여전히 \(\hat H_H=U^\dagger\hat H_SU\)이고, 그 기댓값은 슈뢰딩거 묘사와 같다.</p>
+
+    <h3 id="s3-equation">연산자의 운동 방정식</h3>
+    <p>\(\hat A_H=U^\dagger\hat A_SU\)를 미분하자. \(\dot U=-i\hat H_SU/\hbar\), \(\dot U^\dagger=iU^\dagger\hat H_S/\hbar\)이므로</p>
+    <div class="formula" id="eq-heis-derive">\[ \begin{aligned}\frac{d\hat A_H}{dt} &amp;= \frac{i}{\hbar}U^\dagger\hat H_S\hat A_SU + U^\dagger\frac{\partial\hat A_S}{\partial t}U - \frac{i}{\hbar}U^\dagger\hat A_S\hat H_SU \\ &amp;= \frac{i}{\hbar}[\hat H_H,\hat A_H]+\left(\frac{\partial\hat A_S}{\partial t}\right)_H.\end{aligned} \]</div>
+    <div class="box thm" id="thm-heisenberg-equation"><div class="box-h">하이젠베르크 운동 방정식</div>
+      <div class="formula" id="eq-heis-equation">\[ \frac{d\hat A_H}{dt}=\frac{i}{\hbar}[\hat H_H,\hat A_H]+\left(\frac{\partial\hat A_S}{\partial t}\right)_H. \]</div>
+      <p>\(\hat H_S(t)\)가 시간에 의존해도 성립한다. \(\bigl(\partial\hat A_S/\partial t\bigr)_H=U^\dagger(\partial\hat A_S/\partial t)U\)는 \(\hat A_S\) 자체에 명시된 시간 의존성이다.</p>
+    </div>
+    <p>고정된 상태 \(|\psi_0\rangle\)에서 양변의 기댓값을 취하면 6장의 기댓값 운동 방정식과 같다. 즉 연산자의 식은 에렌페스트 정리를 모든 처음 상태에 대해 한꺼번에 적은 것이다.</p>
+
+    <h3 id="s3-spin">앞의 두 준위계를 다시 계산하기</h3>
+    <p>식 <a class="ref" href="#eq-spin-setup"></a>의 해밀토니안은 시간에 무관하므로 \(U=\operatorname{diag}(e^{-i\omega t/2},e^{i\omega t/2})\)이다. 행렬을 곱하면</p>
+    <div class="formula" id="eq-spin-heis">\[ \begin{aligned}\sigma_{x,H}(t)&amp;=U^\dagger\sigma_xU=\begin{pmatrix}0&amp;e^{i\omega t}\\e^{-i\omega t}&amp;0\end{pmatrix}=\cos\omega t\,\sigma_x-\sin\omega t\,\sigma_y,\\ \sigma_{y,H}(t)&amp;=\sin\omega t\,\sigma_x+\cos\omega t\,\sigma_y.\end{aligned} \]</div>
+    <p>처음 상태 \(|x{+}\rangle\)에서는 \(\langle\sigma_x\rangle_0=1\), \(\langle\sigma_y\rangle_0=0\)이다. 따라서 \(\langle x{+}|\sigma_{x,H}(t)|x{+}\rangle=\cos\omega t\), \(\langle x{+}|\sigma_{y,H}(t)|x{+}\rangle=\sin\omega t\)로, 식 <a class="ref" href="#eq-spin-expect"></a>와 정확히 같다. 한쪽에서는 상태의 상대 위상이 돌고, 다른 쪽에서는 관측량의 행렬이 돈다.</p>
+    <p>미분해서도 확인할 수 있다. \([\sigma_z,\sigma_x]=2i\sigma_y\)이므로 식 <a class="ref" href="#eq-heis-equation"></a>은 \(\dot\sigma_{x,H}=-\omega\sigma_{y,H}\), \(\dot\sigma_{y,H}=\omega\sigma_{x,H}\)를 준다. 처음 조건 \(\sigma_{x,H}(t_0)=\sigma_x\), \(\sigma_{y,H}(t_0)=\sigma_y\)의 해가 바로 식 <a class="ref" href="#eq-spin-heis"></a>이다.</p>
+    <div class="box ex" id="ex-free-heisenberg"><div class="box-h">자유 입자의 위치 연산자</div>
+      <p>\(\hat H=\hat p^2/2m\)이고 \([\hat x,\hat p]=i\hbar\)이면 \([\hat p^2,\hat x]=-2i\hbar\hat p\)이다. 따라서</p>
+      <div class="formula" id="eq-free-heis">\[ \frac{d\hat x_H}{dt}=\frac{\hat p_H}{m},\qquad \frac{d\hat p_H}{dt}=0\quad\Longrightarrow\quad \hat p_H(t)=\hat p_S,\qquad \hat x_H(t)=\hat x_S+\frac{t-t_0}{m}\hat p_S. \]</div>
+      <p>처음 상태에서 기댓값을 취하면 9장의 \(\langle x(t)\rangle=\langle x(0)\rangle+(t-t_0)\langle p(0)\rangle/m\)이 곧바로 나온다. 연산자 식이므로 같은 초기 상태에서 \(\langle x^2(t)\rangle\)을 계산해 파속의 퍼짐까지 구할 수도 있다.</p>
+    </div>
   </section>
 
   <section id="s4">
-    <h2>상호작용 묘사</h2>
-    <p class="slot" data-slot="10.4절">아직 쓰지 않은 절입니다.</p>
+    <h2>상호작용 묘사: 시간 변화를 나누어 맡기기</h2>
+    <p>해밀토니안 전체의 시간 변화를 풀기는 어렵지만 한 부분은 이미 풀 수 있을 때가 많다. 예를 들어 원자 자체의 에너지 준위는 알고, 외부에서 가하는 약한 장만 새로 계산할 수 있다. 이때 \(\hat H_S(t)=\hat H_0+\hat V_S(t)\)로 나눈다. 우선 \(\hat H_0\)는 시간에 무관하다고 가정한다. 20장에서는 이 방법을 섭동론에 쓴다.</p>
+
+    <h3 id="s4-definition">알고 있는 변화만 먼저 떼어 내기</h3>
+    <p>\(\hat H_0\)만의 시간 변화 연산자를 \(U_0(t,t_0)=e^{-i\hat H_0(t-t_0)/\hbar}\)로 놓고, 10.1절의 \(W\)로 택한다.</p>
+    <div class="box def" id="def-interaction"><div class="box-h">상호작용 묘사</div>
+      <div class="formula" id="eq-interaction-def">\[ |\psi_I(t)\rangle=U_0^\dagger|\psi_S(t)\rangle,\qquad \hat A_I(t)=U_0^\dagger\hat A_S(t)U_0,\qquad \hat V_I(t)=U_0^\dagger\hat V_S(t)U_0. \]</div>
+      <p>\(U_0(t_0,t_0)=I\)이므로 세 묘사는 처음 순간에 같은 상태와 같은 관측량에서 출발한다.</p>
+    </div>
+    <p>\(i\hbar\dot U_0=\hat H_0U_0\)이고 \(U_0\)는 \(\hat H_0\)의 함수이므로 \(U_0^\dagger\hat H_0U_0=\hat H_0=i\hbar U_0^\dagger\dot U_0\)이다. 두 항이 식 <a class="ref" href="#eq-moving-generator"></a>에서 상쇄된다. 따라서</p>
+    <div class="formula" id="eq-interaction-state">\[ i\hbar\frac{d|\psi_I\rangle}{dt}=\hat V_I(t)|\psi_I\rangle. \]</div>
+    <p>한편 명시적인 시간 의존성이 없는 관측량은 \(\hat H_0\)에 따라 변한다.</p>
+    <div class="formula" id="eq-interaction-operator">\[ \frac{d\hat A_I}{dt}=\frac{i}{\hbar}[\hat H_0,\hat A_I]\qquad(\partial\hat A_S/\partial t=0). \]</div>
+    <p>즉 상태에는 \(\hat V_I\)가, 관측량에는 \(\hat H_0\)가 맡은 시간이 남는다. 물론 기댓값은 여전히 \(\langle\psi_I|\hat A_I|\psi_I\rangle=\langle\psi_S|\hat A_S|\psi_S\rangle\)이다. \(\hat V_S=0\)이면 상태가 멈추어 하이젠베르크 묘사가 되고, \(\hat H_0=0\)이면 슈뢰딩거 묘사로 돌아간다.</p>
+
+    <h3 id="s4-spin">두 준위계에서 상호작용이 도는 모습</h3>
+    <p>식 <a class="ref" href="#eq-spin-setup"></a>의 \(\hat H_0=\hbar\omega\sigma_z/2\)에 일정한 가로 방향 결합 \(\hat V_S=\hbar\Omega\sigma_x/2\)를 더하자. 슈뢰딩거 묘사에서는 \(\hat V_S\)가 일정하지만, 상호작용 묘사에서는 식 <a class="ref" href="#eq-spin-heis"></a>와 같은 행렬 곱이 나타난다.</p>
+    <div class="formula" id="eq-spin-interaction">\[ \hat V_I(t)=\frac{\hbar\Omega}{2}\left(\cos\omega t\,\sigma_x-\sin\omega t\,\sigma_y\right)=\frac{\hbar\Omega}{2}\begin{pmatrix}0&amp;e^{i\omega t}\\e^{-i\omega t}&amp;0\end{pmatrix}. \]</div>
+    <p>이번에는 처음 상태를 \(|z{+}\rangle\)로 바꾸자. \(|z{-}\rangle\)로 넘어가는 첫 번째 차수의 진폭은 식 <a class="ref" href="#eq-interaction-state"></a>를 한 번 적분해서 얻는다.</p>
+    <div class="formula" id="eq-spin-transition">\[ \begin{aligned}c_-^{(1)}(t)&amp;=-\frac{i}{\hbar}\int_0^t\!dt'\,\langle z{-}|\hat V_I(t')|z{+}\rangle \\ &amp;=-\frac{i\Omega}{2}\int_0^t e^{-i\omega t'}dt'=\frac{\Omega}{2\omega}\bigl(e^{-i\omega t}-1\bigr),\\ P_{+\to-}^{(1)}(t)&amp;=|c_-^{(1)}|^2=\frac{\Omega^2}{\omega^2}\sin^2\frac{\omega t}{2}.\end{aligned} \]</div>
+    <p>\(\omega\ne0\)이고 \(\Omega/|\omega|\ll1\)이면 작은 전이 확률을 얻는다. \(\omega\to0\)에서는 \(c_-^{(1)}\to-i\Omega t/2\)이며, 이때는 \(\Omega t\ll1\)인 짧은 시간에만 첫 차수가 믿을 만하다. 정지한 결합도 자유 해밀토니안의 에너지 고유기저에서 보면 빠르게 도는 결합이 되는 셈이다.</p>
+    <div class="callout tip"><strong>정확한 결과와 비교</strong><p>이 예제에서는 \(\hat H_S^2=\hbar^2(\omega^2+\Omega^2)I/4\)이므로 전체 해밀토니안도 정확히 풀 수 있다. \(\Lambda=\sqrt{\omega^2+\Omega^2}\)라 하면 \(P_{+\to-}(t)=\frac{\Omega^2}{\Lambda^2}\sin^2(\Lambda t/2)\)이다. \(\Omega/|\omega|\)가 작을 때 위 첫 차수 결과가 나온다. 근사를 쓰는 범위와 정확한 답을 비교해 보자.</p></div>
+
+    <h3 id="s4-time-order">시간 순서는 왜 필요한가?</h3>
+    <p>\(|\psi_I(t)\rangle=U_I(t,t_0)|\psi_0\rangle\)라 두면 \(i\hbar\dot U_I=\hat V_I(t)U_I\), \(U_I(t_0,t_0)=I\)이다. 미분 방정식을 한 번 적분하면</p>
+    <div class="formula" id="eq-interaction-integral">\[ U_I(t,t_0)=I-\frac{i}{\hbar}\int_{t_0}^{t}\!dt_1\,\hat V_I(t_1)U_I(t_1,t_0). \]</div>
+    <p>오른쪽의 \(U_I(t_1,t_0)\)에 같은 식을 다시 대입하면 두 번째 항까지</p>
+    <div class="formula" id="eq-dyson-two">\[ \begin{aligned}U_I(t,t_0)=I&amp;-\frac{i}{\hbar}\int_{t_0}^{t}\!dt_1\,\hat V_I(t_1)\\ &amp;+\left(-\frac{i}{\hbar}\right)^2\int_{t_0}^{t}\!dt_1\int_{t_0}^{t_1}\!dt_2\,\hat V_I(t_1)\hat V_I(t_2)+\cdots.\end{aligned} \]</div>
+    <p>가 된다. 나중 시각 \(t_1\)의 연산자가 왼쪽에 오는 순서를 <span class="term">시간 순서</span> <span class="en">(time ordering)</span>라고 한다. 이것이 다이슨 급수의 처음 두 항이다. \(\hat V_I(t_1)\)와 \(\hat V_I(t_2)\)가 교환하지 않으면 순서를 바꿀 수 없다. 따라서 \(U_I=\exp[-(i/\hbar)\int\hat V_I(t')dt']\)라고 단순히 쓸 수 없다. 두 시각의 연산자가 모두 교환할 때만 그 지수 함수가 맞다. 20장에서는 식 <a class="ref" href="#eq-dyson-two"></a>를 시간 의존 섭동론의 출발점으로 쓴다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>묘사</th><th>상태</th><th>시간에 무관한 관측량 \(\hat A_S\)의 표현</th><th>상태의 시간 변화 생성자</th></tr></thead>
+      <tbody>
+        <tr><td>슈뢰딩거</td><td>\(|\psi_S(t)\rangle=U|\psi_0\rangle\)</td><td>\(\hat A_S\)</td><td>\(\hat H_S\)</td></tr>
+        <tr><td>하이젠베르크</td><td>\(|\psi_H\rangle=|\psi_0\rangle\)</td><td>\(U^\dagger\hat A_SU\)</td><td>\(0\)</td></tr>
+        <tr><td>상호작용</td><td>\(|\psi_I(t)\rangle=U_0^\dagger|\psi_S(t)\rangle\)</td><td>\(U_0^\dagger\hat A_SU_0\)</td><td>\(\hat V_I\)</td></tr>
+      </tbody>
+    </table></div>
+    <p>세 행은 서로 다른 물리 이론이 아니다. 같은 계를 계산하기 편한 좌표로 적은 것이다. 어떤 묘사를 택해도 정규화, 확률, 기댓값이 일치해야 한다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>묘사를 \(W(t)\)로 바꾸면 상태는 \(W^\dagger|\psi_S\rangle\), 관측량은 \(W^\dagger\hat A_SW\)가 된다. 둘을 함께 바꾸므로 모든 기댓값은 같다.</li>
+      <li>움직이는 묘사에서 상태의 시간 변화 생성자는 \(W^\dagger\hat H_SW-i\hbar W^\dagger\dot W\)이다. 둘째 항은 좌표계 자체의 움직임에서 온다.</li>
+      <li>슈뢰딩거 묘사는 관측량의 행렬을 고정하고 상태를 \(U(t,t_0)\)로 움직인다. 에너지 준위 사이의 상대 위상이 시간에 따른 측정값을 만든다.</li>
+      <li>하이젠베르크 묘사는 상태를 처음 상태로 고정하고 관측량을 \(U^\dagger\hat A_SU\)로 움직인다. 연산자의 운동 방정식은 \(\dot{\hat A}_H=(i/\hbar)[\hat H_H,\hat A_H]+(\partial\hat A_S/\partial t)_H\)이다.</li>
+      <li>하이젠베르크 묘사에서 상태의 시간 변화 생성자는 0이지만 에너지 관측량 \(\hat H_H\)는 일반적으로 0이 아니다.</li>
+      <li>상호작용 묘사는 \(\hat H_S=\hat H_0+\hat V_S\)로 나누고 \(U_0=e^{-i\hat H_0(t-t_0)/\hbar}\)를 떼어 낸다. 상태는 \(\hat V_I=U_0^\dagger\hat V_SU_0\)에 따라, 관측량은 \(\hat H_0\)에 따라 변한다.</li>
+      <li>서로 다른 시각의 \(\hat V_I\)가 교환하지 않으면 시간 순서를 지켜야 한다. 다이슨 급수는 그 순서를 적분 한계에 담는다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \(|\psi'\rangle=W^\dagger|\psi\rangle\)로 바꾸었을 때 같은 관측량의 기댓값을 얻으려면?</p><div class="opts">
+        <button class="opt">관측량은 그대로 둔다.</button><button class="opt" data-correct>\(\hat A'=W^\dagger\hat AW\)로 바꾼다.</button><button class="opt">\(\hat A'=W\hat AW^\dagger\)로 바꾼다.</button>
+      </div><div class="quiz-exp">상태의 브라는 \(\langle\psi'|=\langle\psi|W\)이므로 \(\langle\psi'|\hat A'|\psi'\rangle=\langle\psi|W\hat A'W^\dagger|\psi\rangle\)이다. 이를 원래 기댓값과 같게 하려면 정답의 순서가 필요하다.</div></div>
+      <div class="quiz-q"><p>2. \(W(t)\)가 시간에 따라 움직일 때 상태의 변화 생성자에 새로 생기는 항은?</p><div class="opts">
+        <button class="opt" data-correct>\(-i\hbar W^\dagger\dot W\)</button><button class="opt">\(+i\hbar W^\dagger\dot W\)</button><button class="opt">항상 0</button>
+      </div><div class="quiz-exp">\(W^\dagger W=I\)를 미분하면 \(\dot W^\dagger W=-W^\dagger\dot W\)이다. 이 부호가 식 <a class="ref" href="#eq-moving-generator"></a>을 정한다.</div></div>
+      <div class="quiz-q"><p>3. 하이젠베르크 묘사에서 상태가 멈추면 에너지 관측량도 0인가?</p><div class="opts">
+        <button class="opt">그렇다. 상태의 생성자가 0이므로 에너지도 0이다.</button><button class="opt" data-correct>아니다. 에너지 관측량은 \(U^\dagger\hat H_SU\)이고 일반적으로 0이 아니다.</button><button class="opt">시간에 무관한 해밀토니안일 때만 0이다.</button>
+      </div><div class="quiz-exp">움직이는 좌표계의 보정항이 상태의 시간 변화 생성자를 상쇄한다. 에너지라는 물리량의 표현과 새 좌표에서 상태를 움직이는 생성자는 구별해야 한다.</div></div>
+      <div class="quiz-q"><p>4. \(\hat H_0=\hbar\omega\sigma_z/2\), \(\hat V_S=\hbar\Omega\sigma_x/2\)에서 상호작용 묘사의 \(\hat V_I(t)\)는?</p><div class="opts">
+        <button class="opt">\(\hbar\Omega\sigma_x/2\)로 항상 일정하다.</button><button class="opt" data-correct>\(\hbar\Omega(\cos\omega t\,\sigma_x-\sin\omega t\,\sigma_y)/2\)</button><button class="opt">\(\hbar\omega\sigma_z/2\)</button>
+      </div><div class="quiz-exp">\(U_0^\dagger\sigma_xU_0\)를 행렬로 곱하면 비대각 성분에 \(e^{\pm i\omega t}\)가 붙는다. 이를 실수부와 허수부로 나누면 정답이 나온다.</div></div>
+      <div class="quiz-q"><p>5. \(\exp[-(i/\hbar)\int_{t_0}^t\hat V_I(t')dt']\)를 상호작용 묘사의 시간 변화 연산자로 그대로 써도 되는 조건은?</p><div class="opts">
+        <button class="opt">\(\hat V_I(t)\)가 시간에 의존하기만 하면 된다.</button><button class="opt">\(\hat V_I(t)\)가 언제나 에르미트이면 된다.</button><button class="opt" data-correct>모든 두 시각 \(t_1,t_2\)에 대해 \([\hat V_I(t_1),\hat V_I(t_2)]=0\)이어야 한다.</button>
+      </div><div class="quiz-exp">두 번째 차수에서 \(t_1\)이 늦은 연산자가 왼쪽에 온다. 서로 다른 시각의 연산자가 교환할 때만 그 순서를 무시하고 보통 지수 함수로 합칠 수 있다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-hadamard" data-level="1"><p>예제 <a class="ref" href="#ex-hadamard"></a>의 \(W\)에 대해 (가) \(W^\dagger W=I\)와 \(W^\dagger\sigma_zW=\sigma_x\)를 행렬 곱으로 확인하라. (나) 새 상태 \(|\psi'\rangle\)에 원래 행렬 \(\sigma_z\)를 잘못 끼워 넣으면 어떤 기댓값이 나오는가?</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(W^\dagger=W\)이고 \(W^2=\frac12\begin{pmatrix}2&amp;0\\0&amp;2\end{pmatrix}=I\)이다. 또 \(\sigma_zW=2^{-1/2}\begin{pmatrix}1&amp;1\\-1&amp;1\end{pmatrix}\)이므로 \(W^\dagger\sigma_zW=\frac12\begin{pmatrix}0&amp;2\\2&amp;0\end{pmatrix}=\sigma_x\)이다. (나) \(|\psi'\rangle=(1,1)^{\mathsf T}/\sqrt2\)에 \(\sigma_z\)를 적용하면 \(\langle\psi'|\sigma_z|\psi'\rangle=(1-1)/2=0\)이다. 이는 원래의 \(\sigma_z\) 측정이 아니라 다른 관측량을 계산한 값이다.</p></details>
+    </div>
+    <div class="prob" id="prob-moving-frame" data-level="1"><p>\(\hat H_S=\hbar\omega\sigma_z/2\), \(W(t)=e^{-i\nu t\sigma_z/2}\)이다. 식 <a class="ref" href="#eq-moving-generator"></a>로 새 묘사의 생성자를 구하고 \(\nu=\omega\)일 때 새 상태가 왜 멈추는지 보여라. 처음 상태는 \(|x{+}\rangle\)로 둔다.</p>
+      <details class="sol"><summary>풀이</summary><p>\(W^\dagger\hat H_SW=\hbar\omega\sigma_z/2\), \(W^\dagger\dot W=-i\nu\sigma_z/2\)이므로 \(\hat G'=\hbar(\omega-\nu)\sigma_z/2\)이다. 식 <a class="ref" href="#eq-spin-state"></a>의 상태에 \(W^\dagger=\operatorname{diag}(e^{i\nu t/2},e^{-i\nu t/2})\)를 곱하면 \(|\psi'\rangle=\bigl(e^{-i(\omega-\nu)t/2},e^{i(\omega-\nu)t/2}\bigr)^{\mathsf T}/\sqrt2\)이다. \(\nu=\omega\)이면 처음 벡터 그대로다.</p></details>
+    </div>
+    <div class="prob" id="prob-spin-heis" data-level="1"><p>식 <a class="ref" href="#eq-spin-setup"></a>의 \(\hat H_S\)에 대해 (가) \([\sigma_z,\sigma_x]=2i\sigma_y\), \([\sigma_z,\sigma_y]=-2i\sigma_x\)를 확인하라. (나) 하이젠베르크 방정식으로 \(\sigma_{x,H}(t)\), \(\sigma_{y,H}(t)\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) 파울리 행렬을 곱하면 \(\sigma_z\sigma_x=i\sigma_y\), \(\sigma_x\sigma_z=-i\sigma_y\), \(\sigma_z\sigma_y=-i\sigma_x\), \(\sigma_y\sigma_z=i\sigma_x\)이다. (나) 따라서 \(\dot\sigma_{x,H}=-\omega\sigma_{y,H}\), \(\dot\sigma_{y,H}=\omega\sigma_{x,H}\)이다. 첫 식을 다시 미분하면 \(\ddot\sigma_{x,H}=-\omega^2\sigma_{x,H}\)이고, 처음 값 \(\sigma_{x,H}(0)=\sigma_x\), \(\dot\sigma_{x,H}(0)=-\omega\sigma_y\)를 넣으면 \(\sigma_{x,H}(t)=\sigma_x\cos\omega t-\sigma_y\sin\omega t\)이다. 둘째 식의 해는 \(\sigma_{y,H}(t)=\sigma_x\sin\omega t+\sigma_y\cos\omega t\)이다.</p></details>
+    </div>
+    <div class="prob" id="prob-free-spread" data-level="2"><p>식 <a class="ref" href="#eq-free-heis"></a>로 자유 입자의 \(\langle x^2(t)\rangle\)을 전개하라. \(t_0=0\)으로 두고, \(C_{xp}=\frac12\langle\hat x\hat p+\hat p\hat x\rangle_0-\langle x\rangle_0\langle p\rangle_0\)를 쓰면 \((\Delta x_t)^2=(\Delta x_0)^2+2tC_{xp}/m+t^2(\Delta p_0)^2/m^2\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat x_H^2=(\hat x+t\hat p/m)^2=\hat x^2+(t/m)(\hat x\hat p+\hat p\hat x)+(t^2/m^2)\hat p^2\)이다. 따라서 그 기댓값에서 \(\langle x_t\rangle^2=(\langle x\rangle_0+t\langle p\rangle_0/m)^2\)를 빼면 주어진 식이 나온다. \(\hat x\hat p\)와 \(\hat p\hat x\)를 같은 것으로 취급하면 가운데 항을 잘못 계산한다. 이는 7장의 파속 퍼짐과 9장의 공분산을 한 식으로 묶는다.</p></details>
+    </div>
+    <div class="prob" id="prob-explicit-time" data-level="2"><p>\(\hat H_S=\hat p^2/2m\), \(\hat A_S(t)=\hat x-vtI\)라 하자. 하이젠베르크 묘사의 \(\hat A_H(t)\)를 직접 구하고, 식 <a class="ref" href="#eq-heis-equation"></a>의 명시적 시간 미분 항이 빠지면 어떤 오류가 생기는지 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-free-heis"></a>를 쓰면 \(\hat A_H(t)=\hat x+(t/m)\hat p-vtI\)이다. 따라서 \(d\hat A_H/dt=\hat p/m-vI\)이다. 교환자 항만 계산하면 \((i/\hbar)[\hat H_H,\hat A_H]=\hat p/m\)이고 \(-vI\)가 빠진다. 원래 관측량에 명시된 시간 의존성이 \(\partial\hat A_S/\partial t=-vI\)이기 때문이다.</p></details>
+    </div>
+    <div class="prob" id="prob-interaction-limits" data-level="1"><p>\(\hat H_S=\hat H_0+\hat V_S\)의 상호작용 묘사에서 (가) \(\hat H_0=0\)으로 고르면 어떤 묘사가 되는가? (나) \(\hat V_S=0\)이면 어떤 묘사가 되는가? 두 경우의 상태와 관측량을 식으로 적어라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(U_0=I\)이므로 \(|\psi_I\rangle=|\psi_S\rangle\), \(\hat A_I=\hat A_S\), \(\hat V_I=\hat H_S\)이다. 슈뢰딩거 묘사다. (나) \(U_0=U\)이므로 \(|\psi_I\rangle=U^\dagger U|\psi_0\rangle=|\psi_0\rangle\), \(\hat A_I=U^\dagger\hat A_SU=\hat A_H\)이다. 하이젠베르크 묘사다.</p></details>
+    </div>
+    <div class="prob" id="prob-dyson-constant" data-level="2"><p>\(\hat V_I(t)=\hat V\)가 시간에 무관한 경우 식 <a class="ref" href="#eq-dyson-two"></a>의 두 번째 차수 적분을 계산하라. \(\Delta t=t-t_0\)로 쓰면 보통 지수 함수 \(e^{-i\hat V\Delta t/\hbar}\)의 앞 세 항과 일치함을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>첫 적분은 \(\hat V\Delta t\), 두 번째 적분은 \(\hat V^2\int_{t_0}^t dt_1(t_1-t_0)=\hat V^2(\Delta t)^2/2\)이다. 따라서 \(U_I=I-i\hat V\Delta t/\hbar-\hat V^2(\Delta t)^2/(2\hbar^2)+\cdots\)이고, 이는 \(e^{-i\hat V\Delta t/\hbar}\)의 테일러 급수와 같다.</p></details>
+    </div>
+    <div class="prob" id="prob-spin-exact" data-level="2"><p>\(\hat H_S=\hbar(\omega\sigma_z+\Omega\sigma_x)/2\)이다. (가) \(\hat H_S^2=\hbar^2(\omega^2+\Omega^2)I/4\)를 보여라. (나) 멱급수를 짝수 항과 홀수 항으로 나누어 \(U(t)=\cos(\Lambda t/2)I-i\sin(\Lambda t/2)(\omega\sigma_z+\Omega\sigma_x)/\Lambda\)를 얻어라. (다) 처음 \(|z{+}\rangle\)에서 \(|z{-}\rangle\)로 전이할 확률을 구하고 식 <a class="ref" href="#eq-spin-transition"></a>과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(\sigma_x^2=\sigma_z^2=I\), \(\sigma_z\sigma_x+\sigma_x\sigma_z=0\)이므로 교차항이 사라진다. (나) \(B=(\omega\sigma_z+\Omega\sigma_x)/\Lambda\)로 두면 \(B^2=I\)이다. \(e^{-i\Lambda tB/2}\)의 짝수 거듭제곱은 \(I\cos(\Lambda t/2)\), 홀수 거듭제곱은 \(-iB\sin(\Lambda t/2)\)로 합쳐진다. (다) \(|z{-}\rangle\) 성분은 \(-i(\Omega/\Lambda)\sin(\Lambda t/2)\)이므로 \(P=\Omega^2\sin^2(\Lambda t/2)/\Lambda^2\)이다. \(\Omega/|\omega|\ll1\)이면 \(\Lambda\approx|\omega|\)가 되어 식 <a class="ref" href="#eq-spin-transition"></a>의 확률과 일치한다.</p></details>
+    </div>
   </section>
 </main>
 </body>
