@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>17 각운동량의 합성 · QuantumBook</title>
-<meta name="description" content="두 스핀의 삼중항과 단일항 · 클렙시-고든 계수 · 텐서 연산자">
+<meta name="description" content="두 스핀의 삼중항과 단일항, 클렙시–고든 계수, 구면 텐서 연산자와 위그너–에카르트 정리를 배운다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,51 +24,184 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch17">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">17</span></div>
     <h1 data-fill="chapter-title">각운동량의 합성</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">두 전자의 스핀을 각각 측정하면 두 개의 위·아래 화살표가 나온다. 그런데 두 스핀을 합한 전체 각운동량을 측정하면 결과는 세 상태를 가진 묶음과 한 상태만 가진 묶음으로 나뉜다. 네 상태가 어떻게 \(3+1\)로 재배열되는지부터 살펴보자. 이 과정을 일반화하면 여러 각운동량의 결합과 전이의 선택 규칙을 한 언어로 다룰 수 있다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>두 스핀 \(1/2\)의 곱 상태에서 삼중항과 단일항을 유도하고 교환 대칭성을 판별한다.</li>
+      <li>가능한 전체 각운동량 \(j\)를 찾고 클렙시–고든 계수로 두 기저를 변환한다.</li>
+      <li>구면 텐서 연산자의 성분과 회전 아래의 변환 법칙을 설명한다.</li>
+      <li>위그너–에카르트 정리에서 전이의 각운동량 선택 규칙을 읽는다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch12.html">12장</a> (동일 입자의 교환), <a href="ch14.html#thm-angular-spectrum">14장</a> (각운동량 사다리 연산자), <a href="ch15.html">15장</a> (수소 원자의 궤도 상태), <a href="ch16.html#def-spin-basis">16장</a> (스핀 \(1/2\) 기저)</p>
   </header>
 
   <section id="s1">
     <h2>두 스핀의 삼중항과 단일항</h2>
-    <p class="slot" data-slot="17.1절">아직 쓰지 않은 절입니다.</p>
+    <p>두 스핀 \(1/2\)의 공간은 \(\mathbb C^2\otimes\mathbb C^2\)이다. 잠시 입자 이름을 \(1,2\)로 붙이고 \(|\uparrow\downarrow\rangle=|\uparrow\rangle_1\otimes|\downarrow\rangle_2\)처럼 쓴다. 이 기저에서는 각 스핀의 \(z\) 성분을 알고 있다. 두 스핀을 함께 회전시키는 연산자는 전체 각운동량 \(\hat{\boldsymbol J}=\hat{\boldsymbol S}_1+\hat{\boldsymbol S}_2\)이다.</p>
+    <div class="box def" id="def-total-spin"><div class="box-h">전체 스핀 연산자</div>
+      <div class="formula" id="eq-total-spin">\[ \hat{\boldsymbol J}=\hat{\boldsymbol S}_1+\hat{\boldsymbol S}_2,\qquad
+        \hat J_z=\hat S_{1z}+\hat S_{2z},\qquad
+        \hat J_\pm=\hat S_{1\pm}+\hat S_{2\pm}. \]</div>
+      <p>서로 다른 인자에 작용하는 \(\hat S_{1i}\)와 \(\hat S_{2j}\)는 교환한다. 따라서 전체 연산자도 <a href="ch14.html#thm-angular-spectrum">각운동량 대수</a>를 만족하고, 공통 고유상태를 \(|j,m\rangle\)으로 표시할 수 있다. 여기서 \(\hat J^2|j,m\rangle=\hbar^2j(j+1)|j,m\rangle\), \(\hat J_z|j,m\rangle=\hbar m|j,m\rangle\)이다.</p>
+    </div>
+    <p>\(|\uparrow\uparrow\rangle\)는 \(m=1\)인 유일한 곱 상태이므로 가장 높은 상태 \(|1,1\rangle\)로 잡는다. 여기에 <a class="ref" href="#eq-total-spin"></a>의 내림 연산자를 적용하면</p>
+    <div class="formula" id="eq-triplet-lowering">\[ \hat J_-|\uparrow\uparrow\rangle
+      =\hbar\bigl(|\downarrow\uparrow\rangle+|\uparrow\downarrow\rangle\bigr)
+      =\hbar\sqrt2\,|1,0\rangle. \]</div>
+    <p>다시 내리면 \(|1,-1\rangle=|\downarrow\downarrow\rangle\)이다. 정규화한 세 상태가 <span class="term">삼중항</span> <span class="en">(triplet)</span>을 이룬다.</p>
+    <div class="box thm" id="thm-triplet-singlet"><div class="box-h">스핀 \(1/2\) 둘의 합성: \(1/2\otimes1/2=1\oplus0\)</div>
+      <div class="formula" id="eq-triplet-singlet">\[ \begin{aligned}
+        |1,1\rangle &amp;=|\uparrow\uparrow\rangle,\\
+        |1,0\rangle &amp;=\frac{|\uparrow\downarrow\rangle+|\downarrow\uparrow\rangle}{\sqrt2},\\
+        |1,-1\rangle &amp;=|\downarrow\downarrow\rangle,\\
+        |0,0\rangle &amp;=\frac{|\uparrow\downarrow\rangle-|\downarrow\uparrow\rangle}{\sqrt2}.
+      \end{aligned} \]</div>
+      <p>마지막 상태는 \(m=0\)인 나머지 독립 상태로, 삼중항의 \(|1,0\rangle\)과 직교하도록 만들었다. 이 <span class="term">단일항</span> <span class="en">(singlet)</span>에는 \(\hat J_z,\hat J_+,\hat J_-\)가 모두 0으로 작용하므로 \(j=0\)이다. 차원도 \(4=3+1\)로 맞는다.</p>
+    </div>
+    <p>두 입자의 표지를 바꾸는 \(\hat P_{12}\)는 \(|\uparrow\downarrow\rangle\)와 \(|\downarrow\uparrow\rangle\)를 서로 바꾼다. 따라서 <a class="ref" href="#eq-triplet-singlet"></a>의 삼중항은 교환에 대해 대칭, 단일항은 반대칭이다. 두 <em>동일한 전자</em>라면 전체 상태가 반대칭이어야 한다. 그러므로 삼중항의 공간 부분은 반대칭, 단일항의 공간 부분은 대칭이어야 한다. 이때 대칭성은 스핀 부분만이 아니라 전체 상태에 적용한다.</p>
+    <div class="box ex" id="ex-spin-coupling"><div class="box-h">스핀 결합의 에너지</div>
+      <p>회전에 대칭인 모형 상호작용 \(\hat H_{\rm int}=A\,\hat{\boldsymbol S}_1\cdot\hat{\boldsymbol S}_2/\hbar^2\)를 생각하자. \(A\)는 에너지 단위를 가진 상수다. \(\hat J^2=\hat S_1^2+\hat S_2^2+2\hat{\boldsymbol S}_1\cdot\hat{\boldsymbol S}_2\)와 \(\hat S_i^2=3\hbar^2/4\)를 이용하면</p>
+      <div class="formula" id="eq-spin-coupling-energy">\[ \frac{\hat{\boldsymbol S}_1\cdot\hat{\boldsymbol S}_2}{\hbar^2}
+        =\frac12\left[\frac{\hat J^2}{\hbar^2}-\frac32\right],\qquad
+        E_{\rm triplet}=\frac A4,\quad E_{\rm singlet}=-\frac{3A}{4}. \]</div>
+      <p>에너지 차이는 \(A\)이며, 어느 쪽이 낮은지는 \(A\)의 부호가 정한다. 이것은 상호작용을 주었을 때의 결과이고, \(A\) 자체는 계의 구체적인 물리에서 결정된다.</p>
+    </div>
   </section>
 
   <section id="s2">
-    <h2>클렙시-고든 계수</h2>
-    <p class="slot" data-slot="17.2절">아직 쓰지 않은 절입니다.</p>
+    <h2>클렙시–고든 계수</h2>
+    <p>두 각운동량이 \(j_1,j_2\)라면 각 성분을 따로 표시하는 <span class="term">비결합 기저</span> \(|j_1,m_1;j_2,m_2\rangle\)를 쓸 수 있다. 전체 \(\hat J^2,\hat J_z\)가 중요한 문제에서는 <span class="term">결합 기저</span> \(|(j_1j_2)j,m\rangle\)가 편리하다. 두 기저는 같은 \((2j_1+1)(2j_2+1)\)차원 공간을 나타낸다.</p>
+    <div class="box thm" id="thm-angular-addition"><div class="box-h">각운동량 합성 규칙</div>
+      <div class="formula" id="eq-angular-addition">\[ j=|j_1-j_2|,\ |j_1-j_2|+1,\ \ldots,\ j_1+j_2,
+        \qquad m=-j,-j+1,\ldots,j,\qquad m=m_1+m_2. \]</div>
+      <p>맨 위 상태는 \(m=j_1+j_2\)인 \(|j_1,j_1;j_2,j_2\rangle\) 하나뿐이다. 전체 내림 연산자로 \(j=j_1+j_2\) 묶음의 \(2j+1\)개 상태를 얻는다. 각 \(m\) 공간에서 이들과 직교하는 상태를 찾아 다음 묶음을 만들면 마지막 \(j=|j_1-j_2|\)까지 이어진다. 상태 수의 합은 \(\sum_{j=|j_1-j_2|}^{j_1+j_2}(2j+1)=(2j_1+1)(2j_2+1)\)이다.</p>
+    </div>
+    <div class="box def" id="def-cg"><div class="box-h">클렙시–고든 계수</div>
+      <div class="formula" id="eq-cg-expansion">\[ |(j_1j_2)j,m\rangle
+        =\sum_{m_1,m_2}C^{\,jm}_{j_1m_1,j_2m_2}|j_1,m_1;j_2,m_2\rangle,\qquad
+        C^{\,jm}_{j_1m_1,j_2m_2}
+        =\langle j_1,m_1;j_2,m_2|(j_1j_2)j,m\rangle. \]</div>
+      <p>이 겹침이 <span class="term">클렙시–고든 계수</span> <span class="en">(Clebsch–Gordan coefficient)</span>다. \(\hat J_z\)의 고유값이 달라서는 겹칠 수 없으므로 \(m_1+m_2=m\)일 때만 값이 0이 아닐 수 있다. 기저의 전체 위상 선택에 따라 계수의 부호는 바뀔 수 있지만 측정 확률은 변하지 않는다.</p>
+    </div>
+    <p>두 기저가 정규 직교하므로 변환 행렬은 유니터리다. 특히</p>
+    <div class="formula" id="eq-cg-orthogonality">\[ \sum_{m_1,m_2}
+      \bigl(C^{\,jm}_{j_1m_1,j_2m_2}\bigr)^*
+      C^{\,j'm'}_{j_1m_1,j_2m_2}
+      =\delta_{jj'}\delta_{mm'},\qquad
+      \sum_{j,m}C^{\,jm}_{j_1m_1,j_2m_2}
+      \bigl(C^{\,jm}_{j_1m'_1,j_2m'_2}\bigr)^*
+      =\delta_{m_1m'_1}\delta_{m_2m'_2}. \]</div>
+    <p>첫 식은 결합 상태의 직교성, 둘째 식은 비결합 기저에서의 완비성을 말한다. 둘째 식 덕분에 곱 상태를 결합 상태로 거꾸로 전개할 수 있다.</p>
+    <div class="box ex" id="ex-one-plus-half"><div class="box-h">\(j_1=1\)과 \(j_2=1/2\)의 합</div>
+      <p>가능한 전체 값은 \(j=3/2,1/2\), 상태 수는 \(4+2=3\cdot2\)다. \(|\uparrow\rangle\)와 \(|\downarrow\rangle\)는 둘째 스핀의 \(m_2=\pm1/2\) 상태다. 가장 높은 상태 \(|\tfrac32,\tfrac32\rangle=|1,1\rangle|\uparrow\rangle\)에 \(\hat J_-\)를 적용한다. 첫째 인자에서 \(\hbar\sqrt2\), 둘째 인자에서 \(\hbar\)가 나오고 왼쪽은 \(\hbar\sqrt3|\tfrac32,\tfrac12\rangle\)다.</p>
+      <div class="formula" id="eq-one-plus-half">\[ \begin{aligned}
+        |\tfrac32,\tfrac12\rangle
+          &amp;=\sqrt{\tfrac23}\,|1,0\rangle|\uparrow\rangle
+           +\sqrt{\tfrac13}\,|1,1\rangle|\downarrow\rangle,\\
+        |\tfrac12,\tfrac12\rangle
+          &amp;=\sqrt{\tfrac13}\,|1,0\rangle|\uparrow\rangle
+           -\sqrt{\tfrac23}\,|1,1\rangle|\downarrow\rangle.
+      \end{aligned} \]</div>
+      <p>두 번째 상태는 첫 번째와 직교하도록 택했으며 전체 부호는 이 장의 약속이다. 예를 들어 \(|1,0\rangle|\uparrow\rangle\)에서 \(\hat J^2\)를 측정하면 \(j=3/2\)가 나올 확률은 \(2/3\), \(j=1/2\)가 나올 확률은 \(1/3\)이다.</p>
+    </div>
+    <p>\(\hat{\boldsymbol J}_1\cdot\hat{\boldsymbol J}_2=[\hat J^2-\hat J_1^2-\hat J_2^2]/2\)처럼 전체 \(\hat J^2\)에 의존하는 상호작용은 결합 기저에서 바로 대각화된다. 반대로 각 입자의 \(z\) 성분을 따로 측정할 때는 비결합 기저가 자연스럽다.</p>
   </section>
 
   <section id="s3">
     <h2>텐서 연산자</h2>
-    <p class="slot" data-slot="17.3절">아직 쓰지 않은 절입니다.</p>
+    <p>상태뿐 아니라 연산자도 회전 아래에서 변한다. 회전해도 성분이 그대로인 스칼라, 세 성분이 서로 섞이는 벡터를 한데 묶어 다루는 도구가 <span class="term">기약 구면 텐서 연산자</span> <span class="en">(irreducible spherical tensor operator)</span>다. 계의 회전을 생성하는 \(\hat{\boldsymbol J}\)에 대해 차수 \(k\)의 텐서는 \(q=-k,\ldots,k\)인 \(2k+1\)개 성분을 가진다.</p>
+    <div class="box def" id="def-spherical-tensor"><div class="box-h">구면 텐서의 교환 관계</div>
+      <div class="formula" id="eq-spherical-tensor">\[ [\hat J_z,\hat T_q^{(k)}]=\hbar q\,\hat T_q^{(k)},\qquad
+        [\hat J_\pm,\hat T_q^{(k)}]
+        =\hbar\sqrt{(k\mp q)(k\pm q+1)}\,\hat T_{q\pm1}^{(k)}. \]</div>
+      <p>범위를 벗어난 성분은 0으로 둔다. \(k=0\)이면 하나의 스칼라 성분이 모든 \(\hat J_i\)와 교환한다. \(k=1\)이면 벡터의 세 성분을 구면 성분으로 바꾸어 놓은 셈이다.</p>
+    </div>
+    <div class="formula" id="eq-vector-spherical">\[ \hat V_0=\hat V_z,\qquad
+      \hat V_{+1}=-\frac{\hat V_x+i\hat V_y}{\sqrt2},\qquad
+      \hat V_{-1}=\frac{\hat V_x-i\hat V_y}{\sqrt2}. \]</div>
+    <p>예컨대 \(\hat{\boldsymbol V}=\hat{\boldsymbol r}\)이고 회전 생성자가 궤도 각운동량 \(\hat{\boldsymbol L}\)라면 \([\hat L_z,\hat x]=i\hbar\hat y\), \([\hat L_z,\hat y]=-i\hbar\hat x\)다. 이를 <a class="ref" href="#eq-vector-spherical"></a>에 대입하면 \([\hat L_z,\hat V_{+1}]=\hbar\hat V_{+1}\)이다. \(q\)는 연산자가 \(m\)에 더하는 각운동량을 나타낸다.</p>
+    <div class="box thm" id="thm-wigner-eckart"><div class="box-h">위그너–에카르트 정리</div>
+      <p>추가 양자수 \(\alpha,\alpha'\)까지 포함한 각운동량 고유상태 사이의 행렬 원소는 다음처럼 분해된다. 이 장에서는 아래 식으로 축약 행렬 원소의 정규화를 정의한다.</p>
+      <div class="formula" id="eq-wigner-eckart">\[ \langle\alpha'j'm'|\hat T_q^{(k)}|\alpha jm\rangle
+        =\frac{\langle\alpha'j'\|\hat T^{(k)}\|\alpha j\rangle}{\sqrt{2j'+1}}\,
+          \langle j,m;k,q|j',m'\rangle. \]</div>
+      <p>\(\hat T_q^{(k)}|\alpha jm\rangle\)의 각운동량 성분은 \(j\otimes k\)처럼 변한다. 따라서 \(m,m',q\)에 따른 차이는 클렙시–고든 계수가 정하고, 계의 구체적인 구조는 축약 행렬 원소에 담긴다. <a class="ref" href="#eq-wigner-eckart"></a>에서 읽는 필수 선택 규칙은 \(m'=m+q\)와 \(|j-k|\leq j'\leq j+k\)이다. 규칙을 만족해도 축약 행렬 원소나 다른 대칭성 때문에 전이가 0일 수 있다.</p>
+    </div>
+    <p>스칼라 \(k=0\)는 \(j'=j,\ m'=m\)만 연결한다. 벡터 \(k=1\)는 삼각 조건상 \(j'=j-1,j,j+1\)을 허용하되 음수 \(j'\)는 제외한다. 전기 쌍극자 연산자 \(e\hat{\boldsymbol r}\)는 벡터이며 공간 반전에서 부호가 바뀐다. 따라서 수소의 궤도 상태 사이에서는 각운동량 규칙에 더해 짝홀성도 적용해야 한다.</p>
+    <div class="box ex" id="ex-hydrogen-dipole"><div class="box-h">수소 \(1s\to2p_0\) 쌍극자 전이</div>
+      <p>\(\hat z=\hat r\cos\theta\)는 \(q=0\) 성분이다. 처음 상태는 \(l=0,m=0\), 나중 상태는 \(l'=1,m'=0\)이므로 두 선택 규칙을 만족한다. 구면 조화 함수의 각도 적분은</p>
+      <div class="formula" id="eq-dipole-angular">\[ \int d\Omega\,(Y_1^0)^*\cos\theta\,Y_0^0
+        =\frac1{\sqrt3},\qquad
+        \langle2p_0|\hat z|1s\rangle
+        =\frac1{\sqrt3}\int_0^\infty r^3 R_{21}(r)R_{10}(r)\,dr. \]</div>
+      <p>나머지 적분은 반지름 방향 파동함수가 결정한다. 반면 \(1s\to2s\)의 \(\langle2s|\hat z|1s\rangle\)는 처음과 나중의 궤도 상태가 모두 짝함수이고 \(\hat z\)가 홀함수이므로 0이다. 선택 규칙은 계산 전에 사라지는 행렬 원소를 가려 준다.</p>
+    </div>
+    <div class="callout tip"><strong>각운동량 \(j\)와 궤도 양자수 \(l\)</strong><p>위 수소 예제에서는 스핀을 제외한 궤도 공간을 다루므로 정리의 \(j\) 자리에 \(l\)을 넣었다. 스핀까지 결합한 원자 상태에서는 전체 \(\hat{\boldsymbol J}\)와 그에 맞는 결합 상태를 사용해야 한다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>두 스핀의 전체 연산자는 \(\hat{\boldsymbol J}=\hat{\boldsymbol S}_1+\hat{\boldsymbol S}_2\)이며 네 곱 상태는 \(j=1\) 삼중항과 \(j=0\) 단일항으로 나뉜다.</li>
+      <li>삼중항의 스핀 부분은 입자 교환에 대칭이고 단일항은 반대칭이다. 동일 전자의 전체 상태에는 반대칭 조건을 적용한다.</li>
+      <li>\(\hat{\boldsymbol S}_1\cdot\hat{\boldsymbol S}_2=[\hat J^2-\hat S_1^2-\hat S_2^2]/2\)이므로 스핀 결합 에너지는 전체 \(j\)로 구분된다.</li>
+      <li>두 각운동량의 합은 \(j=|j_1-j_2|,|j_1-j_2|+1,\ldots,j_1+j_2\)이고 \(m=m_1+m_2\)다.</li>
+      <li>클렙시–고든 계수는 비결합 기저와 결합 기저의 겹침이며 두 기저 사이의 유니터리 변환을 이룬다.</li>
+      <li>차수 \(k\)인 구면 텐서의 성분 \(q\)는 자기 양자수를 \(q\)만큼 바꾸는 방식으로 변환한다.</li>
+      <li>위그너–에카르트 정리는 행렬 원소를 축약 행렬 원소와 각운동량 계수로 분해한다. \(m'=m+q\)와 삼각 조건은 필요한 선택 규칙이다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \((|\uparrow\downarrow\rangle+|\downarrow\uparrow\rangle)/\sqrt2\)는 어떤 상태인가?</p><div class="opts">
+        <button class="opt" data-correct>\(|1,0\rangle\)</button><button class="opt">\(|0,0\rangle\)</button><button class="opt">\(|1,1\rangle\)</button>
+      </div><div class="quiz-exp">대칭인 \(m=0\) 조합은 삼중항에 속한다.</div></div>
+      <div class="quiz-q"><p>2. 단일항에서 \(\hat J^2\)를 측정하면?</p><div class="opts">
+        <button class="opt">\(\hbar^2/2\)</button><button class="opt" data-correct>\(0\)</button><button class="opt">\(2\hbar^2\)</button>
+      </div><div class="quiz-exp">단일항은 \(j=0\)이므로 고유값 \(\hbar^2j(j+1)=0\)이다.</div></div>
+      <div class="quiz-q"><p>3. \(j_1=1,\ j_2=1/2\)에서 가능한 전체 \(j\)는?</p><div class="opts">
+        <button class="opt">\(0,1\)</button><button class="opt" data-correct>\(1/2,3/2\)</button><button class="opt">\(1,2\)</button>
+      </div><div class="quiz-exp">\(|1-1/2|=1/2\)부터 \(1+1/2=3/2\)까지 한 칸씩 올라간다.</div></div>
+      <div class="quiz-q"><p>4. \(C^{\,jm}_{j_1m_1,j_2m_2}\)가 0이 아닐 수 있는 조건은?</p><div class="opts">
+        <button class="opt">\(m=m_1-m_2\)</button><button class="opt" data-correct>\(m=m_1+m_2\)</button><button class="opt">\(m=j_1+j_2\)</button>
+      </div><div class="quiz-exp">\(\hat J_z=\hat J_{1z}+\hat J_{2z}\)의 고유값이 일치해야 한다.</div></div>
+      <div class="quiz-q"><p>5. 차수 1인 텐서의 \(q=+1\) 성분은 \(m\)을 어떻게 바꾸는가?</p><div class="opts">
+        <button class="opt">\(m'=m-1\)</button><button class="opt">\(m'=m\)</button><button class="opt" data-correct>\(m'=m+1\)</button>
+      </div><div class="quiz-exp">\([\hat J_z,\hat T_{+1}^{(1)}]=\hbar\hat T_{+1}^{(1)}\)이므로 한 칸 올린다.</div></div>
+      <div class="quiz-q"><p>6. 수소 궤도 상태에서 \(\langle2s|\hat z|1s\rangle\)의 값은?</p><div class="opts">
+        <button class="opt">양수</button><button class="opt" data-correct>\(0\)</button><button class="opt">음수</button>
+      </div><div class="quiz-exp">두 \(s\) 상태는 짝함수이고 \(\hat z\)는 홀함수라 적분이 0이다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-triplet-lowering" data-level="1"><p>\(\hat J_-|\uparrow\uparrow\rangle\)를 직접 계산하고 \(|1,0\rangle\)의 정규화 계수 \(1/\sqrt2\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat S_{1-}\)는 첫째 스핀을, \(\hat S_{2-}\)는 둘째 스핀을 내려 각각 \(\hbar|\downarrow\uparrow\rangle,\hbar|\uparrow\downarrow\rangle\)를 준다. 두 곱 상태는 직교하므로 합의 노름은 \(\hbar\sqrt2\). 따라서 \(|1,0\rangle=(|\downarrow\uparrow\rangle+|\uparrow\downarrow\rangle)/\sqrt2\)다.</p></details></div>
+    <div class="prob" id="prob-singlet-zero" data-level="2"><p>\(|0,0\rangle\)에 \(\hat J_z,\hat J_+,\hat J_-\)를 작용시켜 모두 0임을 확인하고 \(\hat J^2\)의 고유값을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>두 곱 상태의 전체 \(m\)이 0이므로 \(\hat J_z|0,0\rangle=0\). \(\hat J_+\)는 두 항 모두 \(\hbar|\uparrow\uparrow\rangle\)로 보내지만 두 항의 부호가 반대라 소거된다. \(\hat J_-\)도 \(\hbar|\downarrow\downarrow\rangle\)로 가는 두 항이 소거된다. \(\hat J^2=\hat J_-\hat J_++\hat J_z^2+\hbar\hat J_z\)에서 고유값은 0이다.</p></details></div>
+    <div class="prob" id="prob-exchange-symmetry" data-level="2"><p>두 동일한 전자의 스핀 상태가 삼중항일 때와 단일항일 때 공간 파동함수의 교환 부호를 각각 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>삼중항 스핀의 교환 부호는 \(+1\), 단일항은 \(-1\)이다. 전자 전체 상태의 교환 부호는 \(-1\)이어야 하므로 공간 부분은 각각 \(-1,+1\)이다.</p></details></div>
+    <div class="prob" id="prob-spin-energy" data-level="2"><p>\(\hat H_{\rm int}=A\hat{\boldsymbol S}_1\cdot\hat{\boldsymbol S}_2/\hbar^2\)에서 \(A&gt;0\)일 때 바닥 상태의 전체 스핀과 삼중항·단일항의 에너지 차이를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat{\boldsymbol S}_1\cdot\hat{\boldsymbol S}_2/\hbar^2=[j(j+1)-3/2]/2\). \(j=1\)이면 \(1/4\), \(j=0\)이면 \(-3/4\)다. \(A&gt;0\)에서는 단일항이 낮고 \(E_{\rm triplet}-E_{\rm singlet}=A\)다.</p></details></div>
+    <div class="prob" id="prob-addition-dimensions" data-level="1"><p>\(j_1=2,\ j_2=1\)에서 가능한 \(j\)와 각 묶음의 상태 수를 쓰고 전체 차원이 맞는지 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(j=1,2,3\)이며 각 상태 수는 \(3,5,7\)이다. 합은 \(15=(2\cdot2+1)(2\cdot1+1)\)과 같다.</p></details></div>
+    <div class="prob" id="prob-cg-half" data-level="2"><p>\(\hat J_-|1,1\rangle|\uparrow\rangle\)에서 <a class="ref" href="#eq-one-plus-half"></a>의 첫 번째 전개식을 유도하고 두 계수의 제곱 합을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat J_-|1,1\rangle|\uparrow\rangle=\hbar\sqrt2|1,0\rangle|\uparrow\rangle+\hbar|1,1\rangle|\downarrow\rangle\). 왼쪽은 \(\hbar\sqrt3|\tfrac32,\tfrac12\rangle\)이므로 계수는 \(\sqrt{2/3},\sqrt{1/3}\). 제곱 합은 \(2/3+1/3=1\)이다.</p></details></div>
+    <div class="prob" id="prob-inverse-cg" data-level="2"><p>\(|1,0\rangle|\uparrow\rangle\)를 \(j=3/2,1/2\) 결합 상태로 전개하고 \(\hat J^2\) 측정에서 각각의 확률을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#eq-one-plus-half"></a>의 직교 변환을 거꾸로 풀면 \(|1,0\rangle|\uparrow\rangle=\sqrt{2/3}|\tfrac32,\tfrac12\rangle+\sqrt{1/3}|\tfrac12,\tfrac12\rangle\). 확률은 각각 \(2/3,1/3\)이다.</p></details></div>
+    <div class="prob" id="prob-product-spin-measurement" data-level="2"><p>두 스핀이 \(|\uparrow\downarrow\rangle\)에 있을 때 전체 \(\hat J^2\)의 가능한 고유값과 확률을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(|\uparrow\downarrow\rangle=(|1,0\rangle+|0,0\rangle)/\sqrt2\)다. 따라서 \(j=1\)의 고유값 \(2\hbar^2\)와 \(j=0\)의 고유값 0이 각각 확률 \(1/2\)로 나온다.</p></details></div>
+    <div class="prob" id="prob-tensor-selection" data-level="2"><p>\(j=1/2,m=1/2\) 상태에 \(k=1,q=+1\) 텐서를 작용할 때 \(j'=3/2,m'=3/2\)와 \(j'=5/2,m'=3/2\) 중 각운동량 규칙으로 허용되는 쪽을 고르라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(m'=m+q=3/2\)이고 삼각 조건은 \(1/2\leq j'\leq3/2\)이다. 따라서 \(j'=3/2\)만 허용된다. 허용된 행렬 원소가 반드시 0이 아닌 것은 아니다.</p></details></div>
+    <div class="prob" id="prob-hydrogen-dipole" data-level="3"><p>\(Y_0^0=1/\sqrt{4\pi}\), \(Y_1^0=\sqrt{3/(4\pi)}\cos\theta\)로 <a class="ref" href="#eq-dipole-angular"></a>의 각도 인자 \(1/\sqrt3\)을 구하라. \(1s\to2s\)의 \(\hat z\) 행렬 원소가 0인 이유도 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\int d\Omega\cos^2\theta=4\pi/3\)이므로 \(\int(Y_1^0)^*\cos\theta Y_0^0d\Omega=[\sqrt3/(4\pi)](4\pi/3)=1/\sqrt3\)이다. \(1s\)와 \(2s\)는 둘 다 짝함수이고 \(\hat z\)가 홀함수라 두 \(s\) 상태 사이의 전체 공간 적분은 0이다.</p></details></div>
   </section>
 </main>
 </body>
