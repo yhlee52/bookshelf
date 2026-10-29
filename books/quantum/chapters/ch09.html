@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>09 불확정성과 고전 극한 · QuantumBook</title>
-<meta name="description" content="일반 불확정성 관계 · 최소 불확정 파속 · 에너지-시간 관계 · 에렌페스트 정리">
+<meta name="description" content="슈바르츠 부등식으로 일반 불확정성 관계를 유도하고, 등호를 만드는 가우스 파속, 불확정성 관계를 이용한 어림, 에너지-시간 관계와 수명·선폭, 에렌페스트 정리와 고전 극한의 조건을 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,56 +24,439 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch09">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">09</span></div>
     <h1 data-fill="chapter-title">불확정성과 고전 극한</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">6장에서 교환하지 않는 두 관측량은 공통 고유 상태로 된 기저가 없어서, 한쪽을 날카롭게 하면 다른 쪽이 흐려진다고 했다. 이 장에서는 그 정도를 부등식으로 정확히 쓴다. 1장의 슈바르츠 부등식 하나로 두 불확정도의 곱에 하한이 있음을 보이고, 위치와 운동량에서는 그 하한 \(\hbar/2\)에 닿는 상태가 가우스 파속뿐임을 확인한다. 이어서 이 부등식으로 원자의 크기를 어림하고, 에너지와 시간 사이의 관계가 정확히 무엇을 말하는지 정리한다. 마지막으로 기댓값이 언제 고전 운동 방정식을 따르는지 살펴, 고전역학이 양자역학의 어떤 극한인지 본다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>슈바르츠 부등식으로 일반 불확정성 관계 \(\Delta\Omega\,\Delta\Lambda \ge \frac12|\langle[\hat\Omega, \hat\Lambda]\rangle|\)를 유도하고, 공분산을 넣은 강한 꼴을 쓸 수 있다.</li>
+      <li>위치와 운동량의 불확정도 곱이 정확히 \(\hbar/2\)인 상태가 가우스 파속뿐임을 보이고, 자유 파속이 퍼질 때 불확정도와 공분산이 어떻게 변하는지 설명할 수 있다.</li>
+      <li>불확정성 관계로 수소 원자의 크기와 바닥 에너지 같은 양을 어림하고, 어림이 어디까지 믿을 만한지 말할 수 있다.</li>
+      <li>에너지-시간 관계를 '상태가 눈에 띄게 변하는 데 걸리는 시간'으로 해석하고, 들뜬 상태의 수명과 선폭의 관계를 계산할 수 있다.</li>
+      <li>에렌페스트 정리를 유도하고, 위치의 기댓값이 고전 궤도를 따를 조건과 그 한계를 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>1장(슈바르츠 부등식), 2장(교환자, 에르미트 연산자, 투영 연산자), 3장(정준 교환 관계, 푸리에 변환), 4장(해밀턴 방정식, 리우빌 정리), 6장(기댓값과 불확정도, 기댓값의 시간 변화), 7장(자유 파속의 퍼짐), 8장(조화 진동자의 바닥 상태와 결맞음 상태)</p>
   </header>
 
+  <!-- ============================================================ 9.1 -->
   <section id="s1">
     <h2>일반 불확정성 관계</h2>
-    <p class="slot" data-slot="9.1절">아직 쓰지 않은 절입니다.</p>
+    <p>6장에서 측정값이 확정된 상태는 고유 상태뿐임을 보았다(<a href="ch06.html#thm-zero-variance">6장 정리 6.1</a>). 두 관측량 \(\Omega\)와 \(\Lambda\)가 한 상태에서 모두 확정된 값을 가지려면, 그 상태가 두 연산자의 공통 고유벡터여야 한다. 두 연산자가 교환하지 않으면 공통 고유벡터로 된 기저가 없으므로(<a href="ch06.html#s3-compatible">6.3절</a>), 대개는 한쪽을 날카롭게 하면 다른 쪽이 흐려진다. 그렇다면 둘을 동시에 얼마나 날카롭게 할 수 있을까? 이 절에서는 그 한계가 교환자로 정해짐을 보인다.</p>
+
+    <h3 id="s1-derivation">슈바르츠 부등식에서 출발하기</h3>
+    <p>에르미트 연산자 \(\hat\Omega\), \(\hat\Lambda\)와 정규화된 상태 \(|\psi\rangle\)를 생각하자. 기댓값을 뺀 두 연산자</p>
+    <div class="formula">\[ \hat A = \hat\Omega - \langle\Omega\rangle, \qquad \hat B = \hat\Lambda - \langle\Lambda\rangle \]</div>
+    <p>를 도입한다. \(\langle\Omega\rangle\)은 숫자이므로, 항등 연산자에 그 숫자를 곱한 것으로 읽는다. 기댓값이 실수이므로 \(\hat A\)와 \(\hat B\)도 에르미트이고, 정리 6.1의 증명에서 본 대로 분산은 벡터의 길이의 제곱이다.</p>
+    <div class="formula">\[ (\Delta\Omega)^2 = \langle\psi|\hat A^2|\psi\rangle = \lVert\hat A\psi\rVert^2, \qquad (\Delta\Lambda)^2 = \lVert\hat B\psi\rVert^2 \]</div>
+    <p>여기서 \(|\hat A\psi\rangle\)는 벡터 \(\hat A|\psi\rangle\)를 줄여 쓴 것이다. 두 벡터 \(|\hat A\psi\rangle\), \(|\hat B\psi\rangle\)에 슈바르츠 부등식(<a href="ch01.html#thm-schwarz">1장 정리 1.3</a>)을 쓰면</p>
+    <div class="formula" id="eq-unc-schwarz">\[ \begin{aligned} (\Delta\Omega)^2(\Delta\Lambda)^2 &= \lVert\hat A\psi\rVert^2\,\lVert\hat B\psi\rVert^2 \\ &\ge |\langle\hat A\psi|\hat B\psi\rangle|^2 = |\langle\psi|\hat A\hat B|\psi\rangle|^2 \end{aligned} \]</div>
+    <p>이다. 마지막 등호에서는 \(\hat A\)가 에르미트이므로 켓 \(|\hat A\psi\rangle\)에 대응하는 브라가 \(\langle\psi|\hat A\)라는 것을 썼다.</p>
+    <p>이제 오른쪽의 복소수 \(\langle\psi|\hat A\hat B|\psi\rangle\)를 실수부와 허수부로 나누자. 곱 \(\hat A\hat B\)를 두 순서의 합과 차로 쪼개면</p>
+    <div class="formula" id="eq-ab-split">\[ \begin{gathered} \hat A\hat B = \frac12\{\hat A, \hat B\} + \frac12[\hat A, \hat B], \\ \{\hat A, \hat B\} = \hat A\hat B + \hat B\hat A \end{gathered} \]</div>
+    <p>이다. \(\{\hat A, \hat B\}\)를 <span class="term">반교환자</span> <span class="en">(anticommutator)</span>라 한다. 두 부분의 성질은 다음과 같다.</p>
+    <ul>
+      <li>\((\hat A\hat B)^\dagger = \hat B^\dagger\hat A^\dagger = \hat B\hat A\)이므로 \(\{\hat A, \hat B\}^\dagger = \{\hat A, \hat B\}\)이다. 반교환자는 에르미트이고, 기댓값이 실수다.</li>
+      <li>같은 이유로 \([\hat A, \hat B]^\dagger = [\hat B, \hat A] = -[\hat A, \hat B]\)이다. 이런 연산자 \(\hat C\)의 기댓값은 \(\langle\psi|\hat C|\psi\rangle^* = \langle\psi|\hat C^\dagger|\psi\rangle = -\langle\psi|\hat C|\psi\rangle\)이므로 순허수다. 또 숫자는 모든 연산자와 교환하므로 \([\hat A, \hat B] = [\hat\Omega, \hat\Lambda]\)이다.</li>
+    </ul>
+    <p>따라서 \(\langle\hat A\hat B\rangle\)의 실수부는 \(\frac12\langle\{\hat A, \hat B\}\rangle\)이고, 허수부는 \(\frac{1}{2i}\langle[\hat\Omega, \hat\Lambda]\rangle\)이다. 복소수의 절댓값의 제곱은 실수부의 제곱과 허수부의 제곱의 합이므로, 식 <a class="ref" href="#eq-unc-schwarz"></a>은</p>
+    <div class="formula">\[ (\Delta\Omega)^2(\Delta\Lambda)^2 \ge \frac14\big|\langle[\hat\Omega, \hat\Lambda]\rangle\big|^2 + \frac14\big\langle\{\hat A, \hat B\}\big\rangle^2 \]</div>
+    <p>가 된다. 오른쪽 둘째 항에 들어 있는 양</p>
+    <div class="formula" id="eq-covariance">\[ \begin{aligned} \mathrm{cov}(\Omega, \Lambda) &= \frac12\big\langle\{\hat A, \hat B\}\big\rangle \\ &= \frac12\langle\hat\Omega\hat\Lambda + \hat\Lambda\hat\Omega\rangle - \langle\Omega\rangle\langle\Lambda\rangle \end{aligned} \]</div>
+    <p>를 두 관측량의 <span class="term">공분산</span> <span class="en">(covariance)</span>이라 한다. 확률론에서 두 확률 변수의 공분산은 \(\langle(\omega - \langle\omega\rangle)(\lambda - \langle\lambda\rangle)\rangle\)이다. 연산자는 곱하는 순서에 따라 결과가 다르므로 두 순서를 평균한 것이다. 한쪽이 평균보다 클 때 다른 쪽도 큰 경향이 있으면 양수, 작은 경향이 있으면 음수다.</p>
+    <div class="box thm" id="thm-uncertainty"><div class="box-h">일반 불확정성 관계</div>
+      <p>에르미트 연산자 \(\hat\Omega\), \(\hat\Lambda\)와 임의의 상태에 대해</p>
+      <div class="formula" id="eq-unc-strong">\[ \begin{aligned} (\Delta\Omega)^2(\Delta\Lambda)^2 &- \mathrm{cov}(\Omega, \Lambda)^2 \\ &\ge \frac14\big|\langle[\hat\Omega, \hat\Lambda]\rangle\big|^2 \end{aligned} \]</div>
+      <p>이고, 공분산 항을 버린 약한 꼴은</p>
+      <div class="formula" id="eq-unc-general">\[ \Delta\Omega\,\Delta\Lambda \ge \frac12\big|\langle[\hat\Omega, \hat\Lambda]\rangle\big| \]</div>
+      <p>이다. 앞의 것을 슈뢰딩거의 불확정성 관계, 뒤의 것을 로버트슨의 불확정성 관계라 한다.</p>
+    </div>
+    <p>증명의 뼈대는 둘뿐이다. 분산은 벡터의 길이라는 것, 그리고 두 벡터의 내적은 길이의 곱을 넘지 못한다는 것이다. 교환자는 그 내적의 허수부에서 나왔다. 두 연산자가 교환하면 허수부가 0이어서 오른쪽이 0이 되고, 부등식은 아무것도 막지 않는다.</p>
+
+    <h3 id="s1-xp">위치와 운동량</h3>
+    <p>\(\hat\Omega = \hat x\), \(\hat\Lambda = \hat p\)로 두자. 정준 교환 관계 \([\hat x, \hat p] = i\hbar\)(<a href="ch06.html#eq-ccr-post">6장 식 (6.1)</a>)에서 오른쪽은 상태와 무관하게 \(\frac12|i\hbar| = \hbar/2\)이다.</p>
+    <div class="formula" id="eq-heisenberg">\[ \Delta x\,\Delta p \ge \frac\hbar2 \]</div>
+    <p>이것이 <span class="term">하이젠베르크의 불확정성 관계</span> <span class="en">(Heisenberg uncertainty relation)</span>다. 교환자가 0이 아닌 숫자이므로 위치와 운동량이 함께 날카로운 상태는 하나도 없다. 특히 \(\Delta x = 0\)이거나 \(\Delta p = 0\)인 정규화된 상태도 없다. 앞 장들에서 계산한 상태들도 모두 이 부등식을 만족한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>상태</th><th>\(\Delta x\,\Delta p\)</th><th>계산한 곳</th></tr></thead>
+      <tbody>
+        <tr><td>가우스 파속</td><td>\(0.5\,\hbar\)</td><td><a href="ch06.html#ex-gauss-moments">6장 예제 6.6</a></td></tr>
+        <tr><td>조화 진동자의 바닥 상태</td><td>\(0.5\,\hbar\)</td><td><a href="ch08.html#ex-ground">8장 예제 8.2</a></td></tr>
+        <tr><td>무한 우물의 바닥 상태</td><td>\(0.568\,\hbar\)</td><td><a href="ch07.html#prob-box-uncertainty">7장 문제 7.2</a></td></tr>
+        <tr><td>\(e^{-|x|/a}/\sqrt a\)</td><td>\(0.707\,\hbar\)</td><td><a href="ch06.html#prob-exp-moments">6장 문제 6.5</a></td></tr>
+        <tr><td>조화 진동자의 \(|n\rangle\)</td><td>\((n + \frac12)\,\hbar\)</td><td><a href="ch08.html#ex-moments">8장 예제 8.4</a></td></tr>
+      </tbody>
+    </table></div>
+    <p>하한 \(\hbar/2\)에 닿은 것은 가우스 모양의 상태뿐이다. 이것이 우연이 아님을 9.2절에서 보인다. 3차원에서는 \([\hat x_i, \hat p_j] = i\hbar\delta_{ij}\)이므로 같은 방향의 성분끼리만 \(\Delta x\,\Delta p_x \ge \hbar/2\)이고, \(x\)와 \(p_y\)처럼 방향이 다른 성분은 함께 날카로울 수 있다.</p>
+    <div class="box ex" id="ex-spin-uncertainty"><div class="box-h">스핀의 두 성분</div>
+      <p>파울리 행렬(<a href="ch01.html#ex-pauli">1장 예제 1.3</a>)을 곱해 보면 \(\sigma_x\sigma_y = \begin{pmatrix} i & 0 \\ 0 & -i \end{pmatrix} = i\sigma_z\)이고 \(\sigma_y\sigma_x = -i\sigma_z\)이므로 \([\sigma_x, \sigma_y] = 2i\sigma_z\)이다. 식 <a class="ref" href="#eq-unc-general"></a>는</p>
+      <div class="formula">\[ \Delta\sigma_x\,\Delta\sigma_y \ge |\langle\sigma_z\rangle| \]</div>
+      <p>이다. 위치·운동량과 달리 오른쪽이 상태에 따라 달라진다.</p>
+      <ul>
+        <li>\(|z{+}\rangle \to (1, 0)\)에서는 \(\langle\sigma_x\rangle = \langle\sigma_y\rangle = 0\)이고 \(\sigma_x^2 = \sigma_y^2 = I\)이므로 \(\Delta\sigma_x = \Delta\sigma_y = 1\)이다. \(\langle\sigma_z\rangle = 1\)이므로 \(1 \ge 1\)로 등호다.</li>
+        <li>\(|x{+}\rangle \to (1, 1)/\sqrt2\)에서는 \(\sigma_x\)의 고유 상태이므로 \(\Delta\sigma_x = 0\)이다. 그래도 모순이 없다. \(\langle\sigma_z\rangle = 0\)이어서 오른쪽도 0이기 때문이다.</li>
+      </ul>
+      <p>교환하지 않는 관측량이라도 교환자의 기댓값이 0인 상태에서는 한쪽을 완전히 날카롭게 할 수 있다. 위치와 운동량에서 이것이 불가능한 까닭은 교환자가 연산자가 아니라 0이 아닌 숫자이기 때문이다.</p>
+    </div>
+    <div class="callout warn"><strong>불확정성 관계가 말하지 않는 것</strong><p>식 <a class="ref" href="#eq-heisenberg"></a>은 같은 상태로 준비한 계를 많이 모아, 절반에서는 위치를 재고 나머지 절반에서는 운동량을 잴 때 두 측정값 분포의 표준 편차에 관한 명제다. 측정 하나하나는 얼마든지 정밀할 수 있고, 그 결과들이 \(\Delta x\)만큼 흩어질 뿐이다. 측정 장치가 서툴러서 생기는 한계도 아니다. 상태 자체가 위치와 운동량의 확정된 값을 함께 갖지 않는다는 뜻이다.</p></div>
+    <div class="callout deep"><strong>현미경에서 부등식으로</strong><p>하이젠베르크는 1927년에, 전자의 위치를 빛으로 보려 하면 광자가 전자를 걷어차 운동량이 흐트러진다는 '현미경' 논증으로 이 관계를 처음 내놓았다. 5장에서 경로를 알아내면 간섭 무늬가 사라진다고 어림한 것(<a href="ch05.html#s3-which">5.3절</a>)도 같은 종류의 논증이다. 같은 해 케너드(E. Kennard)가 표준 편차에 관한 부등식 \(\Delta x\,\Delta p \ge \hbar/2\)를 증명했고, 로버트슨(H. P. Robertson)이 1929년에 임의의 두 관측량으로, 슈뢰딩거가 1930년에 공분산 항까지 넓혔다. 측정 하나가 다른 관측량을 얼마나 교란하는지는 이와 다른 질문이며, 지금도 연구되는 주제다. 경로 측정과 간섭 무늬의 관계는 22장에서 얽힘으로 다시 본다.</p></div>
   </section>
 
+  <!-- ============================================================ 9.2 -->
   <section id="s2">
     <h2>최소 불확정 파속</h2>
-    <p class="slot" data-slot="9.2절">아직 쓰지 않은 절입니다.</p>
+    <p>9.1절의 표에서 \(\Delta x\,\Delta p = \hbar/2\)에 닿은 상태는 모두 가우스 파속이었다. 등호를 만드는 상태는 이것뿐일까? 등호의 조건을 따져 보면 답이 나온다. 그 과정에서 \(\hbar/2\)가 실제로 도달할 수 있는 하한이라는 것, 곧 더 큰 수로 바꿀 수 없다는 것도 확인된다.</p>
+
+    <h3 id="s2-equality">등호의 조건</h3>
+    <p>식 <a class="ref" href="#eq-heisenberg"></a>의 유도에서 부등호는 두 번 나왔다. 둘 다 등호여야 한다. 여기서 \(\hat A = \hat x - \langle x\rangle\), \(\hat B = \hat p - \langle p\rangle\)이다.</p>
+    <ol>
+      <li><b>슈바르츠 부등식의 등호.</b> 두 벡터가 서로의 상수배여야 한다(<a href="ch01.html#thm-schwarz">1장 정리 1.3</a>). \(\Delta x = 0\)이면 식 <a class="ref" href="#eq-heisenberg"></a>에 어긋나므로 \(\hat A|\psi\rangle \ne 0\)이고, 어떤 복소수 \(c\)에 대해 \(\hat B|\psi\rangle = c\,\hat A|\psi\rangle\)이다.</li>
+      <li><b>공분산이 0.</b> 버린 항 \(\langle\{\hat A, \hat B\}\rangle\)이 0이어야 한다.</li>
+    </ol>
+    <p>첫째 조건을 쓰면 \(\langle\psi|\hat A\hat B|\psi\rangle = \langle\hat A\psi|\hat B\psi\rangle = c\,(\Delta x)^2\)이고, \(\langle\psi|\hat B\hat A|\psi\rangle = \langle\hat B\psi|\hat A\psi\rangle = c^*(\Delta x)^2\)이다. 따라서</p>
+    <div class="formula">\[ \begin{gathered} \langle\{\hat A, \hat B\}\rangle = (c + c^*)(\Delta x)^2, \\ \langle[\hat A, \hat B]\rangle = (c - c^*)(\Delta x)^2 \end{gathered} \]</div>
+    <p>이다. 둘째 조건에서 \(c + c^* = 0\), 곧 \(c\)는 순허수다. \(c = i\lambda\)(\(\lambda\)는 실수)로 쓰고 \([\hat A, \hat B] = i\hbar\)를 넣으면 \(2i\lambda(\Delta x)^2 = i\hbar\)이므로</p>
+    <div class="formula" id="eq-min-condition">\[ \begin{gathered} (\hat p - \langle p\rangle)|\psi\rangle = i\lambda\,(\hat x - \langle x\rangle)|\psi\rangle, \\ \lambda = \frac{\hbar}{2(\Delta x)^2} > 0 \end{gathered} \]</div>
+    <p>이다. 위치 표현에서 \(\hat p = -i\hbar\,d/dx\)이고, \(x_0 = \langle x\rangle\), \(p_0 = \langle p\rangle\)로 쓰면 이것은 1차 미분 방정식</p>
+    <div class="formula">\[ \frac{d\psi}{dx} = \Big[\frac{ip_0}{\hbar} - \frac{\lambda}{\hbar}(x - x_0)\Big]\psi \]</div>
+    <p>이다. 양변을 \(\psi\)로 나누어 적분하면 \(\ln\psi = ip_0x/\hbar - \lambda(x - x_0)^2/2\hbar + (\text{상수})\)이다. \(\sigma^2 = \hbar/\lambda = 2(\Delta x)^2\)으로 쓰고 정규화하면</p>
+    <div class="formula" id="eq-min-packet">\[ \psi(x) = \frac{1}{(\pi\sigma^2)^{1/4}}\,e^{-(x - x_0)^2/2\sigma^2}\,e^{ip_0x/\hbar} \]</div>
+    <p>이다(전체 위상은 떼었다). \(\lambda > 0\)이라는 것이 중요하다. \(\lambda\)가 음수였다면 \(\psi\)가 \(e^{+|\lambda|x^2/2\hbar}\)처럼 자라 정규화할 수 없었을 것이다. 거꾸로, 이 가우스 파속이 실제로 등호를 만든다는 것은 6장에서 계산했다(<a href="ch06.html#ex-gauss-moments">6장 예제 6.6</a>). 따라서 \(\hbar/2\)는 정말로 도달할 수 있는 하한이다.</p>
+    <div class="box thm" id="thm-min-packet"><div class="box-h">최소 불확정 파속</div>
+      <p>\(\Delta x\,\Delta p = \hbar/2\)인 상태는 식 <a class="ref" href="#eq-min-packet"></a>의 가우스 파속뿐이다. 중심 \(x_0\), 평균 운동량 \(p_0\), 폭 \(\sigma > 0\)은 아무 값이나 될 수 있고, 이때 \(\Delta x = \sigma/\sqrt2\), \(\Delta p = \hbar/\sqrt2\,\sigma\)이다.</p>
+    </div>
+    <p>이 정리로 앞 장의 결과 몇 가지가 한 번에 설명된다. 조화 진동자의 바닥 상태와 결맞음 상태(<a href="ch08.html#eq-coherent-wave">8장 식 (8.30)</a>)가 \(\Delta x\,\Delta p = \hbar/2\)인 것은 둘 다 폭이 \(\sigma = b\)인 가우스 파속이기 때문이다. 들뜬 상태 \(|n\rangle\)은 가우스 함수가 아니므로 곱이 \(\hbar/2\)보다 크다.</p>
+
+    <h3 id="s2-chirp">퍼지는 파속과 공분산</h3>
+    <p>7장에서 자유 입자의 가우스 파속은 시간이 지나며 퍼졌다(<a href="ch07.html#eq-spreading">7장 식 (7.2)</a>). 운동량 분포는 변하지 않으므로 \(\Delta p\)는 그대로이고 \(\Delta x\)만 커진다. 처음에 최소 불확정 파속이었더라도 곱 \(\Delta x\,\Delta p\)는 \(\hbar/2\)보다 커지는 것이다. 그런데 퍼진 파속도 여전히 가우스 모양이다. <a class="ref" href="#thm-min-packet"></a>와 어긋나지 않는 까닭은, 위상에 \(x^2\)에 비례하는 항이 생겨 식 <a class="ref" href="#eq-min-packet"></a>의 꼴에서 벗어나기 때문이다. 이런 파속을 먼저 살펴보자.</p>
+    <div class="box ex" id="ex-chirp"><div class="box-h">위상이 휜 가우스 파속</div>
+      <p>실수 \(\beta\)에 대해 파동함수</p>
+      <div class="formula" id="eq-chirp">\[ \psi(x) = \frac{1}{(\pi\sigma^2)^{1/4}}\,e^{-(1 - i\beta)\,x^2/2\sigma^2} \]</div>
+      <p>의 불확정도와 공분산을 구하자. \(|\psi|^2\)은 \(\beta\)와 무관하므로 \(\langle x\rangle = 0\), \(\Delta x = \sigma/\sqrt2\)이다. 도함수는 \(\psi' = -(1 - i\beta)(x/\sigma^2)\psi\)이므로</p>
+      <ul>
+        <li>\(\langle p\rangle = -i\hbar\int\psi^*\psi'\,dx = i\hbar(1 - i\beta)\langle x\rangle/\sigma^2 = 0\)이다.</li>
+        <li>\(\langle p^2\rangle = \hbar^2\int|\psi'|^2dx = \hbar^2(1 + \beta^2)\langle x^2\rangle/\sigma^4 = \hbar^2(1 + \beta^2)/2\sigma^2\)이다.</li>
+        <li>\(\langle\hat x\hat p\rangle = -i\hbar\int\psi^*x\,\psi'\,dx = i\hbar(1 - i\beta)\langle x^2\rangle/\sigma^2 = \frac{\hbar\beta}{2} + \frac{i\hbar}{2}\)이다. \(\hat p\hat x = \hat x\hat p - i\hbar\)이므로 \(\langle\hat p\hat x\rangle = \frac{\hbar\beta}{2} - \frac{i\hbar}{2}\)이고, 공분산은 \(\mathrm{cov}(x, p) = \hbar\beta/2\)이다.</li>
+      </ul>
+      <p>정리하면</p>
+      <div class="formula">\[ \begin{gathered} \Delta x\,\Delta p = \frac\hbar2\sqrt{1 + \beta^2}, \\ (\Delta x)^2(\Delta p)^2 - \mathrm{cov}(x, p)^2 = \frac{\hbar^2}{4} \end{gathered} \]</div>
+      <p>이다. \(\beta \ne 0\)이면 로버트슨의 꼴(식 <a class="ref" href="#eq-unc-general"></a>)에서는 등호가 아니지만, 슈뢰딩거의 꼴(식 <a class="ref" href="#eq-unc-strong"></a>)에서는 언제나 등호다. 위상 \(\beta x^2/2\sigma^2\)을 \(x\)로 미분해 \(\hbar\)를 곱한 \(\hbar\beta x/\sigma^2\)은 그 자리의 국소적인 운동량이다. \(\beta > 0\)이면 오른쪽에 있는 부분일수록 오른쪽으로 빨리 가므로, 위치와 운동량이 함께 커지는 경향, 곧 양의 공분산이 생긴다.</p>
+    </div>
+    <p>퍼지는 자유 파속이 바로 이것이다. 7장의 계산에서 시간 \(t\)의 파속은 지수가 \(-x^2/2\sigma^2(1 + i\tau)\)인 가우스 함수였다(\(\tau = \hbar t/m\sigma^2\), 여기서는 \(p_0 = 0\)). \(\frac{1}{1 + i\tau} = \frac{1 - i\tau}{1 + \tau^2}\)이므로, 이것은 식 <a class="ref" href="#eq-chirp"></a>에서 \(\sigma\)를 \(\sigma\sqrt{1 + \tau^2}\)으로, \(\beta\)를 \(\tau\)로 바꾼 것이다. 예제의 결과에 넣으면</p>
+    <div class="formula" id="eq-free-cov">\[ \begin{gathered} \Delta x = \frac{\sigma\sqrt{1 + \tau^2}}{\sqrt2}, \qquad \Delta p = \frac{\hbar}{\sqrt2\,\sigma}, \\ \mathrm{cov}(x, p) = \frac{\hbar\tau}{2} \end{gathered} \]</div>
+    <p>이다. \(\Delta p\)는 \(\sqrt{1 + \tau^2}\)이 약분되어 일정하고, \(\Delta x\)는 식 (7.2)대로 커지며, 공분산은 시간에 비례해 자란다. 빠른 부분이 앞으로 나가고 느린 부분이 뒤처지면서 위치와 운동량 사이에 상관이 생기는 것이다. 그래도 \((\Delta x)^2(\Delta p)^2 - \mathrm{cov}^2 = \hbar^2/4\)는 언제나 등호로 남는다.</p>
+    <p>그림 9-1은 이것을 위상 공간에 그린 것이다. \(x\)를 \(\sigma\)로, \(p\)를 \(\hbar/\sigma\)로 재면 처음 파속의 불확정도는 반지름 \(1/\sqrt2\)인 원으로 나타낼 수 있다(8장 그림 8-4의 작은 원과 같다). 이 원 위의 각 점을 고전적인 자유 운동 \((x, p) \to (x + pt/m, p)\)으로 옮기면, 무차원 좌표로는 \((X, P) \to (X + \tau P, P)\)이다. 원 위의 점 \((\cos\phi, \sin\phi)/\sqrt2\)는 \(\big((\cos\phi + \tau\sin\phi)/\sqrt2,\ \sin\phi/\sqrt2\big)\)로 가고, 이 \(x\) 좌표의 최댓값은 \(\sqrt{(1 + \tau^2)/2}\)로 식 <a class="ref" href="#eq-free-cov"></a>의 \(\Delta x/\sigma\)와 같다. \(p\) 방향의 폭은 \(1/\sqrt2\) 그대로다. 위쪽 절반(\(p > 0\))은 오른쪽으로, 아래쪽 절반은 왼쪽으로 밀리므로 원이 기운 타원이 되고, 이 기울어짐이 공분산이다. 미는 변환은 넓이를 바꾸지 않으므로(리우빌 정리, <a href="ch04.html#prob-liouville">4장 문제 4.12</a>) 타원의 넓이는 원래 단위로 \(\pi\hbar/2\) 그대로다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:9-1--><svg viewBox="0 0 360 262" role="img" aria-label="자유 입자 가우스 파속의 불확정도 타원이 넓이를 유지한 채 기울어진다"><defs><marker id="f91-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f91-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f91-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="9.5" y1="130" x2="350.5" y2="130" class="s-line" stroke-width="1.2" marker-end="url(#f91-dim)"/><line x1="180" y1="244.7" x2="180" y2="15.3" class="s-line" stroke-width="1.2" marker-end="url(#f91-dim)"/><line x1="56" y1="130" x2="56" y2="134" class="s-line" stroke-width="1.2"/><text x="56" y="147" class="t-dim" text-anchor="middle">−2</text><line x1="118" y1="130" x2="118" y2="134" class="s-line" stroke-width="1.2"/><text x="118" y="147" class="t-dim" text-anchor="middle">−1</text><line x1="242" y1="130" x2="242" y2="134" class="s-line" stroke-width="1.2"/><text x="242" y="147" class="t-dim" text-anchor="middle">1</text><line x1="304" y1="130" x2="304" y2="134" class="s-line" stroke-width="1.2"/><text x="304" y="147" class="t-dim" text-anchor="middle">2</text><line x1="176" y1="192" x2="180" y2="192" class="s-line" stroke-width="1.2"/><text x="173" y="196" class="t-dim" text-anchor="end">−1</text><line x1="176" y1="68" x2="180" y2="68" class="s-line" stroke-width="1.2"/><text x="173" y="72" class="t-dim" text-anchor="end">1</text><text font-size="14" x="352.4" y="152" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan>/<tspan font-style="italic">σ</tspan></text><text font-size="14" x="187" y="21.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">p</tspan><tspan font-style="italic">σ</tspan>/<tspan font-style="italic">ħ</tspan></text><line x1="18.8" y1="86.2" x2="341.2" y2="86.2" class="s-grid" stroke-dasharray="4 3"/><line x1="18.8" y1="173.8" x2="341.2" y2="173.8" class="s-grid" stroke-dasharray="4 3"/><line x1="278" y1="30.8" x2="278" y2="229.2" class="s-grid" stroke-dasharray="4 3"/><line x1="82" y1="30.8" x2="82" y2="229.2" class="s-grid" stroke-dasharray="4 3"/><path d="M278 90.8 L277.6 89.1 L276.1 87.7 L273.7 86.8 L270.6 86.3 L266.6 86.2 L261.3 86.5 L249.3 88.4 L234.8 91.8 L217.5 96.9 L198.7 103.3 L180 110.4 L160.5 118.6 L142.5 126.9 L125.9 135.3 L110.7 143.9 L98.3 151.9 L93.4 155.4 L89.4 158.7 L86.3 161.8 L83.8 164.8 L82.4 167.2 L82 169.2 L82.4 170.9 L83.8 172.2 L86 173.2 L89.4 173.7 L93.4 173.8 L98.3 173.5 L103.8 172.8 L110.7 171.6 L125.9 168 L142.5 163.1 L160.5 157 L180 149.6 L199.5 141.4 L217.5 133.1 L234.1 124.7 L249.3 116.1 L261.3 108.5 L266.2 104.9 L270.6 101.3 L273.7 98.2 L276.1 95.5 L277.6 92.8 L278 90.8 Z" class="f-acc2-soft" stroke-width="1.8" fill-opacity="0.55"/><path d="M223.8 130 L223.6 125.8 L223 121.6 L222 117.5 L220.5 113.2 L218.5 109.1 L216.3 105.5 L213.8 102.1 L211 99 L207.9 96.2 L204.5 93.7 L200.9 91.5 L196.8 89.5 L192.8 88.1 L188.7 87 L184.6 86.4 L180 86.2 L175.8 86.4 L171.6 87 L167.2 88.1 L163.2 89.5 L159.1 91.5 L155.5 93.7 L152.1 96.2 L149 99 L146.2 102.1 L143.7 105.5 L141.5 109.1 L139.5 113.2 L138.1 117.2 L137 121.6 L136.4 125.8 L136.2 130 L136.4 134.2 L137 138.4 L138.1 142.8 L139.5 146.8 L141.5 150.9 L143.7 154.5 L146.2 157.9 L149 161 L152.1 163.8 L155.5 166.3 L159.1 168.5 L163.2 170.5 L167.2 171.9 L171.3 173 L175.4 173.6 L180 173.8 L184.2 173.6 L188.4 173 L192.8 171.9 L196.8 170.5 L200.6 168.7 L204.5 166.3 L207.9 163.8 L211 161 L213.8 157.9 L216.3 154.5 L218.5 150.9 L220.5 146.8 L221.9 142.8 L223 138.7 L223.6 134.6 L223.8 130 Z" class="f-acc-soft" stroke-width="2" fill-opacity="0.75"/><line x1="145.9" y1="55.6" x2="214.1" y2="55.6" class="s-line" stroke-width="1.6" marker-end="url(#f91-dim)"/><line x1="214.1" y1="204.4" x2="145.9" y2="204.4" class="s-line" stroke-width="1.6" marker-end="url(#f91-dim)"/><line x1="180" y1="226.1" x2="278" y2="226.1" class="s-acc2" stroke-width="1.4" marker-end="url(#f91-acc2)"/><text font-size="13" x="229" y="242.1" class="t-math acc2" text-anchor="middle">Δ<tspan font-style="italic">x</tspan></text><text font-size="13" x="342.4" y="80.2" class="t-math dim" text-anchor="end">Δ<tspan font-style="italic">p</tspan></text><text font-size="13" x="191.2" y="118.8" class="t-math acc" text-anchor="start"><tspan font-style="italic">τ</tspan> = 0</text><text font-size="13" x="273" y="69.2" class="t-math acc2" text-anchor="start"><tspan font-style="italic">τ</tspan> = 2</text></svg><!--/fig:9-1--></div>
+      <figcaption><b>그림 9-1.</b> 자유 입자 가우스 파속의 불확정도 타원. \(x\)는 처음 폭 \(\sigma\)로, \(p\)는 \(\hbar/\sigma\)로 쟀다. \(\tau = \hbar t/m\sigma^2 = 0\)의 원(반지름 \(1/\sqrt2\))이 \(\tau = 2\)에서는 옆으로 밀려 기운 타원이 된다. 위쪽은 오른쪽으로, 아래쪽은 왼쪽으로 움직였다. 가로 그림자의 반폭 \(\Delta x\)는 커지지만 세로 폭 \(\Delta p\)(가로 점선)는 그대로이고, 넓이는 일정하다.</figcaption>
+    </figure>
+    <p>일반적으로 분산과 공분산으로 정한 타원 \(\mathbf z^{\mathsf T}\Sigma^{-1}\mathbf z = 1\)(\(\mathbf z = (x - \langle x\rangle, p - \langle p\rangle)\), \(\Sigma\)는 대각 원소가 \((\Delta x)^2, (\Delta p)^2\)이고 비대각 원소가 공분산인 행렬)의 넓이는 \(\pi\sqrt{\det\Sigma} = \pi\sqrt{(\Delta x)^2(\Delta p)^2 - \mathrm{cov}^2}\)이다. 그러므로 슈뢰딩거의 불확정성 관계는 <b>위상 공간의 불확정도 타원의 넓이가 \(\pi\hbar/2\)보다 작을 수 없다</b>는 말로 읽을 수 있다. 타원이 기울어 그림자가 길어지는 것은 허용되지만, 넓이를 줄일 수는 없다.</p>
   </section>
 
+  <!-- ============================================================ 9.3 -->
   <section id="s3">
-    <h2>에너지-시간 관계</h2>
-    <p class="slot" data-slot="9.3절">아직 쓰지 않은 절입니다.</p>
+    <h2>불확정성 관계로 어림하기</h2>
+    <p>불확정성 관계를 쓰면 슈뢰딩거 방정식을 풀지 않고도 속박 상태의 크기와 에너지를 어림할 수 있다. 8장에서 조화 진동자의 에너지가 \(\hbar\omega/2\)보다 낮을 수 없음을 보인 것(<a href="ch08.html#s1-scales">8.1절</a>)이 그 예였다. 이 절에서 쓰는 생각은 하나다. <b>입자를 좁은 곳에 가둘수록 운동량이 퍼지고, 그만큼 운동 에너지가 든다.</b></p>
+
+    <h3 id="s3-confine">갇힘 에너지</h3>
+    <p>길이 \(L\)인 구간에 갇힌 입자를 생각하자. 구간 밖에서 \(\psi = 0\)이면 \(\Delta x \le L/2\)이다. 평균이 아닌 아무 점 \(a\)에서 잰 제곱 거리의 평균은 \(\langle(x - a)^2\rangle = (\Delta x)^2 + (\langle x\rangle - a)^2\)으로 분산보다 크거나 같다. \(a\)를 구간의 가운데로 잡으면 구간 안에서 \(|x - a| \le L/2\)이므로 \((\Delta x)^2 \le \langle(x - a)^2\rangle \le (L/2)^2\)이다. 그러면 식 <a class="ref" href="#eq-heisenberg"></a>에서 \(\Delta p \ge \hbar/L\)이고, \(\langle p^2\rangle = (\Delta p)^2 + \langle p\rangle^2 \ge (\Delta p)^2\)이므로</p>
+    <div class="formula" id="eq-confinement">\[ \langle T\rangle = \frac{\langle p^2\rangle}{2m} \ge \frac{\hbar^2}{2mL^2} \]</div>
+    <p>이다. 무한 우물의 정확한 바닥 에너지 \(\pi^2\hbar^2/2mL^2\)(<a href="ch07.html#eq-box-states">7장 식 (7.4)</a>)은 이 하한의 \(\pi^2 \approx 10\)배다. 부등식은 옳지만 넉넉하다. 그래서 불확정성 관계로 하는 계산은 대개 크기의 정도만 알려 준다. 어림할 때는 '크기 \(r\)에 갇힌 입자의 운동량은 \(p \sim \hbar/r\)이고 운동 에너지는 \(\hbar^2/2mr^2\) 정도'라고 놓는다. \(1/r^2\)에 비례하는 이 에너지를 <span class="term">갇힘 에너지</span> <span class="en">(confinement energy)</span>라 하자.</p>
+
+    <h3 id="s3-hydrogen">수소 원자의 크기</h3>
+    <p>수소 원자에서 전자가 양성자로부터 거리 \(r\) 정도 안에 있다고 하자. 퍼텐셜 에너지는 \(-k/r\)(\(k = e^2/4\pi\varepsilon_0\), 5장과 같은 기호)이고 갇힘 에너지는 \(\hbar^2/2m_er^2\) 정도이므로, 에너지는</p>
+    <div class="formula" id="eq-h-estimate">\[ E(r) \approx \frac{\hbar^2}{2m_er^2} - \frac{k}{r} \]</div>
+    <p>이다. 전자를 핵 쪽으로 끌어당기면 퍼텐셜 에너지는 \(1/r\)로 내려가지만 갇힘 에너지는 \(1/r^2\)로 올라가므로, 둘 사이에 균형점이 있다(그림 9-2). \(dE/dr = -\hbar^2/m_er^3 + k/r^2 = 0\)에서</p>
+    <div class="formula">\[ \begin{gathered} r = \frac{\hbar^2}{m_ek} = a_0, \\ E(a_0) = \frac{k}{2a_0} - \frac{k}{a_0} = -\frac{k}{2a_0} = -13.6\ \mathrm{eV} \end{gathered} \]</div>
+    <p>이다. 보어 반지름과 수소의 바닥 에너지(<a href="ch05.html#eq-bohr-radius">5장 식 (5.12)</a>, <a href="ch05.html#eq-bohr-energy">(5.13)</a>)가 그대로 나왔다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:9-2--><svg viewBox="0 0 360 280" role="img" aria-label="갇힘 에너지와 쿨롱 퍼텐셜 에너지의 합이 보어 반지름에서 가장 낮다"><defs><marker id="f92-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f92-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f92-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="52" y1="134" x2="330" y2="134" class="s-grid" stroke-dasharray="4 3"/><line x1="52" y1="250" x2="338" y2="250" class="s-line" stroke-width="1.2" marker-end="url(#f92-dim)"/><line x1="52" y1="250" x2="52" y2="12" class="s-line" stroke-width="1.2" marker-end="url(#f92-dim)"/><line x1="121.5" y1="250" x2="121.5" y2="254" class="s-line" stroke-width="1.2"/><text x="121.5" y="267" class="t-dim" text-anchor="middle">1</text><line x1="191" y1="250" x2="191" y2="254" class="s-line" stroke-width="1.2"/><text x="191" y="267" class="t-dim" text-anchor="middle">2</text><line x1="260.5" y1="250" x2="260.5" y2="254" class="s-line" stroke-width="1.2"/><text x="260.5" y="267" class="t-dim" text-anchor="middle">3</text><text x="52" y="267" class="t-dim" text-anchor="middle">0</text><line x1="48" y1="232.6" x2="52" y2="232.6" class="s-line" stroke-width="1.2"/><text x="45" y="236.6" class="t-dim" text-anchor="end">−27.2</text><line x1="48" y1="183.3" x2="52" y2="183.3" class="s-line" stroke-width="1.2"/><text x="45" y="187.3" class="t-dim" text-anchor="end">−13.6</text><line x1="48" y1="134" x2="52" y2="134" class="s-line" stroke-width="1.2"/><text x="45" y="138" class="t-dim" text-anchor="end">0</text><line x1="48" y1="84.7" x2="52" y2="84.7" class="s-line" stroke-width="1.2"/><text x="45" y="88.7" class="t-dim" text-anchor="end">13.6</text><line x1="48" y1="35.4" x2="52" y2="35.4" class="s-line" stroke-width="1.2"/><text x="45" y="39.4" class="t-dim" text-anchor="end">27.2</text><text font-size="14" x="338" y="237" class="t-math dim" text-anchor="end"><tspan font-style="italic">r</tspan>/<tspan font-style="italic">a</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><text font-size="14" x="46" y="16" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan> (eV)</text><path d="M97.1 16.8 L101.2 35.6 L105.9 51.9 L111.1 65.8 L117.1 77.9 L123.9 87.9 L131.7 96.5 L140.6 103.7 L151.1 109.7 L162.7 114.6 L176.3 118.6 L192.3 121.9 L211.1 124.6 L233.2 126.7 L259.5 128.5 L291.4 129.8 L330 130.9" class="s-acc2" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M110.3 251.7 L116.3 240.6 L122.9 230.7 L130.2 221.7 L138.1 213.6 L146.9 206.2 L156.7 199.5 L167.4 193.4 L179.2 187.9 L192.3 182.9 L206.7 178.3 L222.6 174.2 L240 170.5 L259.4 167.1 L280.7 164 L304.2 161.2 L330 158.7" class="s-line" stroke-width="1.6" stroke-dasharray="3 3"/><path d="M76.5 16.7 L78.7 56.3 L81.3 90.4 L84.2 117 L87.5 137.9 L91.3 154.3 L93.5 160.9 L95.9 166.4 L98.5 171.2 L101.2 174.9 L104.2 177.9 L107.7 180.3 L111.8 182 L116.6 183 L122.2 183.3 L128.8 182.9 L141.4 180.9 L190.3 171.1 L226.3 165.5 L274 160.1 L330 155.6" class="s-acc" stroke-width="2.2"/><line x1="121.5" y1="250" x2="121.5" y2="183.3" class="s-grid" stroke-dasharray="4 3"/><line x1="52" y1="183.3" x2="121.5" y2="183.3" class="s-grid" stroke-dasharray="4 3"/><circle cx="121.5" cy="183.3" r="3.4" class="f-acc"/><text font-size="14" x="131.9" y="47" class="t-math acc2" text-anchor="start"><tspan font-style="italic">ħ</tspan><tspan baseline-shift="super" font-size="72%">2</tspan>/2<tspan font-style="italic">m</tspan><tspan font-style="italic">r</tspan><tspan baseline-shift="super" font-size="72%">2</tspan></text><text font-size="14" x="211.8" y="193.8" class="t-math dim" text-anchor="start">−<tspan font-style="italic">k</tspan>/<tspan font-style="italic">r</tspan></text><text x="274.4" y="146.3" class="t-acc" text-anchor="start">합</text></svg><!--/fig:9-2--></div>
+      <figcaption><b>그림 9-2.</b> 수소 원자의 에너지 어림 \(E(r) = \hbar^2/2m_er^2 - k/r\). 갇힘 에너지(파선)와 퍼텐셜 에너지(점선)의 합(실선)이 \(r = a_0\)에서 가장 낮고, 그 값이 \(-13.6\ \mathrm{eV}\)이다. 이때 갇힘 에너지는 \(13.6\ \mathrm{eV}\), 퍼텐셜 에너지는 \(-27.2\ \mathrm{eV}\)이다.</figcaption>
+    </figure>
+    <p>여기서 두 가지를 읽을 수 있다. 첫째, 5장에서 고전적인 원자는 \(10^{-11}\)초 남짓 만에 무너져야 했다(<a href="ch05.html#s2-collapse">5.2절</a>). 양자역학에서는 무너질 수 없다. 전자를 핵 쪽으로 가둘수록 갇힘 에너지가 퍼텐셜 에너지의 이득보다 빨리 커지기 때문이다. 원자의 크기는 이 두 에너지의 균형이 정한다. 둘째, 답이 정확히 맞은 것은 운이 좋아서다. \(p \sim \hbar/r\) 대신 \(p \sim \hbar/2r\)로 놓았다면 \(r = a_0/4\), \(E = -54\ \mathrm{eV}\)를 얻었을 것이다. 어림이 믿을 만한 것은 '크기는 \(\hbar^2/m_ek\) 정도이고 에너지는 \(m_ek^2/\hbar^2\) 정도'라는 규모까지다. 정확한 값은 15장에서 슈뢰딩거 방정식을 풀어 얻는다.</p>
+    <div class="box ex" id="ex-nucleus"><div class="box-h">핵 속에 전자가 있을 수 있을까</div>
+      <p>중성자가 발견되기(1932년) 전에는 원자핵이 양성자와 전자로 이루어졌다고 생각하기도 했다. 베타 붕괴에서 핵이 전자를 내놓기 때문이다. 반지름 \(R = 5\ \mathrm{fm}\)쯤인 핵(질량수 70 안팎) 안에 전자를 가두면 어떻게 되는지 어림해 보자. 핵물리에서는 \(\hbar c = 197.3\ \mathrm{MeV\,fm}\)를 쓰면 편하다.</p>
+      <ul>
+        <li>운동량은 \(pc \sim \hbar c/R = 39\ \mathrm{MeV}\)이다. 전자의 정지 에너지 \(0.511\ \mathrm{MeV}\)보다 훨씬 크므로 전자는 상대론적이고, 운동 에너지는 \(\sqrt{(pc)^2 + (m_ec^2)^2} - m_ec^2 \approx pc \approx 39\ \mathrm{MeV}\)이다.</li>
+        <li>이 전자를 붙잡아 둘 힘은 전기력뿐이다(전자는 핵력을 느끼지 않는다). \(k = \alpha\hbar c = 1.44\ \mathrm{MeV\,fm}\)이므로, \(Z = 30\)인 핵의 표면에서 전자의 퍼텐셜 에너지는 \(-Zk/R = -8.6\ \mathrm{MeV}\)이다. 39 MeV의 운동 에너지를 붙잡기에 턱없이 모자란다.</li>
+        <li>게다가 베타 붕괴에서 나오는 전자의 에너지는 대개 몇 MeV 이하다.</li>
+      </ul>
+      <p>전자는 핵 안에 갇혀 있을 수 없다. 지금은 베타 붕괴의 전자가 붕괴하는 순간에 만들어진다는 것을 안다(페르미, 1934년). 같은 크기에 양성자나 중성자(\(mc^2 \approx 939\ \mathrm{MeV}\))를 가두는 데 드는 에너지는 \((\hbar c)^2/2mc^2R^2 \approx 0.8\ \mathrm{MeV}\)로, 깊이가 수십 MeV인 핵력의 우물에 넉넉히 들어간다. (실제 핵자의 운동 에너지는 이보다 훨씬 큰데, 12장의 파울리 배타 원리 때문이다.)</p>
+    </div>
+    <div class="callout deep"><strong>물질의 안정성</strong><p>원자 하나가 무너지지 않는 것은 불확정성 관계로 설명된다. 그러나 원자를 아주 많이 모은 물질이 무너지지 않고, 그 부피가 원자 수에 비례한다는 것까지 설명하려면 12장의 파울리 배타 원리가 함께 필요하다. 다이슨(F. Dyson)과 레나르트(A. Lenard)가 1967년에 이것을 엄밀히 증명했다. 전자가 배타 원리를 따르지 않는 입자였다면, 물질을 모을수록 원자 하나당 에너지가 끝없이 내려가 물질이 오그라들었을 것이다.</p></div>
   </section>
 
+  <!-- ============================================================ 9.4 -->
   <section id="s4">
-    <h2>에렌페스트 정리</h2>
-    <p class="slot" data-slot="9.4절">아직 쓰지 않은 절입니다.</p>
+    <h2>에너지-시간 관계</h2>
+    <p>\(\Delta x\,\Delta p \ge \hbar/2\)와 나란히 \(\Delta E\,\Delta t \gtrsim \hbar\)라는 관계가 자주 쓰인다. 그 뿌리는 고전 파동에도 있다. 지속 시간이 짧은 파동 펄스는 여러 진동수가 섞여야 만들어지고, 진동수의 폭과 시간 폭의 곱은 대략 1보다 작을 수 없다(<a class="ref" href="#prob-pulse"></a>). 여기에 \(E = \hbar\omega\)를 곱하면 \(\Delta E\,\Delta t \gtrsim \hbar\)가 된다. 그러나 양자역학 안에서 이 관계는 \(\Delta x\,\Delta p\)와 성격이 다르다. 위치는 관측량이지만 시간은 관측량이 아니라 슈뢰딩거 방정식의 매개변수다. \([\hat t, \hat H] = i\hbar\)인 시간 연산자가 없으므로, 일반 불확정성 관계에 그대로 넣을 수 없다. 그렇다면 \(\Delta t\)는 무엇일까?</p>
+
+    <h3 id="s4-mt">변화의 빠르기</h3>
+    <p>시간을 직접 재는 대신, 상태가 변하는 빠르기를 보자. 시간을 포함하지 않는 관측량 \(\hat\Omega\)와 \(\hat\Lambda = \hat H\)에 식 <a class="ref" href="#eq-unc-general"></a>를 쓰고, 기댓값의 시간 변화 \(\frac{d}{dt}\langle\Omega\rangle = \frac{1}{i\hbar}\langle[\hat\Omega, \hat H]\rangle\)(<a href="ch06.html#eq-heisenberg-expect">6장 식 (6.10)</a>)을 넣으면</p>
+    <div class="formula" id="eq-mt">\[ \Delta\Omega\,\Delta E \ge \frac12\big|\langle[\hat\Omega, \hat H]\rangle\big| = \frac\hbar2\Big|\frac{d\langle\Omega\rangle}{dt}\Big| \]</div>
+    <p>이다. 여기서 \(\Delta E\)는 상태의 에너지 퍼짐이다. \(\hat H\)와 \(\hat H^2\)은 \(\hat H\)와 교환하므로 \(\langle H\rangle\)과 \(\langle H^2\rangle\)은 변하지 않고, \(\Delta E\)도 시간에 따라 일정하다. 이제</p>
+    <div class="formula" id="eq-tau-omega">\[ \tau_\Omega = \frac{\Delta\Omega}{|d\langle\Omega\rangle/dt|} \]</div>
+    <p>로 정의하자. \(\langle\Omega\rangle\)이 지금의 빠르기로 표준 편차 \(\Delta\Omega\)만큼 움직이는 데 걸리는 시간이다. 기댓값이 분포의 폭만큼은 움직여야 변화가 눈에 띄므로, \(\tau_\Omega\)는 '\(\Omega\)로 보았을 때 상태가 눈에 띄게 달라지는 데 걸리는 시간'이다. 식 <a class="ref" href="#eq-mt"></a>의 양변을 \(|d\langle\Omega\rangle/dt|\)로 나누면 다음 정리를 얻는다.</p>
+    <div class="box thm" id="thm-energy-time"><div class="box-h">에너지-시간 관계</div>
+      <p>시간을 포함하지 않는 임의의 관측량 \(\Omega\)에 대해</p>
+      <div class="formula" id="eq-energy-time">\[ \Delta E\,\tau_\Omega \ge \frac\hbar2 \]</div>
+      <p>이다. 에너지가 날카로운 상태일수록 모든 관측량의 기댓값이 천천히 변한다.</p>
+    </div>
+    <p>이것을 만델스탐-탐 관계라 한다(1945년). 에너지 고유 상태에서는 \(\Delta E = 0\)이므로 모든 \(\tau_\Omega\)가 무한대여야 한다. 곧 아무것도 변하지 않는다. 6.6절의 정상 상태가 바로 그랬다. 거꾸로 상태가 빨리 변하려면 에너지가 넓게 퍼져 있어야 한다. 6장의 상자 속 입자(<a href="ch06.html#ex-box-slosh">6장 예제 6.8</a>)가 출렁인 것은 에너지가 다른 두 상태가 섞였기 때문이었다.</p>
+    <div class="callout warn"><strong>에너지 보존이 깨지는 것이 아니다</strong><p>'에너지-시간 관계 때문에 짧은 시간 동안에는 에너지 보존이 깨져도 된다'는 말을 흔히 듣는다. 위의 유도에 그런 내용은 없다. \(\hat H\)가 시간에 무관하면 에너지 측정값의 분포 전체가 변하지 않으며(<a href="ch06.html#s5-expect">6.5절</a>), \(\Delta E\)는 처음부터 상태에 들어 있던 에너지의 퍼짐이다. \(\tau_\Omega\)도 시간을 잰 오차가 아니라 상태가 변하는 시간 규모다.</p></div>
+    <div class="callout deep"><strong>시간 연산자가 없는 까닭</strong><p>파울리는 1933년에 시간 연산자가 있을 수 없음을 지적했다. \([\hat T, \hat H] = i\hbar\)인 에르미트 연산자 \(\hat T\)가 있다고 하자. \(e^{iq\hat x/\hbar}\)가 운동량을 \(q\)만큼 옮기듯(<a href="ch03.html#prob-momentum-kick">3장 문제 3.10</a>), \(e^{i\epsilon\hat T/\hbar}\)는 에너지 고유 상태를 에너지가 \(\epsilon\)만큼 큰 고유 상태로 옮길 것이다. \(\epsilon\)은 아무 실수나 될 수 있으므로 에너지 스펙트럼이 모든 실수를 덮어야 하고, 가장 낮은 에너지가 있을 수 없다. 바닥 상태가 있는 계에는 그런 \(\hat T\)가 없다.</p></div>
+
+    <h3 id="s4-speed">양자 속도 한계</h3>
+    <p>상태가 '완전히' 바뀌는 데는 얼마나 걸릴까? 처음 상태 \(|\psi_0\rangle\)와 직교하는 상태가 되면, 두 상태는 한 번의 측정으로 완벽하게 구별되므로 완전히 바뀐 것이다. \(\hat\Omega\)로 처음 상태의 투영 연산자 \(\hat\Pi = |\psi_0\rangle\langle\psi_0|\)(<a href="ch02.html#def-projector">2장 정의 2.3</a>)를 고르자. 그 기댓값</p>
+    <div class="formula">\[ P(t) = \langle\psi(t)|\hat\Pi|\psi(t)\rangle = |\langle\psi_0|\psi(t)\rangle|^2 \]</div>
+    <p>은 처음 상태에 남아 있을 확률이다. \(\hat\Pi^2 = \hat\Pi\)이므로 \(\langle\Pi^2\rangle = P\)이고 \((\Delta\Pi)^2 = P - P^2\)이다. 식 <a class="ref" href="#eq-mt"></a>은</p>
+    <div class="formula">\[ \Big|\frac{dP}{dt}\Big| \le \frac{2\Delta E}{\hbar}\sqrt{P(1 - P)} \]</div>
+    <p>가 된다. \(P = \cos^2\theta\)(\(0 \le \theta \le \pi/2\))로 놓으면 \(dP/dt = -2\sin\theta\cos\theta\,d\theta/dt\)이고 \(\sqrt{P(1 - P)} = \sin\theta\cos\theta\)이므로, 양변을 \(2\sin\theta\cos\theta\)로 나누어 \(|d\theta/dt| \le \Delta E/\hbar\)를 얻는다. \(\theta\)는 \(\theta(0) = 0\)에서 출발해 이 빠르기보다 빨리 자랄 수 없으므로 \(\theta(t) \le \Delta E\,t/\hbar\)이다. \(\cos^2\)이 \([0, \pi/2]\)에서 줄어드는 함수이므로 다음이 성립한다.</p>
+    <div class="box thm" id="thm-speed-limit"><div class="box-h">양자 속도 한계</div>
+      <p>에너지 퍼짐이 \(\Delta E\)인 상태가 처음 상태에 남아 있을 확률은 \(0 \le t \le \pi\hbar/2\Delta E\)에서</p>
+      <div class="formula" id="eq-qsl">\[ P(t) \ge \cos^2\Big(\frac{\Delta E\,t}{\hbar}\Big) \]</div>
+      <p>이다. 따라서 처음 상태와 직교하는 상태가 되려면 적어도 \(t_\perp = \pi\hbar/2\Delta E\)가 걸린다.</p>
+    </div>
+    <div class="box ex" id="ex-ammonia-qsl"><div class="box-h">가장 빠른 변화</div>
+      <p><a href="ch06.html#ex-two-level">6장 예제 6.9</a>의 암모니아 분자를 \(|L\rangle = (|+\rangle + |-\rangle)/\sqrt2\)에서 출발시키자. 에너지 \(E_0 - A\)와 \(E_0 + A\)가 반씩 섞였으므로 \(\langle H\rangle = E_0\)이고 \(\Delta E = A\)이다. 6장에서 구한 대로 \(P_L(t) = \cos^2(At/\hbar) = \cos^2(\Delta E\,t/\hbar)\)이므로, 식 <a class="ref" href="#eq-qsl"></a>의 등호가 모든 순간에 성립한다. 질소가 반대쪽 \(|R\rangle\)에 도착하는 시간 \(\pi\hbar/2A\)는 이 에너지 퍼짐으로 가능한 가장 짧은 시간이고, \(2A = 1.0\times10^{-4}\ \mathrm{eV}\)를 넣으면 21 ps이다. 두 준위만 섞인 상태가 이렇게 한계에 닿는다. 같은 \(\Delta E\)라도 여러 준위에 퍼진 상태는 더 느리게 변한다(<a class="ref" href="#prob-qsl-three"></a>).</p>
+    </div>
+
+    <h3 id="s4-width">수명과 선폭</h3>
+    <p>에너지-시간 관계가 가장 직접 드러나는 곳은 불안정한 상태다. 들뜬 원자, 방사성 핵, 불안정한 입자는 평균 수명 \(\tau\)로 붕괴하고, 그 상태에 남아 있을 확률은 \(P(t) = e^{-t/\tau}\)로 줄어든다. 들뜬 원자는 원자만 보면 에너지 고유 상태이지만, 원자와 전자기장을 함께 본 전체 해밀토니안의 고유 상태는 아니다. 그래서 에너지가 퍼져 있다. 얼마나 퍼져 있는지 계산해 보자.</p>
+    <p>처음 상태를 에너지 고유 상태로 \(|\psi_0\rangle = \sum_nc_n|E_n\rangle\)처럼 전개하면 \(\langle\psi_0|\psi(t)\rangle = \sum_n|c_n|^2e^{-iE_nt/\hbar}\)이다. 에너지가 연속적으로 퍼져 있으면 \(|c_n|^2\) 대신 에너지의 확률 밀도 \(\rho(E)\)를 쓴다.</p>
+    <div class="formula" id="eq-survival-amp">\[ c(t) = \langle\psi_0|\psi(t)\rangle = \int\rho(E)\,e^{-iEt/\hbar}\,dE \]</div>
+    <p>살아남을 진폭 \(c(t)\)는 에너지 분포의 푸리에 변환이다. 양변에 \(e^{iE't/\hbar}\)를 곱해 \(t\)로 적분하고 \(\int e^{i(E' - E)t/\hbar}dt = 2\pi\hbar\,\delta(E' - E)\)(<a href="ch03.html#eq-delta-fourier-hbar">3장 식 (3.15)</a>)를 쓰면 거꾸로</p>
+    <div class="formula" id="eq-rho-from-c">\[ \rho(E) = \frac{1}{2\pi\hbar}\int_{-\infty}^{\infty}c(t)\,e^{iEt/\hbar}\,dt \]</div>
+    <p>이다. 지수 붕괴하는 상태의 진폭을 \(t \ge 0\)에서 \(c(t) = e^{-iE_0t/\hbar}e^{-t/2\tau}\)로 두자(\(|c|^2 = e^{-t/\tau}\)). 식 <a class="ref" href="#eq-survival-amp"></a>에서 \(\rho\)가 실수이므로 \(c(-t) = c(t)^*\)이고, 따라서 모든 \(t\)에서 \(c(t) = e^{-iE_0t/\hbar - |t|/2\tau}\)이다. \(t > 0\) 부분의 적분은</p>
+    <div class="formula">\[ \begin{aligned} \int_0^\infty &e^{[i(E - E_0)/\hbar - 1/2\tau]\,t}\,dt \\ &= \frac{1}{1/2\tau - i(E - E_0)/\hbar} \end{aligned} \]</div>
+    <p>이고, \(t &lt; 0\) 부분은 그 켤레 복소수다. 둘을 더하면 실수부의 두 배가 되므로, \(\Gamma = \hbar/\tau\)로 쓰고 분자와 분모에 \(\hbar^2\)을 곱해 정리하면</p>
+    <div class="formula" id="eq-lorentz">\[ \rho(E) = \frac{1}{2\pi}\,\frac{\Gamma}{(E - E_0)^2 + \Gamma^2/4}, \qquad \Gamma = \frac\hbar\tau \]</div>
+    <p>이다. 이것을 <span class="term">로렌츠 분포</span> <span class="en">(Lorentzian)</span>라 한다(그림 9-3). \((E - E_0)^2 = \Gamma^2/4\)에서 \(\rho\)가 꼭대기 값의 절반이 되므로, 절반 높이에서 잰 폭(반치폭)이 정확히 \(\Gamma\)이다.</p>
+    <div class="formula" id="eq-width-lifetime">\[ \Gamma\,\tau = \hbar \]</div>
+    <p>수명이 짧을수록 에너지가 넓게 퍼진다. 이 상태가 빛을 내며 붕괴하면 나오는 광자의 에너지도 이만큼 퍼져, 스펙트럼선이 폭 \(\Gamma\)를 갖는다. 이것을 <span class="term">자연 선폭</span> <span class="en">(natural linewidth)</span>이라 한다. 지수 붕괴 자체가 어디서 오는지는 20장의 페르미 황금률에서 다룬다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:9-3a--><svg viewBox="0 0 280 250" role="img" aria-label="들뜬 상태가 살아남을 확률은 지수 함수로 줄어든다"><defs><marker id="f93a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f93a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f93a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(가) 살아남을 확률</text><line x1="40" y1="214" x2="268" y2="214" class="s-line" stroke-width="1.2" marker-end="url(#f93a-dim)"/><line x1="40" y1="214" x2="40" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f93a-dim)"/><line x1="95.5" y1="214" x2="95.5" y2="218" class="s-line" stroke-width="1.2"/><text x="95.5" y="231" class="t-dim" text-anchor="middle">1</text><line x1="151" y1="214" x2="151" y2="218" class="s-line" stroke-width="1.2"/><text x="151" y="231" class="t-dim" text-anchor="middle">2</text><line x1="206.5" y1="214" x2="206.5" y2="218" class="s-line" stroke-width="1.2"/><text x="206.5" y="231" class="t-dim" text-anchor="middle">3</text><text x="40" y="231" class="t-dim" text-anchor="middle">0</text><line x1="36" y1="55.8" x2="40" y2="55.8" class="s-line" stroke-width="1.2"/><text x="33" y="59.8" class="t-dim" text-anchor="end">1</text><line x1="36" y1="155.8" x2="40" y2="155.8" class="s-line" stroke-width="1.2"/><text x="33" y="159.8" class="t-dim" text-anchor="end">1/e</text><text font-size="14" x="268" y="232" class="t-math dim" text-anchor="end"><tspan font-style="italic">t</tspan>/<tspan font-style="italic">τ</tspan></text><text font-size="14" x="47" y="36" class="t-math dim" text-anchor="start"><tspan font-style="italic">P</tspan>(<tspan font-style="italic">t</tspan>)</text><line x1="40" y1="155.8" x2="95.5" y2="155.8" class="s-grid" stroke-dasharray="4 3"/><line x1="95.5" y1="214" x2="95.5" y2="155.8" class="s-grid" stroke-dasharray="4 3"/><path d="M40 55.8 L48.1 77.2 L56.4 96.3 L65.3 113.7 L74.5 129 L84.2 142.6 L94.7 155 L106.1 165.9 L118.1 175.3 L130.6 183.1 L144.2 189.8 L158.9 195.4 L175.3 200.2 L193.1 204 L213.1 207 L235.9 209.4 L262 211.1" class="s-acc" stroke-width="2.2"/><text font-size="15" x="123.2" y="115.9" class="t-math acc" text-anchor="start"><tspan font-style="italic">e</tspan><tspan baseline-shift="super" font-size="72%">−<tspan font-style="italic">t</tspan>/<tspan font-style="italic">τ</tspan></tspan></text></svg><!--/fig:9-3a--><!--fig:9-3b--><svg viewBox="0 0 280 250" role="img" aria-label="에너지 분포는 반치폭이 ħ/τ인 로렌츠 분포다"><defs><marker id="f93b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f93b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f93b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(나) 에너지 분포</text><line x1="22" y1="214" x2="268" y2="214" class="s-line" stroke-width="1.2" marker-end="url(#f93b-dim)"/><line x1="142" y1="214" x2="142" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f93b-dim)"/><line x1="62" y1="214" x2="62" y2="218" class="s-line" stroke-width="1.2"/><text font-size="13" x="62" y="232" class="t-math dim" text-anchor="middle">−2Γ</text><line x1="102" y1="214" x2="102" y2="218" class="s-line" stroke-width="1.2"/><text font-size="13" x="102" y="232" class="t-math dim" text-anchor="middle">−Γ</text><line x1="182" y1="214" x2="182" y2="218" class="s-line" stroke-width="1.2"/><text font-size="13" x="182" y="232" class="t-math dim" text-anchor="middle">Γ</text><line x1="222" y1="214" x2="222" y2="218" class="s-line" stroke-width="1.2"/><text font-size="13" x="222" y="232" class="t-math dim" text-anchor="middle">2Γ</text><text font-size="13" x="142" y="232" class="t-math dim" text-anchor="middle"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><text font-size="14" x="268" y="206" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan></text><text font-size="14" x="149" y="36" class="t-math dim" text-anchor="start"><tspan font-style="italic">ρ</tspan>(<tspan font-style="italic">E</tspan>)</text><path d="M22 209.9 L38.8 208.5 L52.6 206.8 L64.2 204.6 L74.2 201.9 L82.9 198.5 L90.3 194.3 L96.7 189.4 L102.3 183.4 L106.7 177.3 L110.7 170.2 L114.5 161.7 L117.9 152.4 L121.3 141 L124.5 128.4 L136.3 74.1 L139.3 65.4 L140.7 63.3 L141.9 62.7 L143.3 63.3 L144.7 65.4 L147.7 74.1 L159.5 128.4 L162.7 141 L166.1 152.4 L169.5 161.7 L173.3 170.2 L177.3 177.3 L181.7 183.4 L187.3 189.4 L193.7 194.3 L201.1 198.5 L209.8 201.9 L219.8 204.6 L231.4 206.8 L245.2 208.5 L262 209.9" class="s-acc2" stroke-width="2.2"/><line x1="122" y1="138.3" x2="162" y2="138.3" class="s-acc2" stroke-width="1.5" marker-start="url(#f93b-acc2)" marker-end="url(#f93b-acc2)"/><text font-size="14" x="176" y="126.2" class="t-math acc2" text-anchor="start">Γ = <tspan font-style="italic">ħ</tspan>/<tspan font-style="italic">τ</tspan></text><line x1="162" y1="138.3" x2="162" y2="214" class="s-grid" stroke-dasharray="4 3"/><line x1="122" y1="138.3" x2="122" y2="214" class="s-grid" stroke-dasharray="4 3"/></svg><!--/fig:9-3b--></div>
+      <figcaption><b>그림 9-3.</b> (가) 수명 \(\tau\)인 상태에 남아 있을 확률 \(e^{-t/\tau}\). \(t = \tau\)에서 \(1/e\)이다. (나) 그 상태의 에너지 분포 식 <a class="ref" href="#eq-lorentz"></a>. 꼭대기 높이를 1로 맞췄다. 반치폭이 \(\Gamma = \hbar/\tau\)이다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-linewidth"><div class="box-h">라이먼 알파 선의 폭</div>
+      <p>수소의 \(2p\) 상태는 수명 \(\tau = 1.60\ \mathrm{ns}\)로 \(1s\) 상태로 떨어지며, 에너지 \(10.2\ \mathrm{eV}\)(파장 121.6 nm)의 광자를 낸다.</p>
+      <ul>
+        <li>선폭은 \(\Gamma = \hbar/\tau = 6.58\times10^{-16}\ \mathrm{eV\,s}/1.60\times10^{-9}\ \mathrm s = 4.1\times10^{-7}\ \mathrm{eV}\)이고, 진동수로는 \(\Gamma/h = 1/2\pi\tau = 100\ \mathrm{MHz}\)이다.</li>
+        <li>광자 에너지에 대한 비는 \(4.1\times10^{-7}/10.2 = 4\times10^{-8}\)이다. 원자의 스펙트럼선이 매우 날카로운 까닭이다.</li>
+        <li>실제 기체에서는 원자의 열운동에 따른 도플러 넓어짐이 더 크다. 300 K의 수소 원자라면 상대 폭이 \(1.2\times10^{-5}\)으로, 자연 선폭의 300배쯤이다.</li>
+      </ul>
+      <p>입자 물리에서는 거꾸로 폭을 재서 수명을 안다. \(Z\) 보손의 폭은 \(\Gamma = 2.50\ \mathrm{GeV}\)로 측정되었고, 수명은 \(\tau = \hbar/\Gamma = 2.6\times10^{-25}\ \mathrm s\)이다. 이렇게 짧은 시간은 직접 잴 수 없다. 대신 충돌 에너지를 바꿔 가며 \(Z\)가 만들어지는 비율을 재면 로렌츠 분포와 비슷한 봉우리가 나타나고, 그 폭을 읽으면 된다.</p>
+    </div>
+    <div class="callout deep"><strong>지수 붕괴는 어떻게 시작하나</strong><p>로렌츠 분포는 꼬리가 \(1/E^2\)로 느리게 줄어서 분산 \(\langle E^2\rangle - \langle E\rangle^2\)이 발산한다. 표준 편차가 아니라 반치폭으로 폭을 재는 까닭이다. 이것은 양자 속도 한계와도 맞는다. 식 <a class="ref" href="#eq-qsl"></a>에 따르면 \(\Delta E\)가 유한한 상태는 처음에 \(P \approx 1 - (\Delta E\,t/\hbar)^2\)처럼 시간의 제곱으로만 줄어들 수 있는데, \(e^{-t/\tau} \approx 1 - t/\tau\)는 시간에 비례해 줄어든다. 실제 계의 에너지 분포는 아주 먼 꼬리에서 로렌츠 분포와 달라서, 붕괴는 아주 짧은 시간 동안 \(t^2\)으로 시작한 뒤 지수 붕괴로 넘어간다. 6장의 양자 제논 효과(<a href="ch06.html#prob-zeno">6장 문제 6.11</a>)는 이 처음 구간에 기대는 현상이다.</p></div>
+  </section>
+
+  <!-- ============================================================ 9.5 -->
+  <section id="s5">
+    <h2>에렌페스트 정리와 고전 극한</h2>
+    <p>양자역학이 옳다면, 거시적인 물체가 뉴턴 방정식을 따르는 것도 양자역학에서 나와야 한다. 6장에서 자유 입자의 파속 중심이 등속 운동을 하고(<a href="ch06.html#ex-free-ehrenfest">6장 예제 6.7</a>), 8장에서 조화 진동자의 \(\langle x\rangle\)이 고전 진동자와 똑같이 움직이는 것(<a href="ch08.html#eq-x-t">8장 식 (8.24)</a>)을 보았다. 이 절에서는 일반적인 퍼텐셜에서 기댓값이 어떻게 움직이는지 보고, 그것이 언제 고전 운동과 같아지는지 따진다.</p>
+
+    <h3 id="s5-theorem">기댓값의 운동 방정식</h3>
+    <p>해밀토니안이 \(\hat H = \hat p^2/2m + V(\hat x)\)이라 하자. 식 (6.10)을 \(\hat x\)와 \(\hat p\)에 쓰려면 교환자 두 개가 필요하다.</p>
+    <ul>
+      <li>\([\hat x, \hat H]\): \(\hat x\)는 \(V(\hat x)\)와 교환하고, \([\hat x, \hat p^2] = 2i\hbar\,\hat p\)(<a href="ch03.html#prob-comm">3장 문제 3.3</a>)이므로 \([\hat x, \hat H] = i\hbar\,\hat p/m\)이다.</li>
+      <li>\([\hat p, \hat H]\): \(\hat p\)는 \(\hat p^2\)과 교환한다. \([\hat p, V(\hat x)]\)는 위치 표현에서 아무 함수 \(\psi\)에 작용해 보면 된다. 곱의 미분으로
+        <div class="formula">\[ \begin{aligned} [\hat p, V]\,\psi &= -i\hbar\frac{d}{dx}(V\psi) + i\hbar V\frac{d\psi}{dx} \\ &= -i\hbar\,V'(x)\,\psi \end{aligned} \]</div>
+        이므로 \([\hat p, V(\hat x)] = -i\hbar\,V'(\hat x)\)이다.</li>
+    </ul>
+    <p>이것을 식 (6.10)에 넣으면 다음 정리를 얻는다. <a href="ch06.html#prob-ehrenfest">6장 문제 6.7</a>에서 미리 풀어 본 결과다.</p>
+    <div class="box thm" id="thm-ehrenfest"><div class="box-h">에렌페스트 정리</div>
+      <p>\(\hat H = \hat p^2/2m + V(\hat x)\)이면 어떤 상태에서든</p>
+      <div class="formula" id="eq-ehrenfest">\[ \begin{gathered} \frac{d\langle x\rangle}{dt} = \frac{\langle p\rangle}{m}, \qquad \frac{d\langle p\rangle}{dt} = \langle F(x)\rangle, \\ F(x) = -V'(x) \end{gathered} \]</div>
+      <p>이다. 두 식을 합치면 \(m\,d^2\langle x\rangle/dt^2 = \langle F(x)\rangle\)이다. 3차원에서는 같은 계산으로 \(m\,d^2\langle\mathbf r\rangle/dt^2 = -\langle\nabla V\rangle\)이다.</p>
+    </div>
+    <p>해밀턴 방정식 \(\dot x = p/m\), \(\dot p = -V'(x)\)(<a href="ch04.html#eq-hamilton">4장 식 (4.7)</a>)과 꼴이 같다. 4장의 \(d\omega/dt = \{\omega, H\}\)에서 푸아송 괄호를 \([\,,\,]/i\hbar\)로 바꾸면 식 (6.10)이 되므로, 고전역학의 구조가 기댓값에 그대로 옮겨 온 것이다. 그러나 결정적인 차이가 하나 있다. 오른쪽이 힘의 평균 \(\langle F(x)\rangle\)이지, 평균 위치에서의 힘 \(F(\langle x\rangle)\)이 아니다.</p>
+
+    <h3 id="s5-force">힘의 평균과 평균 위치의 힘</h3>
+    <p>둘이 얼마나 다른지 보자. \(\bar x = \langle x\rangle\) 근처에서 \(F\)를 테일러 전개하면</p>
+    <div class="formula">\[ \begin{aligned} F(x) = F(\bar x) &+ F'(\bar x)(x - \bar x) \\ &+ \frac12F''(\bar x)(x - \bar x)^2 + \cdots \end{aligned} \]</div>
+    <p>이다. 기댓값을 취하면 \(\langle x - \bar x\rangle = 0\)이고 \(\langle(x - \bar x)^2\rangle = (\Delta x)^2\)이므로</p>
+    <div class="formula" id="eq-force-expand">\[ m\frac{d^2\langle x\rangle}{dt^2} = F(\langle x\rangle) + \frac12F''(\langle x\rangle)\,(\Delta x)^2 + \cdots \]</div>
+    <p>이다. 생략한 항에는 \(\langle(x - \bar x)^3\rangle\) 같은 더 높은 모멘트가 들어간다. 여기서 두 경우가 갈린다.</p>
+    <ul>
+      <li><b>힘이 \(x\)의 1차식일 때</b>(\(V\)가 2차 이하의 다항식일 때): 자유 입자, 균일한 중력장이나 전기장, 조화 진동자가 그렇다. \(F''\)과 그보다 높은 도함수가 모두 0이므로 <b>어떤 상태에서든</b> \(\langle x\rangle\)이 고전 운동 방정식을 정확히 따른다. 파속이 아무리 넓거나 모양이 이상해도 마찬가지다. 8.4절의 결과가 이것이다.</li>
+      <li><b>그 밖의 경우</b>: 둘째 항이 첫째 항보다 훨씬 작을 때, 곧 파속의 폭 \(\Delta x\)가 힘이 눈에 띄게 변하는 길이 \(\sqrt{|F/F''|}\)보다 훨씬 작을 때만 근사적으로 고전적이다.</li>
+    </ul>
+    <p>둘째 경우에는 조건이 한 번 맞는 것으로 끝나지 않는다. 7장에서 보았듯 파속은 시간이 지나며 퍼지므로, 처음에 좁았던 파속도 언젠가는 힘의 변화 규모만큼 넓어진다. 그때부터 \(\langle x\rangle\)은 고전 궤도에서 벗어난다.</p>
+
+    <h3 id="s5-quartic">사차 퍼텐셜의 예</h3>
+    <p>구체적인 예로 \(V = \lambda x^4\)을 보자. 힘 \(F = -4\lambda x^3\)은 1차식이 아니다. 처음에 입자를 \(x = A\)에 정지시키는 운동을 생각하자. 길이를 \(A\)로, 운동량을 \(P_0 = 2A^2\sqrt{m\lambda}\)로, 시간을 \(mA/P_0\)로, 에너지를 \(4\lambda A^4\)으로 재면 해밀토니안은 \(\hat p^2/2 + \hat x^4/4\)가 되고, 교환 관계와 슈뢰딩거 방정식에서 \(\hbar\)가 있던 자리에는</p>
+    <div class="formula">\[ \varepsilon = \frac{\hbar}{AP_0} \]</div>
+    <p>이 들어간다(\([\hat x, \hat p] = i\varepsilon\)). 고전 운동은 상수가 하나도 없는 방정식 \(\ddot x = -x^3\)으로 정해지고(이 단위로 주기 \(T = 7.42\)), 양자역학이 들어오는 곳은 무차원 수 \(\varepsilon\) 하나뿐이다. \(\varepsilon\)은 \(\hbar\)를 이 운동의 전형적인 작용(길이 × 운동량)으로 나눈 값이다. 처음 상태로 \(x = 1\)에 중심을 둔 최소 불확정 파속(\(\Delta x = \Delta p = \sqrt{\varepsilon/2}\))을 잡고, 슈뢰딩거 방정식을 수치로 풀었다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:9-4--><svg viewBox="0 0 360 330" role="img" aria-label="사차 퍼텐셜에서 파속의 위치 기댓값은 고전 궤도에서 점점 벗어나지만, 같은 퍼짐을 가진 고전 입자 무리의 평균과는 일치한다"><defs><marker id="f94-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f94-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f94-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="44" class="t-b" text-anchor="start">(가) </text><text font-size="14" x="44" y="44" class="t-math" text-anchor="start"><tspan font-style="italic">ε</tspan> = 0.02</text><line x1="30" y1="108" x2="348" y2="108" class="s-line" stroke-width="1.2" marker-end="url(#f94-dim)"/><line x1="30" y1="64.5" x2="340" y2="64.5" class="s-line" stroke-width="1.1" stroke-dasharray="5 4"/><text x="24" y="68.5" class="t-dim" text-anchor="end">1</text><line x1="30" y1="151.5" x2="340" y2="151.5" class="s-line" stroke-width="1.1" stroke-dasharray="5 4"/><text x="24" y="155.5" class="t-dim" text-anchor="end">−1</text><text x="24" y="112" class="t-dim" text-anchor="end">0</text><line x1="92" y1="108" x2="92" y2="112" class="s-line" stroke-width="1.2"/><line x1="154" y1="108" x2="154" y2="112" class="s-line" stroke-width="1.2"/><line x1="216" y1="108" x2="216" y2="112" class="s-line" stroke-width="1.2"/><line x1="278" y1="108" x2="278" y2="112" class="s-line" stroke-width="1.2"/><path d="M30 64.5 L30.6 65 L31.6 67.5 L33.1 75.3 L42.1 139.5 L43.6 146.6 L44.6 148.7 L45.2 149 L45.8 148.5 L46.7 146.2 L48.6 137.6 L55.1 92.4 L57 81.5 L58.5 75.3 L59.5 73.4 L60.1 72.9 L61 73.4 L61.9 75.2 L63.8 82.1 L69.7 117.4 L71.8 128.4 L73.7 134.2 L74.6 135.5 L75.3 135.8 L76.2 135.4 L77.1 134 L79 128.5 L84.6 102.3 L86.7 93.8 L88.6 89.2 L89.5 88 L90.4 87.6 L91.1 87.8 L92 88.7 L93.9 92.4 L99.8 111.9 L101.6 117.1 L103.5 120.5 L104.4 121.4 L105.3 121.7 L106.9 121.2 L108.7 118.9 L114.6 106.1 L116.8 102.2 L118.7 100.1 L120.5 99.4 L122.1 99.9 L123.9 101.4 L129.5 108.8 L131.7 111.2 L133.5 112.5 L135.4 112.9 L136.9 112.7 L138.8 111.9 L146.6 106.4 L148.4 105.6 L150.3 105.4 L153.7 105.9 L161.4 108.8 L165.2 109.3 L168.6 109.1 L176.3 107.7 L180.3 107.4 L195.2 108.3 L210.1 107.9 L340 108" class="s-acc" stroke-width="1.5"/><circle cx="45.2" cy="148.9" r="2.3" class="f-acc2"/><circle cx="60.4" cy="73" r="2.3" class="f-acc2"/><circle cx="75.3" cy="135.6" r="2.3" class="f-acc2"/><circle cx="90.4" cy="87.9" r="2.3" class="f-acc2"/><circle cx="105.6" cy="121.3" r="2.3" class="f-acc2"/><circle cx="120.5" cy="100" r="2.3" class="f-acc2"/><circle cx="135.4" cy="112.4" r="2.3" class="f-acc2"/><circle cx="150.6" cy="105.8" r="2.3" class="f-acc2"/><text x="12" y="194" class="t-b" text-anchor="start">(나) </text><text font-size="14" x="44" y="194" class="t-math" text-anchor="start"><tspan font-style="italic">ε</tspan> = 0.002</text><line x1="30" y1="258" x2="348" y2="258" class="s-line" stroke-width="1.2" marker-end="url(#f94-dim)"/><line x1="30" y1="214.5" x2="340" y2="214.5" class="s-line" stroke-width="1.1" stroke-dasharray="5 4"/><text x="24" y="218.5" class="t-dim" text-anchor="end">1</text><line x1="30" y1="301.5" x2="340" y2="301.5" class="s-line" stroke-width="1.1" stroke-dasharray="5 4"/><text x="24" y="305.5" class="t-dim" text-anchor="end">−1</text><text x="24" y="262" class="t-dim" text-anchor="end">0</text><line x1="92" y1="258" x2="92" y2="262" class="s-line" stroke-width="1.2"/><line x1="154" y1="258" x2="154" y2="262" class="s-line" stroke-width="1.2"/><line x1="216" y1="258" x2="216" y2="262" class="s-line" stroke-width="1.2"/><line x1="278" y1="258" x2="278" y2="262" class="s-line" stroke-width="1.2"/><path d="M30 214.5 L30.6 215 L31.6 217.4 L33.1 225.1 L42.7 292.8 L44.3 299.5 L44.9 300.8 L45.5 301.2 L46.1 300.7 L47 298.2 L48.6 290.6 L58.2 223.5 L59.8 217.2 L60.4 216 L61 215.7 L61.6 216.2 L62.2 217.6 L63.8 224.3 L72.8 286.7 L74.6 295.9 L75.6 298.3 L76.2 299 L76.8 298.8 L77.7 297.1 L79.3 290.8 L88.3 229.9 L90.1 221.4 L91.1 219.2 L91.7 218.7 L92.3 218.9 L93.2 220.5 L94.8 226.4 L97 239.2 L103.5 283.6 L105.3 292 L106.3 294.4 L107.2 295.4 L107.8 295.1 L108.7 293.6 L110.3 288.1 L112.5 276 L119 233.4 L120.8 225.7 L121.8 223.6 L122.7 222.8 L123.6 223.4 L124.5 225.3 L126.4 232.4 L132.9 273 L134.8 282.8 L136.6 289.1 L137.6 290.6 L138.2 290.9 L138.8 290.6 L139.7 289.3 L141.6 283.3 L143.5 273.9 L149.7 237.4 L151.5 230.5 L152.4 228.5 L153.4 227.6 L154 227.6 L154.9 228.5 L156.8 233.5 L159 243.3 L165.2 277.1 L167 283.4 L167.9 285.2 L168.9 286 L169.5 285.9 L170.4 285 L172.3 280.4 L174.5 271.4 L180.3 241.6 L182.5 234.8 L183.4 233.2 L184.4 232.5 L185 232.6 L185.9 233.4 L187.8 237.7 L190 246 L195.8 273 L198 279.1 L198.9 280.4 L199.9 281 L200.5 280.9 L201.4 280.1 L203.3 276.2 L205.1 269.9 L211.3 244.5 L213.5 239.1 L214.4 237.9 L215.4 237.4 L216 237.6 L216.9 238.3 L218.8 241.8 L220.6 247.5 L226.8 270.1 L229 274.8 L229.9 275.8 L230.9 276.2 L232.4 275.4 L234.3 272.2 L236.2 267.2 L242 248.1 L244.2 243.6 L245.1 242.6 L246.1 242.1 L247.6 242.5 L249.5 245 L251.7 250.1 L257.5 266.7 L259.7 270.6 L260.6 271.4 L261.6 271.8 L263.1 271.4 L265 269.2 L267.1 264.8 L273 250.4 L274.9 247.5 L276.8 246.2 L277.7 246.1 L278.6 246.5 L280.5 248.5 L282.3 251.7 L288.5 264.6 L290.7 267.3 L292.6 268.1 L294.1 267.7 L296 266.1 L297.8 263.3 L303.7 252.8 L305.6 250.6 L307.1 249.6 L309 249.6 L311.2 251 L313.3 253.6 L319.2 262.4 L321.4 264.4 L323.3 265.1 L325.1 264.8 L327.3 263.3 L333.5 255.6 L335.7 253.5 L337.8 252.3 L340 252.2" class="s-acc" stroke-width="1.5"/><circle cx="45.5" cy="301.2" r="2.3" class="f-acc2"/><circle cx="61" cy="215.7" r="2.3" class="f-acc2"/><circle cx="76.5" cy="299" r="2.3" class="f-acc2"/><circle cx="91.7" cy="218.7" r="2.3" class="f-acc2"/><circle cx="107.2" cy="295.4" r="2.3" class="f-acc2"/><circle cx="122.7" cy="222.8" r="2.3" class="f-acc2"/><circle cx="138.2" cy="291" r="2.3" class="f-acc2"/><circle cx="153.7" cy="227.4" r="2.3" class="f-acc2"/><circle cx="169.2" cy="286.1" r="2.3" class="f-acc2"/><circle cx="184.7" cy="232.4" r="2.3" class="f-acc2"/><circle cx="200.2" cy="281.1" r="2.3" class="f-acc2"/><circle cx="215.4" cy="237.4" r="2.3" class="f-acc2"/><circle cx="230.9" cy="276.3" r="2.3" class="f-acc2"/><circle cx="246.4" cy="242" r="2.3" class="f-acc2"/><circle cx="261.9" cy="271.9" r="2.3" class="f-acc2"/><circle cx="277.4" cy="246" r="2.3" class="f-acc2"/><circle cx="292.9" cy="268.2" r="2.3" class="f-acc2"/><circle cx="308.1" cy="249.4" r="2.3" class="f-acc2"/><circle cx="323.6" cy="265.2" r="2.3" class="f-acc2"/><circle cx="339.1" cy="252.1" r="2.3" class="f-acc2"/><text x="92" y="325" class="t-dim" text-anchor="middle">2</text><text x="154" y="325" class="t-dim" text-anchor="middle">4</text><text x="216" y="325" class="t-dim" text-anchor="middle">6</text><text x="278" y="325" class="t-dim" text-anchor="middle">8</text><text font-size="14" x="348" y="326" class="t-math dim" text-anchor="end"><tspan font-style="italic">t</tspan>/<tspan font-style="italic">T</tspan></text><line x1="150" y1="17" x2="170" y2="17" class="s-acc" stroke-width="2"/><text font-size="13" x="175" y="22" class="t-math acc" text-anchor="start">⟨<tspan font-style="italic">x</tspan>⟩</text><circle cx="222" cy="17" r="2.6" class="f-acc2"/><text x="229" y="22" class="t-dim" text-anchor="start">고전 무리</text><line x1="290" y1="17" x2="306" y2="17" class="s-line" stroke-width="1.1" stroke-dasharray="5 4"/><text x="310" y="22" class="t-dim" text-anchor="start">고전</text></svg><!--/fig:9-4--></div>
+      <figcaption><b>그림 9-4.</b> 사차 퍼텐셜 \(V \propto x^4\)에서 \(x = 1\)에 정지해 있던 최소 불확정 파속의 \(\langle x\rangle(t)\)(실선). 시간은 고전 주기 \(T\)로 쟀고, 파선 \(\pm1\)은 고전 궤도의 진폭이다. 점은 같은 가우스 분포로 위치와 운동량을 흩뜨린 고전 입자 2만 개의 평균 위치다. (가) \(\varepsilon = 0.02\), (나) \(\varepsilon = 0.002\). \(\varepsilon\)이 작을수록 고전 궤도를 오래 따르고, 어느 경우든 \(\langle x\rangle\)은 고전 입자 무리의 평균과 겹친다.</figcaption>
+    </figure>
+    <p>고전 입자는 처음 진폭 그대로 끝없이 진동하지만, 파속의 \(\langle x\rangle\)은 진폭이 점점 줄어 0 근처에 머문다. \(\varepsilon = 0.02\)이면 진폭이 절반으로 줄기까지 2주기가 채 걸리지 않고, \(\varepsilon\)이 10분의 1인 \(0.002\)이면 6주기 가까이 걸린다. \(\hbar\)가 작을수록, 또는 같은 말이지만 운동의 규모가 클수록 고전 궤도를 더 오래 따르는 것이다.</p>
+    <p>왜 진폭이 줄어들까? 처음 순간에는 식 <a class="ref" href="#eq-force-expand"></a>의 둘째 항이 작다. \(\varepsilon = 0.02\)이면 첫째 항의 3%에 불과하다(<a class="ref" href="#prob-quartic-force"></a>). 문제는 \(\Delta x\)가 자라는 것이다. 사차 퍼텐셜에서는 진동 주기가 에너지에 따라 달라서(에너지가 클수록 짧다), 파속 안에서 에너지가 조금 큰 부분은 앞서 가고 작은 부분은 뒤처진다. 몇 주기가 지나면 파속이 궤도 전체에 흩어지고(\(\Delta x\)가 0.7 가까이 된다), 양쪽 끝의 기여가 서로 지워져 \(\langle x\rangle \approx 0\)이 된다.</p>
+    <p>이 설명에는 양자역학이 거의 들어 있지 않다. 실제로 같은 분포에서 뽑은 고전 입자 2만 개를 각자 \(\ddot x = -x^3\)에 따라 움직이고 위치를 평균하면(그림의 점), 양자역학의 \(\langle x\rangle\)과 그림의 눈금으로는 구별되지 않는다(차이가 0.02 이하다). <b>\(\langle x\rangle\)이 고전 궤도 하나에서 벗어나는 것은 대부분 파속이 퍼져 있기 때문이고, 같은 퍼짐을 가진 고전 입자 무리도 똑같이 행동한다.</b> 고전 극한에서 양자 상태가 닮아 가는 것은 고전 입자 하나가 아니라, 위상 공간에 퍼진 고전 입자 무리다.</p>
+    <p>양자역학만의 효과는 훨씬 나중에 나타난다. \(\varepsilon = 0.05\)로 계산을 길게 이어 가면, 3주기 만에 0 근처로 줄었던 \(\langle x\rangle\)의 진폭이 20주기쯤부터 다시 0.4 가까이 커진다. 같은 조건의 고전 입자 무리는 그동안 내내 0.01 정도에 머문다. 에너지 준위가 띄엄띄엄하기 때문에, 흩어졌던 성분들의 위상 \(e^{-iE_nt/\hbar}\)이 시간이 지나며 다시 맞춰지는 것이다. 이것을 <span class="term">되살아남</span> <span class="en">(revival)</span>이라 한다.</p>
+    <div class="callout tip"><strong>조화 진동자와 비교하면</strong><p>조화 진동자에서는 주기가 에너지와 무관하다. 그래서 에너지가 다른 부분들이 엇갈리지 않고, 결맞음 상태가 모양을 지키며 끝없이 진동했다(<a href="ch08.html#s5">8.5절</a>). 사차 퍼텐셜에서 진폭이 사그라드는 것과 조화 진동자에서 사그라들지 않는 것은 같은 원리의 두 얼굴이다.</p></div>
+
+    <h3 id="s5-limit">고전 극한의 조건</h3>
+    <p>정리하면 입자가 고전 입자처럼 보이려면 두 가지가 필요하다. 파속의 폭이 퍼텐셜이 변하는 길이보다 훨씬 작아야 하고, 운동량의 퍼짐도 운동량 자체보다 훨씬 작아야 궤도가 잘 정해진다. 두 조건을 함께 만족하려면, \(\Delta x\,\Delta p \ge \hbar/2\)이므로 \(\hbar\)가 운동의 전형적인 작용 \(S\)(전형적인 길이 × 운동량)보다 훨씬 작아야 한다. 고전 극한은 \(\hbar/S \to 0\)인 극한이고, 사차 퍼텐셜의 \(\varepsilon\)이 바로 이 비였다.</p>
+    <ul>
+      <li>질량 1 g인 추가 진폭 1 cm, 진동수 1 Hz로 흔들리면 \(S \sim mA^2\omega = 6.3\times10^{-7}\ \mathrm{J\,s}\)이고 \(\hbar/S \sim 1.7\times10^{-28}\)이다. 8장에서 이 추의 결맞음 상태가 사실상 고전적임을 보았다(<a href="ch08.html#ex-macroscopic">8장 예제 8.6</a>).</li>
+      <li>수소 원자의 바닥 상태에서는 \(S \sim a_0\times\hbar/a_0 = \hbar\)이다. 전자는 전혀 고전적이지 않고, '궤도'라는 말이 뜻을 잃는다.</li>
+      <li>주양자수 \(n\)이 큰 리드베리 원자에서는 \(S \sim n\hbar\)이다. 실제로 \(n\)이 수십 이상인 원자에서 짧은 레이저 펄스로 파속을 만들면, 그 파속이 고전적인 케플러 궤도를 몇 바퀴 돈 뒤 흩어지고, 나중에 되살아나는 것이 관측되었다.</li>
+    </ul>
+    <p>8장에서 \(n = 20\)인 조화 진동자 상태의 확률 밀도를 고르게 평균하면 고전 분포가 된 것(<a href="ch08.html#s2-hermite">8.2절</a>의 그림 8-2)도 같은 이야기다. 양자수가 크다는 것은 작용이 \(\hbar\)보다 훨씬 크다는 뜻이다.</p>
+    <div class="box ex" id="ex-virial"><div class="box-h">비리얼 정리</div>
+      <p>식 (6.10)은 \(\hat x\)와 \(\hat p\) 말고 다른 연산자에도 쓸 수 있다. \(\hat x\hat p\)를 넣어 보자. 이 연산자는 에르미트가 아니지만, 식 (6.10)의 유도에는 에르미트라는 조건이 필요 없다. \([\hat x\hat p, \hat H] = -[\hat H, \hat x\hat p]\)에 곱의 규칙(<a href="ch02.html#eq-comm-product">2장 식 (2.6)</a>)을 쓰고 위의 두 교환자를 넣으면</p>
+      <div class="formula">\[ \begin{aligned} [\hat x\hat p, \hat H] &= \hat x\,[\hat p, \hat H] + [\hat x, \hat H]\,\hat p \\ &= -i\hbar\,\hat xV'(\hat x) + \frac{i\hbar}{m}\hat p^2 \end{aligned} \]</div>
+      <p>이므로 \(\frac{d}{dt}\langle\hat x\hat p\rangle = \langle p^2\rangle/m - \langle xV'(x)\rangle\)이다. 정상 상태에서는 모든 기댓값이 변하지 않으므로 왼쪽이 0이고</p>
+      <div class="formula" id="eq-virial">\[ 2\langle T\rangle = \langle x\,V'(x)\rangle \]</div>
+      <p>이다. 이것을 <span class="term">비리얼 정리</span> <span class="en">(virial theorem)</span>라 한다. \(V \propto x^k\)이면 \(xV' = kV\)이므로 \(2\langle T\rangle = k\langle V\rangle\)이다. 조화 진동자(\(k = 2\))에서는 \(\langle T\rangle = \langle V\rangle = E/2\)로, <a href="ch08.html#ex-moments">8장 예제 8.4</a>에서 계산한 결과다. 3차원 쿨롱 퍼텐셜(\(k = -1\))에서는 같은 계산으로 \(2\langle T\rangle = -\langle V\rangle\)이고 \(E = -\langle T\rangle\)이다(<a class="ref" href="#prob-virial"></a>). 수소의 바닥 상태라면 \(\langle T\rangle = 13.6\ \mathrm{eV}\), \(\langle V\rangle = -27.2\ \mathrm{eV}\)로, 그림 9-2의 어림에서 최솟점의 두 에너지와 같다.</p>
+    </div>
+    <div class="callout deep"><strong>고전 극한의 다른 얼굴</strong><p>고전 극한을 보는 방법은 이것 말고도 있다. 11장의 경로 적분에서는 \(\hbar \to 0\)일 때 작용이 정류값을 갖는 경로, 곧 고전 궤도만 살아남는다. 혼돈계에서는 파속이 지수적으로 빨리 늘어나서, 에렌페스트 정리가 고전 궤도를 따르게 해 주는 시간이 \(\ln(S/\hbar)\)에 비례할 만큼 짧을 수 있다. 그런데도 거시 세계가 고전적으로 보이는 데에는 환경과의 상호작용이 큰 몫을 한다. 이것은 22장의 밀도 행렬과 얽힘에서 다룬다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>분산은 벡터 \((\hat\Omega - \langle\Omega\rangle)|\psi\rangle\)의 길이의 제곱이고, 슈바르츠 부등식에서 \(\Delta\Omega\,\Delta\Lambda \ge \frac12|\langle[\hat\Omega, \hat\Lambda]\rangle|\)가 나온다. 공분산까지 넣으면 \((\Delta\Omega)^2(\Delta\Lambda)^2 - \mathrm{cov}^2 \ge \frac14|\langle[\hat\Omega, \hat\Lambda]\rangle|^2\)이다.</li>
+      <li>위치와 운동량은 교환자가 숫자 \(i\hbar\)이므로 모든 상태에서 \(\Delta x\,\Delta p \ge \hbar/2\)이다. 교환자가 연산자이면 하한이 상태에 따라 달라지고 0일 수도 있다. 불확정성 관계는 같은 상태로 준비한 계들의 측정값 분포에 관한 명제다.</li>
+      <li>등호는 \((\hat p - \langle p\rangle)|\psi\rangle = i\lambda(\hat x - \langle x\rangle)|\psi\rangle\)(\(\lambda > 0\))일 때만 성립하고, 그 해는 가우스 파속뿐이다. 자유 파속이 퍼지면 공분산이 생겨 \(\Delta x\,\Delta p\)는 커지지만, 위상 공간의 불확정도 타원의 넓이 \(\pi\hbar/2\)는 그대로다.</li>
+      <li>크기 \(r\)에 갇힌 입자는 \(\hbar^2/2mr^2\) 정도의 갇힘 에너지를 가진다. 이것과 퍼텐셜 에너지의 균형으로 수소 원자의 크기 \(a_0\)와 에너지 \(-13.6\ \mathrm{eV}\)를 어림할 수 있고, 원자가 무너지지 않는 까닭도 설명된다. 어림이 믿을 만한 것은 크기의 정도까지다.</li>
+      <li>시간은 연산자가 아니다. 에너지-시간 관계 \(\Delta E\,\tau_\Omega \ge \hbar/2\)에서 \(\tau_\Omega\)는 \(\langle\Omega\rangle\)이 표준 편차만큼 변하는 데 걸리는 시간이다. 처음 상태와 직교하는 상태가 되는 데는 적어도 \(\pi\hbar/2\Delta E\)가 걸린다.</li>
+      <li>수명 \(\tau\)인 상태의 에너지는 반치폭 \(\Gamma = \hbar/\tau\)인 로렌츠 분포로 퍼지고, 이것이 스펙트럼선의 자연 선폭이다.</li>
+      <li>에렌페스트 정리 \(m\,d^2\langle x\rangle/dt^2 = \langle F(x)\rangle\)에서, 힘이 \(x\)의 1차식이면 \(\langle x\rangle\)이 정확히 고전 운동을 하고, 아니면 파속이 힘의 변화 규모보다 좁은 동안만 근사적으로 고전 운동을 한다.</li>
+      <li>파속이 고전 궤도에서 벗어나는 것은 대부분 퍼짐 때문이어서, 같은 퍼짐을 가진 고전 입자 무리와 함께 움직인다. 고전 극한은 \(\hbar\)가 운동의 전형적인 작용보다 훨씬 작은 극한이며, 띄엄띄엄한 준위에서 오는 되살아남 같은 현상은 양자역학에만 있다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 일반 불확정성 관계 \(\Delta\Omega\,\Delta\Lambda \ge \frac12|\langle[\hat\Omega, \hat\Lambda]\rangle|\)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">두 연산자가 교환하지 않으면 어떤 상태에서든 곱이 0보다 크다.</button>
+        <button class="opt" data-correct>오른쪽은 일반적으로 상태에 따라 달라지고, 0이 될 수도 있다.</button>
+        <button class="opt">한 번의 측정에서 두 값을 함께 잴 때 생기는 오차의 곱에 관한 부등식이다.</button>
+        <button class="opt">위치와 운동량에 대해서만 성립한다.</button>
+      </div><div class="quiz-exp">교환자가 연산자이면 그 기댓값이 상태에 따라 다르다. 예를 들어 \(|x{+}\rangle\)에서 \(\Delta\sigma_x = 0\)이지만 \(\langle\sigma_z\rangle = 0\)이어서 모순이 없다. 이 부등식은 같은 상태로 준비한 계들에서 따로 잰 측정값 분포의 표준 편차에 관한 것이다.</div></div>
+      <div class="quiz-q"><p>2. \(\Delta x\,\Delta p = \hbar/2\)인 상태는?</p><div class="opts">
+        <button class="opt">무한 우물의 바닥 상태</button>
+        <button class="opt">조화 진동자의 첫 들뜬 상태</button>
+        <button class="opt" data-correct>폭이 \(\sigma\)이고 평균 운동량이 \(p_0\)인 가우스 파속</button>
+        <button class="opt">\(e^{-|x|/a}/\sqrt a\)</button>
+      </div><div class="quiz-exp">등호를 만드는 상태는 식 <a class="ref" href="#eq-min-packet"></a>의 가우스 파속뿐이다. 무한 우물의 바닥 상태는 \(0.568\hbar\), 조화 진동자의 첫 들뜬 상태는 \(1.5\hbar\), 지수 함수는 \(0.707\hbar\)이다.</div></div>
+      <div class="quiz-q"><p>3. 수소 원자가 무너지지 않는 까닭으로 가장 알맞은 것은?</p><div class="opts">
+        <button class="opt">전자가 빛을 내는 것이 원리적으로 금지되어 있기 때문이다.</button>
+        <button class="opt" data-correct>전자를 핵 가까이 가둘수록 갇힘 에너지가 \(1/r^2\)로 커져, \(1/r\)로 커지는 퍼텐셜 에너지의 이득을 넘어서기 때문이다.</button>
+        <button class="opt">핵이 가까이 온 전자를 밀어내기 때문이다.</button>
+        <button class="opt">전자의 질량이 양성자보다 훨씬 작기 때문이다.</button>
+      </div><div class="quiz-exp">\(E(r) \approx \hbar^2/2m_er^2 - k/r\)은 작은 \(r\)에서 첫 항이 이기므로 \(r = a_0\)에 최솟값이 있다. 원자의 크기는 두 에너지의 균형이 정한다.</div></div>
+      <div class="quiz-q"><p>4. 수명이 1 ns인 들뜬 상태가 내는 빛의 자연 선폭을 진동수 \(\Gamma/h\)로 나타내면?</p><div class="opts">
+        <button class="opt">1 GHz</button>
+        <button class="opt" data-correct>약 160 MHz</button>
+        <button class="opt">1 MHz</button>
+        <button class="opt">약 6.6 GHz</button>
+      </div><div class="quiz-exp">\(\Gamma = \hbar/\tau\)이므로 \(\Gamma/h = 1/2\pi\tau = 1/(2\pi\times10^{-9}\ \mathrm s) = 159\ \mathrm{MHz}\)이다. 에너지로는 \(6.6\times10^{-7}\ \mathrm{eV}\)이다.</div></div>
+      <div class="quiz-q"><p>5. 에너지 고유 상태에서는 \(\Delta E = 0\)이다. 에너지-시간 관계 \(\Delta E\,\tau_\Omega \ge \hbar/2\)가 이 상태에 대해 말하는 것은?</p><div class="opts">
+        <button class="opt">에너지를 재려면 무한히 긴 시간이 걸린다.</button>
+        <button class="opt" data-correct>어떤 관측량의 기댓값도 시간에 따라 변하지 않는다.</button>
+        <button class="opt">짧은 시간 동안 에너지 보존이 깨질 수 있다.</button>
+        <button class="opt">이 상태는 곧바로 붕괴한다.</button>
+      </div><div class="quiz-exp">\(\Delta E = 0\)이면 모든 \(\tau_\Omega\)가 무한대여야 하므로 \(d\langle\Omega\rangle/dt = 0\)이다. 정상 상태에서 아무것도 변하지 않는다는 6장의 결과와 같다.</div></div>
+      <div class="quiz-q"><p>6. 어떤 상태에서든 \(\langle x\rangle\)이 고전 운동 방정식을 정확히 따르는 퍼텐셜은?</p><div class="opts">
+        <button class="opt">\(V = \lambda x^4\)</button>
+        <button class="opt">\(V = -k/|x|\)</button>
+        <button class="opt" data-correct>\(V = \frac12m\omega^2x^2 + F_0x\)</button>
+        <button class="opt">유한한 네모 우물</button>
+      </div><div class="quiz-exp">에렌페스트 정리에서 \(\langle F(x)\rangle = F(\langle x\rangle)\)이 모든 상태에서 성립하려면 \(F\)가 \(x\)의 1차식, 곧 \(V\)가 2차 이하의 다항식이어야 한다. 균일한 힘이 더해진 조화 진동자가 그렇다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-spin-xz" data-level="1"><p>스핀 상태 \(|\psi\rangle \to (\cos\frac\theta2, \sin\frac\theta2)\)를 생각하자. (가) \(\langle\sigma_x\rangle\), \(\langle\sigma_y\rangle\), \(\langle\sigma_z\rangle\), \(\Delta\sigma_x\), \(\Delta\sigma_y\)를 구하고, \(\Delta\sigma_x\,\Delta\sigma_y \ge |\langle\sigma_z\rangle|\)가 모든 \(\theta\)에서 등호임을 보여라. (나) 등호가 되는 까닭을 9.2절의 두 조건으로 설명하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(c = \cos\frac\theta2\), \(s = \sin\frac\theta2\)로 쓰면 \(\langle\sigma_x\rangle = 2cs = \sin\theta\), \(\langle\sigma_y\rangle = c(-is) + s(ic) = 0\), \(\langle\sigma_z\rangle = c^2 - s^2 = \cos\theta\)이다. \(\sigma_x^2 = \sigma_y^2 = I\)이므로 \(\Delta\sigma_x = \sqrt{1 - \sin^2\theta} = |\cos\theta|\), \(\Delta\sigma_y = 1\)이다. 곱 \(|\cos\theta|\)는 \(|\langle\sigma_z\rangle|\)와 같다.</p>
+        <p>(나) \(\sin\theta = 2sc\)를 쓰면 \((\sigma_x - \sin\theta)\psi \to (s - 2sc^2,\ c - 2s^2c) = \cos\theta\,(-s, c)\)이고, \(\sigma_y\psi \to (-is, ic) = i(-s, c)\)이다. 두 벡터가 평행하므로 슈바르츠 부등식이 등호이고, 비례 상수 \(i/\cos\theta\)가 순허수이므로 공분산도 0이다. (\(\{\sigma_x, \sigma_y\} = 0\)이고 \(\langle\sigma_y\rangle = 0\)이므로 직접 보아도 공분산은 0이다.) \(\cos\theta = 0\)이면 양변이 모두 0이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-exotic-atoms" data-level="1"><p>식 <a class="ref" href="#eq-h-estimate"></a>의 어림을 다음 계에 써서 크기와 바닥 에너지를 구하라. 두 입자의 상대 운동이므로 질량 자리에 환산 질량이 들어간다. (가) 전자와 양전자가 묶인 포지트로늄. (나) 양성자에 전자 대신 뮤온(\(m_\mu = 206.8\,m_e\))이 묶인 뮤온 수소. 양성자 질량은 \(1836\,m_e\)이다.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(m_e\)를 환산 질량 \(\mu\)로 바꾸면 \(r = \hbar^2/\mu k = a_0\,(m_e/\mu)\), \(E = -\mu k^2/2\hbar^2 = -13.6\ \mathrm{eV}\times(\mu/m_e)\)이다.</p>
+        <p>(가) \(\mu = m_e/2\)이므로 \(r = 2a_0 = 0.106\ \mathrm{nm}\), \(E = -6.8\ \mathrm{eV}\)이다.</p>
+        <p>(나) \(\mu = \frac{206.8\times1836}{206.8 + 1836}\,m_e = 185.9\,m_e\)이므로 \(r = a_0/185.9 = 285\ \mathrm{fm}\), \(E = -2.53\ \mathrm{keV}\)이다. 뮤온은 전자보다 186배 가까이 양성자에 붙어 있어서, 뮤온 수소의 에너지 준위는 양성자의 크기(반지름 약 0.84 fm)에 민감하다. 이것을 이용해 양성자의 반지름을 정밀하게 잰다. 두 결과가 보어 모형의 값과 같은 것은 수소 원자에서와 같은 행운이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-sodium" data-level="1"><p>나트륨의 노란 D선(파장 589 nm)은 수명 16.2 ns인 \(3p\) 상태가 붕괴하며 내는 빛이다. 자연 선폭을 진동수(\(\Gamma/h\)), 에너지, 파장으로 나타내라. 파장 폭은 \(\Delta\lambda = \lambda^2\Delta\nu/c\)로 구한다.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\Gamma/h = 1/2\pi\tau = 1/(2\pi\times16.2\times10^{-9}\ \mathrm s) = 9.8\ \mathrm{MHz}\)이고, \(\Gamma = \hbar/\tau = 4.1\times10^{-8}\ \mathrm{eV}\)이다. 파장 폭은 \(\Delta\lambda = (589\times10^{-9})^2\times9.8\times10^6/3.00\times10^8 = 1.1\times10^{-14}\ \mathrm m\), 곧 \(1.1\times10^{-5}\ \mathrm{nm}\)이다. 광자 에너지 2.1 eV의 \(2\times10^{-8}\)배다. (\(\lambda = c/\nu\)에서 \(|d\lambda| = c\,d\nu/\nu^2 = \lambda^2d\nu/c\)이다.)</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-quartic-force" data-level="1"><p>그림 9-4의 단위(\(F = -x^3\))를 쓰자. (가) \(x = \bar x + \delta\)로 써서 \(\langle F\rangle = -\big(\bar x^3 + 3\bar x(\Delta x)^2 + \langle\delta^3\rangle\big)\)임을 보이고, 식 <a class="ref" href="#eq-force-expand"></a>와 비교하라. (나) 처음 순간(\(\bar x = 1\), \((\Delta x)^2 = \varepsilon/2\), 대칭인 가우스 분포)에 \(\langle F\rangle\)은 \(F(\bar x)\)와 몇 % 다른가? \(\varepsilon = 0.02\)와 \(0.002\)에 대해 답하라. (다) 몇 주기 뒤 \(\bar x \approx 1\)인 순간에 \(\Delta x = 0.5\)가 되었다면?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(x^3 = \bar x^3 + 3\bar x^2\delta + 3\bar x\delta^2 + \delta^3\)이고 \(\langle\delta\rangle = 0\), \(\langle\delta^2\rangle = (\Delta x)^2\)이므로 주어진 식이 나온다. \(F'' = -6x\)이므로 식 <a class="ref" href="#eq-force-expand"></a>의 둘째 항 \(\frac12F''(\bar x)(\Delta x)^2 = -3\bar x(\Delta x)^2\)과 같고, \(F\)가 3차식이어서 전개가 \(\frac16F'''\langle\delta^3\rangle = -\langle\delta^3\rangle\)에서 끝난다.</p>
+        <p>(나) 대칭인 분포에서 \(\langle\delta^3\rangle = 0\)이므로 차이의 비는 \(3(\Delta x)^2/\bar x^2 = 1.5\varepsilon\), 곧 \(\varepsilon = 0.02\)에서 3%, \(0.002\)에서 0.3%이다.</p>
+        <p>(다) \(3(\Delta x)^2 = 0.75\)로, 보정이 \(F(\bar x)\)의 75%에 이른다. 더 이상 작은 보정이 아니므로 \(\langle x\rangle\)은 고전 궤도를 따르지 않는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-real-cov" data-level="2"><p>(가) 무한히 먼 곳에서 0이 되는 실수 파동함수 \(\psi(x)\)에 대해 \(\langle\hat x\hat p + \hat p\hat x\rangle = 0\)임을 보여라. 따라서 공분산이 0이고, 슈뢰딩거의 불확정성 관계는 로버트슨의 꼴과 같아진다. (나) \(\psi\)에 \(e^{ip_0x/\hbar}\)를 곱해도 공분산이 0임을 보여라. 공분산이 생기려면 위상이 어떤 모양이어야 하는가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\langle\hat x\hat p + \hat p\hat x\rangle = -i\hbar\int\psi\big(x\psi' + (x\psi)'\big)dx = -i\hbar\int(2x\psi\psi' + \psi^2)\,dx\)이다. \(2\psi\psi' = (\psi^2)'\)이므로 부분 적분하면 \(\int x(\psi^2)'dx = [x\psi^2] - \int\psi^2dx = -1\)이고, 전체는 \(-i\hbar(-1 + 1) = 0\)이다. 실수 파동함수는 \(\langle p\rangle = 0\)이므로(<a href="ch03.html#prob-p-real">3장 문제 3.6</a>) 공분산 \(\frac12\langle\hat x\hat p + \hat p\hat x\rangle - \langle x\rangle\langle p\rangle\)도 0이다.</p>
+        <p>(나) \(\varphi = \psi e^{ip_0x/\hbar}\)이면 \(\hat p\varphi = e^{ip_0x/\hbar}(\hat p + p_0)\psi\)이므로 \(\langle p\rangle_\varphi = p_0\)이고, \((\hat p - p_0)\varphi = e^{ip_0x/\hbar}\hat p\psi\)이다. 따라서 \(\varphi\)의 공분산은 \(\psi\)의 공분산과 같아 0이다. 1차 위상은 모든 부분의 운동량을 똑같이 바꿀 뿐이다. 공분산이 생기려면 위상의 기울기, 곧 국소적인 운동량이 자리에 따라 달라야 하므로, <a class="ref" href="#ex-chirp"></a>의 \(x^2\) 항처럼 위상이 \(x\)의 1차식이 아니어야 한다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-neutron" data-level="2"><p>수평한 거울 위로 떨어지는 느린 중성자를 생각하자. 퍼텐셜은 \(z > 0\)에서 \(mgz\)이고, 거울(\(z &lt; 0\))은 뚫을 수 없다. (가) 높이 \(z\) 정도에 갇힌 중성자의 에너지를 \(E(z) \approx \hbar^2/2mz^2 + mgz\)로 어림해, 바닥 상태의 높이와 에너지를 구하라(\(m = 1.675\times10^{-27}\ \mathrm{kg}\), \(g = 9.81\ \mathrm{m/s^2}\)). (나) 정확한 바닥 에너지는 \(E_1 = 2.338\,(\hbar^2mg^2/2)^{1/3}\)이다. 어림과 비교하고, 이 에너지의 고전적 되돌이점 높이를 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(dE/dz = -\hbar^2/mz^3 + mg = 0\)에서 \(z_* = (\hbar^2/m^2g)^{1/3} = 7.4\ \mu\mathrm m\)이다. 이때 \(\hbar^2/2mz_*^2 = \frac12mgz_*\)이므로 \(E_* = \frac32mgz_* = 1.8\times10^{-31}\ \mathrm J = 1.1\times10^{-12}\ \mathrm{eV}\)이다.</p>
+        <p>(나) \(E_1 = 1.41\times10^{-12}\ \mathrm{eV}\)로, 어림은 정확한 값의 81%다. 되돌이점 높이는 \(E_1/mg = 13.7\ \mu\mathrm m\)이다. 2002년 프랑스 그르노블의 ILL 연구소에서, 거울과 흡수체 사이의 틈을 지나는 중성자가 틈이 십몇 \(\mu\mathrm m\)보다 좁으면 거의 지나가지 못한다는 것이 관측되었다. 지구 중력 속에서 양자화된 상태를 처음으로 본 실험이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-pulse" data-level="2"><p>전기장이 \(\mathcal E(t) = \mathcal E_0e^{-t^2/2T^2}\cos\omega_0t\)인 빛 펄스가 있다(\(\omega_0T \gg 1\)). (가) 세기의 포락선 \(e^{-t^2/T^2}\)을 확률 분포로 보아 시간 폭의 표준 편차 \(\Delta t\)를 구하라. (나) \(\omega > 0\) 쪽 스펙트럼 진폭이 \(e^{-T^2(\omega - \omega_0)^2/2}\)에 비례함을 보이고, 스펙트럼 세기의 표준 편차 \(\Delta\omega\)를 구해 \(\Delta t\,\Delta\omega = \frac12\)임을 보여라. (다) 실험에서는 반치폭을 쓰는데, 가우스 펄스에서 반치폭의 곱은 \(\Delta t_{1/2}\,\Delta\nu_{1/2} = 2\ln2/\pi = 0.441\)이다. 파장 800 nm, 반치폭 10 fs인 펄스의 파장 폭과 광자 에너지의 퍼짐을 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(e^{-t^2/T^2}\)은 분산이 \(T^2/2\)인 정규 분포이므로 \(\Delta t = T/\sqrt2\)이다.</p>
+        <p>(나) \(\cos\omega_0t = \frac12(e^{i\omega_0t} + e^{-i\omega_0t})\)이고 가우스 적분(<a href="ch03.html#eq-gauss-shift">3장 식 (3.10)</a>)으로 \(\int e^{-t^2/2T^2}e^{i\Omega t}dt = \sqrt{2\pi}\,T\,e^{-T^2\Omega^2/2}\)이므로, 스펙트럼 진폭은 \(e^{-T^2(\omega - \omega_0)^2/2}\)과 \(e^{-T^2(\omega + \omega_0)^2/2}\)의 합에 비례한다. \(\omega > 0\)에서 \(\omega_0T \gg 1\)이면 둘째 항은 무시할 수 있다. 세기 \(e^{-T^2(\omega - \omega_0)^2}\)은 분산이 \(1/2T^2\)인 정규 분포이므로 \(\Delta\omega = 1/\sqrt2\,T\)이고 \(\Delta t\,\Delta\omega = \frac12\)이다. 최소 불확정 파속의 \(\Delta x\,\Delta k = \frac12\)과 같은 계산이다.</p>
+        <p>(다) \(\Delta\nu_{1/2} = 0.441/10^{-14}\ \mathrm s = 4.4\times10^{13}\ \mathrm{Hz}\)이므로 \(\Delta\lambda = \lambda^2\Delta\nu/c = 94\ \mathrm{nm}\)이고, \(h\Delta\nu = 0.18\ \mathrm{eV}\)이다. 광자 에너지 1.55 eV의 12%로, 아주 짧은 펄스는 색이 넓게 퍼진 빛이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-qsl-three" data-level="2"><p>에너지가 \(E\), \(E + \epsilon\), \(E + 2\epsilon\)인 세 고유 상태를 같은 비율로 섞은 상태 \((|E\rangle + |E + \epsilon\rangle + |E + 2\epsilon\rangle)/\sqrt3\)가 있다. (가) 처음 상태에 남아 있을 확률이 \(P(t) = (1 + 2\cos\phi)^2/9\)(\(\phi = \epsilon t/\hbar\))임을 보여라. (나) 처음으로 직교하는 시간 \(t_\perp\)를 구하고, 양자 속도 한계 \(\pi\hbar/2\Delta E\)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(z = e^{-i\phi}\)로 쓰면 \(\langle\psi_0|\psi(t)\rangle = e^{-iEt/\hbar}(1 + z + z^2)/3\)이다. \(1 + z + z^2 = z(z^{-1} + 1 + z) = z(1 + 2\cos\phi)\)이고 \(|z| = 1\)이므로 \(P = (1 + 2\cos\phi)^2/9\)이다.</p>
+        <p>(나) 처음으로 \(\cos\phi = -\frac12\)인 \(\phi = 2\pi/3\)에서 \(P = 0\)이므로 \(t_\perp = 2\pi\hbar/3\epsilon = 2.09\,\hbar/\epsilon\)이다. 에너지 퍼짐은 \((\Delta E)^2 = \frac{0 + 1 + 4}{3}\epsilon^2 - \epsilon^2 = \frac23\epsilon^2\), 곧 \(\Delta E = 0.816\,\epsilon\)이므로 한계는 \(\pi\hbar/2\Delta E = 1.92\,\hbar/\epsilon\)이다. 한계를 지키며, 두 준위만 섞은 상태보다 9%쯤 더 걸린다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-virial" data-level="2"><p>(가) 3차원에서 \(\hat H = \hat{\mathbf p}^2/2m + V(\mathbf r)\)일 때 \(\frac{d}{dt}\langle\hat{\mathbf r}\cdot\hat{\mathbf p}\rangle = 2\langle T\rangle - \langle\mathbf r\cdot\nabla V\rangle\)임을 보이고, 정상 상태에서 \(2\langle T\rangle = \langle\mathbf r\cdot\nabla V\rangle\)임을 보여라. (나) \(V \propto r^k\)이면 \(2\langle T\rangle = k\langle V\rangle\)임을 보여라. (다) 수소 원자의 바닥 에너지가 \(-13.6\ \mathrm{eV}\)일 때 \(\langle T\rangle\)과 \(\langle V\rangle\)을 구하고, \(\sqrt{\langle v^2\rangle}\)이 빛의 속력의 몇 배인지 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(\hat{\mathbf r}\cdot\hat{\mathbf p} = \sum_i\hat x_i\hat p_i\)이다. 성분마다 <a class="ref" href="#ex-virial"></a>과 같이 계산하면 \([\hat x_i\hat p_i, \hat H] = -i\hbar\,\hat x_i\,\partial_iV + i\hbar\,\hat p_i^2/m\)이고, 더해서 식 (6.10)에 넣으면 주어진 식이 나온다. 정상 상태에서는 왼쪽이 0이다.</p>
+        <p>(나) \(V = cr^k\)이면 \(\nabla V = ckr^{k-1}\hat{\mathbf r}\)이므로 \(\mathbf r\cdot\nabla V = ckr^k = kV\)이다.</p>
+        <p>(다) \(k = -1\)이므로 \(2\langle T\rangle = -\langle V\rangle\)이고 \(E = \langle T\rangle + \langle V\rangle = -\langle T\rangle\)이다. 따라서 \(\langle T\rangle = 13.6\ \mathrm{eV}\), \(\langle V\rangle = -27.2\ \mathrm{eV}\)이다. \(\langle v^2\rangle = 2\langle T\rangle/m_e\)이므로 \(\sqrt{\langle v^2\rangle}/c = \sqrt{2\times13.6/511\,000} = 0.0073\)으로, 미세 구조 상수 \(\alpha \approx 1/137\)과 같다. 전자는 비상대론적이고, 상대론적 보정은 \(\alpha^2\) 정도로 작다(19장의 미세 구조).</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-passage-time" data-level="3"><p>자유 입자의 가우스 파속(식 <a class="ref" href="#eq-min-packet"></a>, \(p_0 > 0\))이 \(t = 0\)에 있다. (가) \(\Omega = x\)에 대해 식 <a class="ref" href="#eq-tau-omega"></a>의 \(\tau_x\)를 구하라. (나) 운동량 분포가 평균 \(p_0\), 표준 편차 \(s = \hbar/\sqrt2\,\sigma\)인 정규 분포임을 써서 \(p^2\)의 분산이 \(4p_0^2s^2 + 2s^4\)임을 보이고 \(\Delta E\)를 구하라. (다) \(\Delta E\,\tau_x\)를 계산해 \(\hbar/2\) 이상임을 확인하고, \(p_0 \gg s\)일 때 이 관계가 무엇을 뜻하는지 말하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(d\langle x\rangle/dt = p_0/m\)이므로 \(\tau_x = m\Delta x/p_0 = m\sigma/\sqrt2\,p_0\)이다.</p>
+        <p>(나) \(p = p_0 + q\)로 쓰면 \(q\)는 평균 0, 분산 \(s^2\)인 정규 분포이고 \(\langle q^3\rangle = 0\), \(\langle q^4\rangle = 3s^4\)이다. \(\langle p^2\rangle = p_0^2 + s^2\), \(\langle p^4\rangle = p_0^4 + 6p_0^2s^2 + 3s^4\)이므로 분산은 \(\langle p^4\rangle - \langle p^2\rangle^2 = 4p_0^2s^2 + 2s^4\)이다. \(E = p^2/2m\)이므로 \(\Delta E = \frac{s}{m}\sqrt{p_0^2 + s^2/2}\)이다.</p>
+        <p>(다) \(\Delta E\,\tau_x = s\,\Delta x\sqrt{1 + s^2/2p_0^2}\)이고 \(s\,\Delta x = \frac{\hbar}{\sqrt2\,\sigma}\cdot\frac{\sigma}{\sqrt2} = \frac\hbar2\)이므로 \(\Delta E\,\tau_x = \frac\hbar2\sqrt{1 + s^2/2p_0^2} \ge \frac\hbar2\)이다. \(p_0 \gg s\)이면 거의 등호다. \(\tau_x\)는 길이 \(\Delta x\)인 파속이 속력 \(p_0/m\)으로 한 점을 지나는 데 걸리는 시간이다. 한 자리에 놓은 검출기가 보기에 입자가 도착하는 시각은 \(\tau_x\)만큼 흩어지고, 그 곱이 에너지 퍼짐과 \(\hbar/2\)로 묶인다. '\(\Delta E\,\Delta t\)'가 가장 흔히 뜻하는 내용이 이것이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-ho-cov" data-level="3"><p>조화 진동자 \(\hat H = \hat p^2/2m + \frac12m\omega^2\hat x^2\)의 임의의 상태를 생각하자. \(\Sigma_{xx} = (\Delta x)^2\), \(\Sigma_{pp} = (\Delta p)^2\), \(\Sigma_{xp} = \mathrm{cov}(x, p)\)로 쓴다. (가) 식 (6.10)으로 \(\dot\Sigma_{xx} = 2\Sigma_{xp}/m\), \(\dot\Sigma_{pp} = -2m\omega^2\Sigma_{xp}\), \(\dot\Sigma_{xp} = \Sigma_{pp}/m - m\omega^2\Sigma_{xx}\)를 보여라. (나) \(\Sigma_{xx}\Sigma_{pp} - \Sigma_{xp}^2\)이 시간에 따라 변하지 않음을 보여라. (다) 8장의 압착 상태(처음 폭 \(s = b/2\)인 실수 가우스 함수, \(\langle x\rangle = \langle p\rangle = 0\))에서 \(t = T/8\)의 \(\Delta x\), \(\Delta p\), 공분산을 구하고, 이 순간 \(\Delta x\,\Delta p > \hbar/2\)이지만 슈뢰딩거의 꼴은 등호임을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(C = \frac12\langle\hat x\hat p + \hat p\hat x\rangle\)로 쓰자. \([\hat x^2, \hat p^2] = 2i\hbar(\hat x\hat p + \hat p\hat x)\)(<a href="ch07.html#prob-spread-general">7장 문제 7.6</a>)를 쓰면 \(\frac{d}{dt}\langle x^2\rangle = 2C/m\), \(\frac{d}{dt}\langle p^2\rangle = -2m\omega^2C\)이다. 또 \([\hat x\hat p + \hat p\hat x, \hat p^2] = 4i\hbar\,\hat p^2\), \([\hat x\hat p + \hat p\hat x, \hat x^2] = -4i\hbar\,\hat x^2\)이므로 \(\dot C = \langle p^2\rangle/m - m\omega^2\langle x^2\rangle\)이다. 평균은 에렌페스트 정리로 \(\dot{\bar x} = \bar p/m\), \(\dot{\bar p} = -m\omega^2\bar x\)이다. \(\Sigma_{xx} = \langle x^2\rangle - \bar x^2\), \(\Sigma_{pp} = \langle p^2\rangle - \bar p^2\), \(\Sigma_{xp} = C - \bar x\bar p\)를 미분하면 주어진 세 식이 나온다. 예를 들어 \(\dot\Sigma_{xx} = 2C/m - 2\bar x\bar p/m = 2\Sigma_{xp}/m\)이다.</p>
+        <p>(나) \(\frac{d}{dt}(\Sigma_{xx}\Sigma_{pp} - \Sigma_{xp}^2) = \frac{2\Sigma_{xp}}{m}\Sigma_{pp} - 2m\omega^2\Sigma_{xp}\Sigma_{xx} - 2\Sigma_{xp}\Big(\frac{\Sigma_{pp}}{m} - m\omega^2\Sigma_{xx}\Big) = 0\)이다. \(\omega = 0\)인 자유 입자에서도 마찬가지다. 그러므로 처음에 슈뢰딩거의 꼴에서 등호인 상태는 영원히 등호로 남는다.</p>
+        <p>(다) 처음에 \(\Sigma_{xx} = s^2/2 = b^2/8\), \(\Sigma_{pp} = \hbar^2/2s^2 = 2\hbar^2/b^2\), \(\Sigma_{xp} = 0\)이다. <a href="ch08.html#eq-breathing">8장 식 (8.31)</a>에서 \(\Sigma_{xx}(t) = \frac12\big(s^2\cos^2\omega t + \frac{b^4}{s^2}\sin^2\omega t\big)\)이므로 \(\omega t = \pi/4\)에서 \(\Sigma_{xx} = \frac14\big(\frac{b^2}{4} + 4b^2\big) = \frac{17}{16}b^2\)이다. (가)의 첫 식에서 \(\Sigma_{xp} = \frac m2\dot\Sigma_{xx} = \frac{m\omega}{4}\Big(\frac{b^4}{s^2} - s^2\Big)\sin2\omega t\)이고, \(m\omega = \hbar/b^2\)이므로 이 순간 \(\Sigma_{xp} = \frac{\hbar}{4b^2}\cdot\frac{15b^2}{4} = \frac{15}{16}\hbar\)이다. 에너지 \(\Sigma_{pp}/2m + \frac12m\omega^2\Sigma_{xx}\)가 보존되므로 \(\Sigma_{pp} = \frac{2\hbar^2}{b^2} - \frac{\hbar^2}{b^4}\Big(\frac{17}{16} - \frac18\Big)b^2 = \frac{17}{16}\frac{\hbar^2}{b^2}\)이다. 따라서 \(\Delta x = \frac{\sqrt{17}}{4}b\), \(\Delta p = \frac{\sqrt{17}}{4}\frac\hbar b\), \(\Delta x\,\Delta p = \frac{17}{16}\hbar > \frac\hbar2\)이고, \(\Sigma_{xx}\Sigma_{pp} - \Sigma_{xp}^2 = \frac{289 - 225}{256}\hbar^2 = \frac{\hbar^2}{4}\)으로 등호다.</p>
+      </details>
+    </div>
+
   </section>
 </main>
 </body>
