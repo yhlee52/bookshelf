@@ -77,6 +77,18 @@
     |\psi(t+\tau)\rangle=\hat U(\tau)|\psi(t)\rangle,\qquad
     \hat U^\dagger(\tau)\hat H\hat U(\tau)=\hat H. \]</div>
     <p>\(\hat U(\tau)=I-i\tau\hat H/\hbar+O(\tau^2)\)이므로 에너지를 나타내는 \(\hat H\)가 시간 병진의 생성자다. 공간 병진의 생성자가 운동량이었던 식 <a class="ref" href="#eq-translation-def"></a>과 짝을 이룬다. 여기서 시간은 변환의 매개변수이며, 이 논증에 별도의 '시간 관측량 연산자'는 필요하지 않다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="공간과 시간 병진 대칭에서 생성자와 보존량으로 이어지는 대응">
+
+        <text x="30" y="40" class="t-b">대칭</text><text x="174" y="40" class="t-b">생성자</text><text x="321" y="40" class="t-b">보존량</text>
+        <line x1="25" y1="53" x2="415" y2="53" class="s-faint"/>
+        <rect x="20" y="75" width="400" height="63" rx="8" class="f-acc-soft"/>
+        <text x="32" y="113" class="t">공간 병진</text><text x="154" y="113" class="t-acc">→ 운동량 p</text><text x="293" y="113" class="t">→ 운동량 보존</text>
+        <rect x="20" y="157" width="400" height="63" rx="8" class="f-acc2-soft"/>
+        <text x="32" y="195" class="t">시간 병진</text><text x="154" y="195" class="t">→ 에너지 H</text><text x="293" y="195" class="t">→ 에너지 보존</text>
+      </svg></div>
+      <figcaption><b>그림 13-1.</b> 연속 병진의 생성자가 대응하는 보존량이다. 공간 병진에 대한 운동량 보존은 해밀토니안과 운동량의 교환 관계에서, 시간 병진에 대한 에너지 보존은 명시적인 시간 의존성이 없을 때 성립한다.</figcaption>
+    </figure>
     <h3 id="s2-energy-balance">해밀토니안이 시간에 따라 바뀌면</h3>
     <p>시간 의존 \(\hat H(t)\)를 허용하고 에너지 기댓값 \(E(t)=\langle\psi(t)|\hat H(t)|\psi(t)\rangle\)를 미분해 보자. 슈뢰딩거 방정식 \(i\hbar|\dot\psi\rangle=\hat H|\psi\rangle\)과 그 켤레를 각 항에 넣으면</p>
     <div class="formula" id="eq-energy-derivation">\[ \begin{aligned}\frac{dE}{dt}

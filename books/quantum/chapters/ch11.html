@@ -60,6 +60,21 @@
   <section id="s2">
     <h2>파인만의 처방: 짧은 시간 조각을 잇기</h2>
     <p>이제 \(\hat H=\hat p^2/(2m)+V(\hat x)\)인 입자를 보자. 전체 시간 \(T\)를 \(N\)조각으로 나누고 \(\varepsilon=T/N\), \(t_j=t_a+j\varepsilon\), \(x_0=x_a\), \(x_N=x_b\)라 놓는다. 식 <a class="ref" href="#eq-composition"></a>을 되풀이하면 중간 위치 \(N-1\)개를 적분한다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="고정된 양 끝점 사이를 시간 조각으로 나누고 중간 위치를 적분하는 경로 적분">
+
+        <line x1="45" y1="220" x2="405" y2="220" class="s-line"/><line x1="45" y1="220" x2="45" y2="35" class="s-line"/>
+        <text x="410" y="225" class="t-dim">t</text><text x="30" y="35" class="t-dim">x</text>
+        <path d="M55 184 L135 112 L215 150 L295 77 L375 55" class="s-acc" stroke-width="2.5"/>
+        <path d="M55 184 L135 166 L215 118 L295 99 L375 55" class="s-acc2" stroke-width="1.8" stroke-dasharray="5 4"/>
+        <line x1="135" y1="45" x2="135" y2="218" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="215" y1="45" x2="215" y2="218" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="295" y1="45" x2="295" y2="218" class="s-faint" stroke-dasharray="4 4"/>
+        <circle cx="55" cy="184" r="5" class="f-acc"/><circle cx="135" cy="112" r="5" class="f-acc"/><circle cx="215" cy="150" r="5" class="f-acc"/><circle cx="295" cy="77" r="5" class="f-acc"/><circle cx="375" cy="55" r="5" class="f-acc"/>
+        <text x="50" y="242" class="t-dim">t₀</text><text x="130" y="242" class="t-dim">t₁</text><text x="210" y="242" class="t-dim">t₂</text><text x="290" y="242" class="t-dim">t₃</text><text x="370" y="242" class="t-dim">t₄</text>
+      </svg></div>
+      <figcaption><b>그림 11-1.</b> 끝점은 고정하고 중간 시각의 위치를 모두 적분한다. 실선과 점선은 가능한 위치 선택의 예이며, 각 세로선 전체의 위치가 적분 범위다.</figcaption>
+    </figure>
     <div class="formula" id="eq-sliced-composition">\[ K=\int dx_1\cdots dx_{N-1}\prod_{j=0}^{N-1}\langle x_{j+1}|e^{-i\varepsilon\hat H/\hbar}|x_j\rangle. \]</div>
     <p>한 조각에서 운동 에너지와 퍼텐셜 에너지를 순서대로 작용시킨다. 보통 두 연산자는 교환하지 않으므로 유한한 \(\varepsilon\)에서의 등식이 아니라 시간 분할 극한에서 쓰는 근사다.</p>
     <div class="formula" id="eq-short-split">\[ e^{-i\varepsilon(\hat p^2/2m+V)/\hbar}\simeq e^{-i\varepsilon\hat p^2/(2m\hbar)}e^{-i\varepsilon V(\hat x)/\hbar}. \]</div>
@@ -116,7 +131,7 @@
         <text x="70" y="38" class="t-dim">직선: 고전 경로</text>
         <text x="211" y="38" class="t-acc">곡선: 다른 경로</text>
       </svg>
-      <figcaption><b>그림 11-1.</b> \(x_a=0\), \(x_b=2\), \(T=1\)인 자유 입자의 경로. 직선은 \(x_{\mathrm{cl}}=2t\), 두 곡선은 \(2t+0.4\sin(\pi t)\)와 \(2t-0.4\sin(2\pi t)\)를 20개 시간 간격에서 계산해 이은 것이다. 모든 경로의 끝점은 같다.</figcaption>
+      <figcaption><b>그림 11-2.</b> \(x_a=0\), \(x_b=2\), \(T=1\)인 자유 입자의 경로. 직선은 \(x_{\mathrm{cl}}=2t\), 두 곡선은 \(2t+0.4\sin(\pi t)\)와 \(2t-0.4\sin(2\pi t)\)를 20개 시간 간격에서 계산해 이은 것이다. 모든 경로의 끝점은 같다.</figcaption>
     </figure>
     <p>끝점이 고정된 경로 \(x(t)\)에 작은 변형 \(\eta(t)\)를 더하자. \(\eta(t_a)=\eta(t_b)=0\)이다. \(x\to x+\alpha\eta\)로 놓고 \(\alpha=0\)에서 미분하면</p>
     <div class="formula" id="eq-action-variation">\[ \begin{aligned}\delta S&amp;=\int_{t_a}^{t_b}\!dt\,\bigl(m\dot x\dot\eta-V'(x)\eta\bigr)\\ &amp;=\left[m\dot x\eta\right]_{t_a}^{t_b}-\int_{t_a}^{t_b}\!dt\,\bigl(m\ddot x+V'(x)\bigr)\eta\\ &amp;=-\int_{t_a}^{t_b}\!dt\,\bigl(m\ddot x+V'(x)\bigr)\eta.\end{aligned} \]</div>

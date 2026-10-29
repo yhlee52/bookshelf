@@ -124,6 +124,18 @@
     <div class="formula" id="eq-same-orbital-spin">\[ \begin{aligned}|\Psi_F\rangle&amp;=\frac{|\phi,\uparrow\rangle_1|\phi,\downarrow\rangle_2-|\phi,\downarrow\rangle_1|\phi,\uparrow\rangle_2}{\sqrt2}\\
     &amp;=|\phi\rangle_1|\phi\rangle_2\,\frac{|\uparrow\downarrow\rangle-|\downarrow\uparrow\rangle}{\sqrt2}.\end{aligned} \]</div>
     <p>공간 부분은 대칭이고 스핀 부분은 반대칭이므로 전체는 반대칭이다. 따라서 같은 공간 궤도에 전자 두 개가 들어가는 일은 파울리 원리와 맞는다. 두 전자의 스핀까지 같게 만들면 식 <a class="ref" href="#eq-pauli"></a>처럼 상태가 0이 된다. 스핀의 합성은 <a href="ch17.html">17장</a>에서 더 계산한다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="같은 공간 궤도를 점유하는 전자 두 개에서 스핀 상태에 따른 파울리 원리">
+
+        <text x="30" y="37" class="t-b">같은 공간 궤도 φ</text>
+        <rect x="36" y="62" width="160" height="130" rx="75" class="f-elev"/>
+        <rect x="244" y="62" width="160" height="130" rx="75" class="f-acc-soft"/>
+        <text x="82" y="111" class="t-b">↑   ↑</text><text x="291" y="111" class="t-b">↑   ↓</text>
+        <text x="66" y="151" class="t">동일한 완전 상태</text><text x="268" y="151" class="t">서로 다른 스핀</text>
+        <text x="70" y="225" class="t-b">불가능: 상태 = 0</text><text x="280" y="225" class="t-acc">가능: 반대칭 스핀</text>
+      </svg></div>
+      <figcaption><b>그림 12-1.</b> 배타 원리는 공간 궤도만이 아니라 스핀까지 포함한 완전한 한 입자 상태에 적용된다. 두 전자가 같은 공간 궤도에 있어도 반대 스핀이면 허용된다.</figcaption>
+    </figure>
     <h3 id="s4-many">셋 이상으로 넓히기: 슬레이터 행렬식</h3>
     <p>서로 직교하는 \(N\)개의 정규화된 한 입자 상태 \(\chi_1,\ldots,\chi_N\)를 쓰자. \(q_j\)는 \(j\)번째 자리의 공간·스핀 좌표를 모두 모은 것이다. 모든 자리의 교환에서 부호가 바뀌는 상태는 <span class="term">슬레이터 행렬식</span> <span class="en">(Slater determinant)</span>으로 쓸 수 있다.</p>
     <div class="formula" id="eq-slater">\[ \Psi_F(q_1,\ldots,q_N)=\frac1{\sqrt{N!}}
