@@ -1,8 +1,8 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
    projectile · incline · atwood · banked-curve · loop · collision · rolling · damped-spring · pendulum
-   oscillator · coupled · orbit · lagrange · waves · double-slit · efield · random-walk · heat · ising
-   double-pendulum · lorenz3d · qm-packet
+   oscillator · coupled · orbit · lagrange · coriolis · waves · double-slit · efield · random-walk
+   heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
   "use strict";
@@ -1908,7 +1908,207 @@
   });
 
   /* ======================================================================
-     14. 파동의 중첩
+     14. 회전 기준계와 코리올리 힘 (회전 원판, 푸코 진자)
+     ====================================================================== */
+  Lab.register({
+    id: "coriolis", field: "phys", thumb: "coriolis",
+    title: "회전 기준계와 코리올리 힘 — 곧게 던진 공이 휘어 보이는 까닭",
+    desc: "회전 원판 위에서 던진 공을 멈춘 틀과 함께 도는 틀에서 나란히 보며 코리올리 힘과 원심력이 만드는 휘어짐을 확인합니다. 푸코 진자 모드에서는 위도에 따라 진동면이 한 바퀴 도는 시간 항성일 / sin(위도)를 봅니다.",
+    tags: ["회전 기준계", "코리올리 힘", "원심력", "푸코 진자"],
+    note: "해볼 것: 회전 원판에서 공은 멈춘 틀에서 보면 곧게 날아가는데, 함께 도는 틀에서 보면 휘어서 표적을 빗나갑니다. 원판이 시계 반대 방향으로 돌면 공은 진행 방향의 오른쪽으로 휘고, 가운데에서 던졌을 때 빗나간 거리는 ΩR²/v입니다. 함께 도는 틀의 궤적은 코리올리 힘 −2Ω×v와 원심력 Ω²r을 넣어 따로 적분한 것인데, 멈춘 틀의 직선을 돌려 본 것과 정확히 겹칩니다. 푸코 진자에서는 북반구에서 진동면이 시계 방향으로 돌고, 한 바퀴에 항성일(23.93시간) / sin(위도)가 걸립니다. 서울에서는 약 39시간, 북극에서는 하루, 적도에서는 돌지 않습니다.",
+    mount(S) {
+      const R = 3, LP = 67, A = 3, g = 9.81; // 원판 반지름, 푸코 진자 길이(파리 팡테옹), 진폭 (m)
+      const WE = TAU / 86164.1, W0 = Math.sqrt(g / LP), DAY = 86164.1 / 3600; // 지구 자전 각속도(항성일 기준), 진자 각진동수, 항성일 (시간)
+      const st = { mode: "disk", Om: 0.8, v: 3, from: "c", rate: 0.5, lat: 37.57, k: 1000 };
+      /* ---- 회전 원판: 원판에 붙은 틀에서 a = −2Ω×v + Ω²r를 적분하고, 멈춘 틀의 곧은 길을 돌려 본 것과 비교한다 ---- */
+      const fDisk = ([x, y, vx, vy]) => { const O = st.Om; return [vx, vy, 2 * O * vy + O * O * x, -2 * O * vx + O * O * y]; };
+      const rot = (p, a) => [Math.cos(a) * p[0] - Math.sin(a) * p[1], Math.sin(a) * p[0] + Math.cos(a) * p[1]];
+      // d: 원판 틀의 상태 [x, y, vx, vy], p0·v0: 멈춘 틀의 처음 위치·속도, ang: 원판 틀에서 잰 공의 각(풀어 쓴 값)
+      let d, p0, v0, t, trail, done, dev, minR, ang;
+      function resetDisk() {
+        d = st.from === "c" ? [0, 0, st.v, 0] : [R, 0, -st.v, 0];
+        p0 = [d[0], d[1]]; v0 = [d[2] - st.Om * d[1], d[3] + st.Om * d[0]]; // 멈춘 틀의 속도 = 원판 위 속도 + Ω×r
+        t = 0; trail = [[d[0], d[1], 0]]; done = false; dev = 0; minR = Math.hypot(d[0], d[1]); ang = 0;
+      }
+      function stepDisk(h) {
+        const r0 = Math.hypot(d[0], d[1]), a0 = Math.atan2(d[1], d[0]), ang0 = ang;
+        d = rk4(fDisk, d, h); t += h;
+        const a1 = Math.atan2(d[1], d[0]);
+        if (r0 < 1e-12) ang = a1; // 가운데에서 출발하면 첫 걸음의 방향에서 잰다
+        else { let da = a1 - a0; if (da > Math.PI) da -= TAU; else if (da < -Math.PI) da += TAU; ang += da; }
+        const q = rot([p0[0] + v0[0] * t, p0[1] + v0[1] * t], -st.Om * t); // 멈춘 틀의 직선을 원판 틀로 돌린 것
+        dev = Math.max(dev, Math.hypot(q[0] - d[0], q[1] - d[1]));
+        const r = Math.hypot(d[0], d[1]); minR = Math.min(minR, r);
+        if (r >= R && t > 0.05) { // 원판을 떠남. 가장자리를 지나는 순간은 보간해서 구한다
+          const fr = (R - r0) / (r - r0);
+          ang = ang0 + fr * (ang - ang0); t -= (1 - fr) * h; done = true;
+        }
+        trail.push([d[0], d[1], t]);
+      }
+      /* ---- 푸코 진자: 지구에 붙은 틀에서 수평 운동만 본다. 연직 성분 Ω_z = Ω sin(위도)만 진동면을 돌린다 ---- */
+      const Oz = () => st.k * WE * Math.sin((st.lat * Math.PI) / 180); // 자전을 k배 빠르게 한 값
+      const fFou = ([x, y, vx, vy]) => { const o = Oz(); return [vx, vy, -W0 * W0 * x + 2 * o * vy, -W0 * W0 * y - 2 * o * vx]; };
+      // q: 상태, ft: 진자 시간, turns: 가장 멀리 간 점의 [시각, 진동면 각](풀어 쓴 값), fEnd: 진동면이 한 바퀴 돌 때까지(적도 근처는 자전으로 72시간까지)
+      let q, ft, turns, ftrail, fEnd, nStep;
+      const TF = () => { const s = Math.abs(Math.sin((st.lat * Math.PI) / 180)); return s > 1e-6 ? DAY / s : Infinity; }; // 한 바퀴 도는 시간 (시간, 이론)
+      function resetFou() { q = [0, A, 0, 0]; ft = 0; turns = [[0, Math.PI / 2]]; ftrail = [[0, A]]; nStep = 0; fEnd = (Math.min(TF(), 72) * 3600) / st.k; }
+      function stepFou(h) {
+        const a = q[0] * q[2] + q[1] * q[3];
+        q = rk4(fFou, q, h); ft += h;
+        if (a > 0 && q[0] * q[2] + q[1] * q[3] <= 0) { // r·v가 +에서 −로: 가장 멀리 간 점. 진동면 각은 π 주기라 앞 값에 가까운 쪽으로 푼다
+          let b = Math.atan2(q[1], q[0]); const p = turns[turns.length - 1][1];
+          while (b - p > Math.PI / 2) b -= Math.PI;
+          while (b - p < -Math.PI / 2) b += Math.PI;
+          turns.push([ft, b]);
+        }
+        if (++nStep % 5 === 0) ftrail.push([q[0], q[1]]);
+      }
+      /** 가장 멀리 간 점들의 진동면 각을 시간에 대해 직선으로 맞춘 기울기 (rad/s, 진자 시간) */
+      function slope() {
+        const n = turns.length; if (n < 3) return null;
+        let st0 = 0, sa = 0, stt = 0, sta = 0;
+        turns.forEach(([u, b]) => { st0 += u; sa += b; stt += u * u; sta += u * b; });
+        return (n * sta - st0 * sa) / (n * stt - st0 * st0);
+      }
+      function reset() { resetDisk(); resetFou(); }
+      reset();
+      const legendEl = S.legend([
+        { label: "공", color: (P) => P.accent, dot: true }, { label: "표적", color: (P) => P.bad, dot: true },
+        { label: "코리올리 힘", color: (P) => P.warn }, { label: "원심력", color: (P) => P.accent2 },
+      ]);
+      const [left, right] = S.split(2);
+      /** 회전 원판. inRot이면 원판에 붙은 틀(원판이 멈춰 보임), 아니면 멈춘 틀(원판이 돎) */
+      function drawDisk(ctx, w, h, inRot) {
+        const P = VZ.palette(), s = (Math.min(w, h - 34) - 30) / (2 * R), cx = w / 2, cy = 34 + (h - 34) / 2;
+        const X = (x) => cx + x * s, Y = (v) => cy - v * s, a = inRot ? 0 : st.Om * t, see = (p, u) => (inRot ? p : rot(p, st.Om * u));
+        ctx.fillStyle = VZ.alpha(P.dim, 0.08); ctx.strokeStyle = P.dim; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(cx, cy, R * s, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = VZ.alpha(P.dim, 0.3); ctx.lineWidth = 1; ctx.beginPath();
+        for (let i = 0; i < 6; i++) { const e = rot([R, 0], a + (i * Math.PI) / 3); ctx.moveTo(cx, cy); ctx.lineTo(X(e[0]), Y(e[1])); }
+        ctx.stroke();
+        if (!inRot && st.Om) { // 원판이 도는 방향
+          const r = R * s + 10, a0 = -Math.PI / 2 - 0.5, a1 = -Math.PI / 2 + 0.5, cw = st.Om < 0;
+          ctx.strokeStyle = P.dim; ctx.fillStyle = P.dim; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1); ctx.stroke();
+          const e = cw ? a1 : a0, hx = cx + r * Math.cos(e), hy = cy + r * Math.sin(e), tx = cw ? -Math.sin(e) : Math.sin(e), ty = cw ? Math.cos(e) : -Math.cos(e);
+          VZ.arrow(ctx, hx - tx * 6, hy - ty * 6, hx, hy, 7);
+        }
+        // 겨눈 방향, 던진 사람, 표적
+        const c = st.from === "c", start = c ? [0, 0] : [R, 0], aim = c ? [R, 0] : [0, 0];
+        const ps = see(start, t), pa = see(aim, t);
+        ctx.strokeStyle = P.faint; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(ps[0]), Y(ps[1])); ctx.lineTo(X(pa[0]), Y(pa[1])); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(X(ps[0]), Y(ps[1]), 5, 0, 7); ctx.fill();
+        ctx.strokeStyle = P.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X(pa[0]), Y(pa[1]), 7, 0, 7); ctx.stroke();
+        ctx.fillStyle = P.bad; ctx.beginPath(); ctx.arc(X(pa[0]), Y(pa[1]), 2.5, 0, 7); ctx.fill();
+        // 공의 길과 공
+        ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.beginPath();
+        trail.forEach((p, i) => { const e = see(p, p[2]); i ? ctx.lineTo(X(e[0]), Y(e[1])) : ctx.moveTo(X(e[0]), Y(e[1])); });
+        ctx.stroke();
+        const b = see(d, t), bx = X(b[0]), by = Y(b[1]);
+        if (inRot && !done && st.Om) { // 원판 틀에서 공에 작용하는 겉보기 힘 (질량당)
+          const ks = 55 / (2 * Math.abs(st.Om) * st.v + st.Om * st.Om * R), fc = [2 * st.Om * d[3], -2 * st.Om * d[2]], ff = [st.Om * st.Om * d[0], st.Om * st.Om * d[1]];
+          ctx.lineWidth = 2.2; ctx.font = VZ.font(11.5, false, 700); ctx.textBaseline = "middle";
+          [[fc, P.warn, "코리올리"], [ff, P.accent2, "원심력"]].forEach(([F, col, nm]) => {
+            const ex = bx + F[0] * ks, ey = by - F[1] * ks;
+            if (Math.hypot(ex - bx, ey - by) < 4) return;
+            ctx.strokeStyle = col; ctx.fillStyle = col; VZ.arrow(ctx, bx, by, ex, ey, 7);
+            ctx.textAlign = ex >= bx ? "left" : "right"; ctx.fillText(nm, ex + (ex >= bx ? 5 : -5), ey);
+          });
+        }
+        ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(bx, by, 6, 0, 7); ctx.fill();
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12.5, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(inRot ? "함께 도는 틀 (원판 위에서 본 것)" : "멈춘 틀 (바깥에서 본 것)", 10, 6);
+      }
+      // 푸코 진자를 위에서 본 것. 위가 북쪽
+      function drawFou(ctx, w, h) {
+        const P = VZ.palette(), s = (Math.min(w, h - 34) - 64) / (2 * A), cx = w / 2, cy = 34 + (h - 34) / 2, X = (x) => cx + x * s, Y = (v) => cy - v * s;
+        ctx.fillStyle = VZ.alpha(P.dim, 0.06); ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, A * s, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        [["북", 0, 1], ["남", 0, -1], ["동", 1, 0], ["서", -1, 0]].forEach(([nm, ux, uy]) => ctx.fillText(nm, X(ux * (A + 0.35)), Y(uy * (A + 0.35))));
+        ctx.strokeStyle = P.faint; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(cx, Y(A)); ctx.lineTo(cx, Y(-A)); ctx.stroke(); // 처음 진동면 (남북)
+        const b = turns[turns.length - 1][1];
+        ctx.strokeStyle = P.text; ctx.beginPath(); ctx.moveTo(X(A * Math.cos(b)), Y(A * Math.sin(b))); ctx.lineTo(X(-A * Math.cos(b)), Y(-A * Math.sin(b))); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = VZ.alpha(P.accent, 0.45); ctx.lineWidth = 1; ctx.beginPath();
+        ftrail.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])))); ctx.stroke();
+        ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(X(q[0]), Y(q[1]), 6, 0, 7); ctx.fill();
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12.5, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("푸코 진자를 위에서 본 것 (점선: 처음과 지금의 진동면)", 10, 6);
+      }
+      const cvL = S.canvas({ parent: left, aspect: 1, maxHeight: 440 }, (ctx, w, h) => (st.mode === "disk" ? drawDisk(ctx, w, h, false) : drawFou(ctx, w, h)));
+      const cvR = S.canvas({ parent: right, aspect: 1, maxHeight: 440 }, (ctx, w, h) => {
+        if (st.mode === "disk") return drawDisk(ctx, w, h, true);
+        const P = VZ.palette(), T = Math.min(TF(), 72);
+        // 진동면이 돈 각 (자전으로 따진 시간에 대해). 점: 가장 멀리 간 점에서 잰 값
+        VZ.chart(ctx, { x: 0, y: 0, w, h: h * 0.52 }, {
+          x: [0, T], y: [0, 380], yTicks: [0, 90, 180, 270, 360], xLabel: "자전으로 따진 시간 (시간)", title: "진동면이 돈 각 (°)",
+          series: [
+            { data: [[0, 0], [T, (360 * T) / TF()]], color: P.faint, width: 1.4, dash: [5, 4] },
+            { type: "scatter", data: turns.map(([u, b]) => [(u * st.k) / 3600, (Math.abs(b - Math.PI / 2) * 180) / Math.PI]), color: P.accent, r: 2 },
+          ],
+          texts: [{ x: T * 0.03, y: 340, text: "점선: 이론 360° × t / (항성일 / sin φ)", sans: true }],
+        });
+        const ls = VZ.linspace(5, 90, 171), cities = [[37.57, "서울"], [48.85, "파리"], [90, "북극"]];
+        VZ.chart(ctx, { x: 0, y: h * 0.52, w, h: h * 0.48 }, {
+          x: [0, 90], y: [0, 200], xLabel: "위도 |φ| (°)", title: "한 바퀴 도는 시간 (시간)",
+          series: [{ data: ls.map((l) => [l, DAY / Math.sin((l * Math.PI) / 180)]), color: P.accent2, width: 2.2 }],
+          hlines: [{ y: DAY, color: P.faint, label: "항성일 23.93" }],
+          points: cities.map(([l, nm]) => ({ x: l, y: DAY / Math.sin((l * Math.PI) / 180), color: P.dim, r: 3.5, label: nm }))
+            .concat(Math.abs(st.lat) >= 5 ? [{ x: Math.abs(st.lat), y: Math.min(TF(), 200), color: P.accent, r: 5.5 }] : []),
+        });
+      });
+      const set = S.stats([1, 2, 3, 4, 5].map((i) => ({ k: "s" + i, label: "" })));
+      const labs = [...S.el.querySelector(".sim-readout").querySelectorAll(".k")];
+      const LABEL = { disk: ["원판 각속도 Ω", "날아간 시간", "빗나간 거리 (측정)", "던질 때 코리올리 가속도 2Ωv", "두 틀에서 구한 궤적의 차이"], fou: ["위도", "진동면이 한 바퀴 도는 시간 (측정)", "도는 방향 (위에서 볼 때)", "진자 주기 2π√(L/g)", "지구 자전을 빠르게"] };
+      function readouts() {
+        labs.forEach((el, i) => (el.textContent = LABEL[st.mode][i]));
+        if (st.mode === "disk") {
+          const O = Math.abs(st.Om), c = st.from === "c";
+          set("s1", st.Om.toFixed(2) + `<small>rad/s · ${((O * 60) / TAU).toFixed(1)} rpm · ${st.Om > 0 ? "시계 반대 방향" : st.Om < 0 ? "시계 방향" : "멈춤"}</small>`);
+          set("s2", t.toFixed(2) + `<small>s${done ? " · 원판을 떠남" : ""}</small>`);
+          const th = c ? (O * R * R) / st.v : (O * R * R) / Math.hypot(st.v, st.Om * R), m = c ? R * Math.abs(ang) : minR;
+          set("s3", (done ? m.toFixed(3) : "—") + `<small>m · ${c ? "가장자리에서 표적까지 호" : "가운데에서 가장 가까울 때"} · 이론 ${c ? "ΩR²/v" : "ΩR²/√(v² + Ω²R²)"} = ${th.toFixed(3)}</small>`);
+          set("s4", (2 * O * st.v).toFixed(2) + "<small>m/s²</small>");
+          set("s5", dev.toExponential(1) + "<small>m · 코리올리·원심력 적분과 멈춘 틀의 직선</small>");
+        } else {
+          const sn = Math.sin((st.lat * Math.PI) / 180), sl = slope();
+          set("s1", `${st.lat > 0 ? "북위 " : st.lat < 0 ? "남위 " : ""}${Math.abs(st.lat).toFixed(2)}°<small>sin φ = ${sn.toFixed(3)}</small>`);
+          const Tm = sl ? TAU / (Math.abs(sl) / st.k) / 3600 : null;
+          set("s2", Math.abs(sn) < 1e-6 ? "돌지 않음<small>적도</small>" : (Tm ? Tm.toFixed(2) + "<small>시간" : "—<small>") + ` · 이론 항성일/sin φ = ${TF().toFixed(2)}</small>`);
+          set("s3", Math.abs(sn) < 1e-6 ? "—" : sn > 0 ? "시계 방향<small>북반구</small>" : "시계 반대 방향<small>남반구</small>");
+          set("s4", (TAU / W0).toFixed(1) + `<small>s · 길이 ${LP} m (파리 팡테옹)</small>`);
+          set("s5", st.k + `배<small>자전으로 따지면 ${((ft * st.k) / 3600).toFixed(1)}시간 지남</small>`);
+        }
+      }
+      // 모드마다 보이는 조절 도구가 다르다. 만든 직후의 마지막 칸을 모드별로 모아 둔다
+      const box = { disk: [], fou: [] }, keep = (m) => box[m].push(S.controls.lastElementChild);
+      function apply() {
+        Object.keys(box).forEach((m) => box[m].forEach((el) => (el.style.display = m === st.mode ? "" : "none")));
+        legendEl.style.display = st.mode === "disk" ? "" : "none";
+      }
+      S.seg({ label: "실험", options: [["disk", "회전 원판"], ["fou", "푸코 진자"]], value: st.mode, onChange: (v) => { st.mode = v; apply(); reset(); } });
+      S.range({ label: "원판 각속도 Ω (+: 시계 반대)", min: -2, max: 2, step: 0.05, value: st.Om, fmt: (x) => x.toFixed(2) + " rad/s", onInput: (x) => { st.Om = x; reset(); } }); keep("disk");
+      S.range({ label: "던지는 빠르기 v (원판 위에서)", min: 1, max: 10, step: 0.1, value: st.v, fmt: (x) => x.toFixed(1) + " m/s", onInput: (x) => { st.v = x; reset(); } }); keep("disk");
+      S.seg({ label: "던지는 곳", options: [["c", "가운데 → 가장자리"], ["e", "가장자리 → 가운데"]], value: st.from, onChange: (v) => { st.from = v; reset(); } }); keep("disk");
+      S.seg({ label: "재생 속도", options: [["0.25", "¼배"], ["0.5", "½배"], ["1", "실제"]], value: String(st.rate), onChange: (v) => (st.rate = Number(v)) }); keep("disk");
+      const latR = S.range({ label: "위도 φ (+는 북위)", min: -90, max: 90, step: 0.01, value: st.lat, fmt: (x) => (x > 0 ? "북위 " : x < 0 ? "남위 " : "") + Math.abs(x).toFixed(1) + "°", onInput: (x) => { st.lat = x; city.set("", false); reset(); } }); keep("fou");
+      // 장소 예시. 슬라이더를 조용히 옮겨야 슬라이더 쪽에서 이 선택을 지우지 않는다
+      const city = S.seg({ label: "장소", options: [["37.57", "서울"], ["48.85", "파리"], ["90", "북극"], ["0", "적도"], ["-33.87", "시드니"]], value: "37.57", onChange: (v) => { st.lat = Number(v); latR.set(st.lat, false); reset(); } }); keep("fou");
+      S.seg({ label: "지구 자전을 빠르게", options: [["300", "300배"], ["1000", "1000배"], ["3000", "3000배"]], value: String(st.k), onChange: (v) => { st.k = Number(v); reset(); } }); keep("fou");
+      S.button("다시 시작", () => reset(), { primary: true });
+      apply();
+      S.loop((dt) => {
+        if (st.mode === "disk") {
+          if (!done) { const T = dt * st.rate, n = Math.ceil(T / 0.001); for (let i = 0; i < n && !done; i++) stepDisk(T / n); } // 1 ms보다 잘게 적분한다
+        } else if (ft < fEnd) {
+          const T = Math.min(dt * 16, fEnd - ft), n = Math.ceil(T / 0.01); // 진자 한 번 왕복(16 s)을 1초쯤에 보여 준다
+          for (let i = 0; i < n; i++) stepFou(T / n);
+        }
+        cvL.redraw(); cvR.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     15. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -1959,7 +2159,7 @@
   });
 
   /* ======================================================================
-     15. 이중 슬릿 간섭
+     16. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -2011,7 +2211,7 @@
   });
 
   /* ======================================================================
-     16. 전기장과 전위
+     17. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -2093,7 +2293,7 @@
   });
 
   /* ======================================================================
-     17. 랜덤 워크와 확산
+     18. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -2151,7 +2351,7 @@
   });
 
   /* ======================================================================
-     18. 열 확산 (2D 열방정식)
+     19. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -2213,7 +2413,7 @@
   });
 
   /* ======================================================================
-     19. 이징 모형
+     20. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -2272,7 +2472,7 @@
   });
 
   /* ======================================================================
-     20. 이중 진자 — 카오스
+     21. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -2343,7 +2543,7 @@
   });
 
   /* ======================================================================
-     21. 로렌츠 끌개 (3D)
+     22. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -2410,7 +2610,7 @@
   });
 
   /* ======================================================================
-     22. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     23. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
