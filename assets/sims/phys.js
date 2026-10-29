@@ -1,7 +1,8 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
    projectile · incline · atwood · banked-curve · loop · collision · rolling · damped-spring · pendulum
-   oscillator · orbit · waves · double-slit · efield · random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
+   oscillator · coupled · orbit · waves · double-slit · efield · random-walk · heat · ising
+   double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
   "use strict";
@@ -1490,7 +1491,141 @@
   });
 
   /* ======================================================================
-     11. 케플러 궤도
+     11. 결합 진동자와 정규 모드
+     ====================================================================== */
+  Lab.register({
+    id: "coupled", field: "phys", thumb: "coupled",
+    title: "결합 진동자 — 두 물체 사이를 오가는 에너지와 정규 모드",
+    desc: "용수철로 이어진 두 물체에서 결합 세기와 처음 조건을 바꾸며, 한 물체의 진동이 이웃으로 옮겨 갔다 돌아오는 맥놀이와 두 정규 모드(같은 방향 ω₀, 반대 방향 √(ω₀² + 2κ))를 봅니다.",
+    tags: ["진동", "정규 모드", "맥놀이", "에너지"],
+    note: "해볼 것: 한쪽만 당겨 놓으면 진동이 이웃 물체로 옮겨 갔다가 돌아옵니다. 이 움직임은 같은 방향 모드와 반대 방향 모드가 반씩 섞인 것이고, 두 모드의 진동수 차이가 맥놀이를 만들어 에너지가 π/(ω₂ − ω₁)마다 한쪽에서 다른 쪽으로 넘어갑니다. 같은 방향이나 반대 방향으로 놓으면 모드 하나만 들떠서 두 물체가 끝까지 같은 진폭으로 움직이고, 에너지는 옮겨 가지 않습니다. 같은 방향 모드에서는 가운데 용수철이 늘어나지 않으므로 진동수가 결합 세기와 상관없이 ω₀입니다. 결합을 약하게 하면 에너지가 옮겨 가는 데 오래 걸리고, 강하게 하면 가운데 용수철에도 에너지가 꽤 담겨서 한 물체로 다 넘어가지는 않습니다.",
+    mount(S) {
+      const A = 0.1, w0 = 2 * Math.PI, k = w0 * w0; // 처음 진폭 (m). 질량 1 kg, 바깥 용수철만 있을 때 주기 1 s
+      const st = { r: 0.1, init: "one", rate: 1 }; // r = κ/ω₀² = 결합 용수철 상수 ÷ 바깥 용수철 상수
+      const kc = () => st.r * k, w2 = () => w0 * Math.sqrt(1 + 2 * st.r), tTr = () => Math.PI / (w2() - w0);
+      const f = ([x1, v1, x2, v2]) => { const c = kc(); return [v1, -k * x1 - c * (x1 - x2), v2, -k * x2 - c * (x2 - x1)]; };
+      // 물체 1, 물체 2의 에너지(자기 바깥 용수철 포함)와 결합 용수철의 에너지
+      const energy = ([x1, v1, x2, v2]) => [0.5 * v1 * v1 + 0.5 * k * x1 * x1, 0.5 * v2 * v2 + 0.5 * k * x2 * x2, 0.5 * kc() * (x1 - x2) ** 2];
+      const INIT = { one: [A, 0], same: [A, A], opp: [A, -A] };
+      // 한 번 놓은 상태. zc: 정규 모드 좌표 q₁ = (x₁ + x₂)/2, q₂ = (x₁ − x₂)/2가 위로 0을 지나는 시각
+      let y, t, Tw, E0, hist, zc;
+      function reset() {
+        const [a, b] = INIT[st.init];
+        y = [a, 0, b, 0]; t = 0; zc = [[], []];
+        const e = energy(y); E0 = e[0] + e[1] + e[2]; hist = [[0, a, b, ...e]];
+        Tw = VZ.clamp(4 * tTr(), 8, 40); // 그래프 시간 폭: 에너지가 두 번 오가는 동안
+      }
+      reset();
+      function step(h) {
+        const y1 = rk4(f, y, h);
+        [[y[0] + y[2], y1[0] + y1[2]], [y[0] - y[2], y1[0] - y1[2]]].forEach(([q0, q1], i) => { if (q0 < 0 && q1 >= 0) zc[i].push(t + (h * -q0) / (q1 - q0)); }); // 선형 보간
+        y = y1; t += h;
+      }
+      // 맥놀이 포락선 (이론). 한쪽만 당기면 x₁ = A cos ω̄t cos(Δω t/2), x₂ = A sin ω̄t sin(Δω t/2)
+      const env = (i, u) => (st.init !== "one" ? A : A * Math.abs((i ? Math.sin : Math.cos)(((w2() - w0) * u) / 2)));
+      const marks = () => (st.init === "one" ? Array.from({ length: Math.floor(Tw / tTr()) }, (_, n) => (n + 1) * tTr()) : []); // 에너지가 다 넘어가는 시각
+      function zig(ctx, xa, xb, yc, amp) {
+        ctx.beginPath(); ctx.moveTo(xa, yc);
+        for (let i = 1; i < 12; i++) ctx.lineTo(xa + ((xb - xa) * i) / 12, yc + (i % 2 ? -amp : amp));
+        ctx.lineTo(xb, yc); ctx.stroke();
+      }
+      S.legend([
+        { label: "물체 1", color: (P) => P.accent }, { label: "물체 2", color: (P) => P.accent2 },
+        { label: "결합 용수철", color: (P) => P.ok }, { label: "포락선 (이론)", color: (P) => P.faint, dash: true },
+      ]);
+      const cvS = S.canvas({ aspect: 0.66, minHeight: 400, maxHeight: 500 }, (ctx, w, h) => {
+        const P = VZ.palette(), yF = 96, bs = 36, xs = (0.075 * w) / A, e1 = 0.33 * w, e2 = 0.67 * w; // 바닥 높이, 물체 한 변, 축척 (px/m), 평형 위치
+        const p1 = e1 + y[0] * xs, p2 = e2 + y[2] * xs, yc = yF - bs / 2;
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5; ctx.beginPath();
+        ctx.moveTo(14, yF); ctx.lineTo(w - 14, yF); ctx.moveTo(14, yF - 56); ctx.lineTo(14, yF); ctx.moveTo(w - 14, yF - 56); ctx.lineTo(w - 14, yF); ctx.stroke();
+        ctx.strokeStyle = P.faint; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath();
+        [e1, e2].forEach((e) => { ctx.moveTo(e, yF - 60); ctx.lineTo(e, yF + 4); }); ctx.stroke(); ctx.setLineDash([]);
+        // 바깥 용수철 둘과 결합 용수철 (굵기는 결합 세기에 따라)
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1.6; zig(ctx, 14, p1 - bs / 2, yc, 8); zig(ctx, p2 + bs / 2, w - 14, yc, 8);
+        ctx.strokeStyle = P.ok; ctx.lineWidth = 1.2 + 3 * st.r; zig(ctx, p1 + bs / 2, p2 - bs / 2, yc, 8);
+        [[p1, P.accent, "1"], [p2, P.accent2, "2"]].forEach(([p, col, s]) => {
+          ctx.fillStyle = VZ.alpha(col, 0.3); ctx.strokeStyle = col; ctx.lineWidth = 2;
+          ctx.fillRect(p - bs / 2, yF - bs, bs, bs); ctx.strokeRect(p - bs / 2, yF - bs, bs, bs);
+          ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(s, p, yc);
+        });
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`t = ${t.toFixed(2)} s · ${st.rate === 1 ? "실제 속도" : st.rate + "배속"}`, 10, 8);
+        // 두 물체의 변위. 위아래로 나눠 그린다
+        const ts = VZ.linspace(0, Tw, 400), gh = (h - yF - 12) / 2;
+        [0, 1].forEach((i) => {
+          const col = i ? P.accent2 : P.accent;
+          VZ.chart(ctx, { x: 0, y: yF + 12 + i * gh, w, h: gh }, {
+            x: [0, Tw], y: [-1.25 * A, 1.25 * A], xLabel: i ? "시간 (s)" : "", title: `물체 ${i + 1}의 변위 x${i ? "₂" : "₁"} (m)`,
+            series: [
+              ...[1, -1].map((s) => ({ data: ts.map((u) => [u, s * env(i, u)]), color: P.faint, width: 1.2, dash: [4, 4] })),
+              { data: hist.map((p) => [p[0], p[1 + i]]), color: col, width: 1.6 },
+            ],
+            vlines: marks().map((x) => ({ x, color: VZ.alpha(P.ok, 0.6) })),
+            hlines: [{ y: 0, color: P.axis, dash: [] }],
+          });
+        });
+      });
+      const [bl, br] = S.split(2);
+      const cvE = S.canvas({ parent: bl, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), pc = (e) => (100 * e) / E0;
+        VZ.chart(ctx, null, {
+          x: [0, Tw], y: [0, 110], xLabel: "시간 (s)", title: "에너지 몫 (처음 에너지 대비 %)",
+          series: [
+            { data: hist.map((p) => [p[0], pc(p[5])]), color: P.ok, width: 1.4 },
+            // 모드 하나만 들뜨면 두 물체의 몫이 같아 겹치므로 물체 1을 굵게 깔아 둘 다 보이게 한다
+            { data: hist.map((p) => [p[0], pc(p[3])]), color: P.accent, width: 3.6 },
+            { data: hist.map((p) => [p[0], pc(p[4])]), color: P.accent2, width: 1.8 },
+          ],
+          vlines: marks().map((x, n) => ({ x, color: VZ.alpha(P.ok, 0.6), label: n ? "" : "π/(ω₂ − ω₁)" })),
+        });
+      });
+      const cvW = S.canvas({ parent: br, aspect: 0.8, maxHeight: 330 }, (ctx, w, h) => {
+        const P = VZ.palette(), rs = VZ.linspace(0.005, 1, 200), tr = (r) => Math.PI / (w0 * (Math.sqrt(1 + 2 * r) - 1));
+        VZ.chart(ctx, { x: 0, y: 0, w, h: h * 0.52 }, {
+          x: [0, 1], y: [0.9, 1.8], title: "정규 모드 진동수 (ω₀ 단위)",
+          series: [{ data: rs.map((r) => [r, 1]), color: P.dim, width: 2.2 }, { data: rs.map((r) => [r, Math.sqrt(1 + 2 * r)]), color: P.warn, width: 2.2 }],
+          points: [{ x: st.r, y: 1, color: P.dim, r: 5 }, { x: st.r, y: Math.sqrt(1 + 2 * st.r), color: P.warn, r: 5 }],
+          texts: [
+            { x: 0.98, y: 1.03, text: "같은 방향 ω₁ = ω₀", align: "right", baseline: "bottom", color: P.dim, sans: true, size: 11.5 },
+            { x: 0.03, y: 1.62, text: "반대 방향 ω₂ = √(ω₀² + 2κ)", color: P.warn, sans: true, size: 11.5 },
+          ],
+        });
+        VZ.chart(ctx, { x: 0, y: h * 0.52, w, h: h * 0.48 }, {
+          x: [0, 1], y: [0, 30], xLabel: "결합 세기 κ/ω₀²", title: "에너지가 옮겨 가는 시간 (s)",
+          series: [{ data: rs.map((r) => [r, Math.min(tr(r), 40)]), color: P.ok, width: 2.2 }],
+          points: [{ x: st.r, y: Math.min(tTr(), 30), color: P.ok, r: 5 }],
+        });
+      });
+      const set = S.stats([
+        { k: "T1", label: "같은 방향 모드 주기 (측정)" }, { k: "T2", label: "반대 방향 모드 주기 (측정)" },
+        { k: "tr", label: "에너지가 옮겨 가는 시간 π/(ω₂ − ω₁)" }, { k: "Es", label: "에너지 몫: 물체 1 · 물체 2 · 결합" }, { k: "E", label: "전체 에너지" },
+      ]);
+      function readouts() {
+        const per = (i) => { const z = zc[i], n = z.length; return n >= 2 ? z[n - 1] - z[n - 2] : null; };
+        const T1 = per(0), T2 = per(1), th = [1, (2 * Math.PI) / w2()], off = [st.init === "opp", st.init === "same"];
+        [T1, T2].forEach((T, i) => set("T" + (i + 1), T != null ? T.toFixed(3) + `<small>s · 이론 ${th[i].toFixed(3)}</small>` : off[i] ? "—<small>이 모드는 들뜨지 않음</small>" : `—<small>이론 ${th[i].toFixed(3)} s</small>`));
+        set("tr", tTr().toFixed(2) + `<small>s${st.init !== "one" ? " · 모드 하나만 들떠서 옮겨 가지 않음" : T1 && T2 ? ` · 측정한 모드 주기로 ${((T1 * T2) / (2 * (T1 - T2))).toFixed(2)} s` : ""}</small>`);
+        const e = energy(y), pc = (v) => Math.round((100 * v) / E0);
+        set("Es", `${pc(e[0])}<small>% · </small>${pc(e[1])}<small>% · </small>${pc(e[2])}<small>%</small>`);
+        set("E", ((100 * (e[0] + e[1] + e[2])) / E0).toFixed(2) + "<small>% (처음 대비)</small>");
+      }
+      S.range({ label: "결합 세기 κ/ω₀² (= k_c/k)", min: 0.02, max: 1, step: 0.01, value: st.r, fmt: (x) => x.toFixed(2), onInput: (x) => { st.r = x; reset(); } });
+      S.seg({ label: "처음 조건 (10 cm 당겨 놓기)", options: [["one", "한쪽만"], ["same", "같은 방향"], ["opp", "반대 방향"]], value: "one", onChange: (v) => { st.init = v; reset(); } });
+      S.seg({ label: "재생 속도", options: [["0.5", "½배"], ["1", "실제"], ["2", "2배"], ["4", "4배"]], value: "1", onChange: (x) => (st.rate = Number(x)) });
+      S.button("다시 놓기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        if (t < Tw) {
+          const T = Math.min(dt * st.rate, Tw - t), n = Math.ceil(T / 0.001); // 1 ms보다 잘게 나눠 적분한다
+          for (let i = 0; i < n; i++) step(T / n);
+          hist.push([t, y[0], y[2], ...energy(y)]);
+        }
+        cvS.redraw(); cvE.redraw(); cvW.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     12. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -1570,7 +1705,7 @@
   });
 
   /* ======================================================================
-     12. 파동의 중첩
+     13. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -1621,7 +1756,7 @@
   });
 
   /* ======================================================================
-     13. 이중 슬릿 간섭
+     14. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -1673,7 +1808,7 @@
   });
 
   /* ======================================================================
-     14. 전기장과 전위
+     15. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -1755,7 +1890,7 @@
   });
 
   /* ======================================================================
-     15. 랜덤 워크와 확산
+     16. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -1813,7 +1948,7 @@
   });
 
   /* ======================================================================
-     16. 열 확산 (2D 열방정식)
+     17. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -1875,7 +2010,7 @@
   });
 
   /* ======================================================================
-     17. 이징 모형
+     18. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -1934,7 +2069,7 @@
   });
 
   /* ======================================================================
-     18. 이중 진자 — 카오스
+     19. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -2005,7 +2140,7 @@
   });
 
   /* ======================================================================
-     19. 로렌츠 끌개 (3D)
+     20. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -2072,7 +2207,7 @@
   });
 
   /* ======================================================================
-     20. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     21. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
