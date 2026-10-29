@@ -1,7 +1,7 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · incline · atwood · banked-curve · loop · collision · pendulum · oscillator · orbit
-   waves · double-slit · efield · random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
+   projectile · incline · atwood · banked-curve · loop · collision · rolling · pendulum · oscillator
+   orbit · waves · double-slit · efield · random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
   "use strict";
@@ -1035,7 +1035,158 @@
   });
 
   /* ======================================================================
-     7. 진자와 위상 공간
+     7. 굴림 경주 (관성 모멘트)
+     ====================================================================== */
+  Lab.register({
+    id: "rolling", field: "phys", thumb: "rolling",
+    title: "굴림 경주 — 빗면을 가장 먼저 내려오는 것은 무엇일까",
+    desc: "블록, 속 찬 구, 원판, 속 빈 구, 고리를 같은 빗면에서 함께 놓아 도착 순서를 봅니다. 가속도 a = g sin θ / (1 + I/mR²)와 병진·회전 에너지의 나눔을 확인하고, 마찰이 모자라면 미끄러지며 구르는 것도 봅니다.",
+    tags: ["역학", "회전", "관성 모멘트", "에너지 보존"],
+    note: "해볼 것: 도착 순서는 언제나 블록(마찰 없음) → 속 찬 구 → 원판 → 속 빈 구 → 고리입니다. 가속도가 I/mR², 곧 질량이 회전축에서 얼마나 멀리 퍼져 있는지로만 정해지기 때문입니다. 원판 B의 질량과 반지름을 바꿔도 원판과 나란히 도착하는지 보세요. 구르는 물체는 내려온 위치 에너지의 일부를 회전 에너지로 가져가서 그만큼 느립니다. 고리는 절반을 가져갑니다. 마찰 계수를 낮추거나 경사를 키우면 고리부터 미끄러지기 시작합니다. 미끄러지는 동안에는 가속도가 모양과 상관없이 g(sin θ − μ cos θ)라서 미끄러지는 물체끼리는 함께 도착하고, μ = 0이면 아무것도 돌지 않아 모두 블록과 함께 도착합니다.",
+    mount(S) {
+      const g = 9.81, L = 2, R0 = 0.1; // 빗면 길이, 원판 B를 뺀 물체의 반지름 (m)
+      const st = { th: 20, mu: 0.4, RB: 0.1, mB: 1, rate: 0.5 };
+      // k = I/(mR²). fill·lw는 장면에서 모양을 구별하는 채우기 농도와 테두리 굵기. 원판 B는 원판과 모양이 같고 질량·반지름만 다르다
+      const OBJ = [
+        { name: "블록 (마찰 없음)", short: "블록", k: 0, col: "dim", fill: 0.45, lw: 2 },
+        { name: "속 찬 구", short: "속 찬 구", k: 2 / 5, I: "⅖mR²", col: "accent", fill: 0.6, lw: 1.5 },
+        { name: "원판", short: "원판", k: 1 / 2, I: "½mR²", col: "accent2", fill: 0.3, lw: 2 },
+        { name: "원판 B", short: "원판 B", k: 1 / 2, I: "½mR²", col: "accent2", fill: null, lw: 2, B: true },
+        { name: "속 빈 구", short: "속 빈 구", k: 2 / 3, I: "⅔mR²", col: "ok", fill: 0.12, lw: 2.5 },
+        { name: "고리", short: "고리", k: 1, I: "mR²", col: "bad", fill: 0, lw: 3.5 },
+      ];
+      /** 경사각 th(라디안), 마찰 계수 mu에서 물체(k)의 가속도 a와 접점의 회전 가속도 αR.
+          미끄러지지 않고 구르려면 정지 마찰 f = kma가 μmg cos θ를 넘지 않아야 한다: μ ≥ k tan θ / (1 + k).
+          모자라면 운동 마찰 μmg cos θ를 받으며 미끄러지고, 그 마찰의 토크로만 회전이 빨라진다 */
+      function motion(k, th, mu) {
+        const s = Math.sin(th), c = Math.cos(th);
+        if (!k) return { a: g * s, aR: 0, slip: false }; // 마찰 없는 블록은 돌지 않고 미끄러진다
+        if (mu >= (k * Math.tan(th)) / (1 + k)) { const a = (g * s) / (1 + k); return { a, aR: a, slip: false }; }
+        return { a: g * (s - mu * c), aR: (mu * g * c) / k, slip: true };
+      }
+      /** 내려온 위치 에너지가 병진·회전 운동 에너지와 마찰열로 나뉘는 비율. 셋 다 t²에 비례하므로 내려오는 동안 변하지 않는다 */
+      function shares(k, m, th) {
+        const W = g * Math.sin(th) * m.a;
+        return [(m.a * m.a) / W, (k * m.aR * m.aR) / W, m.slip ? (st.mu * g * Math.cos(th) * (m.a - m.aR)) / W : 0];
+      }
+      // 한 번 굴린 상태. 가속도가 일정하므로 시각 t만 있으면 위치와 굴러간 각을 식으로 바로 구한다
+      let mot, tMax, t;
+      function reset() {
+        const th = (st.th * Math.PI) / 180;
+        mot = OBJ.map((o) => { const m = motion(o.k, th, st.mu); m.tEnd = Math.sqrt((2 * L) / m.a); return m; });
+        tMax = Math.max(...mot.map((m) => m.tEnd));
+        t = 0;
+      }
+      reset();
+      S.legend(OBJ.map((o) => ({ label: o.B ? "원판 B (질량·반지름 조절)" : o.name, color: (P) => P[o.col], dot: true })));
+      /** 비스듬히 본 빗면. 레인은 화면 안쪽(오른쪽 위)으로 늘어서고, 앞 레인이 뒤 레인을 가린다 */
+      const cvS = S.canvas({ aspect: 0.55, minHeight: 280, maxHeight: 420 }, (ctx, w, h) => {
+        const P = VZ.palette(), th = (st.th * Math.PI) / 180, cs = Math.cos(th), sn = Math.sin(th), N = OBJ.length;
+        // sp: 레인 사이 깊이 간격, q: 한 레인만큼 안쪽으로 가는 화면 벡터, r0: 원판 B를 뺀 물체의 반지름 (px)
+        const sp = VZ.clamp(w / 22, 15, 34), q = [0.819 * sp, -0.574 * sp], r0 = 0.32 * sp, rB = (r0 * st.RB) / R0;
+        const dw = N * q[0] + 2 * Math.max(r0, rB), dh = -N * q[1] + 2 * Math.max(r0, rB);
+        // 빗면 길이 (px). 위 34px는 진행 문구, 아래 20px는 경사각 글자 자리이고, 빗면은 바닥에 붙인다
+        const Lp = Math.min((w - 32 - dw) / cs, (h - 54 - dh) / sn);
+        const T = [(w - Lp * cs - dw) / 2, h - 20 - Lp * sn], B = [T[0] + Lp * cs, T[1] + Lp * sn], C = [T[0], B[1]];
+        const back = (p) => [p[0] + N * q[0], p[1] + N * q[1]];
+        const poly = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); };
+        ctx.fillStyle = VZ.alpha(P.dim, 0.1); ctx.fillRect(0, B[1], w, h - B[1]);
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, B[1]); ctx.lineTo(w, B[1]); ctx.stroke();
+        // 빗면(윗면)과 앞쪽 삼각형 면, 레인, 도착선
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1.2;
+        poly([T, B, back(B), back(T)]); ctx.fillStyle = VZ.alpha(P.dim, 0.08); ctx.fill(); ctx.stroke();
+        poly([T, C, B]); ctx.fillStyle = VZ.alpha(P.dim, 0.2); ctx.fill(); ctx.stroke();
+        const lane = (i, u) => [T[0] + (i + 0.5) * q[0] + u * cs, T[1] + (i + 0.5) * q[1] + u * sn]; // 레인 i에서 빗면을 따라 u px 내려온 접점
+        ctx.strokeStyle = P.faint; ctx.lineWidth = 1;
+        OBJ.forEach((o, i) => { const a = lane(i, 0), b = lane(i, Lp); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
+        ctx.strokeStyle = P.text; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(B[0], B[1]); ctx.lineTo(...back(B)); ctx.stroke();
+        // 경사각
+        ctx.strokeStyle = P.text; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(B[0], B[1], 30, Math.PI, Math.PI + th); ctx.stroke();
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "right"; ctx.textBaseline = "top";
+        ctx.fillText(`θ = ${st.th}°`, B[0] - 8, B[1] + 4); // 경사가 작으면 빗면과 겹치므로 바닥선 아래에 쓴다
+        // 물체 (뒤 레인부터). 둥근 물체에는 굴러간 각을 보여 주는 선을 긋는다
+        for (let i = N - 1; i >= 0; i--) {
+          const o = OBJ[i], m = mot[i], tau = Math.min(t, m.tEnd), p = lane(i, ((0.5 * m.a * tau * tau) / L) * Lp), col = P[o.col];
+          const r = o.B ? rB : r0, c = [p[0] + r * sn, p[1] - r * cs];
+          ctx.strokeStyle = col; ctx.lineWidth = o.lw;
+          if (!o.k) {
+            ctx.save(); ctx.translate(c[0], c[1]); ctx.rotate(th);
+            ctx.fillStyle = VZ.alpha(col, o.fill); ctx.fillRect(-r, -r, 2 * r, 2 * r); ctx.strokeRect(-r, -r, 2 * r, 2 * r);
+            ctx.restore();
+            continue;
+          }
+          const fill = o.B ? VZ.clamp(0.1 + 0.1 * st.mB, 0.12, 0.6) : o.fill; // 원판 B는 무거울수록 진하게
+          ctx.beginPath(); ctx.arc(c[0], c[1], r - o.lw / 2, 0, 7);
+          if (fill) { ctx.fillStyle = VZ.alpha(col, fill); ctx.fill(); }
+          ctx.stroke();
+          const phi = (0.5 * m.aR * tau * tau) / (o.B ? st.RB : R0) - Math.PI / 2; // 접점이 굴러간 길이 ÷ 반지름
+          ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(c[0] + r * Math.cos(phi), c[1] + r * Math.sin(phi)); ctx.stroke();
+        }
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`t = ${t.toFixed(2)} s · ${st.rate === 1 ? "실제 속도" : st.rate + "배속"} · 빗면 길이 ${L} m`, 10, 8);
+      });
+      const [bl, br] = S.split(2);
+      const cvA = S.canvas({ parent: bl, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), ths = VZ.linspace(0, 60, 241), series = [], points = [];
+        OBJ.forEach((o, i) => {
+          if (o.B) return; // 원판과 같은 곡선
+          const pts = ths.map((d) => { const m = motion(o.k, (d * Math.PI) / 180, st.mu); return [d, m.a / g, m.slip]; });
+          series.push({ data: pts.map(([d, y, s]) => [d, s ? NaN : y]), color: P[o.col], width: 2.2 }, { data: pts.map(([d, y, s]) => [d, s ? y : NaN]), color: P[o.col], width: 2, dash: [5, 4] });
+          points.push({ x: st.th, y: mot[i].a / g, color: P[o.col], r: 4.5 });
+        });
+        VZ.chart(ctx, null, { x: [0, 60], y: [0, 0.9], xLabel: "경사각 θ (°)", title: "경사각에 따른 가속도 a/g (점선: 미끄러짐)", series, vlines: [{ x: st.th, color: P.faint }], points });
+      });
+      const cvE = S.canvas({ parent: br, aspect: 0.8, maxHeight: 330 }, (ctx, w, h) => {
+        const P = VZ.palette(), th = (st.th * Math.PI) / 180, x0 = 70, x1 = w - 14, top = 34, rh = Math.min(32, (h - top - 40) / OBJ.length), bh = rh * 0.66;
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12.5, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("내려온 위치 에너지의 나눔 (%)", 14, 8);
+        // 막대 한 줄 = 한 물체: 병진(진한 색) + 회전(옅은 색) + 마찰열 = 100%. 마찰열은 연직 루프 실험과 같은 색
+        const heat = VZ.alpha(P.warn, 0.55);
+        OBJ.forEach((o, i) => {
+          const col = P[o.col], y = top + i * rh, sh = shares(o.k, mot[i], th);
+          ctx.fillStyle = col; ctx.font = VZ.font(11.5, false, 700); ctx.textAlign = "right"; ctx.textBaseline = "middle";
+          ctx.fillText(o.short, x0 - 8, y + bh / 2);
+          let x = x0;
+          [[sh[0], col], [sh[1], VZ.alpha(col, 0.38)], [sh[2], heat]].forEach(([p, c], j) => {
+            const ww = p * (x1 - x0);
+            if (ww < 0.5) return;
+            ctx.fillStyle = c; ctx.fillRect(x, y, ww, bh);
+            if (ww > 30) { ctx.fillStyle = j ? P.text : P.bg; ctx.font = VZ.font(11, true, 600); ctx.textAlign = "center"; ctx.fillText(Math.round(p * 100) + "%", x + ww / 2, y + bh / 2 + 0.5); }
+            x += ww;
+          });
+        });
+        const yl = top + OBJ.length * rh + 8;
+        ctx.font = VZ.font(11.5, false); ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        let xl = 14;
+        [["병진", P.text], ["회전 (옅은 색)", VZ.alpha(P.text, 0.38)], ["마찰열", heat]].forEach(([s, c]) => {
+          ctx.fillStyle = c; ctx.fillRect(xl, yl - 5, 10, 10); ctx.fillStyle = P.dim; ctx.fillText(s, xl + 14, yl);
+          xl += ctx.measureText(s).width + 28;
+        });
+      });
+      const set = S.stats(OBJ.map((o, i) => ({ k: "o" + i, label: o.k ? `${o.name} · I = ${o.I}` : o.name })).concat([{ k: "mu", label: "모두 구르려면 μ ≥" }]));
+      function readouts() {
+        const th = (st.th * Math.PI) / 180, nSlip = mot.filter((m) => m.slip).length;
+        mot.forEach((m, i) => {
+          const rank = 1 + mot.filter((n) => n.tEnd < m.tEnd - 1e-9).length, how = !OBJ[i].k ? "" : m.slip ? " · 미끄러지며 구름" : "";
+          set("o" + i, (t >= m.tEnd ? `${m.tEnd.toFixed(2)}<small>s · ${rank}등</small>` : "—") + `<br><small>a = ${m.a.toFixed(2)} m/s²${how}</small>`);
+        });
+        set("mu", `${(Math.tan(th) / 2).toFixed(2)}<small>고리 기준 ½ tan θ${nSlip ? ` · 지금 ${nSlip}개가 미끄러짐` : ""}</small>`);
+      }
+      S.range({ label: "경사각 θ", min: 5, max: 60, step: 1, value: st.th, fmt: (x) => x + "°", onInput: (x) => { st.th = x; reset(); } });
+      S.range({ label: "마찰 계수 μ (정지·운동 같음)", min: 0, max: 1, step: 0.01, value: st.mu, fmt: (x) => x.toFixed(2), onInput: (x) => { st.mu = x; reset(); } });
+      S.range({ label: "원판 B 반지름 (나머지 10 cm)", min: 0.05, max: 0.2, step: 0.01, value: st.RB, fmt: (x) => Math.round(x * 100) + " cm", onInput: (x) => { st.RB = x; reset(); } });
+      S.range({ label: "원판 B 질량 (나머지 1 kg)", min: 0.2, max: 5, step: 0.1, value: st.mB, fmt: (x) => x.toFixed(1) + " kg", onInput: (x) => { st.mB = x; reset(); } });
+      S.seg({ label: "재생 속도", options: [["0.25", "¼배"], ["0.5", "½배"], ["1", "실제"]], value: "0.5", onChange: (x) => (st.rate = Number(x)) });
+      S.button("다시 굴리기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        t = Math.min(tMax + 0.3, t + dt * st.rate);
+        cvS.redraw(); cvA.redraw(); cvE.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     8. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -1120,7 +1271,7 @@
   });
 
   /* ======================================================================
-     8. 강제 감쇠 진동자와 공명
+     9. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -1182,7 +1333,7 @@
   });
 
   /* ======================================================================
-     9. 케플러 궤도
+     10. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -1262,7 +1413,7 @@
   });
 
   /* ======================================================================
-     10. 파동의 중첩
+     11. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -1313,7 +1464,7 @@
   });
 
   /* ======================================================================
-     11. 이중 슬릿 간섭
+     12. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -1365,7 +1516,7 @@
   });
 
   /* ======================================================================
-     12. 전기장과 전위
+     13. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -1447,7 +1598,7 @@
   });
 
   /* ======================================================================
-     13. 랜덤 워크와 확산
+     14. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -1505,7 +1656,7 @@
   });
 
   /* ======================================================================
-     14. 열 확산 (2D 열방정식)
+     15. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -1567,7 +1718,7 @@
   });
 
   /* ======================================================================
-     15. 이징 모형
+     16. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -1626,7 +1777,7 @@
   });
 
   /* ======================================================================
-     16. 이중 진자 — 카오스
+     17. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -1697,7 +1848,7 @@
   });
 
   /* ======================================================================
-     17. 로렌츠 끌개 (3D)
+     18. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -1764,7 +1915,7 @@
   });
 
   /* ======================================================================
-     18. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     19. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
