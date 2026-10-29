@@ -127,7 +127,7 @@ svg .flow-dash { stroke-dasharray: 5 6; animation: flowdash 1.2s linear infinite
 .katex { font-size: 1.08em; }
 .katex-display { margin: 0.4em 0 !important; padding: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
 
-.table-wrap { overflow-x: auto; margin: 22px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.table-wrap { position: relative; overflow-x: auto; margin: 22px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { background: var(--surface); font-weight: 700; font-size: 14px; white-space: nowrap; }
