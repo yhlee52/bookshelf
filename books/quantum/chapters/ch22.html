@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>22 밀도 행렬과 얽힘 · QuantumBook</title>
-<meta name="description" content="순수 상태와 혼합 상태 · 축약 밀도 행렬 · 얽힘 · EPR과 벨 부등식">
+<meta name="description" content="밀도 행렬과 부분 추적으로 순수·혼합 상태와 얽힘을 구별하고 벨 부등식 위반을 계산한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,57 +24,72 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch22">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
-  <header class="chapter-hero">
-    <div class="eyebrow">Chapter <span data-fill="chapter-num">22</span></div>
-    <h1 data-fill="chapter-title">밀도 행렬과 얽힘</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
-    <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
-    </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
-  </header>
-
-  <section id="s1">
-    <h2>순수 상태와 혼합 상태</h2>
-    <p class="slot" data-slot="22.1절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section id="s2">
-    <h2>축약 밀도 행렬</h2>
-    <p class="slot" data-slot="22.2절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section id="s3">
-    <h2>얽힘</h2>
-    <p class="slot" data-slot="22.3절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section id="s4">
-    <h2>EPR과 벨 부등식</h2>
-    <p class="slot" data-slot="22.4절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section class="keypoints" id="summary">
-    <h2>핵심 정리</h2>
-    <ol>
-      <li class="slot" data-slot="요점">요점</li>
-    </ol>
-  </section>
-
-  <section class="quiz-sec" id="quiz">
-    <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
-  </section>
-
-  <section class="exercises" id="exercises">
-    <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
-  </section>
-</main>
-</body>
-</html>
+<header class="chapter-hero">
+  <div class="eyebrow">Chapter <span data-fill="chapter-num">22</span></div><h1 data-fill="chapter-title">밀도 행렬과 얽힘</h1>
+  <p class="lead">입자의 스핀을 알지 못할 때와 둘이 얽혀 한쪽만 볼 때는 모두 확률이 등장한다. 그러나 두 상황의 전체 상태는 다를 수 있다. 밀도 행렬은 두 상황을 같은 측정 규칙으로 다루고, 부분 추적은 한 계에서 보이는 정보를 정확히 골라낸다.</p>
+  <ul class="objectives"><li>밀도 행렬로 순수 상태와 통계적 혼합을 구별한다.</li><li>부분 추적으로 부분계의 상태와 관측량을 계산한다.</li><li>슈미트 분해와 엔트로피로 순수한 두 계의 얽힘을 정량화한다.</li><li>단일항의 상관으로 CHSH 부등식 위반과 비신호성을 설명한다.</li></ul>
+  <p class="prereq"><b>선수 지식</b> <a href="ch12.html">12장</a> (복합계), <a href="ch16.html">16장</a> (파울리 행렬), <a href="ch17.html#eq-triplet-singlet">17장</a> (단일항)</p>
+</header>
+<section id="s1"><h2>순수 상태와 혼합 상태</h2>
+  <p>같은 장치를 반복해서 준비하되 매번 상태 \(|\psi_a\rangle\)를 확률 \(p_a\)로 고른다고 하자. 측정 결과를 예측할 때 각 준비 상태의 기대값을 평균하면 된다. 흔히 하나의 파동함수로 표현할 수 없는 이 통계적 준비를 <span class="term">혼합 상태</span> <span class="en">(mixed state)</span>라 한다.</p>
+  <div class="box def" id="def-density-operator"><div class="box-h">밀도 연산자</div><div class="formula" id="eq-density-operator">\[\hat\rho=\sum_a p_a|\psi_a\rangle\langle\psi_a|,\qquad p_a\ge0,\quad\sum_a p_a=1,\qquad \langle\hat A\rangle=\operatorname{Tr}(\hat\rho\hat A).\]</div><p>\(\hat\rho\)는 에르미트이고 양의 준정부호이며 \(\operatorname{Tr}\hat\rho=1\)이다. 역으로 이 세 조건을 만족하는 연산자는 가능한 밀도 연산자다. 같은 \(\hat\rho\)를 만드는 여러 준비 목록은 어떤 계 내부 측정으로도 구별할 수 없다.</p></div>
+  <p>마지막 식은 \(\sum_a p_a\langle\psi_a|\hat A|\psi_a\rangle=\sum_a p_a\operatorname{Tr}(|\psi_a\rangle\langle\psi_a|\hat A)\)에서 나온다. 결과 \(k\)의 사영 연산자 \(\hat\Pi_k\)를 넣으면 확률은 \(\operatorname{Tr}(\hat\rho\hat\Pi_k)\)이다. <span class="term">순수 상태</span>는 \(\hat\rho=|\psi\rangle\langle\psi|\)이고 \(\rho^2=\rho\)다. 고유값 \(\lambda_j\ge0\), \(\sum_j\lambda_j=1\)이므로 \(\operatorname{Tr}\rho^2=\sum_j\lambda_j^2\le1\), 등호는 고유값 하나만 1일 때다.</p>
+  <div class="formula" id="eq-purity">\[\text{순수 상태}\ \Longleftrightarrow\ \operatorname{Tr}\rho^2=1,\qquad \text{혼합 상태}\ \Longrightarrow\ \operatorname{Tr}\rho^2&lt;1.\]</div>
+  <div class="box ex" id="ex-coherence-mixture"><div class="box-h">둘 다 위·아래가 반반인데 왜 다른가?</div><p>\(|+x\rangle=(|\uparrow_z\rangle+|\downarrow_z\rangle)/\sqrt2\)인 순수 상태와 위·아래를 동전으로 고른 혼합을 비교하자. \(z\) 기저에서</p><div class="formula" id="eq-coherence-matrices">\[\rho_{+x}=\frac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix},\qquad \rho_{\rm mix}=\frac12\begin{pmatrix}1&amp;0\\0&amp;1\end{pmatrix}.\]</div><p>\(z\) 측정의 위쪽 확률은 둘 다 \(1/2\)이다. \(x\) 측정의 \(+x\) 확률은 각각 \(1\)과 \(1/2\)이다. 비대각 성분이 기저 상태 사이의 결맞음 정보를 담는다.</p></div>
+  <figure class="diagram"><div class="fig-narrow"><svg viewBox="0 0 440 245" role="img" aria-label="같은 z축 측정 확률을 가진 순수한 플러스 엑스 상태와 완전 혼합 상태는 x축 측정에서 구별된다">
+    <line x1="40" y1="183" x2="402" y2="183" class="s-line"/><line x1="40" y1="183" x2="40" y2="51" class="s-line"/><line x1="221" y1="183" x2="221" y2="51" class="s-grid"/><rect x="77" y="117" width="45" height="66" class="f-acc"/><rect x="128" y="117" width="45" height="66" class="f-acc2"/><rect x="258" y="51" width="45" height="132" class="f-acc"/><rect x="309" y="117" width="45" height="66" class="f-acc2"/><text x="25" y="51" class="t-dim">1</text><text x="25" y="119" class="t-dim">½</text><text x="93" y="203" class="t-b">z 측정</text><text x="273" y="203" class="t-b">x 측정</text><text x="70" y="222" class="t-dim">순수</text><text x="122" y="222" class="t-dim">혼합</text><text x="250" y="222" class="t-dim">순수</text><text x="304" y="222" class="t-dim">혼합</text>
+  </svg></div><figcaption><b>그림 22-1.</b> \(+z\) 또는 \(+x\) 결과의 확률. 같은 \(z\) 통계가 같은 상태를 뜻하지는 않는다.</figcaption></figure>
+  <p>스핀 \(1/2\)에서는 \(\rho=(I+\boldsymbol r\cdot\boldsymbol\sigma)/2\), \(|\boldsymbol r|\le1\)로 쓴다. 파울리 행렬의 \((\boldsymbol r\cdot\boldsymbol\sigma)^2=|\boldsymbol r|^2I\)를 쓰면 \(\operatorname{Tr}\rho^2=(1+|\boldsymbol r|^2)/2\)다. 블로흐 구의 표면은 순수, 내부는 혼합 상태다.</p>
+</section>
+<section id="s2"><h2>축약 밀도 행렬</h2>
+  <p>두 계 \(A,B\)가 함께 있을 때 전체 상태가 \(\rho_{AB}\)라 하자. \(A\)만 측정하면서 \(B\)의 가능한 기저 결과를 합하는 계산이 <span class="term">부분 추적</span> <span class="en">(partial trace)</span>이다.</p>
+  <div class="formula" id="eq-partial-trace">\[\rho_A=\operatorname{Tr}_B\rho_{AB}=\sum_b (I_A\otimes\langle b|)\rho_{AB}(I_A\otimes|b\rangle),\qquad \langle A\otimes I_B\rangle=\operatorname{Tr}_A(\rho_A A).\]</div>
+  <p>두 번째 식은 합을 전체 기저 \(|a\rangle|b\rangle\)에 펼치면 바로 얻는다. 그래서 \(\rho_A\)는 \(A\)에서 할 수 있는 모든 국소 측정에 충분한 정보다. 기저 \(\{|b\rangle\}\)를 바꿔도 완비 관계 \(\sum_b|b\rangle\langle b|=I_B\) 때문에 결과는 같다.</p>
+  <div class="box ex" id="ex-singlet-reduction"><div class="box-h">전체는 순수, 부분은 혼합</div><p><a href="ch17.html#eq-triplet-singlet">17장의 단일항</a>을 \(|\Psi^-\rangle=(|\uparrow\downarrow\rangle-|\downarrow\uparrow\rangle)/\sqrt2\)로 쓴다. 전체 밀도 행렬에는 두 대각 항과 두 교차항이 있다. \(B\)를 추적할 때 교차항에는 \(\langle\uparrow|\downarrow\rangle=0\)이 곱해져 사라진다.</p><div class="formula" id="eq-singlet-reduced">\[\rho_A=\operatorname{Tr}_B|\Psi^-\rangle\langle\Psi^-|=\frac12|\uparrow\rangle\langle\uparrow|+\frac12|\downarrow\rangle\langle\downarrow|=\frac{I_A}{2}.\]</div><p>따라서 전체의 순수성 \(\operatorname{Tr}\rho_{AB}^2=1\)과 부분의 순수성 \(\operatorname{Tr}\rho_A^2=1/2\)는 다르다.</p></div>
+  <figure class="diagram"><div class="fig-narrow"><svg viewBox="0 0 440 245" role="img" aria-label="순수한 단일항의 전체 밀도 행렬에서 B를 추적하면 A에는 위아래가 반반인 혼합 상태가 남는다">
+    <rect x="34" y="61" width="153" height="112" rx="12" class="f-acc-soft"/><rect x="258" y="61" width="146" height="112" rx="12" class="f-acc2-soft"/><line x1="191" y1="117" x2="251" y2="117" class="s-line"/><path d="M243 111 L253 117 L243 123" class="s-line"/><text x="69" y="89" class="t-b">전체 A+B</text><text x="68" y="120" class="t-dim">순수 단일항</text><text x="72" y="146" class="t-dim">Tr ρ² = 1</text><text x="264" y="89" class="t-b">A만 관찰</text><text x="274" y="120" class="t-dim">ρₐ = I/2</text><text x="270" y="146" class="t-dim">Tr ρₐ² = 1/2</text><text x="203" y="98" class="t-dim">Trᵦ</text>
+  </svg></div><figcaption><b>그림 22-2.</b> 부분 추적은 다른 입자의 결과를 기록하지 않고 합한다. 국소 혼합은 전체 상태가 혼합임을 뜻하지 않는다.</figcaption></figure>
+</section>
+<section id="s3"><h2>얽힘과 슈미트 분해</h2>
+  <p>두 계의 순수 상태가 \(|a\rangle|b\rangle\) 하나로 쓰이지 않으면 <span class="term">얽힘</span> <span class="en">(entanglement)</span>이 있다. 임의의 순수 복합 상태의 계수 행렬을 특이값 분해하면 정규직교 기저를 골라 다음처럼 쓸 수 있다.</p>
+  <div class="formula" id="eq-schmidt">\[|\Psi\rangle=\sum_j\sqrt{\lambda_j}\,|a_j\rangle|b_j\rangle,\quad \lambda_j\ge0,\quad\sum_j\lambda_j=1,\qquad \rho_A=\sum_j\lambda_j|a_j\rangle\langle a_j|.\]</div>
+  <p>마지막 식은 식 <a class="ref" href="#eq-partial-trace"></a>에 대입하고 \(\langle b_k|b_j\rangle=\delta_{kj}\)를 쓰면 나온다. 따라서 전체가 <em>순수할 때</em> 축약 상태가 혼합인 것은 얽힘의 필요충분 조건이다. 슈미트 계수가 하나만 있으면 곱상태다.</p>
+  <div class="box def" id="def-entanglement-entropy"><div class="box-h">순수한 두 계의 얽힘 엔트로피</div><div class="formula" id="eq-entanglement-entropy">\[S(A)=-\operatorname{Tr}(\rho_A\log_2\rho_A)=-\sum_j\lambda_j\log_2\lambda_j,\qquad 0\log_2 0:=0.\]</div><p>두 큐비트의 곱상태는 \(0\)비트, 벨 상태는 \(1\)비트다. 전체가 혼합이라면 이 국소 엔트로피에는 통계적 혼합도 섞여 있으므로 얽힘의 단독 지표로 쓸 수 없다.</p></div>
+  <div class="box ex" id="ex-schmidt-pair"><div class="box-h">두 성분 상태의 얽힘</div><p>\(|\Psi_p\rangle=\sqrt p|00\rangle+\sqrt{1-p}|11\rangle\)이면 \(\rho_A=\operatorname{diag}(p,1-p)\)이다. \(S(A)=-p\log_2p-(1-p)\log_2(1-p)\). \(p=0,1\)에서는 곱상태, \(p=1/2\)에서는 최대 얽힘이다.</p></div>
+  <figure class="diagram"><div class="fig-narrow"><svg viewBox="0 0 440 245" role="img" aria-label="슈미트 계수 p와 1 마이너스 p의 이진 엔트로피는 p가 0과 1에서 0이고 절반에서 1비트로 최대가 된다">
+    <line x1="60" y1="200" x2="382" y2="200" class="s-line"/><line x1="60" y1="200" x2="60" y2="53" class="s-line"/><line x1="220" y1="60" x2="220" y2="200" class="s-grid" stroke-dasharray="4 4"/>
+    <polyline points="60,200 76,160 92,134 108,115 124,99 140,86 156,77 172,69 188,64 204,61 220,60 236,61 252,64 268,69 284,77 300,86 316,99 332,115 348,134 364,160 380,200" class="s-acc" stroke-width="2.5"/>
+    <text x="20" y="45" class="t-dim">S(A) [비트]</text><text x="48" y="220" class="t-dim">0</text><text x="211" y="220" class="t-dim">1/2</text><text x="375" y="220" class="t-dim">1</text><text x="388" y="204" class="t-dim">p</text><text x="46" y="64" class="t-dim">1</text>
+  </svg></div><figcaption><b>그림 22-3.</b> 식 <a class="ref" href="#eq-entanglement-entropy"></a>을 두 성분 상태에 적용한 이진 엔트로피. 곡선은 실제 식의 값으로 계산했다.</figcaption></figure>
+</section>
+<section id="s4"><h2>EPR과 벨 부등식</h2>
+  <p>단일항의 두 스핀을 멀리 보낸다. 같은 축을 측정하면 결과는 항상 반대지만 한쪽 결과만은 무작위다. \(A\)의 두 측정 축을 \(\boldsymbol a_0,\boldsymbol a_1\), \(B\)의 두 축을 \(\boldsymbol b_0,\boldsymbol b_1\)로 두자. 결과는 각각 \(+1,-1\)이다. 숨은 변수 \(\lambda\)가 각 축의 결과를 미리 정하고 한쪽 결과가 먼 쪽의 축 선택에 의존하지 않는 국소 모형에서는 한 번의 시행마다</p>
+  <div class="formula" id="eq-chsh-bound">\[\begin{aligned}C_\lambda&amp;=A_0(B_0+B_1)+A_1(B_0-B_1)=\pm2,\\ S&amp;=E(A_0B_0)+E(A_0B_1)+E(A_1B_0)-E(A_1B_1),\qquad |S|\le2.\end{aligned}\]</div>
+  <p>\(B_0,B_1\)이 각각 \(\pm1\)이라서 두 괄호 중 하나는 0, 다른 하나는 \(\pm2\)이다. 여러 시행을 평균해도 \(|S|\le2\)다. 이는 측정 축 선택과 숨은 변수가 통계적으로 독립이라는 가정도 사용한다.</p>
+  <p>양자 단일항에서는 \(\langle\Psi^-|(\boldsymbol\sigma\cdot\boldsymbol a)\otimes(\boldsymbol\sigma\cdot\boldsymbol b)|\Psi^-\rangle=-\boldsymbol a\cdot\boldsymbol b\)이다. 같은 방향에서 완전 반상관이고 회전 대칭이므로 임의 축의 내적 형태가 나온다. \(\boldsymbol a_0=\hat z\), \(\boldsymbol a_1=\hat x\), \(\boldsymbol b_0=(\hat z+\hat x)/\sqrt2\), \(\boldsymbol b_1=(\hat z-\hat x)/\sqrt2\)를 택하면 네 상관값은 차례로 \(-1/\sqrt2,-1/\sqrt2,-1/\sqrt2,+1/\sqrt2\)이다.</p>
+  <div class="formula" id="eq-chsh-quantum">\[S_{\Psi^-}=-2\sqrt2,\qquad |S_{\Psi^-}|=2\sqrt2&gt;2.\]</div>
+  <p>따라서 위 가정들을 동시에 만족하는 국소 숨은 변수 모형은 단일항의 예측을 재현하지 못한다. 그렇다고 먼 곳에 신호를 보낼 수는 없다. \(A\)의 측정 축을 바꾸거나 결과를 기록하지 않는 측정을 해도 \(B\)의 축약 상태는 \(I_B/2\)여서 \(B\)만의 확률은 늘 반반이다. 상관은 두 쪽의 기록을 나중에 비교할 때 드러난다.</p>
+  <div class="callout tip"><strong>고전적 상관과 얽힘</strong><p>\(\rho_{\rm sep}=(|00\rangle\langle00|+|11\rangle\langle11|)/2\)도 \(\rho_A=I/2\)이고 \(z\)축에서는 완전 상관을 보이지만, 곱상태들의 확률 혼합이므로 얽히지 않았다. 국소 혼합만으로 얽힘을 판정할 수 있는 것은 전체가 순수할 때다.</p></div>
+</section>
+<section class="keypoints" id="summary"><h2>핵심 정리</h2><ol><li>밀도 행렬은 준비 확률을 평균하고 측정값은 \(\operatorname{Tr}(\rho A)\)로 계산한다.</li><li>순수 상태는 \(\operatorname{Tr}\rho^2=1\), 혼합 상태는 그보다 작다.</li><li>비대각 성분은 선택한 기저의 결맞음 정보를 담는다.</li><li>부분 추적은 다른 계의 결과를 합해 국소 상태를 만든다.</li><li>전체 순수 상태가 얽혔을 필요충분 조건은 축약 상태가 혼합이라는 것이다.</li><li>순수한 두 계의 얽힘 엔트로피는 슈미트 가중치의 엔트로피다.</li><li>단일항은 CHSH 한계 2를 넘어 \(2\sqrt2\)를 보이지만 신호 전달은 허용하지 않는다.</li></ol></section>
+<section class="quiz-sec" id="quiz"><h2>확인 퀴즈</h2><p class="quiz-score"></p><div class="quiz">
+  <div class="quiz-q"><p>1. 순수 상태의 \(\operatorname{Tr}\rho^2\)는?</p><div class="opts"><button class="opt">0</button><button class="opt" data-correct>1</button><button class="opt">항상 2</button></div><div class="quiz-exp">순수 상태의 밀도 행렬은 사영 연산자다.</div></div>
+  <div class="quiz-q"><p>2. \(\rho_{+x}\)와 \(I/2\)를 구별하는 측정은?</p><div class="opts"><button class="opt">오직 z 측정</button><button class="opt" data-correct>x 측정</button><button class="opt">어떤 측정으로도 불가능</button></div><div class="quiz-exp">\(x\)의 \(+1\) 확률은 각각 1과 \(1/2\)다.</div></div>
+  <div class="quiz-q"><p>3. 전체가 순수한 단일항일 때 한쪽 스핀의 상태는?</p><div class="opts"><button class="opt">순수한 위 상태</button><button class="opt" data-correct>\(I/2\)</button><button class="opt">정의되지 않음</button></div><div class="quiz-exp">부분 추적으로 다른 쪽의 정보를 합하면 완전 혼합이다.</div></div>
+  <div class="quiz-q"><p>4. 전체가 순수한 두 계에서 슈미트 계수가 하나만 있으면?</p><div class="opts"><button class="opt" data-correct>곱상태</button><button class="opt">최대 얽힘</button><button class="opt">항상 혼합 전체 상태</button></div><div class="quiz-exp">합이 한 항만 남아 \(|a\rangle|b\rangle\)로 쓴다.</div></div>
+  <div class="quiz-q"><p>5. 국소 숨은 변수의 CHSH 한계는?</p><div class="opts"><button class="opt" data-correct>\(|S|\le2\)</button><button class="opt">\(|S|\le\sqrt2\)</button><button class="opt">\(|S|\le4\)만</button></div><div class="quiz-exp">각 시행의 CHSH 조합은 \(\pm2\)다.</div></div>
+  <div class="quiz-q"><p>6. 얽힌 단일항으로 먼 곳에 신호를 보낼 수 없는 이유는?</p><div class="opts"><button class="opt">상관이 없어서</button><button class="opt" data-correct>상대편의 국소 확률이 측정 선택에 무관해서</button><button class="opt">두 입자가 동시에 측정되어야 해서</button></div><div class="quiz-exp">결과를 전달받기 전의 축약 상태는 \(I/2\)다.</div></div>
+</div></section>
+<section class="exercises" id="exercises"><h2>연습문제</h2>
+  <div class="prob" id="prob-rho-properties" data-level="1"><p>\(\rho=\operatorname{diag}(3/4,1/4)\)의 순수성과 \(\operatorname{Tr}\rho^2\)를 구하라.</p><details class="sol"><summary>풀이</summary><p>\(\operatorname{Tr}\rho^2=9/16+1/16=5/8&lt;1\)이므로 혼합이다.</p></details></div>
+  <div class="prob" id="prob-rho-coherence" data-level="2"><p>식 <a class="ref" href="#eq-coherence-matrices"></a>의 두 상태에서 \(\langle\sigma_x\rangle,\langle\sigma_z\rangle\)를 각각 구하라.</p><details class="sol"><summary>풀이</summary><p>\(\rho_{+x}\)는 \((1,0)\), \(\rho_{\rm mix}\)는 \((0,0)\)이다. 순서는 \(x,z\) 기대값이다.</p></details></div>
+  <div class="prob" id="prob-bloch-purity" data-level="2"><p>\(\rho=(I+\boldsymbol r\cdot\boldsymbol\sigma)/2\)에서 \(\operatorname{Tr}\rho^2=(1+|\boldsymbol r|^2)/2\)를 유도하라.</p><details class="sol"><summary>풀이</summary><p>\((\boldsymbol r\cdot\boldsymbol\sigma)^2=|\boldsymbol r|^2I\), \(\operatorname{Tr}\sigma_i=0\), \(\operatorname{Tr}I=2\)를 쓴다.</p></details></div>
+  <div class="prob" id="prob-trace-product" data-level="1"><p>\(|0\rangle_A|1\rangle_B\)의 \(\rho_A\)를 구하라.</p><details class="sol"><summary>풀이</summary><p>\(\rho_{AB}=|0\rangle\langle0|\otimes|1\rangle\langle1|\)이므로 \(\rho_A=|0\rangle\langle0|\operatorname{Tr}(|1\rangle\langle1|)=|0\rangle\langle0|\)이다.</p></details></div>
+  <div class="prob" id="prob-bell-partial" data-level="2"><p>\(|\Phi^+\rangle=(|00\rangle+|11\rangle)/\sqrt2\)의 \(\rho_A\)와 \(\operatorname{Tr}\rho_A^2\)를 구하라.</p><details class="sol"><summary>풀이</summary><p>교차항은 B의 직교성으로 사라진다. \(\rho_A=I/2\), 순수성은 \(1/2\)다.</p></details></div>
+  <div class="prob" id="prob-schmidt-quarter" data-level="2"><p>\(|\Psi_p\rangle\)에서 \(p=1/4\)인 경우 \(\operatorname{Tr}\rho_A^2\)와 얽힘 엔트로피를 구하라.</p><details class="sol"><summary>풀이</summary><p>순수성은 \(1/16+9/16=5/8\). 엔트로피는 \(-\tfrac14\log_2\tfrac14-\tfrac34\log_2\tfrac34\simeq0.8113\)비트다.</p></details></div>
+  <div class="prob" id="prob-separable-mixture" data-level="2"><p>\(\rho_{\rm sep}=(|00\rangle\langle00|+|11\rangle\langle11|)/2\)의 \(\rho_A\)를 구하고 얽힘 여부를 판단하라.</p><details class="sol"><summary>풀이</summary><p>\(\rho_A=I/2\)지만 전체는 두 곱상태의 확률 혼합이므로 분리 가능 상태다. 전체가 순수하지 않으므로 국소 순수성만으로 판단하면 안 된다.</p></details></div>
+  <div class="prob" id="prob-chsh-settings" data-level="3"><p>본문의 네 축에 대해 \(-\boldsymbol a\cdot\boldsymbol b\)를 계산해 \(S=-2\sqrt2\)를 확인하라.</p><details class="sol"><summary>풀이</summary><p>\(E_{00}=E_{01}=E_{10}=-1/\sqrt2\), \(E_{11}=+1/\sqrt2\). 따라서 \(S=-4/\sqrt2=-2\sqrt2\)다.</p></details></div>
+  <div class="prob" id="prob-chsh-one-run" data-level="2"><p>\(B_0,B_1\in\{\pm1\}\)의 네 경우를 대입해 \(A_0(B_0+B_1)+A_1(B_0-B_1)=\pm2\)임을 보이라.</p><details class="sol"><summary>풀이</summary><p>\(B_0=B_1\)이면 둘째 괄호가 0이고 첫째가 \(\pm2\)다. \(B_0=-B_1\)이면 반대다. \(A_i=\pm1\)을 곱해도 절댓값은 2다.</p></details></div>
+</section>
+</main></body></html>

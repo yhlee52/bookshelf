@@ -130,9 +130,9 @@ window.SHELF_DATA = {
         { slug: "ch18", num: "18", part: 5, status: "draft", title: "변분법과 WKB", desc: "변분 원리로 헬륨의 바닥 에너지를 추정하고, WKB 해와 전환점 연결 공식에서 양자화 조건을 유도한다." },
         { slug: "ch19", num: "19", part: 5, status: "draft", title: "시간 무관 섭동론", desc: "비축퇴·축퇴 섭동론을 유도하고 수소 원자의 슈타르크 효과, 미세 구조, 제이만 효과에 적용한다." },
         { slug: "ch20", num: "20", part: 5, status: "draft", title: "시간 의존 섭동론", desc: "다이슨 전개와 페르미 황금률로 전이를 계산하고, 빛의 흡수·방출과 선택 규칙, 단열 변화의 베리 위상을 다룬다." },
-        { slug: "ch21", num: "21", part: 5, status: "slot", title: "산란", desc: "단면적 · 보른 근사 · 부분파 전개 · 위상 이동과 공명" },
-        { slug: "ch22", num: "22", part: 6, status: "slot", title: "밀도 행렬과 얽힘", desc: "순수 상태와 혼합 상태 · 축약 밀도 행렬 · 얽힘 · EPR과 벨 부등식" },
-        { slug: "ch23", num: "23", part: 6, status: "slot", title: "디랙 방정식", desc: "클라인-고든 방정식 · 디랙 방정식 · 스핀의 등장 · 수소 미세 구조 다시 보기" },
+        { slug: "ch21", num: "21", part: 5, status: "draft", title: "산란", desc: "확률 흐름에서 단면적을 정의하고 보른 근사와 부분파 위상 이동으로 산란 진폭, 광학 정리, 공명을 설명한다." },
+        { slug: "ch22", num: "22", part: 6, status: "draft", title: "밀도 행렬과 얽힘", desc: "순수·혼합 상태를 밀도 행렬로 구별하고 부분 추적과 슈미트 분해를 거쳐 벨 부등식 위반을 계산한다." },
+        { slug: "ch23", num: "23", part: 6, status: "draft", title: "디랙 방정식", desc: "클라인–고든 방정식에서 디랙 방정식으로 나아가 스핀과 자기 모멘트를 얻고 수소 미세 구조를 다시 계산한다." },
       ],
     },
 

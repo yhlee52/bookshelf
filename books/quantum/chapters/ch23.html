@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>23 디랙 방정식 · QuantumBook</title>
-<meta name="description" content="클라인-고든 방정식 · 디랙 방정식 · 스핀의 등장 · 수소 미세 구조 다시 보기">
+<meta name="description" content="클라인–고든과 디랙 방정식에서 스핀과 자기 모멘트를 얻고 수소 미세 구조를 다시 계산한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,57 +24,78 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch23">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
-  <header class="chapter-hero">
-    <div class="eyebrow">Chapter <span data-fill="chapter-num">23</span></div>
-    <h1 data-fill="chapter-title">디랙 방정식</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
-    <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
-    </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
-  </header>
-
-  <section id="s1">
-    <h2>클라인-고든 방정식</h2>
-    <p class="slot" data-slot="23.1절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section id="s2">
-    <h2>디랙 방정식</h2>
-    <p class="slot" data-slot="23.2절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section id="s3">
-    <h2>스핀의 등장</h2>
-    <p class="slot" data-slot="23.3절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section id="s4">
-    <h2>수소 미세 구조 다시 보기</h2>
-    <p class="slot" data-slot="23.4절">아직 쓰지 않은 절입니다.</p>
-  </section>
-
-  <section class="keypoints" id="summary">
-    <h2>핵심 정리</h2>
-    <ol>
-      <li class="slot" data-slot="요점">요점</li>
-    </ol>
-  </section>
-
-  <section class="quiz-sec" id="quiz">
-    <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
-  </section>
-
-  <section class="exercises" id="exercises">
-    <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
-  </section>
-</main>
-</body>
-</html>
+<header class="chapter-hero">
+  <div class="eyebrow">Chapter <span data-fill="chapter-num">23</span></div><h1 data-fill="chapter-title">디랙 방정식</h1>
+  <p class="lead">스핀을 이미 배웠지만 왜 전자에 두 성분이 필요한지는 아직 설명하지 않았다. 에너지와 운동량의 상대론적 관계에서 출발하면 네 성분을 가진 디랙 방정식이 나타난다. 이 방정식은 스핀과 자기 상호작용을 함께 담고, 수소의 미세 구조를 하나의 에너지 식으로 연결한다.</p>
+  <ul class="objectives"><li>클라인–고든 방정식의 단일 입자 확률 해석 문제를 설명한다.</li><li>디랙 행렬의 반교환 조건에서 상대론적 분산 관계를 얻는다.</li><li>보존 흐름과 비상대론적 파울리 극한에서 스핀의 역할을 확인한다.</li><li>디랙–쿨롱 에너지를 전개해 앞 장의 수소 미세 구조와 비교한다.</li></ul>
+  <p class="prereq"><b>선수 지식</b> <a href="ch16.html">16장</a> (스핀과 파울리 행렬), <a href="ch17.html">17장</a> (각운동량 합성), <a href="ch19.html#eq-hydrogen-fine-structure">19장</a> (수소 미세 구조)</p>
+</header>
+<section id="s1"><h2>클라인–고든 방정식</h2>
+  <p>비상대론적 슈뢰딩거 방정식에서는 \(E=p^2/(2m)\)의 \(E\to i\hbar\partial_t\), \(\boldsymbol p\to-i\hbar\nabla\)를 썼다. 상대론적 자유 입자의 \(E^2=p^2c^2+m^2c^4\)에도 같은 치환을 적용하면</p>
+  <div class="formula" id="eq-klein-gordon">\[\left(\frac1{c^2}\frac{\partial^2}{\partial t^2}-\nabla^2+\frac{m^2c^2}{\hbar^2}\right)\psi=0.\]</div>
+  <p>이를 <span class="term">클라인–고든 방정식</span> <span class="en">(Klein–Gordon equation)</span>이라 한다. 평면파 \(e^{i(\boldsymbol p\cdot\boldsymbol r-Et)/\hbar}\)를 대입하면 \(E=\pm\sqrt{p^2c^2+m^2c^4}\)다. 시간에 대해 2차이므로 처음 \(\psi\)뿐 아니라 \(\partial_t\psi\)도 지정해야 한다.</p>
+  <p>방정식에 \(\psi^*\), 켤레 방정식에 \(\psi\)를 곱해 빼면 보존 흐름이 나온다. 질량 \(m&gt;0\)인 복소 파동에 대해 다음 정규화를 택하자.</p>
+  <div class="formula" id="eq-kg-current">\[\rho_{\rm KG}=\frac{i\hbar}{2mc^2}(\psi^*\partial_t\psi-\psi\partial_t\psi^*),\qquad \boldsymbol j_{\rm KG}=\frac{\hbar}{2mi}(\psi^*\nabla\psi-\psi\nabla\psi^*),\qquad \partial_t\rho_{\rm KG}+\nabla\cdot\boldsymbol j_{\rm KG}=0.\]</div>
+  <p>위 평면파에서는 \(\rho_{\rm KG}=E|\psi|^2/(mc^2)\)다. 음의 에너지 해에서 밀도가 음수가 되므로 이를 단일 입자의 위치 확률 밀도로 해석할 수 없다. 이 문제에서 시간에 대해 1차인 상대론적 방정식을 찾게 된다.</p>
+  <div class="callout tip"><strong>범위</strong><p>음의 에너지 해의 물리적 해석에는 반입자와 양자장이 필요하다. 여기서는 한 입자의 디랙 방정식이 갖는 구조와 비상대론적 극한을 살핀다. 클라인–고든 방정식 자체는 스핀 0 입자의 양자장 기술에서 쓰인다.</p></div>
+</section>
+<section id="s2"><h2>디랙 방정식: 에너지에 선형인 연산자</h2>
+  <p>\(i\hbar\partial_t\Psi=\hat H_D\Psi\)를 시간에 대해 1차로 두고, 공간 미분도 1차인 \(\hat H_D=c\boldsymbol\alpha\cdot\hat{\boldsymbol p}+\beta mc^2\)를 시도한다. 모든 운동량에서 제곱했을 때 \(\hat H_D^2=(c^2\hat{\boldsymbol p}^{\,2}+m^2c^4)I\)가 되려면 혼합항과 서로 다른 운동량 성분의 항이 사라져야 한다.</p>
+  <div class="formula" id="eq-dirac-algebra">\[\{\alpha_i,\alpha_j\}=2\delta_{ij}I,\qquad \{\alpha_i,\beta\}=0,\qquad \beta^2=I,\qquad \hat H_D^2=(c^2\hat{\boldsymbol p}^{\,2}+m^2c^4)I.\]</div>
+  <p>서로 반교환하는 네 개의 에르미트 행렬을 담는 최소 복소 표현은 \(4\times4\)이다. 파울리 행렬 \(\sigma_i\)로 만든 한 표현은</p>
+  <div class="formula" id="eq-dirac-matrices">\[\alpha_i=\begin{pmatrix}0&amp;\sigma_i\\\sigma_i&amp;0\end{pmatrix},\qquad \beta=\begin{pmatrix}I_2&amp;0\\0&amp;-I_2\end{pmatrix},\qquad \Psi=\begin{pmatrix}\varphi\\\chi\end{pmatrix}.\]</div>
+  <p>각 \(\varphi,\chi\)는 두 성분 스피너다. 예를 들어 \(\alpha_i\beta\)와 \(\beta\alpha_i\)는 비대각 블록의 부호가 반대라서 합이 0이다. \(\{\sigma_i,\sigma_j\}=2\delta_{ij}I_2\)도 같은 방식으로 첫 조건을 보장한다. 평면파를 대입해 \(\hat H_D^2\Psi=E^2\Psi\)로 놓으면 \(E=\pm E_p\), \(E_p=\sqrt{p^2c^2+m^2c^4}\)이고 각 부호에 스핀 자유도 둘이 있다.</p>
+  <figure class="diagram"><div class="fig-narrow"><svg viewBox="0 0 440 245" role="img" aria-label="디랙 자유 입자의 에너지는 운동량이 0일 때 양의 정지 에너지와 음의 정지 에너지로 나뉘고 운동량이 커지며 각각 바깥으로 펼쳐진다">
+    <line x1="55" y1="135" x2="390" y2="135" class="s-line"/><line x1="220" y1="44" x2="220" y2="222" class="s-line"/><polyline points="60,64 70,69 80,74 90,79 100,84 110,88 120,93 130,97 140,101 150,105 160,109 170,112 180,115 190,117 200,119 210,120 220,120 230,120 240,119 250,117 260,115 270,112 280,109 290,105 300,101 310,97 320,93 330,88 340,84 350,79 360,74 370,69 380,64" class="s-acc" stroke-width="2.5"/><polyline points="60,206 70,201 80,196 90,191 100,186 110,182 120,177 130,173 140,169 150,165 160,161 170,158 180,155 190,153 200,151 210,150 220,150 230,150 240,151 250,153 260,155 270,158 280,161 290,165 300,169 310,173 320,177 330,182 340,186 350,191 360,196 370,201 380,206" class="s-acc2" stroke-width="2.5"/><text x="225" y="113" class="t-dim">+mc²</text><text x="225" y="166" class="t-dim">−mc²</text><text x="379" y="154" class="t-dim">p</text><text x="226" y="46" class="t-dim">E</text>
+  </svg></div><figcaption><b>그림 23-1.</b> \(E_\pm(p)=\pm mc^2\sqrt{1+(p/mc)^2}\)를 그렸다. 음의 가지를 버리는 것만으로 상호작용하는 상대론적 이론이 완성되지는 않는다.</figcaption></figure>
+</section>
+<section id="s3"><h2>스핀의 등장과 확률 흐름</h2>
+  <p>디랙 방정식과 그 에르미트 켤레를 각각 \(\Psi^\dagger\)와 \(\Psi\)에 곱해 빼자. \(\alpha_i,\beta\)가 에르미트이고 공간에 의존하지 않으므로 질량 항이 상쇄되고 남은 운동량 항이 발산이 된다.</p>
+  <div class="formula" id="eq-dirac-current">\[\rho_D=\Psi^\dagger\Psi\ge0,\qquad \boldsymbol j_D=c\Psi^\dagger\boldsymbol\alpha\Psi,\qquad \partial_t\rho_D+\nabla\cdot\boldsymbol j_D=0.\]</div>
+  <p>양의 밀도가 보존되는 것이 클라인–고든 방정식과의 차이다. \(\boldsymbol\Sigma=\operatorname{diag}(\boldsymbol\sigma,\boldsymbol\sigma)\), \(\boldsymbol S=\hbar\boldsymbol\Sigma/2\)라 두면 자유 입자에서 궤도 각운동량 \(\boldsymbol L\)만은 보존되지 않는다. \([H_D,L_i]=-i\hbar c(\boldsymbol\alpha\times\boldsymbol p)_i\)인 반면 파울리 행렬의 교환 관계에서 \([H_D,S_i]=+i\hbar c(\boldsymbol\alpha\times\boldsymbol p)_i\)이므로</p>
+  <div class="formula" id="eq-dirac-total-angular-momentum">\[\boldsymbol J=\boldsymbol L+\boldsymbol S,\qquad [H_D,J_i]=0\quad\text{(자유 입자 및 구대칭 정전 퍼텐셜)}.\]</div>
+  <p>이 결과는 <a href="ch17.html">17장의 각운동량 합성</a>과 연결된다. 자기장 속의 저에너지 한계를 보려면 전하를 \(q\), 전자기 퍼텐셜을 \(\Phi,\boldsymbol A\), \(\boldsymbol\pi=\boldsymbol p-q\boldsymbol A\)로 둔다. 정지 에너지의 빠른 위상을 떼고 \(\Psi=e^{-imc^2t/\hbar}(\varphi,\chi)^{\mathsf T}\)로 쓴다. 두 블록 방정식은</p>
+  <div class="formula" id="eq-dirac-blocks">\[(i\hbar\partial_t-q\Phi)\varphi=c\boldsymbol\sigma\cdot\boldsymbol\pi\,\chi,\qquad (2mc^2+i\hbar\partial_t-q\Phi)\chi=c\boldsymbol\sigma\cdot\boldsymbol\pi\,\varphi.\]</div>
+  <p>운동 에너지와 \(|q\Phi|\)가 \(mc^2\)보다 작으면 \(\chi\simeq(\boldsymbol\sigma\cdot\boldsymbol\pi)\varphi/(2mc)\)다. 이를 첫 식에 넣고 \((\boldsymbol\sigma\cdot\boldsymbol\pi)^2=\pi^2-q\hbar\boldsymbol\sigma\cdot\boldsymbol B\)를 쓴다. 이 항등식은 \([\pi_i,\pi_j]=iq\hbar\epsilon_{ijk}B_k\)와 \(\sigma_i\sigma_j=\delta_{ij}I+i\epsilon_{ijk}\sigma_k\)를 곱하면 얻는다.</p>
+  <div class="formula" id="eq-pauli-limit">\[i\hbar\partial_t\varphi\simeq\left[\frac{\pi^2}{2m}+q\Phi-\frac{q\hbar}{2m}\boldsymbol\sigma\cdot\boldsymbol B\right]\varphi,\qquad \boldsymbol\mu=\frac qm\boldsymbol S.\]</div>
+  <p>즉 디랙 방정식은 스핀 \(1/2\)과 선도 차수의 \(g=2\) 자기 모멘트를 함께 준다. 전자는 \(q=-e\)이므로 자기 에너지 항의 부호가 \(+e\hbar\boldsymbol\sigma\cdot\boldsymbol B/(2m)\)이다. 실제 전자의 미세한 \(g-2\) 차이는 양자전기역학의 보정이다.</p>
+  <figure class="diagram"><div class="fig-narrow"><svg viewBox="0 0 440 245" role="img" aria-label="네 성분 디랙 스피너는 위쪽 두 성분의 큰 스피너와 아래쪽 두 성분의 작은 스피너로 나뉘며 낮은 에너지에서는 작은 성분이 운동량 나누기 2mc만큼 억제된다">
+    <rect x="37" y="42" width="366" height="79" rx="12" class="f-acc-soft"/><rect x="37" y="132" width="366" height="69" rx="12" class="f-acc2-soft"/><text x="55" y="73" class="t-b">φ: 큰 두 성분</text><text x="55" y="101" class="t-dim">비상대론적 스핀 상태</text><text x="55" y="162" class="t-b">χ: 작은 두 성분</text><text x="55" y="185" class="t-dim">≈ (σ·π / 2mc) φ</text><line x1="353" y1="119" x2="353" y2="132" class="s-line"/><text x="275" y="117" class="t-dim">c σ·π</text>
+  </svg></div><figcaption><b>그림 23-2.</b> 블록 방정식에서 저에너지 양의 에너지 해의 작은 성분은 대략 \(|p|/(2mc)\)만큼 억제된다.</figcaption></figure>
+</section>
+<section id="s4"><h2>수소 미세 구조 다시 보기</h2>
+  <p>점전하 핵을 고정하고 \(V(r)=-Z\alpha_{\rm fs}\hbar c/r\), \(\alpha_{\rm fs}=e^2/(4\pi\epsilon_0\hbar c)\)를 쓴다. SI 단위의 쿨롱 퍼텐셜이다. 총각운동량 \(j\)와 궤도각운동량을 묶은 \(\kappa=\pm(j+1/2)\)로 지름 방정식을 나눈다. 원점에서 정칙인 해의 지수는 \(\gamma=\sqrt{\kappa^2-(Z\alpha_{\rm fs})^2}\)이고, 무한대에서 감쇠하는 해의 급수가 끝나야 한다는 조건은 다음 양자화 식을 준다.</p>
+  <div class="formula" id="eq-dirac-coulomb-quantization">\[n_r+\gamma=\frac{Z\alpha_{\rm fs}E}{\sqrt{m^2c^4-E^2}},\qquad n_r=n-|\kappa|\ge0,\quad \gamma=\sqrt{\kappa^2-(Z\alpha_{\rm fs})^2}.\]</div>
+  <p>여기서는 지름 스피너의 전체 급수 해를 전개하지 않고 그 경계 조건으로 얻는 양자화 식을 사용한다. \(N=n_r+\gamma\)라 쓰고 양변을 제곱하면 \(N^2(m^2c^4-E^2)=(Z\alpha_{\rm fs})^2E^2\)이다. 양의 에너지 가지를 택하면</p>
+  <div class="formula" id="eq-dirac-hydrogen-energy">\[E_{n\kappa}=mc^2\left[1+\frac{(Z\alpha_{\rm fs})^2}{\left(n-|\kappa|+\sqrt{\kappa^2-(Z\alpha_{\rm fs})^2}\right)^2}\right]^{-1/2}.\]</div>
+  <p>점핵 모형에서 \(|Z\alpha_{\rm fs}|&lt;|\kappa|\)인 결합 상태를 생각한다. 허용되는 \((n,\kappa)\)는 지름 해의 경계 조건도 만족해야 한다. 예를 들어 \(n=1\)에는 \(\kappa=-1\)만 있다. 에너지는 \(|\kappa|=j+1/2\)에만 의존하므로 허용되는 상태 중 같은 \(n,j\)는 같은 에너지를 갖는다.</p>
+  <p>작은 \(x=Z\alpha_{\rm fs}\)에 대해 \(\gamma=|\kappa|-x^2/(2|\kappa|)+O(x^4)\), \(N=n-x^2/(2|\kappa|)+O(x^4)\)다. 따라서 \(x^2/N^2=x^2/n^2+x^4/(|\kappa|n^3)+O(x^6)\)이고 \((1+y)^{-1/2}=1-y/2+3y^2/8+\cdots\)를 대입한다. 정지 에너지를 뺀 결합 에너지는</p>
+  <div class="formula" id="eq-dirac-fine-structure">\[E_{nj}-mc^2=-\frac{mc^2x^2}{2n^2}-\frac{mc^2x^4}{2n^4}\left[\frac{n}{j+1/2}-\frac34\right]+O(x^6),\qquad x=Z\alpha_{\rm fs}.\]</div>
+  <p>이는 <a href="ch19.html#eq-hydrogen-fine-structure">19장의 미세 구조 결과</a>와 같은 차수에서 일치한다. 디랙 방정식은 상대론적 운동 에너지, 스핀–궤도 상호작용, 다윈 항을 한 방정식에 담는다. \(Z=1,n=2\)에서는 \(2s_{1/2}\)와 \(2p_{1/2}\)가 점핵 디랙–쿨롱 모형에서 축퇴하고 \(2p_{3/2}\)는 더 높다.</p>
+  <figure class="diagram"><div class="fig-narrow"><svg viewBox="0 0 440 245" role="img" aria-label="수소 n이 2인 상태에서 2s 한쪽과 2p 한쪽은 같은 에너지이고 2p 세쪽은 미세 구조로 더 높다">
+    <line x1="55" y1="110" x2="387" y2="110" class="s-grid" stroke-dasharray="4 4"/><line x1="75" y1="172" x2="185" y2="172" class="s-acc" stroke-width="3"/><line x1="222" y1="172" x2="332" y2="172" class="s-acc" stroke-width="3"/><line x1="223" y1="78" x2="333" y2="78" class="s-acc2" stroke-width="3"/><text x="93" y="194" class="t-b">2s₁/₂</text><text x="240" y="194" class="t-b">2p₁/₂</text><text x="240" y="68" class="t-b">2p₃/₂</text><text x="22" y="114" class="t-dim">비상대론 n=2</text><text x="352" y="84" class="t-dim">높음</text><text x="352" y="176" class="t-dim">낮음</text>
+  </svg></div><figcaption><b>그림 23-3.</b> 점핵 디랙–쿨롱 모형의 \(n=2\) 구조를 개략적으로 표시했다. 간격의 그림 크기는 실제 에너지 척도를 뜻하지 않는다. 램 이동과 핵 운동·유한 크기 등의 효과는 여기에 포함되지 않는다.</figcaption></figure>
+  <div class="callout warn"><strong>실제 수소와의 차이</strong><p>실험에서 \(2s_{1/2}\)와 \(2p_{1/2}\)는 정확히 같지 않다. 주된 원인인 램 이동은 양자전기역학적 효과다. 핵의 운동, 유한 크기, 핵 스핀도 더 정밀한 스펙트럼에는 필요하다.</p></div>
+</section>
+<section class="keypoints" id="summary"><h2>핵심 정리</h2><ol><li>클라인–고든 방정식은 상대론적 분산 관계를 따르지만 보존 밀도의 부호가 일정하지 않다.</li><li>디랙 방정식은 시간과 공간에 대해 1차이고 네 성분 스피너를 사용한다.</li><li>디랙 행렬의 반교환 관계가 \(E^2=p^2c^2+m^2c^4\)를 보장한다.</li><li>디랙의 \(\rho=\Psi^\dagger\Psi\)는 양수이고 연속 방정식을 만족한다.</li><li>궤도각운동량과 스핀의 합 \(J=L+S\)가 구대칭 문제에서 보존된다.</li><li>저에너지 극한은 스핀 \(1/2\)과 선도 차수의 \(g=2\) 파울리 방정식을 준다.</li><li>디랙–쿨롱 에너지의 \((Z\alpha_{\rm fs})^4\) 전개는 앞 장의 수소 미세 구조와 일치한다.</li></ol></section>
+<section class="quiz-sec" id="quiz"><h2>확인 퀴즈</h2><p class="quiz-score"></p><div class="quiz">
+  <div class="quiz-q"><p>1. 클라인–고든 보존 밀도를 단일 입자 확률로 바로 읽기 어려운 이유는?</p><div class="opts"><button class="opt">항상 0이라서</button><button class="opt" data-correct>음의 에너지 해에서 음수가 되어서</button><button class="opt">공간 미분이 없어서</button></div><div class="quiz-exp">평면파의 \(\rho_{\rm KG}\)는 에너지 \(E\)에 비례한다.</div></div>
+  <div class="quiz-q"><p>2. 디랙 행렬에서 \(\alpha_i\)와 \(\beta\)의 관계는?</p><div class="opts"><button class="opt">항상 가환</button><button class="opt" data-correct>반교환</button><button class="opt">서로 같다</button></div><div class="quiz-exp">교차항을 없애려면 \(\{\alpha_i,\beta\}=0\)이어야 한다.</div></div>
+  <div class="quiz-q"><p>3. 자유 입자 디랙 방정식이 보존하는 각운동량은?</p><div class="opts"><button class="opt">\(L\)만</button><button class="opt">\(S\)만</button><button class="opt" data-correct>\(J=L+S\)</button></div><div class="quiz-exp">\(L\)과 \(S\)의 교환자는 서로 상쇄된다.</div></div>
+  <div class="quiz-q"><p>4. 저에너지 양의 에너지 해의 작은 성분 \(\chi\)의 상대 크기는?</p><div class="opts"><button class="opt" data-correct>대략 \(p/(2mc)\)</button><button class="opt">항상 1</button><button class="opt">대략 \(mc/p\)</button></div><div class="quiz-exp">블록 방정식의 \(2mc^2\chi\) 항이 우세하다.</div></div>
+  <div class="quiz-q"><p>5. 점핵 디랙–쿨롱 모형의 \(n=2\)에서 축퇴하는 두 상태는?</p><div class="opts"><button class="opt" data-correct>\(2s_{1/2}\), \(2p_{1/2}\)</button><button class="opt">\(2p_{1/2}\), \(2p_{3/2}\)</button><button class="opt">모든 \(n=2\) 상태</button></div><div class="quiz-exp">에너지가 \(n,j\)에 의존한다.</div></div>
+  <div class="quiz-q"><p>6. 실제 수소에서 위 축퇴를 깨는 주된 효과는?</p><div class="opts"><button class="opt">보른 산란</button><button class="opt" data-correct>램 이동</button><button class="opt">부분 추적</button></div><div class="quiz-exp">점핵 디랙 방정식 밖의 양자전기역학적 보정이다.</div></div>
+</div></section>
+<section class="exercises" id="exercises"><h2>연습문제</h2>
+  <div class="prob" id="prob-kg-plane" data-level="1"><p>평면파를 식 <a class="ref" href="#eq-klein-gordon"></a>에 대입해 상대론적 분산 관계를 얻어라.</p><details class="sol"><summary>풀이</summary><p>\(\partial_t^2\psi=-E^2\psi/\hbar^2\), \(\nabla^2\psi=-p^2\psi/\hbar^2\)이므로 \(E^2=p^2c^2+m^2c^4\)다.</p></details></div>
+  <div class="prob" id="prob-kg-negative" data-level="2"><p>음의 에너지 평면파의 \(\rho_{\rm KG}\) 부호를 확인하라.</p><details class="sol"><summary>풀이</summary><p>\(\partial_t\psi=-iE\psi/\hbar\)이므로 \(\rho_{\rm KG}=E|\psi|^2/(mc^2)\). \(E&lt;0\)이면 음수다.</p></details></div>
+  <div class="prob" id="prob-dirac-square" data-level="2"><p>식 <a class="ref" href="#eq-dirac-algebra"></a>를 써서 \(H_D^2=(c^2p^2+m^2c^4)I\)를 전개하라.</p><details class="sol"><summary>풀이</summary><p>\(\sum_{ij}\alpha_i\alpha_jp_ip_j=\frac12\sum_{ij}\{\alpha_i,\alpha_j\}p_ip_j=p^2I\). 혼합항은 \(\{\alpha_i,\beta\}=0\)으로 사라지고 \(\beta^2=I\)다.</p></details></div>
+  <div class="prob" id="prob-dirac-at-rest" data-level="1"><p>\(\boldsymbol p=0\)일 때 디랙 해밀토니안의 에너지와 각 에너지의 중복도를 구하라.</p><details class="sol"><summary>풀이</summary><p>\(H_D=\beta mc^2\)이므로 위쪽 두 성분의 \(+mc^2\), 아래쪽 두 성분의 \(-mc^2\)가 각각 2중이다.</p></details></div>
+  <div class="prob" id="prob-pauli-identity" data-level="3"><p>\([\pi_i,\pi_j]=iq\hbar\epsilon_{ijk}B_k\)와 파울리 행렬 곱으로 \((\boldsymbol\sigma\cdot\boldsymbol\pi)^2=\pi^2-q\hbar\boldsymbol\sigma\cdot\boldsymbol B\)를 보이라.</p><details class="sol"><summary>풀이</summary><p>\(\sigma_i\sigma_j\pi_i\pi_j=\pi^2+i\epsilon_{ijk}\sigma_k\pi_i\pi_j=\pi^2+\frac i2\epsilon_{ijk}\sigma_k[\pi_i,\pi_j]=\pi^2-q\hbar\sigma_kB_k\)다.</p></details></div>
+  <div class="prob" id="prob-electron-sign" data-level="2"><p>전자 \(q=-e\)에 대한 파울리 자기 에너지 항과 자기 모멘트 \(\boldsymbol\mu\)를 쓰라.</p><details class="sol"><summary>풀이</summary><p>\(H_B=+e\hbar\boldsymbol\sigma\cdot\boldsymbol B/(2m)\), \(\boldsymbol\mu=-e\boldsymbol S/m\)이다. \(H_B=-\boldsymbol\mu\cdot\boldsymbol B\)다.</p></details></div>
+  <div class="prob" id="prob-dirac-one-s" data-level="2"><p>\(n=1,\kappa=-1\)인 점핵 원자의 디랙 에너지를 구하고 \(Z\alpha_{\rm fs}\ll1\)에서 전개하라.</p><details class="sol"><summary>풀이</summary><p>\(n_r=0\), \(\gamma=\sqrt{1-x^2}\)라서 \(E=mc^2\sqrt{1-x^2}=mc^2[1-x^2/2-x^4/8+O(x^6)]\), \(x=Z\alpha_{\rm fs}\)다.</p></details></div>
+  <div class="prob" id="prob-fine-n2" data-level="2"><p>\(Z=1,n=2\)에서 식 <a class="ref" href="#eq-dirac-fine-structure"></a>의 \(2s_{1/2},2p_{1/2},2p_{3/2}\) 미세 구조 보정만 구하라.</p><details class="sol"><summary>풀이</summary><p>\(A=mc^2\alpha_{\rm fs}^4/128\)라 두면 \(j=1/2\)의 두 상태는 \(-5A\), \(j=3/2\)는 \(-A\)다. 따라서 뒤의 상태가 \(4A\) 높다.</p></details></div>
+  <div class="prob" id="prob-coulomb-degeneracy" data-level="2"><p>점핵 디랙 에너지가 같은 \(n,j\)의 서로 다른 궤도각운동량을 구별하지 못하는 이유를 식으로 설명하라.</p><details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-dirac-hydrogen-energy"></a>에는 \(\kappa\)의 부호가 아닌 \(|\kappa|=j+1/2\)만 들어간다. 해당 두 상태가 모두 허용될 때 축퇴한다.</p></details></div>
+</section>
+</main></body></html>
