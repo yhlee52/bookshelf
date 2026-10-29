@@ -1,7 +1,7 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
-   projectile · incline · atwood · banked-curve · loop · collision · rolling · pendulum · oscillator
-   orbit · waves · double-slit · efield · random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
+   projectile · incline · atwood · banked-curve · loop · collision · rolling · damped-spring · pendulum
+   oscillator · orbit · waves · double-slit · efield · random-walk · heat · ising · double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
   "use strict";
@@ -1186,7 +1186,164 @@
   });
 
   /* ======================================================================
-     8. 진자와 위상 공간
+     8. 단진동과 감쇠 (질량–용수철–감쇠기)
+     ====================================================================== */
+  Lab.register({
+    id: "damped-spring", field: "phys", thumb: "spring",
+    title: "단진동과 감쇠 — 진동 없이 가장 빨리 멈추는 임계 감쇠",
+    desc: "질량, 용수철 상수, 감쇠비를 바꾸며 용수철에 매인 물체가 진동하다 멈추는 모습을 봅니다. 주기 2π√(m/k), 감쇠 진동수 ω₀√(1 − ζ²), 과소·임계·과대 감쇠, 역학적 에너지가 열로 빠져나가는 과정을 확인합니다.",
+    tags: ["진동", "단진동", "감쇠", "에너지"],
+    note: "해볼 것: 감쇠가 없으면(ζ = 0) 물체는 주기 2π√(m/k)로 끝없이 진동합니다. 질량을 4배로 하면 주기가 2배가 되고, 주기는 진폭과 상관없습니다. 감쇠비를 키우면 진폭이 e^(−ζω₀t)로 줄고 주기도 조금 길어집니다. ζ = 1(임계 감쇠)이면 진동 없이 제자리로 돌아오는 가장 빠른 경우가 되고, 그보다 크면(과대 감쇠) 오히려 느리게 돌아옵니다. 자동차 완충기를 임계 감쇠 가까이 맞추는 까닭입니다. 에너지 그래프에서는 물체가 빠를 때 열이 많이 생겨 역학적 에너지가 계단처럼 줄어듭니다.",
+    mount(S) {
+      const X0 = 0.2; // 처음 변위 (m). 멈춘 채로 놓는다
+      const st = { m: 1, k: 10, z: 0.1, rate: 1 };
+      const w0 = () => Math.sqrt(st.k / st.m), cd = () => 2 * st.z * Math.sqrt(st.m * st.k); // 고유 각진동수, 감쇠 계수 c (N·s/m)
+      // 상태 [x, v, Q]. 감쇠력이 빼앗은 열 Q = ∫cv² dt도 같은 단계로 적분해야 K + U + Q가 처음 에너지와 맞는다
+      const f = ([x, v]) => { const c = cd(); return [v, (-st.k * x - c * v) / st.m, c * v * v]; };
+      // 한 번 놓은 상태. ups: 위로 지나는 0점의 시각, peaks: 오른쪽 봉우리의 변위 (처음 놓은 자리가 첫 봉우리)
+      let y, t, Tw, hist, ups, peaks;
+      function reset() {
+        y = [X0, 0, 0]; t = 0; hist = [[0, X0, 0, 0.5 * st.k * X0 * X0, 0]]; ups = []; peaks = [X0];
+        Tw = (10 * Math.PI) / w0(); // 그래프 시간 폭: 고유 주기의 5배
+      }
+      reset();
+      function step(h) {
+        const y1 = rk4(f, y, h);
+        if (y[0] < 0 && y1[0] >= 0) ups.push(t + (h * -y[0]) / (y1[0] - y[0])); // 선형 보간
+        if (y[1] > 0 && y1[1] <= 0) peaks.push(y1[0]);
+        y = y1; t += h;
+      }
+      const under = () => st.z < 1 - 1e-9;
+      const wd = () => w0() * Math.sqrt(1 - st.z * st.z); // 감쇠 진동수 (과소 감쇠일 때)
+      S.legend([
+        { label: "변위", color: (P) => P.accent },
+        { label: "임계 감쇠 (ζ = 1)", color: (P) => P.dim, dash: true },
+        { label: "포락선 ∝ e^(−ζω₀t)", color: (P) => P.faint, dash: true },
+      ]);
+      const cvS = S.canvas({ aspect: 0.62, minHeight: 380, maxHeight: 470 }, (ctx, w, h) => {
+        const P = VZ.palette(), yF = 114, eq = 0.55 * w, A = 0.11 * w, xs = A / X0; // 바닥 높이, 평형 위치 (px), 축척 (px/m)
+        const bs = 32 + 12 * Math.cbrt(st.m), xl = eq + y[0] * xs - bs / 2, De = eq - bs / 2 - 14; // 물체 한 변, 물체 왼쪽 면, 평형일 때 벽–물체 거리
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(14, yF); ctx.lineTo(w - 10, yF); ctx.moveTo(14, yF - 74); ctx.lineTo(14, yF); ctx.stroke();
+        ctx.strokeStyle = P.faint; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(eq, yF - 78); ctx.lineTo(eq, yF + 4); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText("x = 0", eq, yF + 4);
+        // 용수철 (굵기는 용수철 상수에 따라)
+        const ys = yF - 38, n = 14;
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1.2 + st.k / 30; ctx.beginPath(); ctx.moveTo(14, ys);
+        for (let i = 1; i < n; i++) ctx.lineTo(14 + ((xl - 14) * i) / n, ys + (i % 2 ? -9 : 9));
+        ctx.lineTo(xl, ys); ctx.stroke();
+        // 감쇠기: 벽에 붙은 원통과 물체에 붙은 피스톤. 피스톤 머리는 평형에서 원통 가운데에 온다
+        const yd = yF - 14, c0 = 14 + 0.12 * De, c1 = 14 + 0.72 * De, head = xl - 0.6 * De;
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(14, yd); ctx.lineTo(c0, yd); ctx.moveTo(c1, yd - 7); ctx.lineTo(c0, yd - 7); ctx.lineTo(c0, yd + 7); ctx.lineTo(c1, yd + 7); ctx.stroke();
+        ctx.fillStyle = VZ.alpha(P.warn, 0.12 + 0.25 * Math.min(1, st.z)); ctx.fillRect(c0, yd - 7, c1 - c0, 14); // 감쇠가 클수록 진한 기름
+        ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(head, yd - 5); ctx.lineTo(head, yd + 5); ctx.moveTo(head, yd); ctx.lineTo(xl, yd); ctx.stroke();
+        // 물체
+        ctx.fillStyle = VZ.alpha(P.accent, 0.3); ctx.strokeStyle = P.accent; ctx.lineWidth = 2;
+        ctx.fillRect(xl, yF - bs, bs, bs); ctx.strokeRect(xl, yF - bs, bs, bs);
+        ctx.fillStyle = P.text; ctx.font = VZ.font(11.5, false, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("m", xl + bs / 2, yF - bs / 2);
+        // 물체에 작용하는 두 힘. 같은 축척으로 그린다
+        const Fs = -st.k * y[0], Fd = -cd() * y[1], fpx = 70 / (st.k * X0 * Math.max(1, 2 * st.z)), cx = xl + bs / 2;
+        [[Fs, P.accent2, "−kx", yF - bs - 10], [Fd, P.warn, "−cv", yF - bs - 26]].forEach(([F, col, s, ya]) => {
+          const len = VZ.clamp(F * fpx, -90, 90);
+          ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.2;
+          if (Math.abs(len) >= 4) VZ.arrow(ctx, cx, ya, cx + len, ya, 7);
+          ctx.font = VZ.font(11.5, false, 700); ctx.textAlign = len < 0 ? "right" : "left"; ctx.textBaseline = "middle";
+          ctx.fillText(s, cx + len + (len < 0 ? -5 : 5), ya);
+        });
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`t = ${t.toFixed(2)} s · ${st.rate === 1 ? "실제 속도" : st.rate + "배속"}`, 10, 8);
+        // 변위 그래프
+        const W = w0(), ts = VZ.linspace(0, Tw, 300), env = under() && st.z > 0 ? X0 / Math.sqrt(1 - st.z * st.z) : null;
+        VZ.chart(ctx, { x: 0, y: yF + 20, w, h: h - yF - 20 }, {
+          x: [0, Tw], y: [-1.2 * X0, 1.2 * X0], xLabel: "시간 (s)", title: "변위 x(t) (m)",
+          series: [
+            ...(env ? [1, -1].map((s) => ({ data: ts.map((u) => [u, s * env * Math.exp(-st.z * W * u)]), color: P.faint, width: 1.2, dash: [4, 4] })) : []),
+            { data: ts.map((u) => [u, X0 * (1 + W * u) * Math.exp(-W * u)]), color: P.dim, width: 1.5, dash: [6, 4] },
+            { data: hist.map((p) => [p[0], p[1]]), color: P.accent, width: 2.2 },
+          ],
+          hlines: [{ y: 0, color: P.axis, dash: [] }],
+          points: [{ x: t, y: y[0], color: P.accent, r: 4.5 }],
+        });
+      });
+      const [bl, br] = S.split(2);
+      const cvE = S.canvas({ parent: bl, aspect: 0.8, maxHeight: 330 }, (ctx, w, h) => {
+        const P = VZ.palette(), E0 = 0.5 * st.k * X0 * X0, pc = (e) => (100 * e) / E0, ts = VZ.linspace(0, Tw, 200);
+        VZ.chart(ctx, { x: 0, y: 0, w, h: h - 22 }, {
+          x: [0, Tw], y: [0, 108], xLabel: "시간 (s)", title: "에너지 (처음 에너지 대비 %)",
+          series: [
+            { data: ts.map((u) => [u, 100 * Math.exp(-2 * st.z * w0() * u)]), color: P.faint, width: 1.2, dash: [4, 4] },
+            { data: hist.map((p) => [p[0], pc(p[2])]), color: P.accent, width: 1.3 },
+            { data: hist.map((p) => [p[0], pc(p[3])]), color: P.accent2, width: 1.3 },
+            { data: hist.map((p) => [p[0], pc(p[4])]), color: P.warn, width: 2 },
+            { data: hist.map((p) => [p[0], pc(p[2] + p[3])]), color: P.text, width: 2.4 },
+          ],
+        });
+        // 범례: 선이 처음과 끝에서 서로 겹쳐서 이름을 선 옆에 달기 어렵다
+        let xl = 14;
+        ctx.font = VZ.font(11.5, false); ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        [["K + U", P.text, 2.4], ["운동 K", P.accent, 1.3], ["위치 U", P.accent2, 1.3], ["열", P.warn, 2], ["e^(−2ζω₀t)", P.faint, 1.2]].forEach(([s, col, lw]) => {
+          ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(xl, h - 9); ctx.lineTo(xl + 12, h - 9); ctx.stroke();
+          ctx.fillStyle = P.dim; ctx.fillText(s, xl + 16, h - 9);
+          xl += ctx.measureText(s).width + 26;
+        });
+      });
+      const cvZ = S.canvas({ parent: br, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), zs = VZ.linspace(0, 2.5, 251), rate = (z) => (z <= 1 ? z : z - Math.sqrt(z * z - 1));
+        VZ.chart(ctx, null, {
+          x: [0, 2.5], y: [0, 1.15], xLabel: "감쇠비 ζ", title: "감쇠비에 따른 변화 (ω₀ 단위)",
+          bands: [{ x0: 0, x1: 1, color: VZ.alpha(P.accent2, 0.06) }],
+          series: [
+            { data: zs.map((z) => [z, z <= 1 ? Math.sqrt(Math.max(0, 1 - z * z)) : NaN]), color: P.accent2, width: 2.2 },
+            { data: zs.map((z) => [z, rate(z)]), color: P.accent, width: 2.4 },
+          ],
+          vlines: [{ x: 1, color: P.faint, label: "임계" }],
+          points: [...(under() ? [{ x: st.z, y: Math.sqrt(1 - st.z * st.z), color: P.accent2, r: 5 }] : []), { x: st.z, y: rate(st.z), color: P.accent, r: 5 }],
+          texts: [
+            { x: 0.06, y: 1.09, text: "감쇠 진동수 ω_d", color: P.accent2, sans: true, size: 11.5 },
+            { x: 1.06, y: 0.95, text: "되돌아오는 빠르기 (감쇠율)", color: P.accent, sans: true, size: 11.5 },
+            { x: 0.5, y: 0.07, text: "과소 감쇠", align: "center", sans: true },
+            { x: 1.75, y: 0.07, text: "과대 감쇠", align: "center", sans: true },
+          ],
+        });
+      });
+      const set = S.stats([
+        { k: "T0", label: "고유 주기 2π√(m/k)" }, { k: "T", label: "측정 주기 (이론 2π/ω_d)" }, { k: "kind", label: "감쇠 상태" },
+        { k: "r", label: "이웃 봉우리 비 (측정)" }, { k: "E", label: "역학적 에너지 K + U" }, { k: "sum", label: "K + U + 열" },
+      ]);
+      function readouts() {
+        const E0 = 0.5 * st.k * X0 * X0, K = 0.5 * st.m * y[1] * y[1], U = 0.5 * st.k * y[0] * y[0];
+        set("T0", ((2 * Math.PI) / w0()).toFixed(3) + `<small>s · ω₀ = ${w0().toFixed(2)} rad/s</small>`);
+        const Td = under() ? ((2 * Math.PI) / wd()).toFixed(3) : null, n = ups.length;
+        set("T", n >= 2 ? (ups[n - 1] - ups[n - 2]).toFixed(3) + `<small>s · 이론 ${Td}</small>` : Td ? `—<small>이론 ${Td} s</small>` : "—<small>진동하지 않음</small>");
+        set("kind", (st.z === 0 ? "감쇠 없음" : under() ? "과소 감쇠" : st.z < 1 + 1e-9 ? "임계 감쇠" : "과대 감쇠") + `<small>c = ${cd().toFixed(2)} N·s/m</small>`);
+        const m = peaks.length, rTh = under() ? Math.exp((-2 * Math.PI * st.z) / Math.sqrt(1 - st.z * st.z)) : null;
+        const fr = (r) => (r >= 0.1 ? r.toFixed(3) : r >= 1e-3 ? r.toPrecision(3) : r.toExponential(2)); // ζ가 1에 가까우면 비가 아주 작다
+        set("r", m >= 2 ? fr(peaks[m - 1] / peaks[m - 2]) + `<small>이론 ${fr(rTh)}</small>` : rTh != null ? `—<small>이론 ${fr(rTh)}</small>` : "—<small>봉우리 없음</small>");
+        set("E", ((100 * (K + U)) / E0).toFixed(1) + `<small>% · 처음 ${E0.toFixed(3)} J</small>`);
+        set("sum", ((100 * (K + U + y[2])) / E0).toFixed(2) + "<small>%</small>");
+      }
+      S.range({ label: "질량 m", min: 0.2, max: 5, step: 0.1, value: st.m, fmt: (x) => x.toFixed(1) + " kg", onInput: (x) => { st.m = x; reset(); } });
+      S.range({ label: "용수철 상수 k", min: 1, max: 50, step: 1, value: st.k, fmt: (x) => x + " N/m", onInput: (x) => { st.k = x; reset(); } });
+      const zr = S.range({ label: "감쇠비 ζ", min: 0, max: 2.5, step: 0.01, value: st.z, fmt: (x) => x.toFixed(2), onInput: (x) => { st.z = x; preset.set("", false); reset(); } });
+      // 예시 감쇠비. 슬라이더를 조용히 옮겨야 슬라이더 쪽에서 이 선택을 지우지 않는다
+      const preset = S.seg({ label: "감쇠 예시", options: [["0", "없음"], ["0.1", "과소"], ["1", "임계"], ["2", "과대"]], value: "0.1", onChange: (v) => { st.z = Number(v); zr.set(st.z, false); reset(); } });
+      // 질량이 크고 용수철이 약하면 주기가 10 s를 넘으므로 빨리 감기도 둔다
+      S.seg({ label: "재생 속도", options: [["0.5", "½배"], ["1", "실제"], ["2", "2배"], ["4", "4배"]], value: "1", onChange: (x) => (st.rate = Number(x)) });
+      S.button("다시 놓기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        if (t < Tw) {
+          const T = Math.min(dt * st.rate, Tw - t), n = Math.ceil(T / 0.001); // 1 ms보다 잘게 나눠 적분한다
+          for (let i = 0; i < n; i++) step(T / n);
+          hist.push([t, y[0], 0.5 * st.m * y[1] * y[1], 0.5 * st.k * y[0] * y[0], y[2]]);
+        }
+        cvS.redraw(); cvE.redraw(); cvZ.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     9. 진자와 위상 공간
      ====================================================================== */
   Lab.register({
     id: "pendulum", field: "phys", thumb: "pendulum",
@@ -1271,7 +1428,7 @@
   });
 
   /* ======================================================================
-     9. 강제 감쇠 진동자와 공명
+     10. 강제 감쇠 진동자와 공명
      ====================================================================== */
   Lab.register({
     id: "oscillator", field: "phys", thumb: "wave",
@@ -1333,7 +1490,7 @@
   });
 
   /* ======================================================================
-     10. 케플러 궤도
+     11. 케플러 궤도
      ====================================================================== */
   Lab.register({
     id: "orbit", field: "phys", thumb: "orbit",
@@ -1413,7 +1570,7 @@
   });
 
   /* ======================================================================
-     11. 파동의 중첩
+     12. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -1464,7 +1621,7 @@
   });
 
   /* ======================================================================
-     12. 이중 슬릿 간섭
+     13. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -1516,7 +1673,7 @@
   });
 
   /* ======================================================================
-     13. 전기장과 전위
+     14. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -1598,7 +1755,7 @@
   });
 
   /* ======================================================================
-     14. 랜덤 워크와 확산
+     15. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -1656,7 +1813,7 @@
   });
 
   /* ======================================================================
-     15. 열 확산 (2D 열방정식)
+     16. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -1718,7 +1875,7 @@
   });
 
   /* ======================================================================
-     16. 이징 모형
+     17. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -1777,7 +1934,7 @@
   });
 
   /* ======================================================================
-     17. 이중 진자 — 카오스
+     18. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -1848,7 +2005,7 @@
   });
 
   /* ======================================================================
-     18. 로렌츠 끌개 (3D)
+     19. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -1915,7 +2072,7 @@
   });
 
   /* ======================================================================
-     19. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     20. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.

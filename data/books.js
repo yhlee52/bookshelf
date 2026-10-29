@@ -79,7 +79,7 @@ window.SHELF_DATA = {
         { slug: "ch02", num: "02", part: 1, status: "slot", title: "힘과 뉴턴 법칙", desc: "실험: 빗면 위의 물체와 마찰 · 애트우드 기계 · 원운동과 구심력 (경사 커브)", sims: ["incline", "atwood", "banked-curve"] },
         { slug: "ch03", num: "03", part: 1, status: "slot", title: "에너지와 운동량", desc: "실험: 역학적 에너지 보존 (연직 루프) · 충돌과 운동량 보존", sims: ["loop", "collision"] },
         { slug: "ch04", num: "04", part: 1, status: "slot", title: "강체의 회전", desc: "실험: 굴림 경주 (관성 모멘트)", sims: ["rolling"] },
-        { slug: "ch05", num: "05", part: 1, status: "slot", title: "진동", desc: "실험: 단진동과 감쇠 · 진자", sims: ["pendulum"] },
+        { slug: "ch05", num: "05", part: 1, status: "slot", title: "진동", desc: "실험: 단진동과 감쇠 · 진자", sims: ["damped-spring", "pendulum"] },
         { slug: "ch06", num: "06", part: 1, status: "slot", title: "공명과 결합 진동", desc: "실험: 강제 진동과 공명 · 결합 진동자", sims: ["oscillator"] },
         { slug: "ch07", num: "07", part: 1, status: "slot", title: "중력과 궤도", desc: "실험: 케플러 궤도 · 라그랑주 점", sims: ["orbit"] },
         { slug: "ch08", num: "08", part: 1, status: "slot", title: "회전 기준계와 카오스", desc: "실험: 회전 기준계와 코리올리 힘 · 이중 진자와 카오스", sims: ["double-pendulum"] },
