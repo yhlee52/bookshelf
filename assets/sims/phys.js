@@ -1,7 +1,7 @@
 /* ==========================================================================
    물리 실험 모음 (field: "phys")
    projectile · incline · atwood · banked-curve · loop · collision · rolling · damped-spring · pendulum
-   oscillator · coupled · orbit · waves · double-slit · efield · random-walk · heat · ising
+   oscillator · coupled · orbit · lagrange · waves · double-slit · efield · random-walk · heat · ising
    double-pendulum · lorenz3d · qm-packet
    ========================================================================== */
 (function () {
@@ -1705,7 +1705,210 @@
   });
 
   /* ======================================================================
-     13. 파동의 중첩
+     13. 라그랑주 점 (원 궤도 제한 삼체 문제)
+     ====================================================================== */
+  Lab.register({
+    id: "lagrange", field: "phys", thumb: "lagrange",
+    title: "라그랑주 점 — 두 천체와 함께 도는 다섯 개의 평형점",
+    desc: "두 천체의 질량비와 시작점(L1~L5)을 바꾸며, 두 천체와 함께 도는 틀에서 가벼운 물체가 머무는지 벗어나는지 봅니다. 유효 퍼텐셜 등고선, L4·L5 둘레의 올챙이·말굽 궤도, 라우스 조건 μ < 0.0385, 야코비 상수 보존을 확인합니다.",
+    tags: ["중력", "삼체 문제", "회전 기준계", "안정성"],
+    note: "해볼 것: 태양–목성에서 L4 가까이 놓으면 L4 둘레를 천천히 오가는 올챙이 궤도가 그려집니다. 목성의 트로이 소행성들이 이렇게 움직입니다. 어긋난 각을 40°쯤으로 키우면 L3를 돌아 L5 쪽까지 갔다 오는 말굽 궤도가 됩니다. L1·L2·L3에서는 아주 조금만 어긋나도 점점 빨리 멀어지는데, 로그 눈금 그래프에서 곧은 선이 되면 지수적으로 멀어진다는 뜻입니다. 질량비를 0.0385보다 키우면 L4·L5도 불안정해집니다. 초록 점선은 물체의 야코비 상수로 정해지는 영속도 곡선이고, 물체는 이 곡선을 넘어가지 못합니다. 멈춘 틀로 바꾸면 L4의 물체가 작은 천체보다 60° 앞서 같은 궤도를 도는 것이 보입니다.",
+    mount(S) {
+      // 단위: 두 천체 사이 거리 1, 공전 각속도 1(공전 주기 2π), 전체 질량 1. 큰 천체는 (−μ, 0), 작은 천체는 (1 − μ, 0)에서 함께 돈다
+      const PRE = { se: [3.003e-6, "태양", "지구"], sj: [9.54e-4, "태양", "목성"], em: [0.01215, "지구", "달"] };
+      const MU_C = (1 - Math.sqrt(23 / 27)) / 2, VIEW = 1.6; // 라우스 한계 0.0385, 보기 범위
+      const st = { mu: PRE.sj[0], pre: "sj", L: 3, dphi: 20, frame: "rot", rate: 4 };
+      const names = () => (PRE[st.pre] ? PRE[st.pre].slice(1) : ["큰 천체", "작은 천체"]);
+      // 회전하는 틀의 유효 퍼텐셜 Ω = (x² + y²)/2 + (1 − μ)/r₁ + μ/r₂. 운동 방정식 ẍ − 2ẏ = ∂Ω/∂x, ÿ + 2ẋ = ∂Ω/∂y
+      const grad = (mu, x, y) => {
+        const a = (1 - mu) / Math.hypot(x + mu, y) ** 3, b = mu / Math.hypot(x - 1 + mu, y) ** 3;
+        return [x - a * (x + mu) - b * (x - 1 + mu), y - a * y - b * y];
+      };
+      const om2 = (mu, x, y) => x * x + y * y + (2 * (1 - mu)) / Math.hypot(x + mu, y) + (2 * mu) / Math.hypot(x - 1 + mu, y);
+      const f = ([x, y, u, v]) => { const [gx, gy] = grad(st.mu, x, y); return [u, v, gx + 2 * v, gy - 2 * u]; };
+      /** L1~L5. 일직선 위의 셋은 ∂Ω/∂x = 0을 이분법으로 푼다 */
+      function lpoints(mu) {
+        const g = (x) => grad(mu, x, 0)[0], root = (a, b) => { for (let i = 0; i < 100; i++) { const m = (a + b) / 2; if (g(a) * g(m) <= 0) b = m; else a = m; } return (a + b) / 2; };
+        return [[root(-mu + 1e-9, 1 - mu - 1e-9), 0], [root(1 - mu + 1e-9, 3), 0], [root(-3, -mu - 1e-9), 0], [0.5 - mu, Math.sqrt(3) / 2], [0.5 - mu, -Math.sqrt(3) / 2]];
+      }
+      // L4·L5에 작게 어긋났을 때의 느린 진동(칭동) 각진동수. 27μ(1 − μ) > 1이면 불안정해서 NaN
+      const wSlow = (mu) => { const d = 1 - 27 * mu * (1 - mu); return d > 0 ? Math.sqrt((1 - Math.sqrt(d)) / 2) : NaN; };
+      // 일직선 L점에서 멀어지는 빠르기 λ. c = (1 − μ)/r₁³ + μ/r₂³일 때 λ² = (c − 2 + √(9c² − 8c))/2
+      const lamCol = (mu, x) => { const c = (1 - mu) / Math.abs(x + mu) ** 3 + mu / Math.abs(x - 1 + mu) ** 3; return Math.sqrt((c - 2 + Math.sqrt(9 * c * c - 8 * c)) / 2); };
+      const sci = (v) => {
+        const e = Math.floor(Math.log10(v));
+        return e >= -2 ? v.toPrecision(3) : `${(v / 10 ** e).toFixed(2)}×10${String(e).replace(/./g, (c) => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(c)])}`;
+      };
+      // 한 번 놓은 상태. phi: 무게중심에서 잰 각(풀어 쓴 값), trail: 그림용 표본 [x, y, t, 각(°), L점과의 거리],
+      // ring: 한 공전에 64번 잰 각과 위치. 최근 한 공전은 칭동 주기 측정용 이동 평균, 최근 두 공전은 멈춘 틀 그림에 쓴다
+      let L, y, t, Tw, C0, phi, aPrev, trail, ts, dts, ring, lastAvg, tm, ups, cross, status;
+      const isTri = () => st.L >= 3;
+      function reset() {
+        L = lpoints(st.mu);
+        const [lx, ly] = L[st.L];
+        if (isTri()) { // L4는 작은 천체 쪽(각이 줄어드는 쪽), L5는 반대로 같은 반지름에서 각만 옮긴다
+          const r = Math.hypot(lx, ly), a = Math.atan2(ly, lx) + ((st.L === 3 ? -1 : 1) * st.dphi * Math.PI) / 180;
+          y = [r * Math.cos(a), r * Math.sin(a), 0, 0];
+        } else y = [lx, 1e-8, 0, 0]; // 일직선 L점은 축에 수직으로 10⁻⁸만 어긋나게 놓는다. 축 방향으로 밀면 불안정 모드 성분이 작아 처음 증가율이 흐려진다
+        const ws = wSlow(st.mu);
+        // 그래프 시간 폭(공전 횟수): L4·L5는 칭동 3번쯤, 일직선 L점은 10⁻⁸에서 1까지 멀어지는 시간(e배 18번쯤)
+        Tw = TAU * (isTri() ? (isFinite(ws) ? VZ.clamp(3.2 / ws, 10, 800) : 20) : VZ.clamp(20 / (TAU * lamCol(st.mu, lx)) + 1, 3, 1500));
+        t = 0; C0 = om2(st.mu, y[0], y[1]); aPrev = phi = Math.atan2(y[1], y[0]); status = "";
+        trail = []; ts = 0; dts = Math.max(TAU / 64, Tw / 30000); ring = []; lastAvg = null; tm = 0; ups = []; cross = [null, null];
+        sample();
+      }
+      const dist = () => Math.hypot(y[0] - L[st.L][0], y[1] - L[st.L][1]);
+      function sample() {
+        if (t >= ts) { trail.push([y[0], y[1], t, (((phi * 180) / Math.PI) % 360 + 360) % 360, dist()]); ts += dts; }
+        if (t >= tm) { // 한 공전 이동 평균이 L4(L5)의 각을 위로 지나는 시각
+          ring.push([phi, y[0], y[1], t]); if (ring.length > 128) ring.shift();
+          if (ring.length >= 64) {
+            const avg = ring.slice(-64).reduce((s, r) => s + r[0], 0) / 64 - Math.atan2(L[st.L][1], L[st.L][0]);
+            if (lastAvg != null && lastAvg < 0 && avg >= 0) ups.push(t);
+            lastAvg = avg;
+          }
+          tm += TAU / 64;
+        }
+        const d = dist(); // 일직선 L점: 거리가 10⁻⁶과 10⁻⁴을 처음 넘는 시각
+        if (cross[0] == null && d >= 1e-6) cross[0] = t;
+        if (cross[1] == null && d >= 1e-4) cross[1] = t;
+      }
+      const rHit = () => 0.1 * Math.cbrt(st.mu / 3); // 작은 천체의 힐 반지름의 1/10까지 다가가면 부딪힌 것으로 본다
+      function advance(T) {
+        let left = T, n = 0;
+        while (left > 1e-12 && !status && t < Tw && n++ < 40000) {
+          const r1 = Math.hypot(y[0] + st.mu, y[1]), r2 = Math.hypot(y[0] - 1 + st.mu, y[1]);
+          const h = Math.min(left, Tw - t, 0.01, 0.02 * Math.min(r1, r2) ** 1.5); // 천체에 가까우면 간격을 줄인다
+          y = rk4(f, y, h); t += h; left -= h;
+          const a = Math.atan2(y[1], y[0]); let da = a - aPrev;
+          if (da > Math.PI) da -= TAU; else if (da < -Math.PI) da += TAU;
+          phi += da; aPrev = a;
+          sample();
+          if (r2 < rHit() || r1 < 0.02) status = "부딪혀 멈춤"; else if (Math.hypot(y[0], y[1]) > 3) status = "멀리 벗어남";
+        }
+      }
+      reset();
+      S.legend([
+        { label: "시험 물체", color: (P) => P.accent, dot: true }, { label: "영속도 곡선", color: (P) => P.ok, dash: true }, { label: "유효 퍼텐셜 등고선", color: (P) => VZ.alpha(P.dim, 0.5) },
+      ]);
+      const [left, right] = S.split(2);
+      let grid = null; // 유효 퍼텐셜(2Ω) 격자. 질량비나 캔버스 크기가 바뀔 때만 다시 계산한다
+      const cvM = S.canvas({ parent: left, aspect: 1, maxHeight: 480 }, (ctx, w, h) => {
+        const P = VZ.palette(), s = Math.min(w, h - 26) / (2 * VIEW), cx = w / 2, cy = 26 + (h - 26) / 2, rot = st.frame === "rot";
+        const X = (x) => cx + x * s, Y = (v) => cy - v * s;
+        const turn = (p, a) => (rot ? p : [p[0] * Math.cos(a) - p[1] * Math.sin(a), p[0] * Math.sin(a) + p[1] * Math.cos(a)]); // 멈춘 틀에서는 시각 a만큼 돌려 그린다
+        if (rot) {
+          const nx = 160, key = st.mu + "|" + w + "|" + h;
+          if (!grid || grid.key !== key) {
+            const E = new Float64Array(nx * nx);
+            for (let j = 0; j < nx; j++) for (let i = 0; i < nx; i++) E[j * nx + i] = om2(st.mu, -VIEW + (2 * VIEW * i) / (nx - 1), VIEW - (2 * VIEW * j) / (nx - 1));
+            grid = { key, E };
+          }
+          const gx = (i) => X(-VIEW + (2 * VIEW * i) / (nx - 1)), gy = (j) => Y(VIEW - (2 * VIEW * j) / (nx - 1)), CL = L.map(([x, v]) => om2(st.mu, x, v));
+          ctx.lineWidth = 1; ctx.strokeStyle = VZ.alpha(P.dim, 0.22);
+          [CL[3] + 0.3 * (CL[2] - CL[3]), CL[3] + 0.7 * (CL[2] - CL[3]), CL[0] + 0.05, CL[0] + 0.2, 3.6].forEach((lv) => VZ.contour(ctx, nx, nx, grid.E, lv, gx, gy));
+          ctx.strokeStyle = VZ.alpha(P.dim, 0.5); [CL[0], CL[1], CL[2]].forEach((lv) => VZ.contour(ctx, nx, nx, grid.E, lv, gx, gy)); // L1·L2·L3를 지나는 등고선
+          ctx.strokeStyle = P.ok; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]); VZ.contour(ctx, nx, nx, grid.E, C0, gx, gy); ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = P.faint; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, (1 - st.mu) * s, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+        }
+        // 지나온 길 (멈춘 틀에서는 최근 두 공전만)
+        ctx.strokeStyle = VZ.alpha(P.accent, 0.65); ctx.lineWidth = 1.4; ctx.beginPath();
+        const pts = rot ? trail : ring.map((r) => [r[1], r[2], r[3]]);
+        pts.forEach((p, i) => { const q = turn(p, p[2]); i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); });
+        ctx.stroke();
+        // L점과 두 천체
+        const [n1, n2] = names();
+        ctx.font = VZ.font(11.5, false, 700);
+        L.forEach((p, i) => {
+          const q = turn(p, t), px = X(q[0]), py = Y(q[1]);
+          ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 4, py - 4); ctx.lineTo(px + 4, py + 4); ctx.moveTo(px - 4, py + 4); ctx.lineTo(px + 4, py - 4); ctx.stroke();
+          ctx.fillStyle = i === st.L ? P.accent : P.text; ctx.textAlign = i === 0 ? "right" : i === 1 ? "left" : "center"; ctx.textBaseline = i === 3 ? "bottom" : "top";
+          ctx.fillText("L" + (i + 1), px + (i === 0 ? -3 : i === 1 ? 3 : 0), py + (i === 3 ? -6 : 6));
+        });
+        [[[-st.mu, 0], 8, P.warn, n1], [[1 - st.mu, 0], 5, P.accent2, n2]].forEach(([p, r, col, nm], i) => {
+          const q = turn(p, t);
+          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(q[0]), Y(q[1]), r, 0, 7); ctx.fill();
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(11.5, false); ctx.textAlign = "center"; ctx.textBaseline = i ? "bottom" : "top";
+          ctx.fillText(nm, X(q[0]), Y(q[1]) + (i ? -9 : 11));
+        });
+        const q = turn(y, t);
+        ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(X(q[0]), Y(q[1]), 4.5, 0, 7); ctx.fill();
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(12, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`${(t / TAU).toFixed(1)}번째 공전 · ${rot ? "함께 도는 틀" : "멈춘 틀"}${status ? " · " + status : ""}`, 10, 6);
+      });
+      const cvR = S.canvas({ parent: right, aspect: 1, maxHeight: 480 }, (ctx, w, h) => {
+        const P = VZ.palette(), top = { x: 0, y: 0, w, h: h * 0.52 }, bot = { x: 0, y: h * 0.52, w, h: h * 0.48 }, T = Tw / TAU;
+        if (isTri()) {
+          // 각이 0°/360°를 넘어가면 선을 끊는다
+          const data = trail.map((p, i) => [p[2] / TAU, i && Math.abs(p[3] - trail[i - 1][3]) > 180 ? NaN : p[3]]);
+          VZ.chart(ctx, top, {
+            x: [0, T], y: [0, 360], yTicks: [0, 60, 180, 300, 360], yFmt: (v) => ({ 60: "L4", 180: "L3", 300: "L5" })[v] || String(v),
+            xLabel: "시간 (공전 횟수)", title: "무게중심에서 잰 각 (작은 천체 = 0°)",
+            series: [{ data, color: P.accent, width: 1.6 }], hlines: [60, 180, 300].map((v) => ({ y: v, color: P.faint })),
+          });
+        } else {
+          const lam = lamCol(st.mu, L[st.L][0]);
+          VZ.chart(ctx, top, {
+            x: [0, T], y: [1e-9, 10], logY: true, xLabel: "시간 (공전 횟수)", title: "L점에서 벗어난 거리 (로그 눈금)",
+            series: [
+              { data: VZ.linspace(0, Tw, 100).map((u) => [u / TAU, 1e-8 * Math.exp(lam * u)]), color: P.faint, width: 1.3, dash: [5, 4] },
+              { data: trail.map((p) => [p[2] / TAU, Math.max(p[4], 1e-12)]), color: P.accent, width: 1.8 },
+            ],
+            texts: [{ x: T * 0.03, y: 3e-9, text: "점선: 이론 기울기 e^(λt)", sans: true }],
+          });
+        }
+        // 질량비에 따른 L4·L5 칭동 주기. 라우스 한계를 넘으면 불안정
+        const ms = VZ.linspace(-6, Math.log10(MU_C) - 1e-4, 160).map((e) => 10 ** e);
+        VZ.chart(ctx, bot, {
+          x: [1e-6, 0.1], y: [1, 1000], logX: true, logY: true, xLabel: "질량비 μ (로그 눈금)", title: "L4·L5 칭동 주기 (공전 횟수)",
+          bands: [{ x0: MU_C, x1: 0.1, color: VZ.alpha(P.bad, 0.1) }],
+          series: [{ data: ms.map((m) => [m, 1 / wSlow(m)]), color: P.accent2, width: 2.2 }],
+          vlines: [{ x: MU_C, color: P.bad, label: "0.0385", align: "right" }],
+          points: Object.values(PRE).map(([m, a, b]) => ({ x: m, y: 1 / wSlow(m), color: P.dim, r: 3.5, label: `${a}–${b}` }))
+            .concat(st.mu < MU_C ? [{ x: st.mu, y: 1 / wSlow(st.mu), color: P.accent, r: 5.5 }] : []),
+          texts: [{ x: 0.06, y: 3, text: "불안정", align: "center", sans: true, color: P.bad }],
+        });
+      });
+      const set = S.stats([{ k: "mu", label: "질량비 μ = m₂/(m₁ + m₂)" }, { k: "Lp", label: "시작점" }, { k: "stab", label: "L4·L5 안정성" }, { k: "x", label: "" }, { k: "C", label: "야코비 상수 C" }]);
+      const xLab = S.el.querySelector(".sim-readout").children[3].querySelector(".k"); // 시작점에 따라 이름이 바뀐다
+      function readouts() {
+        const [n1, n2] = names(), [lx, ly] = L[st.L], ws = wSlow(st.mu);
+        set("mu", sci(st.mu) + `<small>${n1}–${n2}</small>`);
+        set("Lp", `L${st.L + 1}<small>(${lx.toFixed(4)}, ${ly.toFixed(4)})</small>`);
+        set("stab", isFinite(ws) ? "안정<small>μ < 0.0385 (라우스 조건)</small>" : '<span style="color:var(--bad)">불안정</span><small>μ > 0.0385</small>');
+        if (isTri()) {
+          xLab.textContent = "칭동 주기 (측정)";
+          // 측정한 모든 주기의 평균. μ가 크면 빠른 진동이 한 공전 이동 평균으로 다 걸러지지 않아 주기 하나하나는 조금씩 흔들린다
+          const n = ups.length, per = n >= 2 ? (ups[n - 1] - ups[0]) / (n - 1) / TAU : null;
+          set("x", !isFinite(ws) ? "—<small>불안정해서 L점을 떠남</small>" : (per ? per.toFixed(2) + "<small>공전" : "—<small>") + ` · 작은 진폭 이론 ${(1 / ws).toFixed(2)}</small>`);
+        } else {
+          xLab.textContent = "거리가 e배 되는 시간 (측정)";
+          const tau = cross[1] != null ? (cross[1] - cross[0]) / Math.log(100) / TAU : null; // 10⁻⁶ → 10⁻⁴ 구간의 기울기
+          set("x", (tau ? tau.toPrecision(3) + "<small>공전" : "—<small>") + ` · 이론 ${(1 / (lamCol(st.mu, lx) * TAU)).toPrecision(3)}</small>`);
+        }
+        const C = om2(st.mu, y[0], y[1]) - y[2] ** 2 - y[3] ** 2;
+        set("C", C.toFixed(6) + `<small>처음과 차이 ${Math.abs(C - C0).toExponential(1)}</small>`);
+      }
+      const show = (g, on) => (g.el.closest(".ctrl").style.display = on ? "" : "none");
+      // 눈금이 거칠면 예시 천체의 μ가 둥글려져 판독값과 어긋나므로 잘게 둔다
+      const muR = S.range({ label: "질량비 μ (로그 눈금)", min: -6, max: -1, step: 0.0001, value: Math.log10(st.mu), fmt: (x) => sci(10 ** x), onInput: (x) => { st.mu = 10 ** x; st.pre = ""; pre.set("", false); reset(); } });
+      // 예시 천체. 슬라이더를 조용히 옮겨야 슬라이더 쪽에서 이 선택을 지우지 않는다
+      const pre = S.seg({ label: "두 천체", options: [["se", "태양–지구"], ["sj", "태양–목성"], ["em", "지구–달"]], value: st.pre, onChange: (v) => { st.pre = v; st.mu = PRE[v][0]; muR.set(Math.log10(st.mu), false); reset(); } });
+      S.seg({ label: "시작점", options: [0, 1, 2, 3, 4].map((i) => [String(i), "L" + (i + 1)]), value: String(st.L), onChange: (v) => { st.L = Number(v); show(dR, isTri()); reset(); } });
+      const dR = S.range({ label: "L4·L5에서 어긋난 각 Δφ (작은 천체 쪽)", min: 0, max: 55, step: 1, value: st.dphi, fmt: (x) => x + "°", onInput: (x) => { st.dphi = x; reset(); } });
+      S.seg({ label: "보는 틀", options: [["rot", "함께 도는 틀"], ["inert", "멈춘 틀"]], value: st.frame, onChange: (v) => (st.frame = v) });
+      S.seg({ label: "재생 속도 (1초에 공전)", options: [["1", "1번"], ["4", "4번"], ["16", "16번"], ["64", "64번"]], value: String(st.rate), onChange: (v) => (st.rate = Number(v)) });
+      S.button("다시 놓기", () => reset(), { primary: true });
+      S.loop((dt) => {
+        advance(dt * st.rate * TAU);
+        cvM.redraw(); cvR.redraw(); readouts();
+      });
+    },
+  });
+
+  /* ======================================================================
+     14. 파동의 중첩
      ====================================================================== */
   Lab.register({
     id: "waves", field: "phys", thumb: "wave",
@@ -1756,7 +1959,7 @@
   });
 
   /* ======================================================================
-     14. 이중 슬릿 간섭
+     15. 이중 슬릿 간섭
      ====================================================================== */
   Lab.register({
     id: "double-slit", field: "phys", thumb: "heat", layout: "stack",
@@ -1808,7 +2011,7 @@
   });
 
   /* ======================================================================
-     15. 전기장과 전위
+     16. 전기장과 전위
      ====================================================================== */
   Lab.register({
     id: "efield", field: "phys", thumb: "field",
@@ -1890,7 +2093,7 @@
   });
 
   /* ======================================================================
-     16. 랜덤 워크와 확산
+     17. 랜덤 워크와 확산
      ====================================================================== */
   Lab.register({
     id: "random-walk", field: "phys", thumb: "particles",
@@ -1948,7 +2151,7 @@
   });
 
   /* ======================================================================
-     17. 열 확산 (2D 열방정식)
+     18. 열 확산 (2D 열방정식)
      ====================================================================== */
   Lab.register({
     id: "heat", field: "phys", thumb: "heat",
@@ -2010,7 +2213,7 @@
   });
 
   /* ======================================================================
-     18. 이징 모형
+     19. 이징 모형
      ====================================================================== */
   Lab.register({
     id: "ising", field: "phys", thumb: "grid",
@@ -2069,7 +2272,7 @@
   });
 
   /* ======================================================================
-     19. 이중 진자 — 카오스
+     20. 이중 진자 — 카오스
      ====================================================================== */
   Lab.register({
     id: "double-pendulum", field: "phys", thumb: "pendulum",
@@ -2140,7 +2343,7 @@
   });
 
   /* ======================================================================
-     20. 로렌츠 끌개 (3D)
+     21. 로렌츠 끌개 (3D)
      ====================================================================== */
   Lab.register({
     id: "lorenz3d", field: "phys", thumb: "surface", three: true,
@@ -2207,7 +2410,7 @@
   });
 
   /* ======================================================================
-     21. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
+     22. 1차원 양자 파속 (퍼짐, 계단, 장벽 터널링, 우물)
      ====================================================================== */
   // ħ = m = 1 단위. 크랭크-니콜슨: (1 + iHΔt/2)ψⁿ⁺¹ = (1 − iHΔt/2)ψⁿ, 양 끝은 ψ = 0.
   // 행렬이 삼중 대각이고 비대각 원소가 상수이므로 토마스 알고리즘으로 푼다. 노름이 정확히 보존된다.
