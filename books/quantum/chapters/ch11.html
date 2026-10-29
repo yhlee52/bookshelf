@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>11 경로 적분 · QuantumBook</title>
-<meta name="description" content="전파 함수 · 파인만의 처방 · 자유 입자 계산 · 고전 극한과 정류 위상">
+<meta name="description" content="전파 함수의 합성 법칙에서 경로 적분을 유도하고, 자유 입자를 계산한 뒤 정류 위상으로 고전 극한을 이해한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,56 +24,179 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch11">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">11</span></div>
     <h1 data-fill="chapter-title">경로 적분</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">10장에서 시간 변화 연산자 \(U\)가 상태를 옮기는 방법을 배웠다. 위치 \(x_a\)에서 \(x_b\)까지 가는 진폭을 구할 때, 중간 위치를 계속 끼워 넣으면 무슨 일이 일어날까? 시간 간격을 무한히 촘촘히 나누면 경로마다 작용에 따른 위상을 붙여 더하는 경로 적분이 나온다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>전파 함수를 정의하고 파동함수의 시간 변화와 합성 법칙을 설명할 수 있다.</li>
+      <li>짧은 시간의 전파 함수를 운동량 적분으로 구하고 시간 분할 경로 적분을 유도할 수 있다.</li>
+      <li>자유 입자의 전파 함수를 계산하고 정규화와 초기 조건을 확인할 수 있다.</li>
+      <li>작용의 변분과 정류 위상을 연결해 고전 궤도가 나타나는 조건을 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (위치·운동량 기저), <a href="ch03.html">3장</a> (가우스 적분), <a href="ch04.html">4장</a> (작용과 변분), <a href="ch06.html">6장</a> (시간 변화), <a href="ch10.html">10장</a> (슈뢰딩거 묘사)</p>
   </header>
 
   <section id="s1">
-    <h2>전파 함수</h2>
-    <p class="slot" data-slot="11.1절">아직 쓰지 않은 절입니다.</p>
+    <h2>전파 함수: 두 시공간 점을 잇는 진폭</h2>
+    <p>파동함수 전체를 매번 새로 풀지 않아도 한 위치에서 다른 위치로 가는 진폭을 알면 시간 변화를 계산할 수 있다. 여기서 \(t_b&gt;t_a\), \(T=t_b-t_a&gt;0\)로 놓고, 한 차원에서 \(\langle x|x'\rangle=\delta(x-x')\)를 쓴다.</p>
+    <div class="box def" id="def-propagator"><div class="box-h">전파 함수</div>
+      <div class="formula" id="eq-propagator">\[ K(x_b,t_b;x_a,t_a)=\langle x_b|U(t_b,t_a)|x_a\rangle. \]</div>
+      <p><span class="term">전파 함수</span> <span class="en">(propagator)</span>는 \(x_a\)에서 출발해 \(x_b\)에 도달하는 복소 진폭의 적분핵이다. 위치 고유상태는 정규화 가능한 실제 상태가 아니므로 \(|K|^2\)만을 한 점에 도착할 확률로 해석하지 않는다.</p>
+    </div>
+    <p>처음 파동함수에 완비 관계 \(I=\int dx_a\,|x_a\rangle\langle x_a|\)를 끼우면</p>
+    <div class="formula" id="eq-wave-evolution">\[ \psi(x_b,t_b)=\int_{-\infty}^{\infty}\!dx_a\,K(x_b,t_b;x_a,t_a)\psi(x_a,t_a). \]</div>
+    <p>따라서 \(K\)는 모든 초기 파동함수에 적용되는 시간 변화의 핵이다. \(U(t_a,t_a)=I\)이므로 \(K(x_b,t_a;x_a,t_a)=\delta(x_b-x_a)\)다. 식 <a class="ref" href="#eq-wave-evolution"></a>에서 \(K\)의 SI 단위는 길이의 역수다.</p>
+    <h3 id="s1-composition">중간 시각을 끼워 넣기</h3>
+    <p>\(t_a&lt;t_c&lt;t_b\)이면 \(U(t_b,t_a)=U(t_b,t_c)U(t_c,t_a)\)이다. 두 연산자 사이에 위치 완비 관계를 넣는다.</p>
+    <div class="formula" id="eq-composition">\[ K(x_b,t_b;x_a,t_a)=\int_{-\infty}^{\infty}\!dx_c\,K(x_b,t_b;x_c,t_c)K(x_c,t_c;x_a,t_a). \]</div>
+    <p>중간 위치 \(x_c\)를 측정했다는 뜻은 아니다. 서로 다른 \(x_c\)를 거치는 <em>진폭을 먼저 더한다</em>. 중간에서 어느 위치를 지났는지 실제로 기록했다면 간섭은 달라진다.</p>
+    <div class="box ex" id="ex-two-routes"><div class="box-h">두 중간 경로의 간섭</div>
+      <p>두 중간 구간 \(A,B\)를 통한 부분 진폭이 각각 \(a_A=0.3\), \(a_B=-0.2\)라고 하자. 구간을 구별하지 않으면 진폭의 합은 \(0.1\), 그 제곱은 \(0.01\)이다. 구간을 측정해 구별하면 제곱을 각각 더해 \(0.09+0.04=0.13\)을 얻는다. 이 숫자들은 완전한 측정의 정규화된 확률이 아니라 간섭 항을 보여 주는 부분 진폭의 예다.</p>
+    </div>
   </section>
 
   <section id="s2">
-    <h2>파인만의 처방</h2>
-    <p class="slot" data-slot="11.2절">아직 쓰지 않은 절입니다.</p>
+    <h2>파인만의 처방: 짧은 시간 조각을 잇기</h2>
+    <p>이제 \(\hat H=\hat p^2/(2m)+V(\hat x)\)인 입자를 보자. 전체 시간 \(T\)를 \(N\)조각으로 나누고 \(\varepsilon=T/N\), \(t_j=t_a+j\varepsilon\), \(x_0=x_a\), \(x_N=x_b\)라 놓는다. 식 <a class="ref" href="#eq-composition"></a>을 되풀이하면 중간 위치 \(N-1\)개를 적분한다.</p>
+    <div class="formula" id="eq-sliced-composition">\[ K=\int dx_1\cdots dx_{N-1}\prod_{j=0}^{N-1}\langle x_{j+1}|e^{-i\varepsilon\hat H/\hbar}|x_j\rangle. \]</div>
+    <p>한 조각에서 운동 에너지와 퍼텐셜 에너지를 순서대로 작용시킨다. 보통 두 연산자는 교환하지 않으므로 유한한 \(\varepsilon\)에서의 등식이 아니라 시간 분할 극한에서 쓰는 근사다.</p>
+    <div class="formula" id="eq-short-split">\[ e^{-i\varepsilon(\hat p^2/2m+V)/\hbar}\simeq e^{-i\varepsilon\hat p^2/(2m\hbar)}e^{-i\varepsilon V(\hat x)/\hbar}. \]</div>
+    <p>오른쪽의 퍼텐셜 연산자는 \(|x_j\rangle\)에 \(e^{-i\varepsilon V(x_j)/\hbar}\)를 곱한다. 운동량 완비 관계와 \(\langle x|p\rangle=e^{ipx/\hbar}/\sqrt{2\pi\hbar}\)를 사용하면 나머지는 가우스 적분이다.</p>
+    <div class="formula" id="eq-short-fourier">\[ \begin{aligned}\langle x_{j+1}|e^{-i\varepsilon\hat p^2/(2m\hbar)}|x_j\rangle &amp;=\int_{-\infty}^{\infty}\frac{dp}{2\pi\hbar}\exp\!\left[\frac{i}{\hbar}\left(p\Delta x_j-\frac{\varepsilon p^2}{2m}\right)\right],\\ \Delta x_j&amp;=x_{j+1}-x_j.\end{aligned} \]</div>
+    <div class="box math" id="math-fresnel"><div class="box-h">진동하는 가우스 적분</div>
+      <p>지수를 제곱 완성하면 \(p\Delta x_j-\varepsilon p^2/(2m)=-\varepsilon(p-m\Delta x_j/\varepsilon)^2/(2m)+m\Delta x_j^2/(2\varepsilon)\)이다. 진동 적분은 작은 감쇠 인자 \(e^{-\eta p^2}\), \(\eta&gt;0\)를 넣어 계산한 뒤 \(\eta\to0^+\)로 보낸다. \(\int e^{-ap^2}dp=\sqrt{\pi/a}\)를 이 방식으로 이어 붙이면 \(\sqrt{1/i}=e^{-i\pi/4}\)인 가지가 정해진다.</p>
+    </div>
+    <div class="formula" id="eq-short-kernel">\[ \langle x_{j+1}|e^{-i\varepsilon\hat H/\hbar}|x_j\rangle\simeq\sqrt{\frac{m}{2\pi i\hbar\varepsilon}}\exp\!\left\{\frac{i}{\hbar}\left[\frac{m(\Delta x_j)^2}{2\varepsilon}-\varepsilon V(x_j)\right]\right\}. \]</div>
+    <p>지수의 대괄호는 한 조각의 운동 에너지와 퍼텐셜 에너지 차이에 \(\varepsilon\)을 곱한 것이다. 이를 모두 곱하고 중간 위치를 적분하면 다음 처방이 나온다.</p>
+    <div class="box thm" id="thm-path-integral"><div class="box-h">시간 분할 경로 적분</div>
+      <div class="formula" id="eq-path-sliced">\[ \begin{aligned}K(x_b,t_b;x_a,t_a)=\lim_{N\to\infty}&amp;\left(\frac{m}{2\pi i\hbar\varepsilon}\right)^{N/2}\int\!dx_1\cdots dx_{N-1}\\ &amp;\times\exp\!\left[\frac{i}{\hbar}\sum_{j=0}^{N-1}\left(\frac{m(x_{j+1}-x_j)^2}{2\varepsilon}-\varepsilon V(x_j)\right)\right],\quad\varepsilon=\frac{T}{N}.\end{aligned} \]</div>
+      <p>앞 인자는 정규화에 필수다. 흔히 \(K=\int_{x_a}^{x_b}\mathcal D x\,e^{iS[x]/\hbar}\)라고 짧게 쓰며, 여기서 \(\mathcal D x\)는 바로 위 시간 분할 극한을 뜻한다.</p>
+    </div>
+    <p>\(S[x]=\int_{t_a}^{t_b}[m\dot x^2/2-V(x)]dt\)는 <a href="ch04.html">4장</a>의 작용이다. 극한에서 기여하는 모든 양자 경로가 매끈하다고 가정해 경로마다 \(\dot x\)를 계산하는 방식은 조심해야 한다. 계산의 출발점은 식 <a class="ref" href="#eq-path-sliced"></a>의 <em>이산화된 합과 적분</em>이다.</p>
+    <div class="callout warn"><strong>한 경로의 확률은 없다</strong><p>중간 위치의 적분은 위상 \(e^{iS/\hbar}\)를 더한다. 특정 연속 경로 하나의 진폭 제곱을 도착 확률이라고 할 수 없다. 도착 확률은 정규화된 초기 파동함수를 식 <a class="ref" href="#eq-wave-evolution"></a>으로 전파한 뒤 구한다.</p></div>
   </section>
 
   <section id="s3">
-    <h2>자유 입자 계산</h2>
-    <p class="slot" data-slot="11.3절">아직 쓰지 않은 절입니다.</p>
+    <h2>자유 입자의 전파 함수를 끝까지 계산하기</h2>
+    <p>\(V=0\)이면 짧은 시간의 자유 전파 함수는 그 시간에 대해 정확하다. 시작 시각을 0으로 잡고 운동량 적분에서 얻은 결과를 시간 \(T\) 전체에 적용하면</p>
+    <div class="formula" id="eq-free-kernel">\[ K_0(x_b,T;x_a,0)=\sqrt{\frac{m}{2\pi i\hbar T}}\exp\!\left[\frac{im(x_b-x_a)^2}{2\hbar T}\right],\qquad T&gt;0. \]</div>
+    <p>왜 \(N\)개 조각을 합쳐도 같은 꼴일까? 시간 \(T_1,T_2&gt;0\)인 두 전파 함수를 식 <a class="ref" href="#eq-composition"></a>으로 합성한다. 지수의 제곱을 완성하면</p>
+    <div class="formula" id="eq-free-complete-square">\[ \begin{aligned}\frac{(x_b-x)^2}{T_2}+\frac{(x-x_a)^2}{T_1}&amp;=\frac{(x_b-x_a)^2}{T_1+T_2}+\frac{T_1+T_2}{T_1T_2}(x-x_*)^2,\\ x_*&amp;=\frac{T_1x_b+T_2x_a}{T_1+T_2}.\end{aligned} \]</div>
+    <p>\(x_*\)는 시간 \(T_1\) 뒤 직선 궤도의 위치다. 나머지 \(x\) 적분은 프레넬 가우스 적분으로</p>
+    <div class="formula" id="eq-free-gaussian-compose">\[ \int_{-\infty}^{\infty}\!dx\,\exp\!\left[\frac{im(T_1+T_2)}{2\hbar T_1T_2}(x-x_*)^2\right]=\sqrt{\frac{2\pi i\hbar T_1T_2}{m(T_1+T_2)}} \]</div>
+    <p>가 된다. 여기에 두 전파 함수의 앞 인자를 곱하면 식 <a class="ref" href="#eq-free-kernel"></a>의 \(T=T_1+T_2\)인 앞 인자가 남는다. 이를 반복하면 모든 중간 위치 적분이 수행된다.</p>
+    <div class="box ex" id="ex-free-action"><div class="box-h">직선 경로의 작용과 위상</div>
+      <p>자유 입자의 고전 경로는 \(x_{\mathrm{cl}}(t)=x_a+(x_b-x_a)t/T\)다. 속도 \((x_b-x_a)/T\)를 작용에 대입하면 \(S[x_{\mathrm{cl}}]=m(x_b-x_a)^2/(2T)\). 식 <a class="ref" href="#eq-free-kernel"></a>의 지수는 정확히 \(iS[x_{\mathrm{cl}}]/\hbar\)다. 예를 들어 \(m=\hbar=T=1\), \(x_a=0\), \(x_b=2\)인 단위계에서는 위상이 \(2\)라디안이고 \(K_0=e^{2i}/\sqrt{2\pi i}\)다. \(|K_0|^2=1/(2\pi)\)은 위치 한 점의 확률이 아니다.</p>
+    </div>
+    <h3 id="s3-checks">초기 조건과 운동 방정식 확인</h3>
+    <p>식 <a class="ref" href="#eq-free-kernel"></a>은 \(T\to0^+\)에서 보통 함수처럼 한 점의 값으로 수렴하지 않는다. 식 <a class="ref" href="#eq-short-fourier"></a>의 운동량 적분에서 \(e^{-ip^2T/(2m\hbar)}\to1\)로 보내면, 임의의 알맞은 시험 파동함수에 작용할 때 \(K_0\to\delta(x_b-x_a)\)가 된다. 또 \(x_b,T\)로 미분하면 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)가 성립한다.</p>
+    <div class="box ex" id="ex-constant-potential"><div class="box-h">공간적으로 일정한 퍼텐셜</div>
+      <p>\(V(x)=V_0\)이면 모든 경로가 \(-V_0T\)만큼의 작용을 더 얻는다. 따라서 \(K_{V_0}=e^{-iV_0T/\hbar}K_0\)다. 초기 파동함수 전체에 같은 위상이 곱해지므로 위치 확률밀도는 자유 입자와 같다.</p>
+    </div>
   </section>
 
   <section id="s4">
-    <h2>고전 극한과 정류 위상</h2>
-    <p class="slot" data-slot="11.4절">아직 쓰지 않은 절입니다.</p>
+    <h2>고전 극한: 왜 정류인 경로가 남는가</h2>
+    <p>경로 적분은 각 경로에 \(S[x]/\hbar\)라는 위상을 붙인다. 이웃 경로의 작용이 많이 다르면 위상들이 서로 다른 방향을 향해 상쇄된다. 주변 경로로 조금 바꾸어도 작용의 <em>첫 변화가 0</em>인 곳에서는 상쇄가 느리다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 420 260" role="img" aria-label="같은 시작점과 끝점을 잇는 자유 입자의 직선 고전 경로와 서로 다른 두 경로">
+        <line x1="60" y1="232" x2="380" y2="232" class="s-line"/>
+        <line x1="60" y1="232" x2="60" y2="37" class="s-line"/>
+        <text x="382" y="249" class="t-dim">t/T</text>
+        <text x="44" y="39" class="t-dim">x</text>
+        <text x="56" y="248" class="t-dim">0</text>
+        <text x="356" y="248" class="t-dim">1</text>
+        <path d="M60,220 L360,50" class="s-line" stroke-width="2.8"/>
+        <path d="M60.0,220.0 L75.0,206.2 L90.0,192.5 L105.0,179.1 L120.0,166.0 L135.0,153.5 L150.0,141.5 L165.0,130.2 L180.0,119.7 L195.0,109.9 L210.0,101.0 L225.0,92.9 L240.0,85.7 L255.0,79.2 L270.0,73.5 L285.0,68.5 L300.0,64.0 L315.0,60.1 L330.0,56.5 L345.0,53.2 L360.0,50.0" class="s-acc" stroke-width="2.5"/>
+        <path d="M60.0,220.0 L75.0,222.0 L90.0,223.0 L105.0,222.0 L120.0,218.3 L135.0,211.5 L150.0,201.3 L165.0,188.0 L180.0,172.0 L195.0,154.0 L210.0,135.0 L225.0,116.0 L240.0,98.0 L255.0,82.0 L270.0,68.7 L285.0,58.5 L300.0,51.7 L315.0,48.0 L330.0,47.0 L345.0,48.0 L360.0,50.0" class="s-acc2" stroke-width="2.5"/>
+        <circle cx="60" cy="220" r="4" class="f-dim"/>
+        <circle cx="360" cy="50" r="4" class="f-dim"/>
+        <text x="70" y="38" class="t-dim">직선: 고전 경로</text>
+        <text x="211" y="38" class="t-acc">곡선: 다른 경로</text>
+      </svg>
+      <figcaption><b>그림 11-1.</b> \(x_a=0\), \(x_b=2\), \(T=1\)인 자유 입자의 경로. 직선은 \(x_{\mathrm{cl}}=2t\), 두 곡선은 \(2t+0.4\sin(\pi t)\)와 \(2t-0.4\sin(2\pi t)\)를 20개 시간 간격에서 계산해 이은 것이다. 모든 경로의 끝점은 같다.</figcaption>
+    </figure>
+    <p>끝점이 고정된 경로 \(x(t)\)에 작은 변형 \(\eta(t)\)를 더하자. \(\eta(t_a)=\eta(t_b)=0\)이다. \(x\to x+\alpha\eta\)로 놓고 \(\alpha=0\)에서 미분하면</p>
+    <div class="formula" id="eq-action-variation">\[ \begin{aligned}\delta S&amp;=\int_{t_a}^{t_b}\!dt\,\bigl(m\dot x\dot\eta-V'(x)\eta\bigr)\\ &amp;=\left[m\dot x\eta\right]_{t_a}^{t_b}-\int_{t_a}^{t_b}\!dt\,\bigl(m\ddot x+V'(x)\bigr)\eta\\ &amp;=-\int_{t_a}^{t_b}\!dt\,\bigl(m\ddot x+V'(x)\bigr)\eta.\end{aligned} \]</div>
+    <p>모든 끝점 고정 변형 \(\eta\)에 대해 \(\delta S=0\)이려면 \(m\ddot x=-V'(x)\)다. 즉 <a href="ch04.html">4장</a>의 오일러·라그랑주 방정식, 곧 뉴턴 방정식이 나온다. <span class="term">정류 위상</span> <span class="en">(stationary phase)</span>은 이처럼 위상이 일차로 변하지 않는 경로 주변의 기여를 찾는 방법이다.</p>
+    <div class="box math" id="math-stationary-phase"><div class="box-h">보통 적분에서 보는 정류 위상</div>
+      <p>\(I(\hbar)=\int da\,f(a)e^{iS(a)/\hbar}\)를 생각하자. \(S'(a)\ne0\)인 구간에서는 \(e^{iS/\hbar}=(\hbar/iS')\,d(e^{iS/\hbar})/da\)로 쓸 수 있다. 경계항이 사라지도록 \(f\)를 잡고 부분 적분하면 빠른 진동 때문에 그 구간의 기여가 작아진다. 반면 \(S'(a_0)=0\) 근처에서는 이 나눗셈을 할 수 없고, \(S(a)\simeq S(a_0)+S''(a_0)(a-a_0)^2/2\)인 가우스형 기여가 남는다.</p>
+    </div>
+    <div class="box ex" id="ex-sine-deviation"><div class="box-h">직선에서 벗어난 경로의 작용</div>
+      <p>자유 입자에서 \(x(t)=x_{\mathrm{cl}}(t)+A\sin(\pi t/T)\)를 택하자. 처음과 끝은 직선 경로와 같다. \(\dot x=\Delta x/T+(A\pi/T)\cos(\pi t/T)\)를 \(S=m\int\dot x^2dt/2\)에 넣으면 교차항은 \(\int_0^T\cos(\pi t/T)dt=0\)으로 사라지고, \(\int_0^T\cos^2(\pi t/T)dt=T/2\)이므로</p>
+      <div class="formula" id="eq-sine-action">\[ S[x]-S[x_{\mathrm{cl}}]=\frac{m\pi^2A^2}{4T},\qquad\Delta\phi=\frac{m\pi^2A^2}{4\hbar T}. \]</div>
+      <p>\(m=\hbar=T=1\)에서 \(A=0.5\)이면 \(\Delta\phi\simeq0.617\), \(A=1\)이면 \(\Delta\phi\simeq2.467\)라디안이다. \(\hbar\)가 작아질수록 같은 변형도 훨씬 빠르게 위상을 바꾼다.</p>
+    </div>
+    <div class="box thm" id="thm-classical-limit"><div class="box-h">경로 적분의 고전 극한</div>
+      <p>전형적인 작용 눈금이 \(\hbar\)보다 충분히 크고 정류 경로가 고립되어 있을 때, 인접한 비정류 경로의 위상은 빠르게 상쇄된다. 주요 기여는 \(\delta S=0\)인 고전 경로 주변에서 나온다. 자유 입자처럼 작용이 경로 변형에 대해 이차식이면 정류 경로의 위상 \(e^{iS[x_{\mathrm{cl}}]/\hbar}\)에 가우스 요인을 곱하는 계산이 정확하다.</p>
+    </div>
+    <div class="callout deep"><strong>고전 경로 하나만 지나간다는 뜻일까?</strong><p>유한한 \(\hbar\)에서 전파 함수에는 고전 경로 주변의 변동도 기여한다. 여러 정류 경로가 있다면 각각의 위상도 간섭한다. 정류 위상은 어느 기여가 두드러지는지 알려 주는 근사이며, 매번 하나의 입자 궤적을 측정했다는 진술은 아니다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>전파 함수 \(K=\langle x_b|U|x_a\rangle\)는 초기 파동함수를 나중 파동함수로 보내는 적분핵이다.</li>
+      <li>시간 변화의 합성 법칙은 중간 위치에서 <em>진폭을 적분</em>하게 한다.</li>
+      <li>짧은 시간 핵의 앞 인자 \(\sqrt{m/(2\pi i\hbar\varepsilon)}\)는 정규화에 필수다.</li>
+      <li>시간 분할의 극한에서 각 이산 경로는 \(e^{iS/\hbar}\) 위상을 얻는다. \(\mathcal D x\)는 그 측도의 줄임 표기다.</li>
+      <li>자유 입자의 정확한 전파 함수는 \(\sqrt{m/(2\pi i\hbar T)}e^{im(x_b-x_a)^2/(2\hbar T)}\)이다.</li>
+      <li>끝점이 고정된 작용의 일차 변분이 0이면 고전 운동 방정식이 나온다.</li>
+      <li>고전 극한에서는 비정류 경로의 위상이 빠르게 상쇄되고 정류 경로 주변의 기여가 두드러진다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
-    <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <h2>확인 퀴즈</h2><p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 전파 함수의 합성 법칙에서 중간 위치에 대해 무엇을 적분하는가?</p><div class="opts">
+        <button class="opt">각 경로의 확률 \(|K_2|^2|K_1|^2\)</button>
+        <button class="opt" data-correct>두 구간 진폭의 곱 \(K_2K_1\)</button>
+        <button class="opt">고전 경로의 위치만</button>
+      </div><div class="quiz-exp">중간 위치를 측정하지 않았으므로 복소 진폭을 먼저 더한다.</div></div>
+      <div class="quiz-q"><p>2. 짧은 시간 핵의 앞 인자는 왜 필요한가?</p><div class="opts">
+        <button class="opt">퍼텐셜을 없애기 위해</button>
+        <button class="opt">고전 경로만 선택하기 위해</button>
+        <button class="opt" data-correct>합성 법칙과 델타 함수 초기 조건을 맞추기 위해</button>
+      </div><div class="quiz-exp">조각을 합칠 때 가우스 적분의 앞 인자도 함께 변한다.</div></div>
+      <div class="quiz-q"><p>3. 자유 입자 전파 함수에서 끝점의 위치 차이에 따라 변하는 부분은?</p><div class="opts">
+        <button class="opt" data-correct>\(\exp[im(x_b-x_a)^2/(2\hbar T)]\)라는 위상</button>
+        <button class="opt">앞 인자의 절댓값</button>
+        <button class="opt">퍼텐셜 에너지</button>
+      </div><div class="quiz-exp">위치 차이는 고전 작용에 대응하는 위상에 들어간다.</div></div>
+      <div class="quiz-q"><p>4. 공간적으로 일정한 퍼텐셜 \(V_0\)를 더하면?</p><div class="opts">
+        <button class="opt">\(K_0\)의 크기가 \(e^{-V_0T/\hbar}\)배 된다.</button>
+        <button class="opt" data-correct>\(K_0\)에 \(e^{-iV_0T/\hbar}\)가 곱해진다.</button>
+        <button class="opt">자유 입자의 고전 궤도가 휘어진다.</button>
+      </div><div class="quiz-exp">모든 경로의 작용이 같은 양만큼 바뀌므로 공통 위상만 더해진다.</div></div>
+      <div class="quiz-q"><p>5. 경로 적분의 정류 위상 조건 \(\delta S=0\)이 주는 것은?</p><div class="opts">
+        <button class="opt">모든 경로의 위상이 동일하다는 조건</button>
+        <button class="opt">유한한 \(\hbar\)에서 한 경로만 존재한다는 조건</button>
+        <button class="opt" data-correct>끝점 고정 변형에 대한 고전 운동 방정식</button>
+      </div><div class="quiz-exp">일차 변분을 부분 적분하면 \(m\ddot x+V'(x)=0\)이 된다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-composition" data-level="1"><p>두 시간 구간 사이에 \(I=\int dx\,|x\rangle\langle x|\)를 넣어 식 <a class="ref" href="#eq-composition"></a>을 유도하라. \(K\)의 SI 단위도 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(K=\langle x_b|U(T_2)IU(T_1)|x_a\rangle=\int dx\,\langle x_b|U(T_2)|x\rangle\langle x|U(T_1)|x_a\rangle\)이다. \(\psi(x_b)=\int dx_a K\psi(x_a)\)에서 \([K]=\mathrm m^{-1}\)이다.</p></details></div>
+    <div class="prob" id="prob-fresnel" data-level="2"><p>식 <a class="ref" href="#eq-short-fourier"></a>의 지수를 \(p\)에 대해 제곱 완성하라. 감쇠 인자 \(e^{-\eta p^2}\)를 넣은 가우스 적분으로 식 <a class="ref" href="#eq-short-kernel"></a>의 자유 입자 부분을 얻어라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(p\Delta x-\varepsilon p^2/(2m)=-\varepsilon(p-m\Delta x/\varepsilon)^2/(2m)+m\Delta x^2/(2\varepsilon)\)이다. 가우스 계수 \(a=\eta+i\varepsilon/(2m\hbar)\)에 대해 \(\eta\to0^+\)로 보내면 \(\int dp\,e^{-i\varepsilon p^2/(2m\hbar)}=\sqrt{2\pi m\hbar/(i\varepsilon)}\)다. 여기에 \(1/(2\pi\hbar)\)를 곱하면 원하는 앞 인자가 나온다.</p></details></div>
+    <div class="prob" id="prob-constant-v" data-level="1"><p>\(V(x)=V_0\)일 때 식 <a class="ref" href="#eq-path-sliced"></a>에서 \(K_{V_0}=e^{-iV_0T/\hbar}K_0\)를 얻어라. 위치 확률밀도가 바뀌는가?</p>
+      <details class="sol"><summary>풀이</summary><p>퍼텐셜 항의 합은 \(\sum_j\varepsilon V_0=TV_0\)다. 따라서 적분 밖으로 \(e^{-iV_0T/\hbar}\)를 꺼낸다. 이는 공통 위상이므로 \(|\psi(x,T)|^2\)는 바뀌지 않는다.</p></details></div>
+    <div class="prob" id="prob-free-compose" data-level="2"><p>식 <a class="ref" href="#eq-free-complete-square"></a>와 가우스 적분으로 두 자유 입자 전파 함수를 합성하라. 앞 인자가 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 됨을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>두 앞 인자의 곱은 \(m/[2\pi i\hbar\sqrt{T_1T_2}]\)이다. 식 <a class="ref" href="#eq-free-gaussian-compose"></a>을 곱하면 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 된다. 남은 지수는 \(im(x_b-x_a)^2/[2\hbar(T_1+T_2)]\)다.</p></details></div>
+    <div class="prob" id="prob-free-schrodinger" data-level="2"><p>식 <a class="ref" href="#eq-free-kernel"></a>을 \(T,x_b\)로 미분하여 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(y=x_b-x_a\)라 두면 \(\partial_TK_0=K_0[-1/(2T)-imy^2/(2\hbar T^2)]\)이다. 또 \(\partial_y^2K_0=K_0[im/(\hbar T)-m^2y^2/(\hbar^2T^2)]\)이다. 양변 모두 \(K_0[-i\hbar/(2T)+my^2/(2T^2)]\)다.</p></details></div>
+    <div class="prob" id="prob-constant-force" data-level="3"><p>일정한 힘 \(F\)의 라그랑지안은 \(L=m\dot x^2/2+Fx\)다. \(x(0)=x_a\), \(x(T)=x_b\)인 정류 경로를 구하고 \(S_{\mathrm{cl}}=m(x_b-x_a)^2/(2T)+FT(x_a+x_b)/2-F^2T^3/(24m)\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(m\ddot x=F\)와 양끝 조건에서 \(x_{\mathrm{cl}}=x_a+v_0t+Ft^2/(2m)\), \(v_0=(x_b-x_a)/T-FT/(2m)\)다. 이를 \(S=\int_0^T[m\dot x^2/2+Fx]dt\)에 넣으면 \(S=(mv_0^2/2+Fx_a)T+Fv_0T^2+F^2T^3/(3m)\)이다. \(v_0\)를 대입하면 주어진 식이 된다.</p></details></div>
+    <div class="prob" id="prob-sine-phase" data-level="2"><p>식 <a class="ref" href="#eq-sine-action"></a>을 유도하고, 직선 경로와 위상 차이가 \(\pi\)가 되는 양의 진폭 \(A\)를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\dot x=\Delta x/T+(A\pi/T)\cos(\pi t/T)\)의 교차항은 적분하면 0이고 \(\int_0^T\cos^2(\pi t/T)dt=T/2\)다. 따라서 \(\Delta S=m\pi^2A^2/(4T)\)이다. \(\Delta S/\hbar=\pi\)에서 \(A=2\sqrt{\hbar T/(m\pi)}\)다.</p></details></div>
+    <div class="prob" id="prob-slicing-choice" data-level="2"><p>시간 조각마다 퍼텐셜을 왼쪽 \(V(x_j)\) 대신 오른쪽 \(V(x_{j+1})\)에서 평가한다면 두 이산 작용의 퍼텐셜 부분은 얼마만큼 다른가? 끝점을 고정한 채 \(N\to\infty\)로 보내면?</p>
+      <details class="sol"><summary>풀이</summary><p>오른쪽 평가에서 왼쪽 평가를 빼면 \(-\varepsilon\sum_j[V(x_{j+1})-V(x_j)]=-\varepsilon[V(x_b)-V(x_a)]\)다. 중간 위치와 무관한 끝점 항이며, \(\varepsilon=T/N\to0\)에서 0이다. 여기서는 위치에만 의존하는 퍼텐셜을 다룬다.</p></details></div>
   </section>
 </main>
 </body>
