@@ -128,7 +128,7 @@ window.SHELF_DATA = {
         { slug: "ch16", num: "16", part: 4, status: "draft", title: "스핀", desc: "스핀 1/2의 파울리 행렬과 축별 측정 확률을 유도하고, 슈테른–게를라흐 장치의 분리, 전자 스핀의 세차 운동과 원형 구동장의 자기 공명 전이를 계산한다." },
         { slug: "ch17", num: "17", part: 4, status: "draft", title: "각운동량의 합성", desc: "두 스핀의 삼중항·단일항에서 클렙시–고든 계수와 위그너–에카르트 정리까지" },
         { slug: "ch18", num: "18", part: 5, status: "draft", title: "변분법과 WKB", desc: "변분 원리로 헬륨의 바닥 에너지를 추정하고, WKB 해와 전환점 연결 공식에서 양자화 조건을 유도한다." },
-        { slug: "ch19", num: "19", part: 5, status: "slot", title: "시간 무관 섭동론", desc: "비축퇴 섭동 · 축퇴 섭동 · 슈타르크 효과 · 미세 구조 · 제이만 효과" },
+        { slug: "ch19", num: "19", part: 5, status: "draft", title: "시간 무관 섭동론", desc: "비축퇴·축퇴 섭동론을 유도하고 수소 원자의 슈타르크 효과, 미세 구조, 제이만 효과에 적용한다." },
         { slug: "ch20", num: "20", part: 5, status: "slot", title: "시간 의존 섭동론", desc: "상호작용 묘사에서의 전개 · 페르미 황금률 · 빛의 흡수와 방출 · 선택 규칙 · 단열 정리와 베리 위상" },
         { slug: "ch21", num: "21", part: 5, status: "slot", title: "산란", desc: "단면적 · 보른 근사 · 부분파 전개 · 위상 이동과 공명" },
         { slug: "ch22", num: "22", part: 6, status: "slot", title: "밀도 행렬과 얽힘", desc: "순수 상태와 혼합 상태 · 축약 밀도 행렬 · 얽힘 · EPR과 벨 부등식" },

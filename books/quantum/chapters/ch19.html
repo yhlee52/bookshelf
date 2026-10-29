@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>19 시간 무관 섭동론 · QuantumBook</title>
-<meta name="description" content="비축퇴 섭동 · 축퇴 섭동 · 슈타르크 효과 · 미세 구조 · 제이만 효과">
+<meta name="description" content="비축퇴·축퇴 시간 무관 섭동론을 유도하고 수소 원자의 슈타르크 효과, 미세 구조, 제이만 효과에 적용한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -16,7 +16,6 @@
 <script defer src="../../../data/books.js"></script>
 <script defer src="../../../assets/js/viz.js"></script>
 <script defer src="../../../assets/js/core.js"></script>
-<script defer src="../../../assets/js/lab.js"></script>
 <script defer src="../../../assets/sims/dl.js"></script>
 <script defer src="../../../assets/sims/ts.js"></script>
 <script defer src="../../../assets/sims/phys.js"></script>
@@ -24,61 +23,363 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="quantum" data-field="phys" data-chapter="ch19">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/quantum/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">19</span></div>
     <h1 data-fill="chapter-title">시간 무관 섭동론</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">정확히 풀 수 있는 해밀토니안에 작은 상호작용을 더하면 에너지와 상태가 얼마나 달라질까? 시간 무관 섭동론은 그 변화를 차수별로 계산한다. 축퇴된 상태에서는 먼저 그 공간에 맞는 기저를 찾고, 이어서 전기장과 자기장이 수소 원자의 준위를 어떻게 가르는지 살펴보자.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>고립된 준위의 1차 상태 보정과 1·2차 에너지 보정을 유도한다.</li>
+      <li>축퇴 부분공간에서 섭동 행렬을 대각화해야 하는 이유와 절차를 설명한다.</li>
+      <li>수소 \(1s\)와 \(n=2\) 상태의 슈타르크 효과를 대칭성과 행렬 원소로 계산한다.</li>
+      <li>미세 구조 보정의 세 항과 약한·강한 자기장의 제이만 분열을 구분한다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html#thm-spectral">2장</a> (고유상태 전개), <a href="ch13.html">13장</a> (공간 반전), <a href="ch15.html#eq-low-radial">15장</a> (수소 파동함수), <a href="ch16.html#def-electron-moment">16장</a> (전자 자기 모멘트), <a href="ch17.html#thm-angular-addition">17장</a> (각운동량 합성), <a href="ch18.html#thm-variational">18장</a> (근사 에너지)</p>
   </header>
 
   <section id="s1">
     <h2>비축퇴 섭동</h2>
-    <p class="slot" data-slot="19.1절">아직 쓰지 않은 절입니다.</p>
+    <p>풀 수 있는 \(\hat H_0\)에 작은 시간 독립 연산자 \(\hat V\)를 더하고 \(\hat H(\lambda)=\hat H_0+\lambda\hat V\)로 쓴다. \(\lambda\)는 차수를 세기 위한 매개변수이며 실제 계산 뒤에는 \(\lambda=1\)로 둔다. 여기서는 \(\hat H_0|n^{(0)}\rangle=E_n^{(0)}|n^{(0)}\rangle\)의 관심 준위가 다른 준위와 떨어져 있다고 가정한다.</p>
+    <div class="box def" id="def-perturbation-series"><div class="box-h">에너지와 상태의 차수 전개</div>
+      <div class="formula" id="eq-perturbation-series">\[
+        \begin{aligned}
+        E_n(\lambda)&amp;=E_n^{(0)}+\lambda E_n^{(1)}+\lambda^2E_n^{(2)}+\cdots,\\
+        |n(\lambda)\rangle&amp;=|n^{(0)}\rangle+\lambda|n^{(1)}\rangle
+                          +\lambda^2|n^{(2)}\rangle+\cdots .
+        \end{aligned}
+      \]</div>
+      <p>위상과 정규화의 자유를 이용해 \(\langle n^{(0)}|n^{(1)}\rangle=0\)인 <span class="term">중간 정규화</span>를 택한다. 이때 1차까지만 적은 상태의 노름은 \(1+O(\lambda^2)\)이다.</p>
+    </div>
+    <p>고유값 방정식 \(\hat H(\lambda)|n(\lambda)\rangle=E_n(\lambda)|n(\lambda)\rangle\)에서 \(\lambda^1\)의 계수는</p>
+    <div class="formula" id="eq-first-order-equation">\[
+      (\hat H_0-E_n^{(0)})|n^{(1)}\rangle
+      =(E_n^{(1)}-\hat V)|n^{(0)}\rangle.
+    \]</div>
+    <p>왼쪽에 \(\langle n^{(0)}|\)를 곱하면 왼쪽 항이 사라져 \(E_n^{(1)}=V_{nn}\)을 얻는다. 다른 고유상태 \(\langle k^{(0)}|\)를 곱하면 \((E_k^{(0)}-E_n^{(0)})\langle k^{(0)}|n^{(1)}\rangle=-V_{kn}\)이다. 여기서 \(V_{kn}=\langle k^{(0)}|\hat V|n^{(0)}\rangle\)다.</p>
+    <div class="box thm" id="thm-nondegenerate-perturbation"><div class="box-h">비축퇴 1·2차 보정</div>
+      <div class="formula" id="eq-nondegenerate-results">\[
+        E_n^{(1)}=V_{nn},\qquad
+        |n^{(1)}\rangle=\sum_{k\ne n}
+          \frac{V_{kn}}{E_n^{(0)}-E_k^{(0)}}|k^{(0)}\rangle,\qquad
+        E_n^{(2)}=\sum_{k\ne n}
+          \frac{|V_{kn}|^2}{E_n^{(0)}-E_k^{(0)}}.
+      \]</div>
+      <p>마지막 식은 \(\lambda^2\) 방정식에 \(\langle n^{(0)}|\)를 곱해 \(E_n^{(2)}=\langle n^{(0)}|\hat V|n^{(1)}\rangle\)를 얻은 다음 앞의 상태 보정을 대입한 결과다. 연속 스펙트럼이 있으면 합에 그 부분의 적분도 포함한다. 바닥 상태에서는 모든 분모가 음수이므로 2차 보정은 0 이하이다.</p>
+    </div>
+    <p>상태의 혼합 계수 \(|\lambda V_{kn}/(E_n^{(0)}-E_k^{(0)})|\)가 작아야 전개가 유용하다. 에너지 간격이 매우 작거나 0이면 이 조건이 무너지고 다음 절처럼 해당 준위들을 함께 다뤄야 한다.</p>
+    <div class="box ex" id="ex-two-level-perturbation"><div class="box-h">두 준위의 정확한 답과 비교</div>
+      <p>\(|0\rangle,|1\rangle\) 기저에서 \(\hat H_0=\operatorname{diag}(0,\Delta)\), \(\hat V=\begin{pmatrix}0&amp;v\\v&amp;0\end{pmatrix}\), \(\Delta&gt;0\), \(v\)는 실수라 하자. 정확한 에너지는 \(E_\pm=[\Delta\pm\sqrt{\Delta^2+4\lambda^2v^2}]/2\)다. \(|\lambda v|\ll\Delta\)에서 제곱근을 전개하면</p>
+      <div class="formula" id="eq-two-level-expansion">\[
+        E_-= -\frac{\lambda^2v^2}{\Delta}+O(\lambda^4),\qquad
+        E_+= \Delta+\frac{\lambda^2v^2}{\Delta}+O(\lambda^4).
+      \]</div>
+      <p>두 준위는 서로 밀어내고, 낮은 준위의 2차 에너지는 식 <a class="ref" href="#eq-nondegenerate-results"></a>와 같다. \(\Delta\to0\)에서는 이 전개를 사용할 수 없다.</p>
+    </div>
+    <figure class="diagram" id="fig-avoided-crossing">
+      <div class="fig-narrow"><svg viewBox="0 0 410 250" role="img" aria-label="두 준위가 섞일 때 정확한 에너지 곡선은 교차하지 않고 최소 간격을 남긴다">
+        <line x1="48" y1="124" x2="380" y2="124" class="s-grid"/>
+        <line x1="208" y1="19" x2="208" y2="229" class="s-grid"/>
+        <line x1="48" y1="229" x2="380" y2="229" class="s-line"/>
+        <line x1="48" y1="229" x2="48" y2="18" class="s-line"/>
+        <line x1="48" y1="208" x2="368" y2="40" class="s-line" stroke-dasharray="5 5"/>
+        <line x1="48" y1="40" x2="368" y2="208" class="s-line" stroke-dasharray="5 5"/>
+        <polyline class="s-acc" stroke-width="2.8" points="48,30.1 58,34.8 68,39.3 78,43.9 88,48.3 98,52.6 108,56.8 118,60.8 128,64.6 138,68.2 148,71.5 158,74.5 168,77 178,79.1 188,80.7 198,81.7 208,82 218,81.7 228,80.7 238,79.1 248,77 258,74.5 268,71.5 278,68.2 288,64.6 298,60.8 308,56.8 318,52.6 328,48.3 338,43.9 348,39.3 358,34.8 368,30.1"/>
+        <polyline class="s-acc2" stroke-width="2.8" points="48,217.9 58,213.2 68,208.7 78,204.1 88,199.7 98,195.4 108,191.2 118,187.2 128,183.4 138,179.8 148,176.5 158,173.5 168,171 178,168.9 188,167.3 198,166.3 208,166 218,166.3 228,167.3 238,168.9 248,171 258,173.5 268,176.5 278,179.8 288,183.4 298,187.2 308,191.2 318,195.4 328,199.7 338,204.1 348,208.7 358,213.2 368,217.9"/>
+        <line x1="220" y1="84" x2="220" y2="164" class="s-line"/>
+        <text x="250" y="127" class="t-acc">간격 2v</text>
+        <text x="6" y="20" class="t-math dim">E/v</text>
+        <text x="378" y="246" class="t-math dim">δ</text>
+        <text x="48" y="246" class="t-math dim" text-anchor="middle">−4</text>
+        <text x="208" y="246" class="t-math dim" text-anchor="middle">0</text>
+        <text x="368" y="246" class="t-math dim" text-anchor="middle">4</text>
+      </svg></div>
+      <figcaption><b>그림 19-1.</b> 평균 에너지를 뺀 두 상태의 간격을 \(\delta=\Delta/v\)라 두었을 때 정확한 곡선 \(E_\pm/v=\pm\sqrt{1+(\delta/2)^2}\)(실선). 점선은 섞임을 제외한 \(\pm\delta/2\)다. \(\delta=0\)에서 두 준위 사이에는 \(2v\)의 간격이 남는다(\(v&gt;0\)).</figcaption>
+    </figure>
   </section>
 
   <section id="s2">
     <h2>축퇴 섭동</h2>
-    <p class="slot" data-slot="19.2절">아직 쓰지 않은 절입니다.</p>
+    <p>서로 다른 \(|a\rangle\)가 같은 \(E_d^{(0)}\)를 가지면 식 <a class="ref" href="#eq-nondegenerate-results"></a>의 분모에 0이 나타날 수 있다. 이때는 축퇴 공간의 임의 기저가 아니라 \(\hat V\)에 적합한 선형 결합을 먼저 찾는다. 축퇴 공간으로의 사영 연산자를 \(\hat P=\sum_{a=1}^{d}|a\rangle\langle a|\), 그 밖을 \(\hat Q=I-\hat P\)라 하자.</p>
+    <p>영차 상태 \(|\phi\rangle=\sum_a c_a|a\rangle\)를 1차 방정식에 넣고 \(\hat P\)를 작용시키면 \(\hat P(\hat H_0-E_d^{(0)})=0\)이므로 다음 고유값 문제가 남는다.</p>
+    <div class="box thm" id="thm-degenerate-perturbation"><div class="box-h">축퇴 공간의 섭동 행렬</div>
+      <div class="formula" id="eq-degenerate-matrix">\[
+        \hat P\hat V\hat P|\phi_\alpha\rangle
+          =E_\alpha^{(1)}|\phi_\alpha\rangle,\qquad
+        \sum_b V_{ab}c_b^{(\alpha)}
+          =E_\alpha^{(1)}c_a^{(\alpha)},\qquad
+        V_{ab}=\langle a|\hat V|b\rangle.
+      \]</div>
+      <p>행렬 \(V_{ab}\)를 대각화한 고유벡터가 올바른 영차 상태이며 고유값이 각각의 1차 에너지 이동이다. 고유값이 다시 같다면 남은 축퇴 공간에서 더 높은 차수의 유효 행렬을 대각화해야 한다.</p>
+    </div>
+    <p>축퇴 공간 바깥으로 섞이는 1차 상태 보정은 선택한 \(|\phi_\alpha\rangle\)에 대해</p>
+    <div class="formula" id="eq-degenerate-outside">\[
+      \hat Q|\phi_\alpha^{(1)}\rangle
+        =\sum_{k\notin D}
+          \frac{|k^{(0)}\rangle\langle k^{(0)}|\hat V|\phi_\alpha\rangle}
+               {E_d^{(0)}-E_k^{(0)}}.
+    \]</div>
+    <p>여기서 \(D\)는 원래의 축퇴 상태 집합이다. 특히 1차 이동까지 같은 부분공간에서는 \(W_{ab}^{(2)}=\sum_{k\notin D}V_{ak}V_{kb}/(E_d^{(0)}-E_k^{(0)})\)가 2차 분열을 정한다. 근접한 준위도 간격보다 섭동의 혼합 행렬 원소가 크면 같은 작은 행렬로 함께 대각화한다.</p>
+    <div class="box ex" id="ex-degenerate-two-state"><div class="box-h">축퇴된 두 상태의 새 기저</div>
+      <p>두 상태가 같은 \(E_d^{(0)}\)를 갖고 그 공간에서 \(\hat V\)의 행렬이 \(\begin{pmatrix}u&amp;w\\w&amp;u\end{pmatrix}\), \(u,w\)는 실수라고 하자. 대칭·반대칭 결합을 취하면</p>
+      <div class="formula" id="eq-degenerate-example">\[
+        |\phi_\pm\rangle=\frac{|a\rangle\pm|b\rangle}{\sqrt2},
+        \qquad E_\pm=E_d^{(0)}+\lambda(u\pm w)+O(\lambda^2).
+      \]</div>
+      <p>원래 \(|a\rangle,|b\rangle\)는 각각 \(\hat V\)의 고유상태가 아니며, 섞임 \(w\)가 1차에서 준위를 가른다. 앞 절 두 준위 모형의 \(\Delta=0\)인 경우도 \(\lambda v\)와 \(-\lambda v\)로 갈라진다.</p>
+    </div>
   </section>
 
   <section id="s3">
     <h2>슈타르크 효과</h2>
-    <p class="slot" data-slot="19.3절">아직 쓰지 않은 절입니다.</p>
+    <p>정전기장 \(\boldsymbol{\mathcal F}=\mathcal F\boldsymbol e_z\), \(\mathcal F&gt;0\)을 걸면 전하가 \(-e\)인 전자의 퍼텐셜 에너지는 \(\hat V_{\rm S}=+e\mathcal F\hat z\)다. 전기장이 에너지 준위를 바꾸는 현상을 <span class="term">슈타르크 효과</span> <span class="en">(Stark effect)</span>라 한다. 여기서는 핵을 고정한 수소 원자의 순수 쿨롱 해밀토니안을 \(\hat H_0\)로 쓰고 스핀은 잠시 제외한다.</p>
+    <div class="box def" id="def-stark-perturbation"><div class="box-h">전기장 섭동과 공간 반전</div>
+      <div class="formula" id="eq-stark-perturbation">\[
+        \hat V_{\rm S}=e\mathcal F\hat z,\qquad
+        \langle n\ell m|\hat z|n\ell m\rangle=0.
+      \]</div>
+      <p>\(\hat z\)는 공간 반전에서 부호가 바뀌고 \(|n\ell m\rangle\)은 정해진 짝홀성을 가지므로 대각 원소가 0이다. 그러나 같은 에너지의 서로 다른 \(\ell\) 상태 사이에는 0이 아닌 원소가 있을 수 있다.</p>
+    </div>
+    <p>바닥 \(1s\)는 공간 상태로는 비축퇴이므로 1차 이동이 0이다. 2차에는 다른 상태들과의 혼합이 기여한다. \(E_k^{(0)}&gt;E_{1s}^{(0)}\)이므로 모든 항의 분모가 음수다.</p>
+    <div class="formula" id="eq-stark-quadratic">\[
+      \Delta E_{1s}^{(2)}
+        =e^2\mathcal F^2\sum_{k\ne1s}
+          \frac{|\langle k|\hat z|1s\rangle|^2}
+               {E_{1s}^{(0)}-E_k^{(0)}}
+        \equiv-\frac12\alpha_{\rm pol}\mathcal F^2,
+        \qquad \alpha_{\rm pol}&gt;0.
+    \]</div>
+    <p>완전한 합에는 이산 상태와 연속 상태가 모두 들어간다. \(\alpha_{\rm pol}\)은 정적 전기 분극률이다. 따라서 \(1s\)의 선형 이동은 없지만 작은 전기장에서 에너지는 이차로 낮아진다.</p>
+    <h3 id="s3-linear">\(n=2\)의 선형 분열</h3>
+    <p>순수 쿨롱 모형에서는 \(|2s\rangle,|2p_0\rangle,|2p_{\pm1}\rangle\)가 모두 같은 에너지다. \(\hat z\)는 \(m\)을 보존하고 궤도 양자수 \(\ell\)을 한 칸 바꾸므로 이 공간에서 \(|2s\rangle\)와 \(|2p_0\rangle\)만 결합한다. <a href="ch15.html#eq-low-radial">15장의 지름 함수</a>를 핵 질량 무한대의 \(a_0\)로 쓰면, 그 장의 위상 관례에서</p>
+    <div class="formula" id="eq-stark-dipole">\[
+      \int (Y_0^0)^*\cos\theta\,Y_1^0\,d\Omega
+        =\frac1{\sqrt3},\qquad
+      \int_0^\infty r^3R_{20}(r)R_{21}(r)\,dr=-3\sqrt3\,a_0,\qquad
+      \langle2s|\hat z|2p_0\rangle=-3a_0.
+    \]</div>
+    <p>전체 위상은 물리량을 바꾸지 않으므로 \(|\widetilde{2p_0}\rangle=-|2p_0\rangle\)로 다시 정의하여 비대각 원소를 \(+3a_0\)로 쓰자. \((|2s\rangle,|\widetilde{2p_0}\rangle,|2p_{+1}\rangle,|2p_{-1}\rangle)\) 순서의 1차 섭동 행렬은</p>
+    <div class="box thm" id="thm-linear-stark"><div class="box-h">수소 \(n=2\)의 선형 슈타르크 효과</div>
+      <div class="formula" id="eq-linear-stark">\[
+        \hat V_{\rm S}\big|_{n=2}
+          =e\mathcal F a_0
+            \begin{pmatrix}
+              0&amp;3&amp;0&amp;0\\
+              3&amp;0&amp;0&amp;0\\
+              0&amp;0&amp;0&amp;0\\
+              0&amp;0&amp;0&amp;0
+            \end{pmatrix},\qquad
+        \begin{cases}
+          (|2s\rangle\pm|\widetilde{2p_0}\rangle)/\sqrt2
+            &amp;\longrightarrow \Delta E_\pm=\pm3ea_0\mathcal F,\\
+          |2p_{\pm1}\rangle &amp;\longrightarrow \Delta E=0.
+        \end{cases}
+      \]</div>
+      <p>같은 \(n\)의 축퇴를 먼저 풀었기 때문에 전기장에 비례하는 에너지 이동이 나온다. \(e a_0\mathcal F\)는 SI에서 에너지 단위다.</p>
+    </div>
+    <figure class="diagram" id="fig-stark-splitting">
+      <div class="fig-narrow"><svg viewBox="0 0 430 240" role="img" aria-label="수소 n=2의 네 궤도 상태가 전기장에서 위아래 한 준위씩과 가운데 두 상태로 갈라진다">
+        <text x="103" y="26" class="t-b" text-anchor="middle">전기장 0</text>
+        <text x="285" y="26" class="t-b" text-anchor="middle">전기장 있음</text>
+        <text x="50" y="106" class="t-dim">2s, 2p 전체</text>
+        <line x1="50" y1="126" x2="155" y2="126" class="s-line" stroke-width="3"/>
+        <line x1="155" y1="126" x2="250" y2="62" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="155" y1="126" x2="250" y2="126" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="155" y1="126" x2="250" y2="190" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="250" y1="62" x2="340" y2="62" class="s-acc" stroke-width="3"/>
+        <line x1="250" y1="126" x2="340" y2="126" class="s-line" stroke-width="3"/>
+        <line x1="250" y1="190" x2="340" y2="190" class="s-acc2" stroke-width="3"/>
+        <text x="250" y="50" class="t-acc">대칭 결합</text>
+        <text x="250" y="113" class="t-dim">2p₊₁, 2p₋₁</text>
+        <text x="250" y="177" class="t-acc">반대칭 결합</text>
+        <text x="348" y="66" class="t-math acc">+3ea₀ℱ</text>
+        <text x="348" y="130" class="t-math dim">0</text>
+        <text x="348" y="194" class="t-math acc2">−3ea₀ℱ</text>
+        <text x="50" y="220" class="t-dim">순수 쿨롱 모형의 궤도 상태</text>
+      </svg></div>
+      <figcaption><b>그림 19-2.</b> 전기장이 없을 때 같은 \(E_2^{(0)}\)를 가진 네 궤도 상태. \(2s\)와 \(2p_0\)의 선형 결합 두 개는 각각 \(\pm3ea_0\mathcal F\)만큼 이동하고, \(2p_{\pm1}\) 둘은 1차에서 그대로 남는다. 그림의 위아래 간격은 이동값에 비례한다.</figcaption>
+    </figure>
+    <div class="callout warn"><strong>실제 수소의 아주 약한 전기장</strong><p>위 선형 결과는 미세 구조와 램 이동을 제외한 쿨롱 모형의 정확한 축퇴를 이용했다. 실제 \(2s\)와 \(2p\) 준위에는 작은 에너지 차이가 있으므로 그 차이보다 전기장 혼합이 훨씬 작을 때 각 정해진 짝홀성 상태의 첫 에너지 이동은 이차다. 선형 분열은 전기장 혼합이 그 작은 차이를 넘어서는 구간에서 좋은 근사로 나타난다.</p></div>
   </section>
 
   <section id="s4">
     <h2>미세 구조</h2>
-    <p class="slot" data-slot="19.4절">아직 쓰지 않은 절입니다.</p>
+    <p>수소의 순수 쿨롱 에너지는 주양자수 \(n\)에만 의존한다. 전자의 빠른 운동과 스핀을 고려하면 그 축퇴 일부가 작은 에너지 차이로 갈라진다. 이를 <span class="term">미세 구조</span> <span class="en">(fine structure)</span>라 한다. 이 절은 핵을 고정한 비상대론 쿨롱 문제를 시작점으로 하고, 전자의 낮은 속도에서 얻는 세 보정 항만 다룬다.</p>
+    <div class="box def" id="def-fine-structure-hamiltonian"><div class="box-h">미세 구조의 세 보정 항</div>
+      <div class="formula" id="eq-fine-structure-hamiltonian">\[
+        \begin{aligned}
+        \hat H_{\rm fs}&amp;=\hat H_{\rm rel}+\hat H_{\rm SO}+\hat H_{\rm D},\\
+        \hat H_{\rm rel}&amp;=-\frac{(\hat{\boldsymbol p}^{\,2})^2}{8m_e^3c^2},\\
+        \hat H_{\rm SO}&amp;=\frac{1}{2m_e^2c^2r}
+                      \frac{dV_C}{dr}\,\hat{\boldsymbol L}\cdot\hat{\boldsymbol S},\\
+        \hat H_{\rm D}&amp;=\frac{\hbar^2}{8m_e^2c^2}\nabla^2V_C,
+        \qquad V_C(r)=-\frac{e^2}{4\pi\epsilon_0r}.
+        \end{aligned}
+      \]</div>
+      <p>첫 항은 \(E_{\rm kin}=\sqrt{m_e^2c^4+p^2c^2}-m_ec^2\)를 \(p/(m_ec)\)로 전개했을 때의 다음 항이다. 둘째 항에는 스핀–궤도 결합의 토머스 인자 \(1/2\)가 포함된다. 셋째 <span class="term">다윈 항</span> <span class="en">(Darwin term)</span>은 쿨롱 퍼텐셜에서 원점의 접촉 항이다. 여기서는 이 유효 해밀토니안을 주어진 작은 섭동으로 사용한다.</p>
+    </div>
+    <p>\(\alpha_{\rm fs}=e^2/(4\pi\epsilon_0\hbar c)\)를 미세 구조 상수라 하고 \(a_0=\hbar/(m_ec\alpha_{\rm fs})\)를 쓴다. 영차 에너지는 \(E_n^{(0)}=-m_ec^2\alpha_{\rm fs}^2/(2n^2)\)다. \(\hat{\boldsymbol J}=\hat{\boldsymbol L}+\hat{\boldsymbol S}\)와 \(s=1/2\)를 이용하면 스핀–궤도 항이 대각인 \(|n\ell jm_j\rangle\) 기저에서</p>
+    <div class="formula" id="eq-spin-orbit-eigenvalue">\[
+      \langle\hat{\boldsymbol L}\cdot\hat{\boldsymbol S}\rangle
+      =\frac{\hbar^2}{2}
+        \left[j(j+1)-\ell(\ell+1)-\frac34\right].
+    \]</div>
+    <p>지름 적분에 필요한 값은 \(\langle r^{-1}\rangle=1/(a_0n^2)\), \(\langle r^{-2}\rangle=1/[a_0^2n^3(\ell+1/2)]\), \(\langle r^{-3}\rangle=1/[a_0^3n^3\ell(\ell+1/2)(\ell+1)]\)이다. 마지막 식은 \(\ell&gt;0\)일 때만 쓴다. 원점에서는 \(|\psi_{n00}(0)|^2=1/(\pi a_0^3n^3)\)이고 \(\ell&gt;0\) 상태의 파동함수는 0이다. 이 값들은 <a href="ch15.html#eq-hydrogen-radial">15장의 지름 함수</a>에 \(r^{-k}\)를 곱해 적분한 결과다.</p>
+    <p>상대론적 운동 에너지 보정에는 \(\hat{\boldsymbol p}^{\,2}|n\ell m\rangle=2m_e(E_n^{(0)}-V_C)|n\ell m\rangle\)를 양쪽에 적용한다. 쿨롱 퍼텐셜에서 \(\langle V_C\rangle=2E_n^{(0)}\)이므로 \(\langle p^4\rangle=4m_e^2[-3(E_n^{(0)})^2+\langle V_C^2\rangle]\)가 된다. 원점 항에는 \(\nabla^2 V_C=(e^2/\epsilon_0)\delta^{(3)}(\boldsymbol r)\)를 쓴다.</p>
+    <div class="formula" id="eq-fine-structure-pieces">\[
+      \begin{aligned}
+      \Delta E_{\rm rel}
+        &amp;=\frac{m_ec^2\alpha_{\rm fs}^4}{2n^4}
+             \left(\frac34-\frac{n}{\ell+1/2}\right),\\
+      \Delta E_{\rm SO}
+        &amp;=\frac{m_ec^2\alpha_{\rm fs}^4}{4n^3}
+             \frac{j(j+1)-\ell(\ell+1)-3/4}
+                  {\ell(\ell+1/2)(\ell+1)}
+             \quad(\ell&gt;0),\\
+      \Delta E_{\rm D}
+        &amp;=\frac{m_ec^2\alpha_{\rm fs}^4}{2n^3}\,\delta_{\ell0}.
+      \end{aligned}
+    \]</div>
+    <p>\(\ell=0\)에서는 \(\hat{\boldsymbol L}=0\)이므로 스핀–궤도 항이 0이고 위의 \(r^{-3}\) 식은 사용하지 않는다. \(\ell&gt;0\)에서는 \(j=\ell\pm1/2\)를 식 <a class="ref" href="#eq-fine-structure-pieces"></a>에 넣고, \(\ell=0\)에서는 상대론 항과 다윈 항을 더하면 두 경우가 같은 형태로 정리된다.</p>
+    <div class="box thm" id="thm-hydrogen-fine-structure"><div class="box-h">수소의 선도 미세 구조 에너지</div>
+      <div class="formula" id="eq-hydrogen-fine-structure">\[
+        E_{nj}\simeq-\frac{m_ec^2\alpha_{\rm fs}^2}{2n^2}
+          -\frac{m_ec^2\alpha_{\rm fs}^4}{2n^4}
+             \left(\frac{n}{j+1/2}-\frac34\right).
+      \]</div>
+      <p>이 차수에서는 에너지가 \(n,j\)에 의존하고 \(m_j\)에는 의존하지 않는다. \(n=2\)에서 \(2s_{1/2}\)와 \(2p_{1/2}\)의 보정은 둘 다 \(-5m_ec^2\alpha_{\rm fs}^4/128\), \(2p_{3/2}\)의 보정은 \(-m_ec^2\alpha_{\rm fs}^4/128\)이다. 뒤의 두 \(2p\) 준위 차이는 \(m_ec^2\alpha_{\rm fs}^4/32\)다.</p>
+    </div>
+    <figure class="diagram" id="fig-fine-structure">
+      <div class="fig-narrow"><svg viewBox="0 0 440 265" role="img" aria-label="수소 n=2의 쿨롱 준위가 미세 구조에 의해 두 높이의 준위로 나뉜다">
+        <text x="100" y="22" class="t-b" text-anchor="middle">쿨롱 에너지</text>
+        <text x="290" y="22" class="t-b" text-anchor="middle">미세 구조 포함</text>
+        <text x="55" y="52" class="t-dim">n = 2</text>
+        <line x1="55" y1="65" x2="150" y2="65" class="s-line" stroke-width="3"/>
+        <line x1="150" y1="65" x2="245" y2="95" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="150" y1="65" x2="245" y2="215" class="s-faint" stroke-dasharray="4 4"/>
+        <line x1="245" y1="95" x2="345" y2="95" class="s-acc" stroke-width="3"/>
+        <line x1="245" y1="215" x2="345" y2="215" class="s-acc2" stroke-width="3"/>
+        <text x="245" y="78" class="t-acc">2p₃⁄₂</text>
+        <text x="245" y="198" class="t-acc">2s₁⁄₂, 2p₁⁄₂</text>
+        <text x="354" y="99" class="t-math acc">−A</text>
+        <text x="354" y="219" class="t-math acc2">−5A</text>
+        <text x="55" y="244" class="t-dim">아래쪽이 더 낮은 에너지</text>
+      </svg></div>
+      <figcaption><b>그림 19-3.</b> \(A=m_ec^2\alpha_{\rm fs}^4/128&gt;0\)으로 두면 \(n=2\)의 선도 미세 구조 보정은 \(2p_{3/2}\)에서 \(-A\), \(2s_{1/2}\)와 \(2p_{1/2}\)에서 \(-5A\)다. 세로 거리는 이 보정의 크기에 비례한다.</figcaption>
+    </figure>
+    <div class="callout tip"><strong>이 모형이 포함하지 않는 것</strong><p>식 <a class="ref" href="#eq-hydrogen-fine-structure"></a>은 핵 운동, 핵 스핀의 초미세 구조, 양자전기역학적 램 이동 등을 제외한다. 특히 \(2s_{1/2}\)와 \(2p_{1/2}\)의 일치는 이 차수의 결과이며 실제 원자에서는 램 이동으로 깨진다.</p></div>
   </section>
 
   <section id="s5">
     <h2>제이만 효과</h2>
-    <p class="slot" data-slot="19.5절">아직 쓰지 않은 절입니다.</p>
+    <p>정자기장 \(\boldsymbol B=B\boldsymbol e_z\), \(B&gt;0\)이 원자의 에너지 준위를 가르는 현상을 <span class="term">제이만 효과</span> <span class="en">(Zeeman effect)</span>라 한다. 전자의 궤도와 스핀 자기 모멘트는 각각의 각운동량과 반대 방향이다. \(e&gt;0\), \(\mu_B=e\hbar/(2m_e)&gt;0\)로 두면 SI 단위에서</p>
+    <div class="box def" id="def-zeeman-hamiltonian"><div class="box-h">전자 궤도·스핀의 자기장 에너지</div>
+      <div class="formula" id="eq-zeeman-hamiltonian">\[
+        \hat H_B=-\hat{\boldsymbol\mu}\cdot\boldsymbol B
+          =\frac{\mu_BB}{\hbar}
+             \bigl(\hat L_z+g_s\hat S_z\bigr),
+        \qquad g_s\simeq2.
+      \]</div>
+      <p>전자 전하 \(-e\)의 부호 때문에 위 에너지의 계수는 양수다. 이 절에서는 선도 근사 \(g_s=2\)를 쓰며 전자의 작은 이상 자기 모멘트는 제외한다. <a href="ch16.html#def-electron-moment">16장</a>의 스핀 자기 모멘트와 같은 부호 관례다.</p>
+    </div>
+    <h3 id="s5-weak">미세 구조보다 약한 자기장</h3>
+    <p>\(\mu_BB\)가 관련 미세 구조 간격보다 작으면 \(|n\ell jm_j\rangle\)가 알맞은 영차 기저다. \(\hat{\boldsymbol L}+\hat{\boldsymbol S}=\hat{\boldsymbol J}\)이므로 \(\hat L_z+2\hat S_z=\hat J_z+\hat S_z\)다. 회전 대칭에서 벡터 \(\hat{\boldsymbol S}\)의 평균은 \(\boldsymbol J\) 방향으로 투영되며, \(\hat{\boldsymbol S}\cdot\hat{\boldsymbol J}=(\hat J^2+\hat S^2-\hat L^2)/2\)를 이용하면</p>
+    <div class="formula" id="eq-spin-projection">\[
+      \langle n\ell jm_j|\hat S_z|n\ell jm_j\rangle
+       =\hbar m_j
+          \frac{j(j+1)+s(s+1)-\ell(\ell+1)}
+               {2j(j+1)},\qquad s=\frac12.
+    \]</div>
+    <div class="box thm" id="thm-lande-factor"><div class="box-h">약한 자기장의 란데 \(g\) 인자</div>
+      <div class="formula" id="eq-lande-factor">\[
+        \Delta E_{n\ell jm_j}^{(1)}
+          =\mu_BB\,g_jm_j,\qquad
+        g_j=1+
+          \frac{j(j+1)+3/4-\ell(\ell+1)}
+               {2j(j+1)}
+          \quad(g_s=2).
+      \]</div>
+      <p>수소 \(2p_{1/2}\)에서는 \(g_j=2/3\), \(2p_{3/2}\)에서는 \(g_j=4/3\), \(2s_{1/2}\)에서는 \(g_j=2\)다. 예를 들어 \(2p_{3/2}\)의 \(m_j=\pm3/2\) 두 상태는 각각 \(\pm2\mu_BB\)만큼 이동한다. 이 에너지 식에서 쓰는 \(\mu_B\)에는 가우스 단위계의 \(1/c\) 인자가 없다.</p>
+    </div>
+    <h3 id="s5-strong">스핀–궤도 결합보다 강한 자기장</h3>
+    <p>\(\mu_BB\)가 스핀–궤도 간격보다 크지만 서로 다른 \(n\) 사이의 쿨롱 간격보다 작으면 \(|n\ell m_\ell m_s\rangle\) 비결합 기저가 선도 에너지를 읽기 쉽다. 이 <span class="term">강한 자기장 한계</span> <span class="en">(Paschen–Back regime)</span>에서는</p>
+    <div class="formula" id="eq-strong-field-zeeman">\[
+      \Delta E^{(0)}_B\simeq\mu_BB(m_\ell+2m_s),
+      \qquad m_s=\pm\frac12.
+    \]</div>
+    <p>미세 구조는 이제 작은 보정으로 취급한다. 같은 \(m_\ell+2m_s\)를 갖는 상태가 남아 있다면 그 잔여 축퇴 공간에서는 다시 섭동 행렬을 대각화해야 한다. 두 자기장 영역에서 달라지는 것은 어떤 항을 먼저 대각화할지이며, 둘 사이에서는 전체 관련 행렬을 함께 다뤄야 한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>비교</th><th>약한 자기장</th><th>강한 자기장</th></tr></thead>
+      <tbody>
+        <tr><td>먼저 대각화할 항</td><td>스핀–궤도 결합</td><td>자기장 에너지</td></tr>
+        <tr><td>편리한 기저</td><td>\(|n\ell jm_j\rangle\)</td><td>\(|n\ell m_\ell m_s\rangle\)</td></tr>
+        <tr><td>선도 이동</td><td>\(\mu_BBg_jm_j\)</td><td>\(\mu_BB(m_\ell+2m_s)\)</td></tr>
+        <tr><td>적용 조건</td><td>\(\mu_BB\ll\) 미세 구조 간격</td><td>스핀–궤도 간격 \(\ll\mu_BB\ll\) 다른 \(n\)의 간격</td></tr>
+      </tbody>
+    </table></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>고립된 준위의 1차 에너지 보정은 \(V_{nn}\), 1차 상태 보정은 다른 준위와의 행렬 원소를 에너지 간격으로 나눈 합이다.</li>
+      <li>2차 에너지 보정은 \(\sum_{k\ne n}|V_{kn}|^2/(E_n^{(0)}-E_k^{(0)})\)이며 바닥 준위에서는 0 이하이다.</li>
+      <li>축퇴 준위에서는 먼저 \(\hat P\hat V\hat P\)를 대각화해 1차 에너지와 올바른 영차 상태를 찾는다.</li>
+      <li>수소 \(1s\)의 선형 슈타르크 이동은 짝홀성 때문에 0이며, 2차 이동은 음수이다.</li>
+      <li>순수 쿨롱 수소의 \(n=2\) 공간은 \(2s\)와 \(2p_0\)가 섞여 \(\pm3ea_0\mathcal F\)만큼 선형으로 갈라진다.</li>
+      <li>선도 미세 구조에는 상대론적 운동 에너지, 스핀–궤도 결합, 다윈 항이 기여하며 결과는 \(n,j\)로 표시된다.</li>
+      <li>약한 자기장에서는 \(\Delta E=\mu_BBg_jm_j\), 스핀–궤도 결합보다 강한 자기장에서는 \(\Delta E\simeq\mu_BB(m_\ell+2m_s)\)가 선도 결과다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 고립된 준위의 1차 에너지 보정 \(E_n^{(1)}\)은?</p><div class="opts">
+        <button class="opt" data-correct>\(\langle n^{(0)}|\hat V|n^{(0)}\rangle\)</button><button class="opt">\(\sum_k|V_{kn}|^2\)</button><button class="opt">항상 0</button>
+      </div><div class="quiz-exp">1차 방정식에 영차 상태의 브라를 곱하면 대각 행렬 원소가 남는다.</div></div>
+      <div class="quiz-q"><p>2. 고립된 바닥 준위의 2차 에너지 보정 부호는?</p><div class="opts">
+        <button class="opt">항상 양수</button><button class="opt" data-correct>0 이하</button><button class="opt">항상 0</button>
+      </div><div class="quiz-exp">분자는 음수가 아니고 모든 다른 준위에 대한 분모 \(E_0^{(0)}-E_k^{(0)}\)는 음수다.</div></div>
+      <div class="quiz-q"><p>3. 축퇴된 영차 상태에서 1차 보정을 구할 때 먼저 할 일은?</p><div class="opts">
+        <button class="opt">분모를 0으로 둔 채 식을 사용한다</button><button class="opt" data-correct>축퇴 공간의 \(\hat P\hat V\hat P\)를 대각화한다</button><button class="opt">항상 임의의 상태 하나만 고른다</button>
+      </div><div class="quiz-exp">축퇴 공간 안의 올바른 선형 결합과 1차 이동을 동시에 찾는다.</div></div>
+      <div class="quiz-q"><p>4. 수소 \(1s\) 상태의 선형 슈타르크 이동은?</p><div class="opts">
+        <button class="opt">\(3ea_0\mathcal F\)</button><button class="opt" data-correct>\(0\)</button><button class="opt">\(-3ea_0\mathcal F\)</button>
+      </div><div class="quiz-exp">\(\hat z\)가 홀함수라 같은 짝홀성 상태의 대각 원소는 0이다.</div></div>
+      <div class="quiz-q"><p>5. 이 장의 선도 미세 구조 모형에서 같은 에너지를 갖는 \(n=2\) 상태 쌍은?</p><div class="opts">
+        <button class="opt" data-correct>\(2s_{1/2}\)와 \(2p_{1/2}\)</button><button class="opt">\(2s_{1/2}\)와 \(2p_{3/2}\)</button><button class="opt">\(2p_{1/2}\)와 \(2p_{3/2}\)</button>
+      </div><div class="quiz-exp">식의 선도 보정은 \(n,j\)만으로 정해진다. 실제 원자의 램 이동은 두 상태를 가른다.</div></div>
+      <div class="quiz-q"><p>6. \(g_s=2\)인 약한 자기장에서 \(2p_{3/2}\)의 란데 \(g_j\)는?</p><div class="opts">
+        <button class="opt">\(2/3\)</button><button class="opt" data-correct>\(4/3\)</button><button class="opt">\(2\)</button>
+      </div><div class="quiz-exp">\(j=3/2,\ell=1,s=1/2\)를 식 <a class="ref" href="#eq-lande-factor"></a>에 넣으면 \(4/3\)이다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-ground-second-order" data-level="2"><p>\(\hat H_0\)의 세 에너지가 \(0,\Delta,3\Delta\), \(\Delta&gt;0\)이다. 관심 바닥 상태에 대해 \(V_{00}=u,\ V_{10}=v,\ V_{20}=2v\)이고 \(u,v\)는 실수일 때 에너지를 2차까지 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(E_0^{(1)}=u\)다. 2차 항은 \(v^2/(0-\Delta)+4v^2/(0-3\Delta)=-7v^2/(3\Delta)\). 따라서 \(E_0= \lambda u-7\lambda^2v^2/(3\Delta)+O(\lambda^3)\)이다.</p></details></div>
+    <div class="prob" id="prob-two-level-numeric" data-level="2"><p>\(\Delta=2\), \(v=0.1\), \(\lambda=1\)인 식 <a class="ref" href="#eq-two-level-expansion"></a>의 모형에서 낮은 정확한 에너지와 2차 근삿값을 비교하라. 에너지 단위는 임의로 잡는다.</p>
+      <details class="sol"><summary>풀이</summary><p>정확한 값은 \(E_-=(2-\sqrt{4.04})/2\simeq-0.00498756\), 2차 값은 \(-v^2/\Delta=-0.005\)다. 차이는 약 \(1.24\times10^{-5}\)이다.</p></details></div>
+    <div class="prob" id="prob-excited-second-order" data-level="2"><p>\(E_0^{(0)}=0,\ E_1^{(0)}=\Delta,\ E_2^{(0)}=3\Delta\)에서 \(V_{01}=v,\ V_{21}=2v\), 나머지 비대각 원소는 0이라고 하자. 첫 들뜬 준위의 2차 이동을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(E_1^{(2)}=v^2/(\Delta-0)+4v^2/(\Delta-3\Delta)=v^2/\Delta-2v^2/\Delta=-v^2/\Delta\)다. 낮은 준위의 양의 기여와 높은 준위의 음의 기여를 모두 더해야 한다.</p></details></div>
+    <div class="prob" id="prob-degenerate-matrix" data-level="1"><p>같은 영차 에너지를 가진 \(|a\rangle,|b\rangle\) 공간에서 섭동 행렬이 \(\begin{pmatrix}1&amp;2\\2&amp;1\end{pmatrix}\)일 때 1차 에너지 이동과 정규화한 상태를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\((1,1)/\sqrt2\)와 \((1,-1)/\sqrt2\)가 고유벡터이고 고유값은 각각 \(3,-1\)이다. 상태는 \((|a\rangle+|b\rangle)/\sqrt2\), \((|a\rangle-|b\rangle)/\sqrt2\)다.</p></details></div>
+    <div class="prob" id="prob-residual-degeneracy" data-level="3"><p>\(|a\rangle,|b\rangle\)는 영차 에너지 0, \(|c\rangle\)는 \(\Delta&gt;0\)를 가진다. \(\hat P\hat V\hat P=0\)이고 \(V_{ac}=V_{bc}=v\)는 실수일 때 두 축퇴 상태의 2차 에너지 이동과 새 기저를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>바깥 상태 \(|c\rangle\)를 거친 유효 행렬은 \(W^{(2)}=-(v^2/\Delta)\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}\)이다. 대칭 상태 \((|a\rangle+|b\rangle)/\sqrt2\)는 \(-2v^2/\Delta\)만큼 이동하고 반대칭 상태는 2차에서 이동하지 않는다.</p></details></div>
+    <div class="prob" id="prob-stark-dipole" data-level="3"><p><a href="ch15.html#eq-low-radial">15장의 \(R_{20},R_{21}\)</a>과 \(Y_0^0,Y_1^0\)를 사용해 식 <a class="ref" href="#eq-stark-dipole"></a>의 \(\langle2s|\hat z|2p_0\rangle=-3a_0\)를 확인하라. 핵 질량은 무한대로 둔다.</p>
+      <details class="sol"><summary>풀이</summary><p>\(t=r/a_0\)로 두면 지름 적분은 \(a_0/(8\sqrt3)\int_0^\infty t^4(2-t)e^{-t}dt=a_0(2\cdot4!-5!)/(8\sqrt3)=-3\sqrt3a_0\)다. 각도 적분은 \(1/\sqrt3\)이므로 곱은 \(-3a_0\)이다. \(2p_0\)의 전체 부호를 바꾸면 \(+3a_0\)가 된다.</p></details></div>
+    <div class="prob" id="prob-stark-block" data-level="2"><p>식 <a class="ref" href="#eq-linear-stark"></a>의 \(4\times4\) 행렬을 대각화하여 서로 다른 1차 이동과 각 이동의 상태 수를 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>왼쪽 위 \(2\times2\) 블록의 고유벡터는 \((1,\pm1)/\sqrt2\)이고 이동은 \(\pm3ea_0\mathcal F\)다. 나머지 두 \(2p_{\pm1}\) 상태는 각각 이동 0이므로 0은 두 번 나타난다.</p></details></div>
+    <div class="prob" id="prob-induced-dipole" data-level="2"><p>\(1s\)의 작은 전기장 에너지가 \(\Delta E=-\alpha_{\rm pol}\mathcal F^2/2\)일 때 유도 전기 쌍극자 모멘트 \(d_z=-\partial E/\partial\mathcal F\)를 구하고 부호를 해석하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(d_z=\alpha_{\rm pol}\mathcal F\)이며 \(\alpha_{\rm pol}&gt;0\)이므로 \(\mathcal F&gt;0\)에서 유도된 쌍극자는 \(+z\) 방향이다. 전기장은 그 상태의 에너지를 낮춘다.</p></details></div>
+    <div class="prob" id="prob-spin-orbit-values" data-level="2"><p>\(\ell=1,\ s=1/2\)에서 \(j=1/2\)와 \(j=3/2\)의 \(\hat{\boldsymbol L}\cdot\hat{\boldsymbol S}\) 고유값을 각각 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-spin-orbit-eigenvalue"></a>에서 \(j=1/2\)이면 \(\hbar^2(3/4-2-3/4)/2=-\hbar^2\), \(j=3/2\)이면 \(\hbar^2(15/4-2-3/4)/2=+\hbar^2/2\)다.</p></details></div>
+    <div class="prob" id="prob-n2-fine-structure" data-level="2"><p>\(A=m_ec^2\alpha_{\rm fs}^4/128\)로 두고 식 <a class="ref" href="#eq-hydrogen-fine-structure"></a>에서 \(2s_{1/2},2p_{1/2},2p_{3/2}\)의 미세 구조 보정과 두 \(2p\) 준위의 에너지 차이를 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(n=2,j=1/2\)에서는 괄호가 \(2-3/4=5/4\)여서 보정이 \(-5A\)다. \(j=3/2\)에서는 \(1-3/4=1/4\)여서 \(-A\)다. \(2s_{1/2}\)와 \(2p_{1/2}\)는 모두 \(-5A\), \(2p_{3/2}-2p_{1/2}=4A=m_ec^2\alpha_{\rm fs}^4/32\)다.</p></details></div>
+    <div class="prob" id="prob-zeeman-bases" data-level="2"><p>\(\ell=1,\ s=1/2,\ g_s=2\)에서 \(j=1/2,3/2\)의 란데 인자를 구하라. 이어 강한 자기장의 비결합 상태 \(m_\ell=1,m_s=-1/2\)의 선도 이동을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-lande-factor"></a>에 넣으면 \(j=1/2\)에서 \(g_j=1+(-1/2)/(3/2)=2/3\), \(j=3/2\)에서 \(g_j=1+(5/2)/(15/2)=4/3\)이다. 강한 자기장 상태는 \(m_\ell+2m_s=1-1=0\)이므로 선도 이동은 0이다.</p></details></div>
   </section>
 </main>
 </body>
