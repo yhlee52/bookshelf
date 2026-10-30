@@ -90,7 +90,7 @@
       <p>앞 인자는 정규화에 필수다. 흔히 \(K=\int_{x_a}^{x_b}\mathcal D x\,e^{iS[x]/\hbar}\)라고 짧게 쓰며, 여기서 \(\mathcal D x\)는 바로 위 시간 분할 극한을 뜻한다.</p>
     </div>
     <p>\(S[x]=\int_{t_a}^{t_b}[m\dot x^2/2-V(x)]dt\)는 <a href="ch04.html">4장</a>의 작용이다. 극한에서 기여하는 모든 양자 경로가 매끈하다고 가정해 경로마다 \(\dot x\)를 계산하는 방식은 조심해야 한다. 계산의 출발점은 식 <a class="ref" href="#eq-path-sliced"></a>의 <em>이산화된 합과 적분</em>이다.</p>
-    <div class="callout warn"><strong>한 경로의 확률은 없다</strong><p>중간 위치의 적분은 위상 \(e^{iS/\hbar}\)를 더한다. 특정 연속 경로 하나의 진폭 제곱을 도착 확률이라고 할 수 없다. 도착 확률은 정규화된 초기 파동함수를 식 <a class="ref" href="#eq-wave-evolution"></a>으로 전파한 뒤 구한다.</p></div>
+    <div class="callout warn"><strong>한 경로의 확률은 없다</strong><p>중간 위치의 적분은 위상 \(e^{iS/\hbar}\)를 더한다. 특정 연속 경로 하나의 진폭 제곱을 도착 확률이라고 할 수 없다. 도착 확률은 정규화된 초기 파동함수를 식 <a class="ref" href="#eq-wave-evolution"></a>로 전파한 뒤 구한다.</p></div>
   </section>
 
   <section id="s3">
@@ -106,7 +106,7 @@
       <p>자유 입자의 고전 경로는 \(x_{\mathrm{cl}}(t)=x_a+(x_b-x_a)t/T\)다. 속도 \((x_b-x_a)/T\)를 작용에 대입하면 \(S[x_{\mathrm{cl}}]=m(x_b-x_a)^2/(2T)\). 식 <a class="ref" href="#eq-free-kernel"></a>의 지수는 정확히 \(iS[x_{\mathrm{cl}}]/\hbar\)다. 예를 들어 \(m=\hbar=T=1\), \(x_a=0\), \(x_b=2\)인 단위계에서는 위상이 \(2\)라디안이고 \(K_0=e^{2i}/\sqrt{2\pi i}\)다. \(|K_0|^2=1/(2\pi)\)은 위치 한 점의 확률이 아니다.</p>
     </div>
     <h3 id="s3-checks">초기 조건과 운동 방정식 확인</h3>
-    <p>식 <a class="ref" href="#eq-free-kernel"></a>은 \(T\to0^+\)에서 보통 함수처럼 한 점의 값으로 수렴하지 않는다. 식 <a class="ref" href="#eq-short-fourier"></a>의 운동량 적분에서 \(e^{-ip^2T/(2m\hbar)}\to1\)로 보내면, 임의의 알맞은 시험 파동함수에 작용할 때 \(K_0\to\delta(x_b-x_a)\)가 된다. 또 \(x_b,T\)로 미분하면 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)가 성립한다.</p>
+    <p>식 <a class="ref" href="#eq-free-kernel"></a>는 \(T\to0^+\)에서 보통 함수처럼 한 점의 값으로 수렴하지 않는다. 식 <a class="ref" href="#eq-short-fourier"></a>의 운동량 적분에서 \(e^{-ip^2T/(2m\hbar)}\to1\)로 보내면, 임의의 알맞은 시험 파동함수에 작용할 때 \(K_0\to\delta(x_b-x_a)\)가 된다. 또 \(x_b,T\)로 미분하면 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)가 성립한다.</p>
     <div class="box ex" id="ex-constant-potential"><div class="box-h">공간적으로 일정한 퍼텐셜</div>
       <p>\(V(x)=V_0\)이면 모든 경로가 \(-V_0T\)만큼의 작용을 더 얻는다. 따라서 \(K_{V_0}=e^{-iV_0T/\hbar}K_0\)다. 초기 파동함수 전체에 같은 위상이 곱해지므로 위치 확률밀도는 자유 입자와 같다.</p>
     </div>
@@ -202,9 +202,9 @@
       <details class="sol"><summary>풀이</summary><p>\(p\Delta x-\varepsilon p^2/(2m)=-\varepsilon(p-m\Delta x/\varepsilon)^2/(2m)+m\Delta x^2/(2\varepsilon)\)이다. 가우스 계수 \(a=\eta+i\varepsilon/(2m\hbar)\)에 대해 \(\eta\to0^+\)로 보내면 \(\int dp\,e^{-i\varepsilon p^2/(2m\hbar)}=\sqrt{2\pi m\hbar/(i\varepsilon)}\)다. 여기에 \(1/(2\pi\hbar)\)를 곱하면 원하는 앞 인자가 나온다.</p></details></div>
     <div class="prob" id="prob-constant-v" data-level="1"><p>\(V(x)=V_0\)일 때 식 <a class="ref" href="#eq-path-sliced"></a>에서 \(K_{V_0}=e^{-iV_0T/\hbar}K_0\)를 얻어라. 위치 확률밀도가 바뀌는가?</p>
       <details class="sol"><summary>풀이</summary><p>퍼텐셜 항의 합은 \(\sum_j\varepsilon V_0=TV_0\)다. 따라서 적분 밖으로 \(e^{-iV_0T/\hbar}\)를 꺼낸다. 이는 공통 위상이므로 \(|\psi(x,T)|^2\)는 바뀌지 않는다.</p></details></div>
-    <div class="prob" id="prob-free-compose" data-level="2"><p>식 <a class="ref" href="#eq-free-complete-square"></a>와 가우스 적분으로 두 자유 입자 전파 함수를 합성하라. 앞 인자가 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 됨을 보여라.</p>
+    <div class="prob" id="prob-free-compose" data-level="2"><p>식 <a class="ref" href="#eq-free-complete-square"></a>과 가우스 적분으로 두 자유 입자 전파 함수를 합성하라. 앞 인자가 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 됨을 보여라.</p>
       <details class="sol"><summary>풀이</summary><p>두 앞 인자의 곱은 \(m/[2\pi i\hbar\sqrt{T_1T_2}]\)이다. 식 <a class="ref" href="#eq-free-gaussian-compose"></a>을 곱하면 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 된다. 남은 지수는 \(im(x_b-x_a)^2/[2\hbar(T_1+T_2)]\)다.</p></details></div>
-    <div class="prob" id="prob-free-schrodinger" data-level="2"><p>식 <a class="ref" href="#eq-free-kernel"></a>을 \(T,x_b\)로 미분하여 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)을 확인하라.</p>
+    <div class="prob" id="prob-free-schrodinger" data-level="2"><p>식 <a class="ref" href="#eq-free-kernel"></a>를 \(T,x_b\)로 미분하여 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)을 확인하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(y=x_b-x_a\)라 두면 \(\partial_TK_0=K_0[-1/(2T)-imy^2/(2\hbar T^2)]\)이다. 또 \(\partial_y^2K_0=K_0[im/(\hbar T)-m^2y^2/(\hbar^2T^2)]\)이다. 양변 모두 \(K_0[-i\hbar/(2T)+my^2/(2T^2)]\)다.</p></details></div>
     <div class="prob" id="prob-constant-force" data-level="3"><p>일정한 힘 \(F\)의 라그랑지안은 \(L=m\dot x^2/2+Fx\)다. \(x(0)=x_a\), \(x(T)=x_b\)인 정류 경로를 구하고 \(S_{\mathrm{cl}}=m(x_b-x_a)^2/(2T)+FT(x_a+x_b)/2-F^2T^3/(24m)\)임을 보여라.</p>
       <details class="sol"><summary>풀이</summary><p>\(m\ddot x=F\)와 양끝 조건에서 \(x_{\mathrm{cl}}=x_a+v_0t+Ft^2/(2m)\), \(v_0=(x_b-x_a)/T-FT/(2m)\)다. 이를 \(S=\int_0^T[m\dot x^2/2+Fx]dt\)에 넣으면 \(S=(mv_0^2/2+Fx_a)T+Fv_0T^2+F^2T^3/(3m)\)이다. \(v_0\)를 대입하면 주어진 식이 된다.</p></details></div>
