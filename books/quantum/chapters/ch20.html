@@ -362,7 +362,7 @@
     <div class="prob" id="prob-pulse-zeros" data-level="1"><p>식 <a class="ref" href="#eq-pulse-transition"></a>의 확률이 0이 되는 0이 아닌 \(\omega_{fi}T\) 값을 가장 작은 절댓값부터 네 개 쓰라. 펄스 시간이 두 배가 되면 공명 봉우리의 폭은 어떻게 되는가?</p>
       <details class="sol"><summary>풀이</summary><p>\(\sin(\omega_{fi}T/2)=0\)이므로 가장 가까운 네 값은 \(\omega_{fi}T=\pm2\pi,\pm4\pi\)다. 첫 영점까지의 주파수 거리는 \(2\pi/T\)이고, \(T\)를 두 배로 하면 폭은 절반이 된다.</p></details></div>
     <div class="prob" id="prob-second-order-path" data-level="2"><p>처음 \(|i\rangle\)에서 \(|f\rangle\)로 가는 직접 행렬 원소 \(V_{fi}(t)\)는 항상 0이지만, 중간 상태 \(|m\rangle\)을 통하는 \(V_{mi},V_{fm}\)은 0이 아니라고 하자. 다이슨 전개에서 처음 나타나는 \(i\to f\) 진폭을 시간 순서를 보이며 쓰라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(c_f^{(2)}(t)=(-i\lambda/\hbar)^2\int_0^t dt_1\int_0^{t_1}dt_2\,\langle f|V_I(t_1)|m\rangle\langle m|V_I(t_2)|i\rangle\)다. 먼저 \(t_2\)에 \(i\to m\), 나중 \(t_1\)에 \(m\to f\)로 옮겨 간다.</p></details></div>
+      <details class="sol"><summary>풀이</summary><div class="formula">\[c_f^{(2)}(t)=(-i\lambda/\hbar)^2\int_0^t dt_1\int_0^{t_1}dt_2\,\langle f|V_I(t_1)|m\rangle\langle m|V_I(t_2)|i\rangle.\]</div><p>먼저 \(t_2\)에 \(i\to m\), 나중 \(t_1\)에 \(m\to f\)로 옮겨 간다.</p></details></div>
     <div class="prob" id="prob-golden-number" data-level="1"><p>\(\hbar=\lambda=1\), \(|V_{E_i i}|=0.03\), \(\rho(E_i)=4\)인 연속체에서 황금률 전이율을 구하라.</p>
       <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-fermi-golden-rule"></a>에 대입하면 \(\Gamma=2\pi(0.03)^2(4)=0.0072\pi\simeq0.0226\)이다. 단위는 선택한 시간 단위의 역수다.</p></details></div>
     <div class="prob" id="prob-golden-window" data-level="2"><p>어떤 연속체에서 \(\rho(E)|V_{Ei}|^2\)가 에너지 폭 \(E_c\)에 걸쳐 거의 일정하고 황금률 전이율은 \(\Gamma\)다. 황금률 근사가 성립할 수 있는 시간 범위를 부등식으로 쓰고, 두 경계가 왜 필요한지 설명하라.</p>
