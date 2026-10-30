@@ -85,6 +85,24 @@
       });
       return svg(s);
     },
+    // 표준 정규 분포 곡선과 표본 히스토그램, 바닥에는 표본 하나하나를 눈금으로 (러그 그림)
+    bell() {
+      const X = (x) => 100 + x * 26, base = 108, H = 86, pdf = (x) => Math.exp((-x * x) / 2);
+      const r = rnd(5), n = 13, w = 6 / n;
+      let s = `<line x1="16" y1="${base}" x2="184" y2="${base}" stroke="${W}" stroke-opacity=".5"/>`;
+      range(n).forEach((i) => {
+        const x0 = -3 + i * w, h = H * pdf(x0 + w / 2) * (0.85 + 0.3 * r());
+        s += `<rect x="${(X(x0) + 1).toFixed(1)}" y="${(base - h).toFixed(1)}" width="${(w * 26 - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${W}" fill-opacity=".3"${i === 4 || i === 8 ? ` class="cv-pulse" style="animation-delay:${(i * 0.2).toFixed(2)}s"` : ""}/>`;
+      });
+      let d = "";
+      for (let x = -3.4; x <= 3.41; x += 0.1) d += (d ? "L" : "M") + X(x).toFixed(1) + " " + (base - H * pdf(x)).toFixed(1);
+      s += `<path d="${d}" fill="none" stroke="${W}" stroke-width="2.2"/>`;
+      range(24).forEach(() => {
+        const z = Math.sqrt(-2 * Math.log(r())) * Math.cos(2 * Math.PI * r());
+        if (Math.abs(z) < 3.3) s += `<line x1="${X(z).toFixed(1)}" y1="${base + 6}" x2="${X(z).toFixed(1)}" y2="${base + 14}" stroke="${W}" stroke-opacity=".7" stroke-width="1.4"/>`;
+      });
+      return svg(s);
+    },
     // 빈 책: 점선 사각형과 +
     blank() {
       return svg(`<rect x="60" y="20" width="80" height="90" rx="8" fill="none" stroke="${W}" stroke-opacity=".6" stroke-dasharray="5 5"/><path d="M100 48v34M83 65h34" stroke="${W}" stroke-width="3" stroke-linecap="round"/>`);

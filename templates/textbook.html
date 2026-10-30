@@ -25,7 +25,7 @@
 </head>
 <body data-root="../../../" data-book="여기에-책-id" data-field="phys" data-chapter="여기에-챕터-slug">
 <!--
-  ✎ 교과서형 장 틀 (이론서용). 집필 규칙은 books/quantum/GUIDE.md에 있습니다.
+  ✎ 교과서형 장 틀 (이론서용). 집필 규칙은 책마다 GUIDE.md에 있습니다 (books/quantum/GUIDE.md, books/statistics/GUIDE.md).
   순서: 머리(리드 · 학습 목표 · 선수 지식) → 절 n.1 … n.k → 핵심 정리 → 확인 퀴즈 → 연습문제
   - 절 하나 = <section id="s1"><h2>절 제목</h2> … </section>. 절 번호(1.1, 1.2 …)는 자동으로 붙는다
   - 소제목: <h3 id="…">. id가 있으면 오른쪽 목차에 들여 표시된다
@@ -37,7 +37,7 @@
   - 참조:        <a class="ref" href="#eq-…"></a> → "(1.3)" · "정의 1.2" · "문제 1.4"로 채워진다
                  다른 장은 <a href="ch02.html#thm-…">정리 2.1</a>처럼 직접 쓴다
   - 연습문제:    <div class="prob" id="prob-…" data-level="1|2|3"><p>…</p><details class="sol"><summary>풀이</summary>…</details></div>
-  - 콜아웃:      <div class="callout tip|warn|deep"><strong>제목</strong><p>…</p></div>  (tip 직관 · warn 흔한 실수 · deep 심화)
+  - 콜아웃:      <div class="callout tip|warn|deep|ml"><strong>제목</strong><p>…</p></div>  (tip 직관 · warn 흔한 실수 · deep 심화 · ml 머신러닝 연결)
   - 그림:        <figure class="diagram"><svg viewBox="0 0 800 300">…</svg><figcaption><b>그림 1-1.</b> …</figcaption></figure>
   - 실험:        <div data-sim="실험-id"></div>  (이해에 꼭 필요한 곳에만)
   - 수식(KaTeX): 인라인 \( … \), 블록 \[ … \]
