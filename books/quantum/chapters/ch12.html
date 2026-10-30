@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>12 여러 입자와 동일 입자 · QuantumBook</title>
-<meta name="description" content="텐서곱으로 여러 입자 상태를 만들고, 교환 연산자와 보손·페르미온의 대칭성에서 파울리 배타 원리를 유도한다.">
+<meta name="description" content="텐서곱과 크로네커 곱으로 여러 입자 상태를 만들고, 질량 중심 분리와 교환 연산자에서 보손·페르미온의 교환 간섭, 파울리 배타 원리와 페르미 에너지, 스핀에 따른 교환 에너지를 유도한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -28,14 +28,15 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">12</span></div>
     <h1 data-fill="chapter-title">여러 입자와 동일 입자</h1>
-    <p class="lead">지금까지는 입자 하나의 상태를 주로 다뤘다. 두 입자를 함께 기술하려면 상태 공간을 어떻게 만들고, 서로 똑같은 두 입자에는 어떤 상태만 허용해야 할까? 텐서곱에서 출발해 교환 대칭을 세우면 보손과 페르미온의 차이, 그리고 파울리 배타 원리가 자연스럽게 드러난다.</p>
+    <p class="lead">지금까지는 입자 하나의 상태를 주로 다뤘다. 두 입자를 함께 기술하는 상태 공간은 텐서곱으로 만들고, 서로 똑같은 두 입자에는 교환에 대해 대칭이거나 반대칭인 상태만 허용한다. 이 규칙 하나에서 보손은 서로 모이고 페르미온은 서로 피하는 교환 효과, 파울리 배타 원리와 금속 전자의 페르미 에너지, 스핀에 따라 원자의 준위가 갈리는 교환 에너지가 모두 나온다.</p>
     <ul class="objectives">
-      <li>텐서곱 기저와 한 입자에 작용하는 연산자를 만들고 두 입자 상태를 계산할 수 있다.</li>
-      <li>구별 가능한 두 입자의 곱상태, 해밀토니안, 에너지 준위를 구할 수 있다.</li>
-      <li>교환 연산자의 고유상태를 구성하고 보손·페르미온 상태를 정규화할 수 있다.</li>
-      <li>전체 파동함수의 반대칭성에서 파울리 배타 원리와 슬레이터 행렬식을 유도할 수 있다.</li>
+      <li>텐서곱 기저와 크로네커 곱으로 두 계의 상태와 연산자를 계산하고, 곱상태와 얽힌 상태를 구별할 수 있다.</li>
+      <li>두 입자의 해밀토니안을 질량 중심과 상대 좌표로 나누어 에너지 준위를 구할 수 있다.</li>
+      <li>교환 연산자의 고유상태로 보손·페르미온 상태를 만들고, 교환 간섭이 입자 사이 거리와 빔 가르개 실험에 남기는 흔적을 계산할 수 있다.</li>
+      <li>반대칭성에서 파울리 배타 원리와 슬레이터 행렬식을 유도하고, 페르미온의 바닥 상태와 페르미 에너지를 구할 수 있다.</li>
+      <li>스핀과 무관한 상호작용에서도 교환 적분 때문에 단일항과 삼중항의 에너지가 갈리는 이유를 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch01.html">1장</a> (복소 벡터 공간과 내적), <a href="ch02.html">2장</a> (연산자와 투영), <a href="ch06.html">6장</a> (상태와 측정), <a href="ch07.html">7장</a> (무한 우물의 에너지 준위)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch01.html">1장</a> (복소 벡터 공간과 내적, 직합), <a href="ch02.html">2장</a> (연산자와 투영), <a href="ch03.html">3장</a> (위치 기저와 정준 교환 관계), <a href="ch06.html">6장</a> (상태와 측정), <a href="ch07.html">7장</a> (무한 우물의 에너지 준위), <a href="ch08.html">8장</a> (조화 진동자)</p>
   </header>
 
   <section id="s1">
@@ -44,18 +45,32 @@
     <div class="box def" id="def-tensor-product"><div class="box-h">곱상태와 그 내적</div>
       <div class="formula" id="eq-tensor-inner">\[ \bigl(|a\rangle\otimes|b\rangle\bigr)\equiv|a,b\rangle,\qquad
       \langle a',b'|a,b\rangle=\langle a'|a\rangle\,\langle b'|b\rangle. \]</div>
-      <p>곱상태들의 선형 결합까지 허용해야 전체 공간이 된다. 기저 \(\{|i\rangle_1\}\), \(\{|j\rangle_2\}\)를 택하면 \(|i,j\rangle\)가 곱공간의 기저이며 \(\dim(\mathcal H_1\otimes\mathcal H_2)=d_1d_2\)다. 정규 직교성과 완비성은 식 <a class="ref" href="#eq-tensor-inner"></a>에서 따라온다.</p>
+      <p>곱상태들의 선형 결합까지 허용해야 전체 공간이 된다. 기저 \(\{|i\rangle_1\}\), \(\{|j\rangle_2\}\)를 택하면 \(|i,j\rangle\)가 곱공간의 기저이며 \(\dim(\mathcal H_1\otimes\mathcal H_2)=d_1d_2\)다. 정규 직교성 \(\langle i',j'|i,j\rangle=\delta_{i'i}\delta_{j'j}\)는 식 <a class="ref" href="#eq-tensor-inner"></a>에서 바로 나오고, 완비성은 두 계의 완비성 관계 \(\sum_i|i\rangle\langle i|\)와 \(\sum_j|j\rangle\langle j|\)를 곱한 것이다.</p>
     </div>
-    <div class="formula" id="eq-tensor-expansion">\[ |\Psi\rangle=\sum_{i=1}^{d_1}\sum_{j=1}^{d_2}c_{ij}|i,j\rangle,\qquad
-    \sum_{i,j}|c_{ij}|^2=1,\qquad I_{12}=\sum_{i,j}|i,j\rangle\langle i,j|. \]</div>
-    <p>한 입자에만 작용하는 연산자에는 다른 자리에 항등 연산자를 놓는다. \(\hat A^{(1)}=\hat A\otimes I_2\), \(\hat B^{(2)}=I_1\otimes\hat B\)라고 쓰면 두 연산자는 서로 다른 자리에 작용하므로 \([\hat A^{(1)},\hat B^{(2)}]=0\)이다.</p>
-    <div class="formula" id="eq-local-action">\[ (\hat A\otimes I_2)|a,b\rangle=(\hat A|a\rangle)\otimes|b\rangle,\qquad
-    (I_1\otimes\hat B)|a,b\rangle=|a\rangle\otimes(\hat B|b\rangle). \]</div>
+    <div class="formula" id="eq-tensor-expansion">\[ \begin{gathered}|\Psi\rangle=\sum_{i=1}^{d_1}\sum_{j=1}^{d_2}c_{ij}|i,j\rangle,\qquad
+    \sum_{i,j}|c_{ij}|^2=1,\\ I_{12}=\sum_{i,j}|i,j\rangle\langle i,j|.\end{gathered} \]</div>
+    <p>한 입자에만 작용하는 연산자에는 다른 자리에 항등 연산자를 놓는다. \(\hat A^{(1)}=\hat A\otimes I_2\), \(\hat B^{(2)}=I_1\otimes\hat B\)라고 쓰면</p>
+    <div class="formula" id="eq-local-action">\[ \begin{gathered}(\hat A\otimes I_2)|a,b\rangle=(\hat A|a\rangle)\otimes|b\rangle,\\
+    (I_1\otimes\hat B)|a,b\rangle=|a\rangle\otimes(\hat B|b\rangle).\end{gathered} \]</div>
+    <p>두 자리에 함께 작용하는 \(\hat A\otimes\hat B\)는 \((\hat A\otimes\hat B)|a,b\rangle=(\hat A|a\rangle)\otimes(\hat B|b\rangle)\)로 정의하고 선형으로 넓힌다. 식 <a class="ref" href="#eq-local-action"></a>은 한쪽이 항등 연산자인 경우다.</p>
+    <div class="box math" id="math-kronecker"><div class="box-h">텐서곱 연산자의 행렬: 크로네커 곱</div>
+      <p>기저 \(|i,j\rangle\)에서 \(\hat A\otimes\hat B\)의 행렬 원소는 식 <a class="ref" href="#eq-tensor-inner"></a>로 바로 계산된다.</p>
+      <div class="formula" id="eq-kron-elements">\[ \langle k,l|\,\hat A\otimes\hat B\,|i,j\rangle=\langle k|\hat A|i\rangle\,\langle l|\hat B|j\rangle=A_{ki}B_{lj}. \]</div>
+      <p>기저를 \(|1,1\rangle,|1,2\rangle,\ldots,|1,d_2\rangle,|2,1\rangle,\ldots\)처럼 첫 번호부터 늘어놓으면, 행렬은 \(B\)의 행렬에 \(A\)의 성분을 곱해 깐 블록 행렬이 된다. 이 행렬을 <span class="term">크로네커 곱</span> <span class="en">(Kronecker product)</span>이라 한다.</p>
+      <div class="formula">\[ A\otimes B=\begin{pmatrix}A_{11}B&amp;A_{12}B&amp;\cdots\\ A_{21}B&amp;A_{22}B&amp;\cdots\\ \vdots&amp;\vdots&amp;\ddots\end{pmatrix}. \]</div>
+      <p>텐서곱 연산자 둘을 잇달아 작용시키면 자리마다 따로 곱해진다. 곱상태에 차례로 작용시키면 \((\hat A\otimes\hat B)(\hat C|a\rangle\otimes\hat D|b\rangle)=\hat A\hat C|a\rangle\otimes\hat B\hat D|b\rangle\)이고, 곱상태가 공간 전체를 펼치므로</p>
+      <div class="formula" id="eq-kron-product">\[ (\hat A\otimes\hat B)(\hat C\otimes\hat D)=\hat A\hat C\otimes\hat B\hat D. \]</div>
+      <p>특히 \(\hat A\otimes I\)와 \(I\otimes\hat B\)는 어느 순서로 곱해도 \(\hat A\otimes\hat B\)이므로 \([\hat A^{(1)},\hat B^{(2)}]=0\)이다. 또 \((\hat A\otimes I)^n=\hat A^n\otimes I\)이므로 지수 함수도 \(e^{\hat A\otimes I}=e^{\hat A}\otimes I\)다.</p>
+    </div>
     <div class="box ex" id="ex-two-level-basis"><div class="box-h">두 개의 두 준위계</div>
-      <p>각 계에 \(|0\rangle=(1,0)^{\mathsf T}\), \(|1\rangle=(0,1)^{\mathsf T}\)를 쓰자. 기저 순서를 \(|00\rangle,|01\rangle,|10\rangle,|11\rangle\)로 정하면 \(|0\rangle\otimes|1\rangle=(0,1,0,0)^{\mathsf T}\)다. 두 상태를 결합하니 2차원 두 개에서 4차원 하나가 생긴다. 예를 들어 \(\hat Z=\mathrm{diag}(1,-1)\)일 때 \((\hat Z\otimes I)|10\rangle=-|10\rangle\), \((I\otimes\hat Z)|10\rangle=+|10\rangle\)이다.</p>
+      <p>각 계에 \(|0\rangle=(1,0)^{\mathsf T}\), \(|1\rangle=(0,1)^{\mathsf T}\)를 쓰자. 기저 순서를 \(|00\rangle,|01\rangle,|10\rangle,|11\rangle\)로 정하면 \(|0\rangle\otimes|1\rangle=(0,1,0,0)^{\mathsf T}\)다. 2차원 두 개에서 4차원 하나가 생긴다. \(\hat Z=\mathrm{diag}(1,-1)\)이면 블록 규칙으로</p>
+      <div class="formula">\[ \begin{gathered}\hat Z\otimes I=\begin{pmatrix}I&amp;0\\0&amp;-I\end{pmatrix}=\mathrm{diag}(1,1,-1,-1),\\ I\otimes\hat Z=\begin{pmatrix}\hat Z&amp;0\\0&amp;\hat Z\end{pmatrix}=\mathrm{diag}(1,-1,1,-1).\end{gathered} \]</div>
+      <p>따라서 \((\hat Z\otimes I)|10\rangle=-|10\rangle\), \((I\otimes\hat Z)|10\rangle=+|10\rangle\)이다. 첫 자리 연산자는 첫 번호를, 둘째 자리 연산자는 둘째 번호를 읽는다.</p>
     </div>
     <h3 id="s1-products">모든 두 입자 상태가 곱상태일까?</h3>
-    <p>아니다. \((|00\rangle+|11\rangle)/\sqrt2\)는 두 곱상태의 합이지만 하나의 곱상태로 쓸 수 없다. 만일 \((a|0\rangle+b|1\rangle)\otimes(c|0\rangle+d|1\rangle)\)라면 네 계수는 \(ac,ad,bc,bd\)여서 \((ac)(bd)-(ad)(bc)=0\)이어야 한다. 앞의 상태에서는 그 값이 \(1/2\)다. 이렇게 곱상태가 아닌 상태를 <span class="term">얽힌 상태</span> <span class="en">(entangled state)</span>라 하며, 측정과 얽힘의 뜻은 <a href="ch22.html">22장</a>에서 자세히 다룬다.</p>
+    <p>아니다. \((|00\rangle+|11\rangle)/\sqrt2\)는 두 곱상태의 합이지만 하나의 곱상태로 쓸 수 없다. 만일 \((a|0\rangle+b|1\rangle)\otimes(c|0\rangle+d|1\rangle)\)라면 네 계수는 \(ac,ad,bc,bd\)여서 \((ac)(bd)-(ad)(bc)=0\)이어야 한다. 앞의 상태에서는 그 값이 \(1/2\)다.</p>
+    <p>일반적으로 식 <a class="ref" href="#eq-tensor-expansion"></a>의 \(|\Psi\rangle\)가 곱상태 \(\bigl(\sum_i\alpha_i|i\rangle\bigr)\otimes\bigl(\sum_j\beta_j|j\rangle\bigr)\)이면 \(c_{ij}=\alpha_i\beta_j\)다. 계수 행렬 \(C=(c_{ij})\)의 행이 모두 한 행벡터 \((\beta_j)\)의 배수, 즉 \(C\)의 <span class="term">랭크</span> <span class="en">(rank)</span>가 1이다. 거꾸로 랭크가 1인 행렬은 열벡터와 행벡터의 곱 \(\alpha\beta^{\mathsf T}\)로 쓸 수 있으므로 곱상태를 준다. \(2\times2\)에서는 이 조건이 \(\det C=0\)이고, 위의 계산이 바로 그것이다. 이렇게 곱상태가 아닌 상태를 <span class="term">얽힌 상태</span> <span class="en">(entangled state)</span>라 하며, 측정과 얽힘의 뜻은 <a href="ch22.html">22장</a>에서 자세히 다룬다.</p>
+    <p>식 <a class="ref" href="#eq-kron-product"></a>에 따르면 \(\hat U_1\otimes\hat U_2\) 꼴의 연산자는 곱상태를 곱상태로 보낸다. 따라서 두 계가 상호작용하지 않으면 얽힘이 생기지 않는다. 얽힘은 상호작용이 만든다. <a class="ref" href="#ex-trap-pair"></a>에서 그런 상태를 직접 본다.</p>
     <div class="callout tip"><strong>직합과 텐서곱</strong><p><a href="ch01.html">1장</a>의 직합에서는 차원이 \(d_1+d_2\)로 더해진다. 두 계를 동시에 기술하는 텐서곱에서는 차원이 \(d_1d_2\)로 곱해진다. 두 두 준위계가 상태 네 개 \(|00\rangle,|01\rangle,|10\rangle,|11\rangle\)를 갖는 이유다.</p></div>
   </section>
 
@@ -63,15 +78,43 @@
     <h2>두 입자계: 구별할 수 있을 때</h2>
     <p>서로 다른 종의 입자나 따로 표시하여 추적할 수 있는 두 계라면 첫째와 둘째를 구별해 기술할 수 있다. 위치 표현에서 \(\Psi(x_1,x_2)=\langle x_1,x_2|\Psi\rangle\)이며, \(|\Psi(x_1,x_2)|^2dx_1dx_2\)는 1번이 \(x_1\) 근처, 2번이 \(x_2\) 근처에 있을 확률이다. 정규화는 \(\int dx_1dx_2\,|\Psi|^2=1\)이다.</p>
     <div class="box def" id="def-two-particle-h"><div class="box-h">두 입자의 해밀토니안</div>
-      <div class="formula" id="eq-two-hamiltonian">\[ \hat H=\hat H_1\otimes I_2+I_1\otimes\hat H_2+\hat V_{12},\qquad
-      \hat H_i=\frac{\hat p_i^2}{2m_i}+V_i(\hat x_i). \]</div>
-      <p>\(\hat V_{12}\)는 두 입자의 상호작용이다. \(\hat V_{12}=0\)이면 각각의 시간 변화 연산자가 독립적으로 작용하여 \(U_{12}(t)=U_1(t)\otimes U_2(t)\)가 된다. 이는 <a href="ch06.html">6장</a>의 시간 변화 법칙을 곱공간에 적용한 결과다.</p>
+      <div class="formula" id="eq-two-hamiltonian">\[ \begin{gathered}\hat H=\hat H_1\otimes I_2+I_1\otimes\hat H_2+\hat V_{12},\\
+      \hat H_i=\frac{\hat p_i^2}{2m_i}+V_i(\hat x_i).\end{gathered} \]</div>
+      <p>\(\hat V_{12}\)는 두 입자의 상호작용이다. \(\hat V_{12}=0\)이면 앞의 두 항이 교환하므로 지수 함수가 두 인자로 나뉘고, <a class="ref" href="#math-kronecker"></a>의 \(e^{\hat A\otimes I}=e^{\hat A}\otimes I\)를 쓰면 \(\hat U_{12}(t)=\hat U_1(t)\otimes\hat U_2(t)\)가 된다. 각 입자가 <a href="ch06.html">6장</a>의 시간 변화 법칙을 따로 따르는 것이다.</p>
     </div>
     <p>상호작용이 없고 \(\hat H_1|a\rangle=E_a|a\rangle\), \(\hat H_2|b\rangle=E_b|b\rangle\)라면 식 <a class="ref" href="#eq-local-action"></a>을 각 항에 적용해</p>
     <div class="formula" id="eq-energy-sum">\[ \hat H|a,b\rangle=(E_a+E_b)|a,b\rangle. \]</div>
     <p>에너지는 더해지지만 상태 공간의 차원은 곱해진다. 상호작용이 생기면 일반적으로 곱상태 하나가 에너지 고유상태라는 보장은 없다.</p>
     <div class="box ex" id="ex-distinguishable-box"><div class="box-h">같은 상자 안의 구별 가능한 두 입자</div>
-      <p>두 입자가 같은 질량 \(m\)으로 길이 \(L\)인 1차원 무한 우물에 있고 서로 상호작용하지 않는다고 하자. 한 입자 상태는 <a href="ch07.html">7장</a>에서 구한 \(\phi_n(x)=\sqrt{2/L}\sin(n\pi x/L)\), \(E_n=n^2E_1\), \(E_1=\pi^2\hbar^2/(2mL^2)\)이다. \(|1,2\rangle\)와 \(|2,1\rangle\)는 둘 다 \(5E_1\)이지만, 구별 가능한 입자에 대해서는 서로 다른 직교 상태다. 첫째가 어느 준위에 있는지 측정하면 두 상태를 구별할 수 있다.</p>
+      <p>두 입자가 같은 질량 \(m\)으로 길이 \(L\)인 1차원 무한 우물에 있고 서로 상호작용하지 않는다고 하자. 한 입자 상태는 <a href="ch07.html#eq-box-states">7장</a>에서 구한 \(\phi_n(x)=\sqrt{2/L}\sin(n\pi x/L)\), \(E_n=n^2E_1\), \(E_1=\pi^2\hbar^2/(2mL^2)\)이다. \(|1,2\rangle\)와 \(|2,1\rangle\)는 둘 다 \(5E_1\)이지만, 구별 가능한 입자에 대해서는 서로 다른 직교 상태다. 첫째가 어느 준위에 있는지 측정하면 두 상태를 구별할 수 있다.</p>
+    </div>
+    <h3 id="s2-cm">상호작용이 있을 때: 질량 중심과 상대 좌표</h3>
+    <p>상호작용이 두 입자 사이의 거리에만 의존하면, 즉 \(\hat V_{12}=V(\hat x_1-\hat x_2)\)이면 좌표를 바꿔 문제를 한 입자 문제 두 개로 나눌 수 있다. <a href="ch04.html#ex-two-body">4장</a>의 고전역학에서처럼 질량 중심과 상대 좌표를 쓴다.</p>
+    <div class="formula" id="eq-cm-coords">\[ \begin{gathered} M=m_1+m_2,\qquad \mu=\frac{m_1m_2}{M},\\
+    \hat X=\frac{m_1\hat x_1+m_2\hat x_2}{M},\qquad \hat x=\hat x_1-\hat x_2,\\
+    \hat P=\hat p_1+\hat p_2,\qquad \hat p=\frac{m_2\hat p_1-m_1\hat p_2}{M}. \end{gathered} \]</div>
+    <p>\(\mu\)는 <span class="term">환산 질량</span> <span class="en">(reduced mass)</span>이다. 새 변수도 <a href="ch03.html">3장</a>의 정준 교환 관계를 만족하는지 확인하자. 다른 입자의 변수끼리는 교환하고 \([\hat x_i,\hat p_i]=i\hbar\)이므로</p>
+    <div class="formula" id="eq-cm-commutators">\[ \begin{aligned} [\hat X,\hat P]&amp;=\frac{m_1}{M}[\hat x_1,\hat p_1]+\frac{m_2}{M}[\hat x_2,\hat p_2]=i\hbar,\\
+    [\hat x,\hat p]&amp;=\frac{m_2}{M}[\hat x_1,\hat p_1]+\frac{m_1}{M}[\hat x_2,\hat p_2]=i\hbar,\\
+    [\hat X,\hat p]&amp;=\frac{m_1m_2}{M^2}\bigl([\hat x_1,\hat p_1]-[\hat x_2,\hat p_2]\bigr)=0,\\
+    [\hat x,\hat P]&amp;=[\hat x_1,\hat p_1]-[\hat x_2,\hat p_2]=0. \end{aligned} \]</div>
+    <p>따라서 \((\hat X,\hat P)\)와 \((\hat x,\hat p)\)는 서로 독립인 두 입자의 위치와 운동량처럼 행동한다. 식 <a class="ref" href="#eq-cm-coords"></a>의 운동량을 거꾸로 풀면</p>
+    <div class="formula" id="eq-cm-inverse">\[ \hat p_1=\frac{m_1}{M}\hat P+\hat p,\qquad \hat p_2=\frac{m_2}{M}\hat P-\hat p. \]</div>
+    <p>이것을 운동 에너지에 넣는다. \(\hat P\)와 \(\hat p\)는 교환하므로 보통의 다항식처럼 전개할 수 있고, \(\hat P\hat p\) 항은 두 입자에서 부호가 반대라 지워진다.</p>
+    <div class="formula">\[ \begin{aligned}\frac{\hat p_1^2}{2m_1}+\frac{\hat p_2^2}{2m_2}&amp;=\Bigl(\frac{m_1}{2M^2}+\frac{m_2}{2M^2}\Bigr)\hat P^2+\Bigl(\frac1M-\frac1M\Bigr)\hat P\hat p\\ &amp;\qquad+\Bigl(\frac1{2m_1}+\frac1{2m_2}\Bigr)\hat p^2=\frac{\hat P^2}{2M}+\frac{\hat p^2}{2\mu}.\end{aligned} \]</div>
+    <p>바깥 퍼텐셜이 없으면 해밀토니안은</p>
+    <div class="formula" id="eq-cm-hamiltonian">\[ \hat H=\frac{\hat P^2}{2M}+\Bigl[\frac{\hat p^2}{2\mu}+V(\hat x)\Bigr]. \]</div>
+    <p>첫 항은 질량 \(M\)인 자유 입자, 괄호는 질량 \(\mu\)인 입자가 퍼텐셜 \(V(x)\) 안에 있는 문제다. 두 부분이 교환하므로 에너지 고유함수를 \(\Psi(X,x)=e^{iKX}\psi(x)\)처럼 곱으로 고를 수 있다. 다만 이것은 \((X,x)\) 변수에서의 곱이고, 원래 변수 \((x_1,x_2)\)에서는 일반적으로 곱이 아니다. <a href="ch15.html">15장</a>에서는 같은 분리를 3차원 수소 원자에 쓴다.</p>
+    <div class="box ex" id="ex-trap-pair"><div class="box-h">같은 덫 안에서 용수철로 이은 두 입자</div>
+      <p>질량 \(m\)인 두 입자가 같은 조화 퍼텐셜 \(\tfrac12m\omega^2x^2\) 안에 있고, 용수철 상수 \(\kappa\)인 용수철로 이어져 있다고 하자.</p>
+      <div class="formula">\[ \hat H=\sum_{i=1}^2\Bigl(\frac{\hat p_i^2}{2m}+\frac12m\omega^2\hat x_i^2\Bigr)+\frac12\kappa(\hat x_1-\hat x_2)^2. \]</div>
+      <p>\(M=2m\), \(\mu=m/2\)이고 \(x_1=X+x/2\), \(x_2=X-x/2\)이므로 \(x_1^2+x_2^2=2X^2+x^2/2\), 즉 \(m(x_1^2+x_2^2)=MX^2+\mu x^2\)이다. 바깥 퍼텐셜도 두 부분으로 나뉜다.</p>
+      <div class="formula">\[ \begin{gathered}\hat H=\Bigl[\frac{\hat P^2}{2M}+\frac12M\omega^2\hat X^2\Bigr]+\Bigl[\frac{\hat p^2}{2\mu}+\frac12\mu\omega_r^2\hat x^2\Bigr],\\ \omega_r^2=\omega^2+\frac{\kappa}{\mu}=\omega^2+\frac{2\kappa}{m}.\end{gathered} \]</div>
+      <p>각 괄호는 <a href="ch08.html">8장</a>의 조화 진동자이므로 에너지 준위는</p>
+      <div class="formula" id="eq-trap-levels">\[ E_{N,n}=\bigl(N+\tfrac12\bigr)\hbar\omega+\bigl(n+\tfrac12\bigr)\hbar\omega_r. \]</div>
+      <p>여기서 \(N,n=0,1,2,\ldots\)이다. 질량 중심의 진동수는 용수철과 상관없이 덫의 \(\omega\) 그대로다. 용수철은 상대 운동만 단단하게 만든다. 바닥 상태는 두 가우스 함수의 곱 \(e^{-M\omega X^2/(2\hbar)}e^{-\mu\omega_rx^2/(2\hbar)}\)인데, 원래 좌표로 쓰면 다음과 같다.</p>
+      <div class="formula" id="eq-trap-ground">\[ \begin{aligned}&amp;\Psi_{0,0}(x_1,x_2)\propto e^{-mQ/(4\hbar)},\\ &amp;Q=(\omega+\omega_r)(x_1^2+x_2^2)+2(\omega-\omega_r)x_1x_2.\end{aligned} \]</div>
+      <p>\(\kappa\ne0\)이면 \(\omega_r\ne\omega\)여서 \(Q\)에 \(x_1x_2\) 항이 남으므로 \(f(x_1)g(x_2)\) 꼴로 나뉘지 않는다. 상호작용이 바닥 상태를 얽힌 상태로 만든 것이다.</p>
     </div>
     <p>한편 질량, 전하, 스핀 등 모든 내재적 성질이 같고 물리적으로 구별할 수 없는 입자 둘이라면 \(|1,2\rangle\)와 \(|2,1\rangle\)를 임의로 별개의 물리적 상태로 취급할 수 없다. 이 문제를 풀려면 <em>입자 표지의 교환</em>을 살펴봐야 한다.</p>
   </section>
@@ -90,53 +133,94 @@
     \hat P_{12}\hat\Pi_\pm=\pm\hat\Pi_\pm. \]</div>
     <p>\(\hat P_{12}^2=I\)를 대입하면 \(\hat\Pi_\pm^2=\hat\Pi_\pm\), \(\hat\Pi_+\hat\Pi_-=0\), \(\hat\Pi_++\hat\Pi_-=I\)도 곧바로 확인된다. 임의의 두 입자 벡터는 대칭 성분과 반대칭 성분으로 나뉜다.</p>
     <div class="box thm" id="thm-symmetrization"><div class="box-h">동일 입자의 대칭화 규칙</div>
-      <p>보통의 3차원 공간에서 동일한 입자의 물리적 상태는 모든 입자 교환에 대해 대칭인 <span class="term">보손</span> <span class="en">(boson)</span> 상태이거나 반대칭인 <span class="term">페르미온</span> <span class="en">(fermion)</span> 상태다. 두 입자라면 각각 \(\hat P_{12}|\Psi_B\rangle=+|\Psi_B\rangle\), \(\hat P_{12}|\Psi_F\rangle=-|\Psi_F\rangle\)이다.</p>
+      <p>보통의 3차원 공간에서 동일한 입자의 물리적 상태는 모든 입자 교환에 대해 대칭인 <span class="term">보손</span> <span class="en">(boson)</span> 상태이거나 반대칭인 <span class="term">페르미온</span> <span class="en">(fermion)</span> 상태다. 두 입자라면 각각 \(\hat P_{12}|\Psi_B\rangle=+|\Psi_B\rangle\), \(\hat P_{12}|\Psi_F\rangle=-|\Psi_F\rangle\)이다. 입자가 \(N\)개이면 어느 두 자리 \(i,j\)를 맞바꾸는 \(\hat P_{ij}\)에 대해서도 보손은 \(+1\), 페르미온은 \(-1\)을 얻는다.</p>
     </div>
     <p>두 개의 서로 직교하는 정규화된 한 입자 상태 \(|a\rangle,|b\rangle\)를 택하자. \(\langle a|b\rangle=0\)이면 \(\langle a,b|b,a\rangle=0\)이므로 대칭·반대칭 결합은</p>
-    <div class="formula" id="eq-sym-states">\[ |a,b\rangle_\pm=\frac{|a,b\rangle\pm|b,a\rangle}{\sqrt2}\quad(a\ne b,\ \langle a|b\rangle=0),\qquad
-    \hat P_{12}|a,b\rangle_\pm=\pm|a,b\rangle_\pm. \]</div>
+    <div class="formula" id="eq-sym-states">\[ \begin{gathered}|a,b\rangle_\pm=\frac{|a,b\rangle\pm|b,a\rangle}{\sqrt2}\quad(a\ne b,\ \langle a|b\rangle=0),\\
+    \hat P_{12}|a,b\rangle_\pm=\pm|a,b\rangle_\pm.\end{gathered} \]</div>
     <p>두 자리를 교환하면 두 항이 맞바뀌고, 반대칭 결합에서는 부호가 뒤집힌다. 한 입자 상태가 같으면 보손 상태는 \(|a,a\rangle\)이고 페르미온 결합은 영벡터가 된다. \(|a,a\rangle\)에 \(1/\sqrt2\)를 붙여서는 안 된다.</p>
     <div class="box math" id="math-overlap-normalization"><div class="box-h">한 입자 상태가 직교하지 않을 때</div>
       <p>정규화된 \(|a\rangle,|b\rangle\)의 겹침을 \(c=\langle a|b\rangle\)라 두면 \(\langle a,b|b,a\rangle=|c|^2\)다. 따라서 \(\||a,b\rangle\pm|b,a\rangle\|^2=2(1\pm|c|^2)\)이고, 정규화 인자는 다음과 같다.</p>
       <div class="formula" id="eq-nonorthogonal-states">\[ |a,b\rangle_\pm=\frac{|a,b\rangle\pm|b,a\rangle}{\sqrt{2(1\pm|c|^2)}}. \]</div>
       <p>마이너스 식은 \(|c|=1\)이면 분자도 영벡터라 정의되지 않는다. 즉 같은 한 입자 상태 두 개로 페르미온 상태를 만들 수 없다.</p>
     </div>
-    <h3 id="s3-exchange-density">교환 부호는 어떻게 관측되는가</h3>
-    <p>서로 다른 한 입자 위치 파동함수 \(\phi_a,\phi_b\)가 직교할 때, 식 <a class="ref" href="#eq-sym-states"></a>의 위치 표현은 \(\Psi_\pm(x_1,x_2)=[\phi_a(x_1)\phi_b(x_2)\pm\phi_b(x_1)\phi_a(x_2)]/\sqrt2\)다. 두 위치 배치의 진폭을 제곱하면</p>
-    <div class="formula" id="eq-exchange-density">\[ |\Psi_\pm|^2=\frac12\left(|u|^2+|v|^2\pm2\operatorname{Re}(uv^*)\right),\quad
-    u=\phi_a(x_1)\phi_b(x_2),\quad v=\phi_b(x_1)\phi_a(x_2). \]</div>
-    <p>마지막 항이 <span class="term">교환 간섭</span>이다. 전 공간에서 \(\phi_a,\phi_b\)가 직교해도 특정 위치에서는 둘 다 0이 아닐 수 있다. 따라서 같은 에너지 준위 조합이라도 공간 상관은 보손과 페르미온에서 달라진다. 반대칭인 <em>스핀 없는</em> 파동함수는 \(x_1=x_2\)에서 0이다.</p>
-    <div class="box ex" id="ex-same-box-symmetry"><div class="box-h">무한 우물의 두 입자 상태 다시 보기</div>
-      <p><a class="ref" href="#ex-distinguishable-box"></a>의 \(\phi_1,\phi_2\)는 직교한다. 동일한 스핀 없는 보손과 페르미온은 둘 다 에너지 \(5E_1\)을 가지지만 각각 \(\Psi_\pm(x_1,x_2)=[\phi_1(x_1)\phi_2(x_2)\pm\phi_2(x_1)\phi_1(x_2)]/\sqrt2\)로 기술된다. 보손은 두 입자 모두 \(n=1\)에 있는 \(2E_1\) 상태도 가질 수 있다. 페르미온은 그 상태를 가질 수 없다.</p>
+    <h3 id="s3-relative">교환은 상대 좌표의 반전이다</h3>
+    <p>동일 입자는 질량이 같으므로 식 <a class="ref" href="#eq-cm-coords"></a>에서 \(X=(x_1+x_2)/2\), \(x=x_1-x_2\)다. 스핀 없는 두 입자의 위치를 맞바꾸면</p>
+    <div class="formula" id="eq-exchange-relative">\[ x_1\leftrightarrow x_2:\qquad X\;\to\;X,\qquad x\;\to\;-x. \]</div>
+    <p>즉 \(\hat P_{12}\)는 질량 중심은 그대로 두고 상대 좌표만 뒤집는 반전, 곧 상대 좌표의 <a href="ch13.html">패리티</a>다. 에너지 고유함수가 \(\Phi(X)\psi(x)\)로 나뉘면 교환 대칭은 상대 운동 파동함수의 짝·홀로 정해진다. 스핀 없는 보손은 \(\psi(-x)=\psi(x)\), 스핀 없는 페르미온은 \(\psi(-x)=-\psi(x)\)여야 한다.</p>
+    <div class="box ex" id="ex-trap-identical"><div class="box-h">덫 안의 동일 입자 둘</div>
+      <p><a class="ref" href="#ex-trap-pair"></a>의 두 입자가 스핀 없는 동일 입자라고 하자. 조화 진동자의 \(n\)번째 고유함수는 <a href="ch13.html#ex-oscillator-parity">패리티 \((-1)^n\)</a>을 가지므로, 보손은 상대 운동의 \(n\)이 짝수, 페르미온은 홀수여야 한다. 식 <a class="ref" href="#eq-trap-levels"></a>에서 각각 가장 낮은 것을 고르면</p>
+      <div class="formula" id="eq-trap-identical">\[ E_B=\frac12\hbar\omega+\frac12\hbar\omega_r,\qquad E_F=\frac12\hbar\omega+\frac32\hbar\omega_r. \]</div>
+      <p>\(\kappa=0\)이면 \(\omega_r=\omega\)여서 \(E_B=\hbar\omega\), \(E_F=2\hbar\omega\)다. 이것은 한 입자 준위 \((n+\tfrac12)\hbar\omega\)에 보손 둘을 모두 바닥에 넣은 값 \(\tfrac12\hbar\omega+\tfrac12\hbar\omega\), 페르미온을 \(n=0\)과 \(1\)에 하나씩 넣은 값 \(\tfrac12\hbar\omega+\tfrac32\hbar\omega\)와 같다. 상호작용이 있어도 대칭화 규칙은 상대 운동의 짝·홀이라는 간단한 조건으로 남는다.</p>
     </div>
+    <div class="callout deep"><strong>3차원에서는 \((-1)^\ell\)</strong><p>3차원에서 \(\boldsymbol r\to-\boldsymbol r\) 반전은 지름 함수를 그대로 두고 각도 부분에 \((-1)^\ell\)을 곱한다(<a href="ch15.html">15장</a>). 따라서 스핀 없는 동일 보손 둘의 상대 각운동량은 \(\ell=0,2,4,\ldots\)만 허용된다. 스핀이 있으면 스핀 부분의 교환 부호까지 곱해야 한다(<a href="#s6">12.6절</a>).</p></div>
     <div class="callout warn"><strong>교환 대칭과 스핀의 관계</strong><p>이 장에서는 보손·페르미온이라는 대칭화 규칙을 물리적 입력으로 사용한다. 정수 스핀 입자는 보손, 반정수 스핀 입자는 페르미온이라는 연결은 상대론적 양자장론의 스핀·통계 정리에서 나온다. 입자 구별 불가능성만으로 그 연결을 유도한 것은 아니다. <a href="ch16.html">16장</a>에서 스핀 자체를 자세히 다룬다.</p></div>
+    <div class="callout deep"><strong>표지 없는 입자의 측정</strong><p>동일 입자에서 \(q_1,q_2\)는 계산을 위한 자리다. 관측 가능한 연산자는 자리를 바꾸어도 뜻이 같아야 하므로 \([\hat O,\hat P_{12}]=0\)이다. 예를 들어 두 입자의 총 에너지와 \(\hat A^{(1)}+\hat A^{(2)}\)는 이런 조건을 만족한다. 해밀토니안도 교환 대칭이면 \([\hat H,\hat P_{12}]=0\)이고 시간 변화 중 보손·페르미온 대칭성이 보존된다. 두 입자에 같은 변화를 주는 \(\hat U\otimes\hat U\)도 \(\hat P_{12}\)와 교환한다.</p></div>
   </section>
 
   <section id="s4">
+    <h2>교환 간섭이 남기는 흔적</h2>
+    <p>보손과 페르미온의 차이는 부호 하나지만, 그 부호는 측정 결과에 실제로 나타난다. 위치 확률, 입자 사이의 거리, 빔 가르개 실험의 순서로 확인해 보자.</p>
+    <p>서로 다른 한 입자 위치 파동함수 \(\phi_a,\phi_b\)가 직교할 때, 식 <a class="ref" href="#eq-sym-states"></a>의 위치 표현은 \(\Psi_\pm(x_1,x_2)=[\phi_a(x_1)\phi_b(x_2)\pm\phi_b(x_1)\phi_a(x_2)]/\sqrt2\)다. 두 위치 배치의 진폭을 제곱하면</p>
+    <div class="formula" id="eq-exchange-density">\[ \begin{gathered}|\Psi_\pm|^2=\frac12\left(|u|^2+|v|^2\pm2\operatorname{Re}(uv^*)\right),\\
+    u=\phi_a(x_1)\phi_b(x_2),\qquad v=\phi_b(x_1)\phi_a(x_2).\end{gathered} \]</div>
+    <p>마지막 항이 <span class="term">교환 간섭</span> <span class="en">(exchange interference)</span>이다. 전 공간에서 \(\phi_a,\phi_b\)가 직교해도 특정 위치에서는 둘 다 0이 아닐 수 있다. 따라서 같은 에너지 준위 조합이라도 공간 상관은 보손과 페르미온에서 달라진다. 반대칭인 <em>스핀 없는</em> 파동함수는 \(x_1=x_2\)에서 0이다.</p>
+    <div class="box ex" id="ex-same-box-symmetry"><div class="box-h">무한 우물의 두 입자 상태 다시 보기</div>
+      <p><a class="ref" href="#ex-distinguishable-box"></a>의 \(\phi_1,\phi_2\)는 직교한다. 동일한 스핀 없는 보손과 페르미온은 둘 다 에너지 \(5E_1\)을 가지지만 각각 \(\Psi_\pm(x_1,x_2)=[\phi_1(x_1)\phi_2(x_2)\pm\phi_2(x_1)\phi_1(x_2)]/\sqrt2\)로 기술된다. 보손은 두 입자 모두 \(n=1\)에 있는 \(2E_1\) 상태도 가질 수 있다. 페르미온은 그 상태를 가질 수 없다.</p>
+    </div>
+    <h3 id="s4-distance">보손은 모이고 페르미온은 피한다</h3>
+    <p>교환 간섭이 입자 사이 거리에 주는 효과를 평균으로 재 보자. 직교하는 \(\phi_a,\phi_b\)로 만든 \(\Psi_\pm\)에서 기댓값을 항별로 계산한다. \(\hat x_1^2\)은 첫 자리에만 작용하므로 교차 항이 \(\langle a|\hat x^2|b\rangle\langle b|a\rangle=0\)으로 사라진다. \(\hat x_1\hat x_2\)는 두 자리에 모두 작용하므로 교차 항이 남는다. 예를 들어 \(\langle a,b|\hat x_1\hat x_2|b,a\rangle=\langle a|\hat x|b\rangle\langle b|\hat x|a\rangle\)다. \(\langle x\rangle_a=\langle a|\hat x|a\rangle\), \(x_{ab}=\langle a|\hat x|b\rangle\)라 쓰면</p>
+    <div class="formula" id="eq-exchange-moments">\[ \begin{aligned}\langle x_1^2\rangle_\pm&amp;=\langle x_2^2\rangle_\pm=\frac12\bigl(\langle x^2\rangle_a+\langle x^2\rangle_b\bigr),\\
+    \langle x_1x_2\rangle_\pm&amp;=\langle x\rangle_a\langle x\rangle_b\pm|x_{ab}|^2.\end{aligned} \]</div>
+    <p>두 식을 \(\langle(x_1-x_2)^2\rangle=\langle x_1^2\rangle+\langle x_2^2\rangle-2\langle x_1x_2\rangle\)에 넣으면</p>
+    <div class="formula" id="eq-exchange-separation">\[ \langle(x_1-x_2)^2\rangle_\pm=\langle x^2\rangle_a+\langle x^2\rangle_b-2\langle x\rangle_a\langle x\rangle_b\mp2|x_{ab}|^2. \]</div>
+    <p>구별 가능한 입자의 \(|a,b\rangle\)에서는 마지막 항이 없다. 동일 보손은 평균 거리 제곱이 \(2|x_{ab}|^2\)만큼 작아지고, 동일 페르미온은 그만큼 커진다. 두 한 입자 상태가 같은 곳에서 겹쳐 \(x_{ab}\ne0\)일 때만 생기는 효과다.</p>
+    <div class="box ex" id="ex-well-separation"><div class="box-h">우물 속 두 입자의 거리</div>
+      <p>무한 우물의 \(\phi_1,\phi_2\)는 우물 가운데에 대해 대칭이거나 반대칭이므로 \(|\phi_n|^2\)은 대칭이고 \(\langle x\rangle_1=\langle x\rangle_2=L/2\)다. \(\sin^2\theta=(1-\cos2\theta)/2\)와 \(\int_0^Lx^2\cos(2n\pi x/L)\,dx=L^3/(2n^2\pi^2)\)에서</p>
+      <div class="formula">\[ \begin{aligned}\langle x^2\rangle_n&amp;=\frac1L\Bigl[\frac{L^3}{3}-\frac{L^3}{2n^2\pi^2}\Bigr]\\ &amp;=L^2\Bigl(\frac13-\frac1{2n^2\pi^2}\Bigr).\end{aligned} \]</div>
+      <p>겹침 적분은 \(\sin\theta\sin2\theta=(\cos\theta-\cos3\theta)/2\)와 \(\int_0^Lx\cos(k\pi x/L)\,dx=-2L^2/(k\pi)^2\) (\(k\) 홀수)로 계산한다.</p>
+      <div class="formula">\[ \begin{aligned}x_{12}&amp;=\frac2L\int_0^Lx\sin\frac{\pi x}{L}\sin\frac{2\pi x}{L}\,dx\\ &amp;=\frac1L\Bigl[-\frac{2L^2}{\pi^2}+\frac{2L^2}{9\pi^2}\Bigr]=-\frac{16L}{9\pi^2}.\end{aligned} \]</div>
+      <p>식 <a class="ref" href="#eq-exchange-separation"></a>의 앞 세 항은 \(L^2(1/6-5/(8\pi^2))=0.1033L^2\), 교환 항은 \(2|x_{12}|^2=512L^2/(81\pi^4)=0.0649L^2\)다. 거리의 제곱 평균 제곱근은 구별 가능한 입자가 \(0.321L\), 보손이 \(0.196L\), 페르미온이 \(0.410L\)이다. 그림 12-1은 거리 분포 전체를 보여 준다.</p>
+    </div>
+    <figure class="diagram" id="fig-separation">
+      <div class="fig-narrow"><!--fig:12-1--><svg viewBox="0 0 440 262" role="img" aria-label="무한 우물의 1, 2 준위를 차지한 두 입자의 거리 분포. 보손은 거리 0에서 가장 크고 페르미온은 거리 0에서 0이며 구별 가능한 입자는 그 중간이다"><defs><marker id="f121-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f121-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f121-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="70" y1="140" x2="390" y2="140" class="s-faint" stroke-dasharray="2 4"/><text x="62" y="144" class="t-dim" text-anchor="end">1</text><line x1="70" y1="66" x2="390" y2="66" class="s-faint" stroke-dasharray="2 4"/><text x="62" y="70" class="t-dim" text-anchor="end">2</text><line x1="66" y1="214" x2="404" y2="214" class="s-line" stroke-width="1.2" marker-end="url(#f121-dim)"/><line x1="230.0" y1="214" x2="230.0" y2="34" class="s-line" stroke-width="1.2" marker-end="url(#f121-dim)"/><text x="62" y="218" class="t-dim" text-anchor="end">0</text><line x1="70" y1="214" x2="70" y2="218" class="s-line" stroke-width="1.2"/><text x="70" y="233" class="t-dim" text-anchor="middle">−1</text><line x1="150" y1="214" x2="150" y2="218" class="s-line" stroke-width="1.2"/><text x="150" y="233" class="t-dim" text-anchor="middle">−½</text><line x1="310" y1="214" x2="310" y2="218" class="s-line" stroke-width="1.2"/><text x="310" y="233" class="t-dim" text-anchor="middle">½</text><line x1="390" y1="214" x2="390" y2="218" class="s-line" stroke-width="1.2"/><text x="390" y="233" class="t-dim" text-anchor="middle">1</text><text x="230.0" y="233" class="t-dim" text-anchor="middle">0</text><text x="436" y="254" class="t-math dim" text-anchor="end">(<tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan> − <tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>)/<tspan font-style="italic">L</tspan></text><text x="238.0" y="40" class="t-math dim" text-anchor="start"><tspan font-style="italic">L</tspan>·<tspan font-style="italic">P</tspan></text><path d="M70 214 L89.2 213.9 L98 213.5 L104.4 212.6 L110 211.2 L115.6 209.1 L120.4 206.5 L125.2 203.3 L130 199.3 L135.6 193.9 L142 186.7 L156.4 169.2 L162.8 161.9 L168.4 156.2 L173.2 152 L178 148.5 L182.8 145.7 L188.4 143.3 L194 141.7 L201.2 140.6 L212.4 140.1 L246 140 L256.4 140.4 L263.6 141.3 L269.2 142.6 L274.8 144.6 L279.6 147 L284.4 150.1 L289.2 154 L294.8 159.3 L301.2 166.4 L317.2 185.8 L323.6 193 L329.2 198.6 L334 202.7 L338.8 206 L343.6 208.7 L349.2 210.9 L354.8 212.4 L362 213.5 L374 214 L390 214" class="s-line" stroke-dasharray="6 5" stroke-width="1.8"/><path d="M70 214 L114 214 L126.8 213.6 L134.8 212.9 L141.2 211.7 L146.8 209.9 L151.6 207.5 L155.6 204.9 L159.6 201.6 L163.6 197.4 L166.8 193.4 L170 188.8 L173.2 183.5 L176.4 177.5 L179.6 170.9 L183.6 161.8 L187.6 151.9 L192.4 139.1 L202 112.4 L206 101.8 L209.2 93.8 L212.4 86.5 L215.6 80 L218 75.9 L220.4 72.4 L222.8 69.6 L225.2 67.6 L227.6 66.4 L230 66 L232.4 66.4 L234.8 67.6 L237.2 69.6 L239.6 72.4 L242 75.9 L244.4 80 L247.6 86.5 L250.8 93.8 L254.8 103.9 L260.4 119.1 L267.6 139.1 L272.4 151.9 L276.4 161.8 L280.4 170.9 L283.6 177.5 L286.8 183.5 L290 188.8 L293.2 193.4 L296.4 197.4 L300.4 201.6 L304.4 204.9 L308.4 207.5 L313.2 209.9 L318.8 211.7 L326 213 L336.4 213.8 L390 214" class="s-acc" stroke-width="2.2"/><path d="M70 214 L86.8 213.9 L94.8 213.4 L100.4 212.4 L105.2 210.9 L109.2 208.9 L113.2 206.2 L117.2 202.7 L121.2 198.2 L125.2 192.9 L129.2 186.6 L133.2 179.5 L138 170.2 L147.6 150.4 L151.6 142.5 L155.6 135.3 L158.8 130.4 L162 126.3 L164.4 123.8 L166.8 122 L169.2 120.8 L171.6 120.4 L174 120.6 L176.4 121.6 L178.8 123.3 L181.2 125.7 L183.6 128.8 L186 132.5 L189.2 138.4 L192.4 145.2 L196.4 154.5 L206 178.8 L210 188.3 L213.2 195.3 L216.4 201.4 L218.8 205.3 L221.2 208.6 L223.6 211.1 L226 212.9 L228.4 213.8 L230.8 214 L233.2 213.3 L235.6 211.8 L238 209.5 L240.4 206.5 L242.8 202.8 L246 196.9 L249.2 190.2 L253.2 180.7 L262.8 156.5 L266.8 147 L270 140 L273.2 133.9 L275.6 130 L278 126.7 L280.4 124 L282.8 122.1 L285.2 120.8 L287.6 120.4 L290 120.6 L292.4 121.5 L294.8 123.1 L297.2 125.4 L300.4 129.3 L303.6 134 L307.6 141 L312.4 150.4 L322 170.2 L326.8 179.5 L330.8 186.6 L334.8 192.9 L338.8 198.2 L342.8 202.7 L346.8 206.2 L350.8 208.9 L354.8 210.9 L359.6 212.4 L366 213.5 L376.4 214 L390 214" class="s-acc2" stroke-width="2.2"/><line x1="16" y1="250" x2="38" y2="250" class="s-acc" stroke-width="2.2"/><text x="44" y="254" class="t-dim" text-anchor="start">보손</text><line x1="86" y1="250" x2="108" y2="250" class="s-acc2" stroke-width="2.2"/><text x="114" y="254" class="t-dim" text-anchor="start">페르미온</text><line x1="180" y1="250" x2="202" y2="250" class="s-line" stroke-dasharray="6 5" stroke-width="1.8"/><text x="208" y="254" class="t-dim" text-anchor="start">구별 가능</text></svg><!--/fig:12-1--></div>
+      <figcaption><b>그림 12-1.</b> 길이 \(L\)인 무한 우물의 준위 \(n=1,2\)를 하나씩 차지한 두 입자에서 거리 \(s=x_1-x_2\)의 분포 \(P(s)\). 점선은 구별 가능한 입자, 색 곡선은 스핀 없는 동일 보손과 동일 페르미온이다. 세 곡선의 넓이는 모두 1이다. \(s=0\)에서 보손은 구별 가능한 경우의 두 배인 \(2/L\)이고 페르미온은 0이다.</figcaption>
+    </figure>
+    <div class="callout tip"><strong>교환력은 힘이 아니다</strong><p>보손이 모이고 페르미온이 피하는 경향을 흔히 교환력이라 부르지만, 이 예의 해밀토니안에는 상호작용 항이 전혀 없다. 허용되는 상태가 대칭화로 제한된 결과일 뿐이다. 입자끼리 상호작용하면 이 차이가 에너지 차이로 바뀐다(<a href="#s6">12.6절</a>).</p></div>
+    <h3 id="s4-far">멀리 떨어진 입자는 대칭화를 잊어도 된다</h3>
+    <p>전자는 우주의 모든 전자와 동일 입자다. 그렇다면 실험실의 전자 하나를 기술할 때마다 모든 전자와 반대칭화해야 할까? 식 <a class="ref" href="#eq-exchange-density"></a>의 간섭 항은 \(uv^*=[\phi_a(x_1)\phi_b^*(x_1)][\phi_b(x_2)\phi_a^*(x_2)]\)로, 두 한 입자 파동함수가 같은 곳에서 함께 0이 아닐 때만 남는다. \(\phi_a\)는 영역 \(A\)에만, \(\phi_b\)는 멀리 떨어진 영역 \(B\)에만 있어 모든 곳에서 \(\phi_a\phi_b=0\)이면 간섭 항이 사라진다.</p>
+    <div class="formula">\[ |\Psi_\pm|^2=\frac12\Bigl(|\phi_a(x_1)|^2|\phi_b(x_2)|^2+|\phi_b(x_1)|^2|\phi_a(x_2)|^2\Bigr). \]</div>
+    <p>한 항은 1번이 \(A\)에, 다른 항은 1번이 \(B\)에 있는 배치다. 표지를 따지지 않고 "한 입자는 \(A\)의 \(x\)에, 다른 입자는 \(B\)의 \(x'\)에" 있을 확률 밀도를 구하면 두 항이 하나씩 기여해 \(|\phi_a(x)|^2|\phi_b(x')|^2\)으로, 구별 가능한 입자와 같다. 이때 \(x_{ab}=0\)이어서 식 <a class="ref" href="#eq-exchange-separation"></a>의 교환 항도 사라진다. 그래서 서로 겹치지 않는 원자의 전자들은 대칭화 없이 따로 다루어도 된다. 대칭화가 중요해지는 것은 파동함수가 겹칠 때다.</p>
+    <h3 id="s4-hom">빔 가르개의 두 입자 간섭</h3>
+    <p>교환 간섭을 가장 뚜렷하게 보여 주는 실험은 50:50 <span class="term">빔 가르개</span> <span class="en">(beam splitter)</span>의 두 입구에 동일 입자를 하나씩 동시에 보내는 것이다. 입력 통로를 \(a,b\), 출력 통로를 \(c,d\)라 하고, 빔 가르개를 지나는 동안 한 입자 상태가 유니타리 연산자 \(\hat U\)로 바뀐다고 하자. 위상은 다음과 같이 잡는다.</p>
+    <div class="formula" id="eq-beam-splitter">\[ \hat U|a\rangle=\frac{|c\rangle+|d\rangle}{\sqrt2},\qquad \hat U|b\rangle=\frac{-|c\rangle+|d\rangle}{\sqrt2}. \]</div>
+    <p>두 출력 상태가 직교하므로 \(\hat U\)는 유니타리이고, \(b\)가 \(c\)로 반사될 때 음의 부호가 붙는다. 두 입자는 서로 상호작용하지 않으므로 두 입자 상태는 \(\hat U\otimes\hat U\)로 바뀐다. 이 연산자는 \(\hat P_{12}\)와 교환하므로 대칭 상태는 대칭으로, 반대칭 상태는 반대칭으로 남는다.</p>
+    <div class="box ex" id="ex-hom"><div class="box-h">동시 검출 진폭</div>
+      <p>\(c\)와 \(d\)에서 하나씩 검출되는 진폭을 구하자. 동일 입자에서 "하나는 \(c\), 하나는 \(d\)"인 상태는 \(|c,d\rangle_\pm\) 하나뿐이다. \(\tfrac12(\langle c,d|\pm\langle d,c|)\)와 \(\hat U|a\rangle\otimes\hat U|b\rangle\pm\hat U|b\rangle\otimes\hat U|a\rangle\)의 곱을 펼치면 네 항이 같은 것끼리 둘씩 모인다.</p>
+      <div class="formula" id="eq-hom-amplitude">\[ \begin{aligned}&amp;{}_\pm\langle c,d|\,\hat U\otimes\hat U\,|a,b\rangle_\pm\\ &amp;\quad=\langle c|\hat U|a\rangle\langle d|\hat U|b\rangle\pm\langle d|\hat U|a\rangle\langle c|\hat U|b\rangle\\
+      &amp;\quad=\frac1{\sqrt2}\cdot\frac1{\sqrt2}\pm\frac1{\sqrt2}\cdot\Bigl(-\frac1{\sqrt2}\Bigr)=\frac12\mp\frac12.\end{aligned} \]</div>
+      <p>둘째 줄의 첫 항은 둘 다 투과하는 진폭, 둘째 항은 둘 다 반사하는 진폭이다(그림 12-2). 보손은 동시 검출 진폭이 0이어서 두 입자가 언제나 같은 출구로 함께 나온다. 페르미온은 진폭의 크기가 1이어서 언제나 다른 출구로 갈라진다. 구별 가능한 입자는 두 경우를 원리적으로 구별할 수 있으므로 진폭이 아니라 확률을 더해 \(1/4+1/4=1/2\)을 얻는다.</p>
+    </div>
+    <figure class="diagram" id="fig-hom">
+      <div class="fig-row"><!--fig:12-2a--><svg viewBox="0 0 260 236" role="img" aria-label="빔 가르개에서 a로 들어온 입자는 c로, b로 들어온 입자는 d로 둘 다 투과하는 경우. 진폭은 플러스 2분의 1"><defs><marker id="f122a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f122a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f122a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="22" y1="118" x2="208" y2="118" class="s-faint" stroke-dasharray="3 4"/><line x1="128" y1="214" x2="128" y2="34" class="s-faint" stroke-dasharray="3 4"/><path d="M210 104 h10 a14 14 0 0 1 0 28 h-10 z" class="f-elev"/><path d="M114 32 v-10 a14 14 0 0 1 28 0 v10 z" class="f-elev"/><text x="238" y="123" class="t-math" text-anchor="start"><tspan font-style="italic">c</tspan></text><text x="148" y="22" class="t-math" text-anchor="start"><tspan font-style="italic">d</tspan></text><text x="14" y="108" class="t-math" text-anchor="start"><tspan font-style="italic">a</tspan></text><text x="138" y="226" class="t-math" text-anchor="start"><tspan font-style="italic">b</tspan></text><line x1="24" y1="118" x2="124" y2="118" class="s-acc" stroke-width="2.4" marker-end="url(#f122a-acc)"/><line x1="128" y1="212" x2="128" y2="122" class="s-acc2" stroke-width="2.4" marker-end="url(#f122a-acc2)"/><line x1="132" y1="118" x2="206" y2="118" class="s-acc" stroke-width="2.4" marker-end="url(#f122a-acc)"/><line x1="128" y1="114" x2="128" y2="36" class="s-acc2" stroke-width="2.4" marker-end="url(#f122a-acc2)"/><line x1="106" y1="140" x2="150" y2="96" class="s-line" stroke-width="5" style="stroke:var(--text)"/><text x="12" y="22" class="t-b" text-anchor="start">(가) 둘 다 투과</text><text x="250" y="200" class="t-b" text-anchor="end">진폭 +½</text></svg><!--/fig:12-2a--><!--fig:12-2b--><svg viewBox="0 0 260 236" role="img" aria-label="빔 가르개에서 a로 들어온 입자는 d로, b로 들어온 입자는 c로 둘 다 반사하는 경우. 진폭은 마이너스 2분의 1"><defs><marker id="f122b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f122b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f122b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="22" y1="118" x2="208" y2="118" class="s-faint" stroke-dasharray="3 4"/><line x1="128" y1="214" x2="128" y2="34" class="s-faint" stroke-dasharray="3 4"/><path d="M210 104 h10 a14 14 0 0 1 0 28 h-10 z" class="f-elev"/><path d="M114 32 v-10 a14 14 0 0 1 28 0 v10 z" class="f-elev"/><text x="238" y="123" class="t-math" text-anchor="start"><tspan font-style="italic">c</tspan></text><text x="148" y="22" class="t-math" text-anchor="start"><tspan font-style="italic">d</tspan></text><text x="14" y="108" class="t-math" text-anchor="start"><tspan font-style="italic">a</tspan></text><text x="138" y="226" class="t-math" text-anchor="start"><tspan font-style="italic">b</tspan></text><line x1="24" y1="118" x2="124" y2="118" class="s-acc" stroke-width="2.4" marker-end="url(#f122b-acc)"/><line x1="128" y1="212" x2="128" y2="122" class="s-acc2" stroke-width="2.4" marker-end="url(#f122b-acc2)"/><line x1="125" y1="114" x2="125" y2="36" class="s-acc" stroke-width="2.4" marker-end="url(#f122b-acc)"/><line x1="132" y1="121" x2="206" y2="121" class="s-acc2" stroke-width="2.4" marker-end="url(#f122b-acc2)"/><line x1="106" y1="140" x2="150" y2="96" class="s-line" stroke-width="5" style="stroke:var(--text)"/><text x="12" y="22" class="t-b" text-anchor="start">(나) 둘 다 반사</text><text x="250" y="200" class="t-b" text-anchor="end">진폭 −½</text></svg><!--/fig:12-2b--></div>
+      <figcaption><b>그림 12-2.</b> 50:50 빔 가르개에 입자가 \(a\)와 \(b\)로 하나씩 들어와 \(c\)와 \(d\)에서 하나씩 검출되는 두 가지 방식. (가) 둘 다 투과하면 진폭이 \((1/\sqrt2)(1/\sqrt2)=+1/2\)이고, (나) 둘 다 반사하면 \(b\)의 반사에 붙은 음의 부호 때문에 \(-1/2\)이다. 동일 보손은 두 진폭을 더해 0이 되고, 구별 가능한 입자는 확률을 더해 \(1/4+1/4=1/2\)이다.</figcaption>
+    </figure>
+    <p>1987년 홍(C. K. Hong), 오우(Z. Y. Ou), 만델(L. Mandel)은 똑같이 만든 광자 둘을 빔 가르개에 보내고 도착 시각의 차이를 바꿔 가며 동시 검출률을 쟀다. 두 광자의 파속이 겹치는 지연에서 동시 검출이 거의 사라졌고, 이를 <span class="term">홍–오우–만델 효과</span> <span class="en">(Hong–Ou–Mandel effect)</span>라 한다. 지연이 파속 길이보다 길면 도착 시각으로 두 광자를 구별할 수 있어 동시 검출 확률이 \(1/2\)로 돌아간다(<a class="ref" href="#prob-hom-partial"></a>).</p>
+  </section>
+
+  <section id="s5">
     <h2>파울리 배타 원리: 무엇을 함께 점유할 수 없는가</h2>
     <p>두 페르미온이 같은 <em>완전한 한 입자 상태</em> \(|a\rangle\)를 차지한다고 가정하자. 교환하면 \(|a,a\rangle\)는 변하지 않지만 페르미온 상태라면 부호가 바뀌어야 한다. 둘을 동시에 만족하는 벡터는 0뿐이다.</p>
     <div class="box thm" id="thm-pauli"><div class="box-h">파울리 배타 원리</div>
       <div class="formula" id="eq-pauli">\[ \hat\Pi_-|a,a\rangle=\frac{|a,a\rangle-|a,a\rangle}{2}=0. \]</div>
       <p>동일한 페르미온 둘은 같은 한 입자 상태를 함께 점유할 수 없다. 여기서 한 입자 상태에는 공간 파동함수뿐 아니라 스핀 등 내부 자유도도 포함된다.</p>
     </div>
-    <h3 id="s4-spin">전자 둘이 같은 공간 궤도에 들어갈 수 있는 이유</h3>
+    <h3 id="s5-spin">전자 둘이 같은 공간 궤도에 들어갈 수 있는 이유</h3>
     <p>전자 한 개의 상태를 공간 부분 \(|\phi\rangle\)와 두 독립적인 스핀 상태 \(|\uparrow\rangle,|\downarrow\rangle\)의 곱으로 적자. \(|\phi,\uparrow\rangle\)와 \(|\phi,\downarrow\rangle\)는 서로 직교하는 <em>다른</em> 한 입자 상태다. 이 둘로 만든 반대칭 상태는</p>
     <div class="formula" id="eq-same-orbital-spin">\[ \begin{aligned}|\Psi_F\rangle&amp;=\frac{|\phi,\uparrow\rangle_1|\phi,\downarrow\rangle_2-|\phi,\downarrow\rangle_1|\phi,\uparrow\rangle_2}{\sqrt2}\\
     &amp;=|\phi\rangle_1|\phi\rangle_2\,\frac{|\uparrow\downarrow\rangle-|\downarrow\uparrow\rangle}{\sqrt2}.\end{aligned} \]</div>
-    <p>공간 부분은 대칭이고 스핀 부분은 반대칭이므로 전체는 반대칭이다. 따라서 같은 공간 궤도에 전자 두 개가 들어가는 일은 파울리 원리와 맞는다. 두 전자의 스핀까지 같게 만들면 식 <a class="ref" href="#eq-pauli"></a>처럼 상태가 0이 된다. 스핀의 합성은 <a href="ch17.html">17장</a>에서 더 계산한다.</p>
-    <figure class="diagram">
-      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="같은 공간 궤도를 점유하는 전자 두 개에서 스핀 상태에 따른 파울리 원리">
-
-        <text x="30" y="37" class="t-b">같은 공간 궤도 φ</text>
-        <rect x="36" y="62" width="160" height="130" rx="75" class="f-elev"/>
-        <rect x="244" y="62" width="160" height="130" rx="75" class="f-acc-soft"/>
-        <text x="82" y="111" class="t-b">↑   ↑</text><text x="291" y="111" class="t-b">↑   ↓</text>
-        <text x="66" y="151" class="t">동일한 완전 상태</text><text x="268" y="151" class="t">서로 다른 스핀</text>
-        <text x="70" y="225" class="t-b">불가능: 상태 = 0</text><text x="280" y="225" class="t-acc">가능: 반대칭 스핀</text>
-      </svg></div>
-      <figcaption><b>그림 12-1.</b> 배타 원리는 공간 궤도만이 아니라 스핀까지 포함한 완전한 한 입자 상태에 적용된다. 두 전자가 같은 공간 궤도에 있어도 반대 스핀이면 허용된다.</figcaption>
-    </figure>
-    <h3 id="s4-many">셋 이상으로 넓히기: 슬레이터 행렬식</h3>
+    <p>공간 부분은 대칭이고 스핀 부분은 반대칭이므로 전체는 반대칭이다. 따라서 같은 공간 궤도에 전자 두 개가 들어가는 일은 파울리 원리와 맞는다. 두 전자의 스핀까지 같게 만들면 식 <a class="ref" href="#eq-pauli"></a>처럼 상태가 0이 된다. 공간 궤도가 서로 다를 때는 <a href="#s6">12.6절</a>에서 다룬다.</p>
+    <h3 id="s5-many">셋 이상으로 넓히기: 슬레이터 행렬식</h3>
     <p>서로 직교하는 \(N\)개의 정규화된 한 입자 상태 \(\chi_1,\ldots,\chi_N\)를 쓰자. \(q_j\)는 \(j\)번째 자리의 공간·스핀 좌표를 모두 모은 것이다. 모든 자리의 교환에서 부호가 바뀌는 상태는 <span class="term">슬레이터 행렬식</span> <span class="en">(Slater determinant)</span>으로 쓸 수 있다.</p>
     <div class="formula" id="eq-slater">\[ \Psi_F(q_1,\ldots,q_N)=\frac1{\sqrt{N!}}
     \begin{vmatrix}
@@ -148,26 +232,75 @@
     <p>두 입자의 좌표를 바꾸면 행 두 개가 맞바뀌므로 부호가 반전된다. 같은 한 입자 상태를 두 번 넣으면 열 두 개가 같아져 행렬식이 0이다. 직교한 \(\chi_i\)에 대해 행렬식을 전개하면 서로 다른 순열 항 \(N!\)개가 직교하며 각각 노름이 1이어서, 앞 인자 \(1/\sqrt{N!}\)가 정규화를 맞춘다.</p>
     <div class="box math" id="math-occupations"><div class="box-h">입자 수와 가능한 상태의 수</div>
       <p>사용할 수 있는 서로 직교한 한 입자 상태가 \(d\)개라고 하자. \(N\)개 보손은 각 상태의 점유수 \(n_i=0,1,2,\ldots\)가 \(\sum_i n_i=N\)을 만족한다. 페르미온은 각 \(n_i\)가 0 또는 1이다. 보손의 해는 중복 조합, 페르미온의 해는 보통 조합으로 센다.</p>
-      <div class="formula" id="eq-dimensions">\[ \dim\operatorname{Sym}^N(\mathbb C^d)=\binom{d+N-1}{N},\qquad
-      \dim\bigwedge^N(\mathbb C^d)=\binom dN\quad(N\le d). \]</div>
-      <p>\(N&gt;d\)이면 페르미온 상태는 없다. \(N=2,d=3\)이면 구별 가능한 경우 9개, 보손 6개, 페르미온 3개다. 이는 단순히 상태를 중복 계산하지 않는 일에 더해, 허용되는 상태 공간 자체를 제한한다.</p>
+      <div class="formula" id="eq-dimensions">\[ \begin{gathered}\dim\operatorname{Sym}^N(\mathbb C^d)=\binom{d+N-1}{N},\\
+      \dim\bigwedge^N(\mathbb C^d)=\binom dN\quad(N\le d).\end{gathered} \]</div>
+      <p>\(N&gt;d\)이면 페르미온 상태는 없다. \(N=2,d=3\)이면 구별 가능한 경우 9개, 보손 6개, 페르미온 3개이고, \(6+3=9\)로 두 공간이 전체를 정확히 나눈다. 입자가 셋 이상이면 그렇지 않다. \(N=3,d=4\)에서는 전체 64차원 가운데 보손이 20차원, 페르미온이 4차원뿐이다. 나머지 40차원은 모든 교환에서 같은 부호를 얻지 못하는 상태라 동일 입자에게 허용되지 않는다(<a class="ref" href="#prob-counting"></a>).</p>
     </div>
     <div class="box ex" id="ex-ground-state-box"><div class="box-h">무한 우물 바닥 에너지 비교</div>
-      <p>상호작용이 없는 같은 질량의 입자 둘이 길이 \(L\)인 우물에 있다고 하자. 스핀 없는 보손은 둘 다 \(n=1\)에 들어가 \(E_{\mathrm{ground}}=2E_1\)이다. 스핀 없는 페르미온은 \(n=1,2\)를 하나씩 점유해야 하므로 \(E_{\mathrm{ground}}=E_1+E_2=5E_1\)이다. 스핀 \(1/2\)인 전자 둘은 서로 다른 스핀 상태를 택해 같은 공간 준위 \(n=1\)에 들어갈 수 있고, 상호작용을 무시한 에너지는 \(2E_1\)이다.</p>
+      <p>상호작용이 없는 같은 질량의 입자 둘이 길이 \(L\)인 우물에 있다고 하자. 스핀 없는 보손은 둘 다 \(n=1\)에 들어가 \(E_{\mathrm{ground}}=2E_1\)이다. 스핀 없는 페르미온은 \(n=1,2\)를 하나씩 점유해야 하므로 \(E_{\mathrm{ground}}=E_1+E_2=5E_1\)이다. 스핀 \(1/2\)인 전자 둘은 서로 다른 스핀 상태를 택해 같은 공간 준위 \(n=1\)에 들어갈 수 있고, 상호작용을 무시한 에너지는 \(2E_1\)이다. 입자가 넷이면 차이가 더 벌어진다(그림 12-3).</p>
     </div>
-    <div class="callout deep"><strong>표지 없는 입자의 측정</strong><p>동일 입자에서 \(q_1,q_2\)는 계산을 위한 자리다. 관측 가능한 연산자는 자리를 바꾸어도 뜻이 같아야 하므로 \([\hat O,\hat P_{12}]=0\)이다. 예를 들어 두 입자의 총 에너지와 \(\hat A^{(1)}+\hat A^{(2)}\)는 이런 조건을 만족한다. 해밀토니안도 교환 대칭이면 \([\hat H,\hat P_{12}]=0\)이고 시간 변화 중 보손·페르미온 대칭성이 보존된다.</p></div>
+    <figure class="diagram" id="fig-filling">
+      <div class="fig-narrow"><!--fig:12-3--><svg viewBox="0 0 440 270" role="img" aria-label="무한 우물에 입자 넷을 넣은 바닥 상태. 보손은 모두 바닥 준위에, 스핀 없는 페르미온은 네 준위에 하나씩, 전자는 아래 두 준위에 반대 스핀 둘씩 들어간다"><defs><marker id="f123-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f123-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f123-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="64" y="219" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="74" y1="214" x2="162" y2="214" class="s-line" stroke-width="1.6"/><line x1="196" y1="214" x2="284" y2="214" class="s-line" stroke-width="1.6"/><line x1="318" y1="214" x2="406" y2="214" class="s-line" stroke-width="1.6"/><text x="64" y="192" class="t-math dim" text-anchor="end">4<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="74" y1="187" x2="162" y2="187" class="s-line" stroke-width="1.6"/><line x1="196" y1="187" x2="284" y2="187" class="s-line" stroke-width="1.6"/><line x1="318" y1="187" x2="406" y2="187" class="s-line" stroke-width="1.6"/><text x="64" y="147" class="t-math dim" text-anchor="end">9<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="74" y1="142" x2="162" y2="142" class="s-line" stroke-width="1.6"/><line x1="196" y1="142" x2="284" y2="142" class="s-line" stroke-width="1.6"/><line x1="318" y1="142" x2="406" y2="142" class="s-line" stroke-width="1.6"/><text x="64" y="84" class="t-math dim" text-anchor="end">16<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="74" y1="79" x2="162" y2="79" class="s-line" stroke-width="1.6"/><line x1="196" y1="79" x2="284" y2="79" class="s-line" stroke-width="1.6"/><line x1="318" y1="79" x2="406" y2="79" class="s-line" stroke-width="1.6"/><text x="118" y="36" class="t" text-anchor="middle">보손</text><text x="240" y="36" class="t" text-anchor="middle">페르미온 (스핀 없음)</text><text x="362" y="36" class="t" text-anchor="middle">전자 (스핀 ½)</text><circle cx="97" cy="207" r="5" class="f-acc"/><circle cx="111" cy="207" r="5" class="f-acc"/><circle cx="125" cy="207" r="5" class="f-acc"/><circle cx="139" cy="207" r="5" class="f-acc"/><circle cx="240" cy="207" r="5" class="f-acc2"/><circle cx="240" cy="180" r="5" class="f-acc2"/><circle cx="240" cy="135" r="5" class="f-acc2"/><circle cx="240" cy="72" r="5" class="f-acc2"/><line x1="354" y1="212" x2="354" y2="194" class="s-acc" stroke-width="2" marker-end="url(#f123-acc)"/><line x1="370" y1="194" x2="370" y2="212" class="s-acc2" stroke-width="2" marker-end="url(#f123-acc2)"/><line x1="354" y1="185" x2="354" y2="167" class="s-acc" stroke-width="2" marker-end="url(#f123-acc)"/><line x1="370" y1="167" x2="370" y2="185" class="s-acc2" stroke-width="2" marker-end="url(#f123-acc2)"/><text x="118" y="252" class="t-math" text-anchor="middle"><tspan style="font-family:var(--font);font-size:13px">합</tspan> 4<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="240" y="252" class="t-math" text-anchor="middle"><tspan style="font-family:var(--font);font-size:13px">합</tspan> 30<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="362" y="252" class="t-math" text-anchor="middle"><tspan style="font-family:var(--font);font-size:13px">합</tspan> 10<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text></svg><!--/fig:12-3--></div>
+      <figcaption><b>그림 12-3.</b> 상호작용이 없는 같은 입자 넷을 길이 \(L\)인 무한 우물에 넣은 바닥 상태. 준위의 높이는 \(E_n=n^2E_1\)에 맞춰 그렸다. 보손은 모두 \(n=1\)에 들어가 \(4E_1\), 스핀 없는 페르미온은 \(n=1\)부터 4까지 하나씩 채워 \(30E_1\), 스핀 \(1/2\)인 전자는 한 준위에 반대 스핀 둘씩 들어가 \(2(E_1+E_2)=10E_1\)이다.</figcaption>
+    </figure>
+    <h3 id="s5-fermi">페르미 에너지와 축퇴압</h3>
+    <p>스핀 \(1/2\)인 페르미온 \(N\)개(\(N\)은 짝수)를 상호작용 없이 우물에 넣으면, 바닥 상태는 아래 준위부터 반대 스핀 둘씩 채운다. 채워진 가장 높은 준위의 에너지를 <span class="term">페르미 에너지</span> <span class="en">(Fermi energy)</span> \(E_F\)라 한다. \(n=N/2\)까지 채우고 \(\sum_{n=1}^{K}n^2=K(K+1)(2K+1)/6\)을 \(K=N/2\)로 쓰면</p>
+    <div class="formula" id="eq-fermi-1d">\[ \begin{aligned}E_F&amp;=\Bigl(\frac N2\Bigr)^2E_1,\\ E_{\mathrm{tot}}&amp;=2E_1\sum_{n=1}^{N/2}n^2=\frac{N(N+1)(N+2)}{12}\,E_1.\end{aligned} \]</div>
+    <p>보손이라면 \(E_{\mathrm{tot}}=NE_1\)이다. \(N\)이 크면 페르미온의 총에너지는 \(N^3E_1/12\approx NE_F/3\)으로, 입자당 평균 에너지가 \(E_F\)의 \(1/3\)이다. 또 \(E_1\propto1/L^2\)이므로 \(E_{\mathrm{tot}}\propto L^{-2}\)이고, 벽을 바깥으로 미는 힘은 \(F=-\partial E_{\mathrm{tot}}/\partial L=2E_{\mathrm{tot}}/L\)이다. 온도가 0이어도, 입자끼리 밀어내지 않아도 생기는 이 압력을 <span class="term">축퇴압</span> <span class="en">(degeneracy pressure)</span>이라 한다.</p>
+    <p>3차원 상자(한 변 \(L\), 부피 \(V=L^3\))에서는 세 방향이 서로 독립인 세 계처럼 행동하므로 식 <a class="ref" href="#eq-energy-sum"></a>처럼 에너지가 더해진다.</p>
+    <div class="formula">\[ \begin{gathered}E=\frac{\pi^2\hbar^2}{2mL^2}\bigl(n_x^2+n_y^2+n_z^2\bigr)=\frac{\hbar^2|\boldsymbol k|^2}{2m},\\ \boldsymbol k=\frac{\pi}{L}(n_x,n_y,n_z).\end{gathered} \]</div>
+    <p>허용된 \(\boldsymbol k\)는 성분이 모두 양수인 팔분 공간에 간격 \(\pi/L\)로 놓인 격자점이고, 점 하나가 부피 \((\pi/L)^3\)을 차지한다. \(N\)이 크면 반지름 \(k_F\)인 구의 \(1/8\) 안에 있는 점의 수에 스핀 상태 2를 곱한 것이 \(N\)이다.</p>
+    <div class="formula" id="eq-fermi-count">\[ N=2\cdot\frac18\cdot\frac{4\pi k_F^3/3}{(\pi/L)^3}=\frac{Vk_F^3}{3\pi^2}. \]</div>
+    <p>따라서 수 밀도 \(n=N/V\)로 쓰면</p>
+    <div class="formula" id="eq-fermi-3d">\[ k_F=(3\pi^2n)^{1/3},\qquad E_F=\frac{\hbar^2}{2m}(3\pi^2n)^{2/3}. \]</div>
+    <p>\(E_F\)는 입자 수가 아니라 밀도에만 의존한다.</p>
+    <div class="box ex" id="ex-copper"><div class="box-h">구리의 전도 전자</div>
+      <p>구리는 원자마다 전도 전자를 하나씩 내놓는다. 밀도 \(8.96\ \mathrm{g/cm^3}\), 몰질량 \(63.55\ \mathrm{g/mol}\)에서 \(n=8.49\times10^{28}\ \mathrm{m^{-3}}\)이고, 식 <a class="ref" href="#eq-fermi-3d"></a>로 \(k_F=1.36\times10^{10}\ \mathrm{m^{-1}}\), \(E_F=7.0\ \mathrm{eV}\)다. 실온의 \(k_BT=0.026\ \mathrm{eV}\)보다 약 270배 크고, \(E_F/k_B\approx8.2\times10^4\ \mathrm K\)다. 실온의 금속 전자는 사실상 바닥 상태에 있는 페르미온 기체다. 가장 빠른 전자의 속력 \(\hbar k_F/m=1.6\times10^6\ \mathrm{m/s}\)는 같은 온도의 고전 기체에서 기대하는 열속력보다 10배 넘게 빠르다.</p>
+    </div>
+    <div class="callout deep"><strong>별을 떠받치는 축퇴압</strong><p>백색 왜성은 핵융합을 마친 별의 중심부가 수축한 천체로, 중력을 버티는 압력은 열이 아니라 전자의 축퇴압이다. 밀도가 아주 높아 전자가 상대론적으로 움직이면 축퇴압이 중력을 끝까지 이기지 못하는 질량의 한계(찬드라세카르 한계, 태양 질량의 약 1.4배)가 생긴다.</p></div>
+  </section>
+
+  <section id="s6">
+    <h2>스핀과 교환 에너지</h2>
+    <p>식 <a class="ref" href="#eq-same-orbital-spin"></a>에서는 두 전자가 같은 공간 궤도에 있었다. 이번에는 서로 다른 궤도에 있는 전자 둘의 상태를 모두 세고, 스핀과 무관한 상호작용이 이들의 에너지를 어떻게 가르는지 계산한다.</p>
+    <p>먼저 두 스핀 \(1/2\)의 공간 \(\mathbb C^2\otimes\mathbb C^2\)에서 교환 연산자의 고유상태를 구한다. \(|{\uparrow\uparrow}\rangle\)와 \(|{\downarrow\downarrow}\rangle\)는 교환해도 그대로이고, \(|{\uparrow\downarrow}\rangle\)와 \(|{\downarrow\uparrow}\rangle\)는 서로 바뀌므로 그 합과 차가 고유상태다.</p>
+    <div class="formula" id="eq-spin-exchange-states">\[ \begin{gathered}\chi_+:\quad|{\uparrow\uparrow}\rangle,\quad\frac{|{\uparrow\downarrow}\rangle+|{\downarrow\uparrow}\rangle}{\sqrt2},\quad|{\downarrow\downarrow}\rangle,\\
+    \chi_-:\quad\frac{|{\uparrow\downarrow}\rangle-|{\downarrow\uparrow}\rangle}{\sqrt2}.\end{gathered} \]</div>
+    <p>교환에 대칭인 세 상태를 <span class="term">삼중항</span> <span class="en">(triplet)</span>, 반대칭인 하나를 <span class="term">단일항</span> <span class="en">(singlet)</span>이라 한다. <a href="ch17.html#thm-triplet-singlet">17장</a>에서 이들이 전체 스핀 \(S=1\)과 \(S=0\)의 상태임을 보인다.</p>
+    <p>해밀토니안이 스핀에 의존하지 않으면 에너지 고유상태를 공간 부분과 스핀 부분의 곱 \(\psi(x_1,x_2)\chi\)로 고를 수 있다. 전체 교환은 위치와 스핀을 함께 바꾸므로 \(\hat P_{12}=\hat P_{12}^{\text{공간}}\otimes\hat P_{12}^{\text{스핀}}\)이고, 페르미온의 조건 \(\hat P_{12}=-1\)은 두 부호의 곱이 \(-1\)이라는 뜻이다.</p>
+    <div class="formula" id="eq-space-spin-pairs">\[ \Psi_S=\psi_+(x_1,x_2)\,\chi_-,\qquad \Psi_T=\psi_-(x_1,x_2)\,\chi_+. \]</div>
+    <p>즉 단일항은 대칭인 공간 파동함수와, 삼중항은 반대칭인 공간 파동함수와 짝을 이룬다. 서로 직교하는 두 궤도 \(\phi_a\ne\phi_b\)에 전자를 하나씩 넣으면 \(\psi_\pm=[\phi_a(x_1)\phi_b(x_2)\pm\phi_b(x_1)\phi_a(x_2)]/\sqrt2\)로 단일항 하나와 삼중항 셋, 모두 네 상태가 생긴다. 한 입자 상태 \(\phi_a{\uparrow},\phi_a{\downarrow},\phi_b{\uparrow},\phi_b{\downarrow}\)에서 둘을 고르는 \(\binom42=6\)가지 가운데, 둘 다 \(\phi_a\)에 있거나 둘 다 \(\phi_b\)에 있는 두 단일항을 뺀 넷이다.</p>
+    <h3 id="s6-integrals">직접 적분과 교환 적분</h3>
+    <p>해밀토니안을 \(\hat H=\hat H_1+\hat H_2+V(\hat x_1,\hat x_2)\)로 두자. 동일 입자이므로 \(V(x_1,x_2)=V(x_2,x_1)\)이다. \(V\)가 없으면 네 상태의 에너지는 모두 \(E_a+E_b\)로 같다. \(u=\phi_a(x_1)\phi_b(x_2)\), \(v=\phi_b(x_1)\phi_a(x_2)\)로 \(V\)의 기댓값을 펼치면</p>
+    <div class="formula" id="eq-exchange-expectation">\[ \begin{aligned}&amp;\langle\psi_\pm|V|\psi_\pm\rangle=\frac12\Bigl(\langle u|V|u\rangle+\langle v|V|v\rangle\\ &amp;\qquad\qquad\pm\langle u|V|v\rangle\pm\langle v|V|u\rangle\Bigr).\end{aligned} \]</div>
+    <p>적분 변수 \(x_1\)과 \(x_2\)의 이름을 맞바꾸고 \(V\)의 대칭성을 쓰면 \(\langle v|V|v\rangle=\langle u|V|u\rangle\), \(\langle v|V|u\rangle=\langle u|V|v\rangle\)다. 그런데 \(V\)가 에르미트이므로 \(\langle v|V|u\rangle=\langle u|V|v\rangle^*\)이기도 하다. 따라서 \(\langle u|V|v\rangle\)는 실수이고, 기댓값은 두 적분으로 쓸 수 있다.</p>
+    <div class="formula" id="eq-direct-exchange">\[ \begin{aligned} J&amp;=\iint dx_1dx_2\,|\phi_a(x_1)|^2|\phi_b(x_2)|^2\,V(x_1,x_2),\\
+    K&amp;=\iint dx_1dx_2\,\phi_a^*(x_1)\phi_b^*(x_2)\,V(x_1,x_2)\,\phi_b(x_1)\phi_a(x_2). \end{aligned} \]</div>
+    <p>\(J\)는 두 확률 분포 사이의 고전적인 상호작용 에너지와 같은 꼴이라 <span class="term">직접 적분</span> <span class="en">(direct integral)</span>, \(K\)는 고전적 대응이 없어 <span class="term">교환 적분</span> <span class="en">(exchange integral)</span>이라 한다. 두 전자 상태의 에너지는</p>
+    <div class="formula" id="eq-singlet-triplet">\[ E_S=E_a+E_b+J+K,\qquad E_T=E_a+E_b+J-K. \]</div>
+    <p>\(V\)는 공간 교환과 교환하므로 \(\psi_+\)와 \(\psi_-\)를 섞지 않고, 스핀에는 아예 작용하지 않는다. 그래서 이 네 상태 안에서 \(V\)는 이미 대각이고, 위 값은 \(V\)를 1차까지 고려한 에너지다(<a href="ch19.html#thm-degenerate-perturbation">19장의 축퇴 섭동론</a>). 해밀토니안에 스핀이 전혀 없는데도 에너지가 전체 스핀에 따라 \(2K\)만큼 갈린다. 반대칭화가 공간 대칭과 스핀 대칭을 묶어 놓았기 때문이다.</p>
+    <div class="box ex" id="ex-contact"><div class="box-h">접촉 상호작용</div>
+      <p>우물 속 두 전자가 같은 곳에 있을 때만 서로 밀어낸다고 단순화해 \(V=g\,\delta(x_1-x_2)\) (\(g&gt;0\))로 두자. 델타 함수가 \(x_2\)를 \(x_1\)에 묶으므로 \(J\)와 \(K\)의 적분이 같아진다. 궤도 \(\phi_1,\phi_2\)에서 \(\sin^2\theta\sin^22\theta=(1-\cos2\theta)(1-\cos4\theta)/4\)의 평균이 \(1/4\)이므로</p>
+      <div class="formula">\[ J=K=g\int_0^L\phi_1^2\phi_2^2\,dx=g\cdot\frac{4}{L^2}\cdot\frac L4=\frac gL. \]</div>
+      <p>따라서 단일항은 \(5E_1+2g/L\), 삼중항은 \(5E_1\)이다. 삼중항의 공간 파동함수는 \(x_1=x_2\)에서 0이어서 접촉 상호작용을 전혀 느끼지 않는다. 둘 다 \(n=1\)에 있는 단일항은 \(\sin^4\theta\)의 평균 \(3/8\)에서 \(2E_1+g\int\phi_1^4\,dx=2E_1+3g/(2L)\)이다.</p>
+    </div>
+    <p>실제 원자에서도 같은 일이 일어난다. 헬륨의 한 전자가 \(1s\), 다른 전자가 \(2s\)에 있는 들뜬 상태는 단일항(파라헬륨)과 삼중항(오르토헬륨)으로 갈린다. 바닥 상태에서 잰 에너지는 삼중항 \(2\,{}^3\mathrm S\)가 \(19.82\ \mathrm{eV}\), 단일항 \(2\,{}^1\mathrm S\)가 \(20.62\ \mathrm{eV}\)로, 삼중항이 \(0.80\ \mathrm{eV}\) 낮다. 전자 사이의 쿨롱 반발에는 스핀이 들어 있지 않지만, 공간이 반대칭인 삼중항에서는 두 전자가 서로 피하므로 반발 에너지가 작다. 원자에서 스핀을 되도록 나란히 하는 상태가 낮다는 훈트 규칙의 첫째 조항도 같은 이유에서 나온다.</p>
+    <div class="callout deep"><strong>디랙의 교환 연산자와 자성</strong><p>스핀 공간의 교환 연산자는 파울리 행렬로 \(\hat P_{12}^{\text{스핀}}=\tfrac12(I+\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2)\)로 쓸 수 있다(<a class="ref" href="#prob-dirac-exchange"></a>). 공간 부호는 스핀 부호의 반대이므로 네 상태의 에너지 \(E_a+E_b+J\pm K\)를 한 식으로 쓰면</p>
+      <div class="formula">\[ \hat H_{\mathrm{eff}}=E_a+E_b+J-\frac K2\bigl(I+\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2\bigr). \]</div>
+      <p>스핀끼리 직접 상호작용하는 것처럼 보이는 이 꼴이 하이젠베르크 자성 모형의 출발점이다. 강자성체에서 스핀을 나란히 세우는 힘은 자기 쌍극자 상호작용이 아니라 쿨롱 반발과 반대칭화에서 나온다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li>두 계의 공간은 \(\mathcal H_1\otimes\mathcal H_2\)이며, 차원은 \(d_1d_2\)다. 모든 상태가 곱상태일 필요는 없다.</li>
-      <li>상호작용이 없는 두 입자의 곱상태 에너지는 한 입자 에너지의 합이다.</li>
-      <li>교환 연산자 \(\hat P_{12}\)는 두 자리를 바꾸며, \(\hat P_{12}^2=I\)이어서 고유값은 \(\pm1\)이다.</li>
-      <li>동일 보손의 전체 상태는 교환에 대해 대칭, 동일 페르미온의 전체 상태는 반대칭이다.</li>
+      <li>두 계의 공간은 \(\mathcal H_1\otimes\mathcal H_2\)이며 차원은 \(d_1d_2\)다. 연산자의 행렬은 크로네커 곱이고, 계수 행렬의 랭크가 1인 상태만 곱상태다.</li>
+      <li>상호작용이 없으면 에너지는 더해지고 시간 변화는 \(\hat U_1\otimes\hat U_2\)로 나뉜다. 거리에만 의존하는 상호작용은 질량 중심과 상대 좌표로 분리하며, 상호작용은 일반적으로 얽힘을 만든다.</li>
+      <li>교환 연산자 \(\hat P_{12}\)는 \(\hat P_{12}^2=I\)이어서 고유값이 \(\pm1\)이다. 동일 보손은 대칭, 동일 페르미온은 반대칭 상태만 가지며, 두 입자에서 이것은 상대 운동 파동함수의 짝·홀과 같다.</li>
       <li>두 직교한 한 입자 상태로 만든 정규화된 상태는 \((|a,b\rangle\pm|b,a\rangle)/\sqrt2\)다.</li>
-      <li>반대칭성 때문에 두 페르미온은 같은 <em>완전한</em> 한 입자 상태를 점유할 수 없다. 공간 궤도만 같고 스핀이 다르면 가능하다.</li>
-      <li>여러 페르미온의 반대칭 상태는 슬레이터 행렬식으로 만들며, 점유 가능한 한 입자 상태 하나에는 한 페르미온만 들어간다.</li>
+      <li>교환 간섭 때문에 평균 거리 제곱이 \(\mp2|x_{ab}|^2\)만큼 바뀌어 보손은 모이고 페르미온은 피한다. 50:50 빔 가르개에서 동일 보손은 언제나 같은 출구로 나온다. 파동함수가 겹치지 않으면 이런 효과는 사라진다.</li>
+      <li>두 페르미온은 같은 <em>완전한</em> 한 입자 상태를 점유할 수 없다. 여러 페르미온은 슬레이터 행렬식으로 쓰며, 공간 궤도가 같아도 스핀이 다르면 함께 들어갈 수 있다.</li>
+      <li>페르미온은 아래 준위부터 채워져 \(E_F=\hbar^2(3\pi^2n)^{2/3}/(2m)\)까지 차고, 온도가 0이어도 축퇴압이 생긴다.</li>
+      <li>스핀과 무관한 상호작용에서도 단일항과 삼중항의 에너지는 교환 적분 때문에 \(2K\)만큼 갈린다. 서로 밀어내는 전자에서는 대개 공간이 반대칭인 삼중항이 낮다.</li>
     </ol>
   </section>
 
@@ -183,12 +316,15 @@
       <div class="quiz-q"><p>3. 서로 직교하는 \(|a\rangle,|b\rangle\)로 만든 동일 페르미온 상태는?</p><div class="opts">
         <button class="opt">\(|a,b\rangle\)</button><button class="opt" data-correct>\((|a,b\rangle-|b,a\rangle)/\sqrt2\)</button><button class="opt">\((|a,b\rangle+|b,a\rangle)/\sqrt2\)</button>
       </div><div class="quiz-exp">페르미온은 교환에 대해 부호가 바뀌므로 두 곱상태의 차가 필요하다.</div></div>
-      <div class="quiz-q"><p>4. 전자 둘이 같은 공간 궤도에 들어갈 수 있는 경우는?</p><div class="opts">
+      <div class="quiz-q"><p>4. 똑같은 광자 둘을 50:50 빔 가르개의 두 입구에 하나씩 동시에 보낼 때, 두 출구에서 하나씩 검출될 확률은?</p><div class="opts">
+        <button class="opt">\(1/2\)</button><button class="opt" data-correct>0</button><button class="opt">1</button>
+      </div><div class="quiz-exp">둘 다 투과하는 진폭 \(+1/2\)과 둘 다 반사하는 진폭 \(-1/2\)이 보손에서는 더해져 0이 된다. 확률 \(1/2\)은 구별 가능한 입자의 값이다.</div></div>
+      <div class="quiz-q"><p>5. 전자 둘이 같은 공간 궤도에 들어갈 수 있는 경우는?</p><div class="opts">
         <button class="opt">어떤 경우에도 불가능하다.</button><button class="opt" data-correct>서로 다른 스핀 상태를 점유해 전체 상태를 반대칭으로 만들 때</button><button class="opt">두 전자의 모든 양자수가 같을 때</button>
       </div><div class="quiz-exp">파울리 원리는 공간 궤도 하나가 아니라 공간과 스핀을 모두 포함한 한 입자 상태에 적용된다.</div></div>
-      <div class="quiz-q"><p>5. 서로 직교한 한 입자 상태가 3개일 때 동일한 스핀 없는 페르미온 둘의 상태 공간 차원은?</p><div class="opts">
-        <button class="opt">9</button><button class="opt">6</button><button class="opt" data-correct>3</button>
-      </div><div class="quiz-exp">중복 없이 서로 다른 두 상태를 골라야 하므로 \(\binom32=3\)이다.</div></div>
+      <div class="quiz-q"><p>6. 서로 다른 두 궤도에 있는 전자 둘의 공간 파동함수가 교환에 반대칭이다. 스핀 상태는?</p><div class="opts">
+        <button class="opt">단일항</button><button class="opt" data-correct>삼중항 가운데 하나</button><button class="opt">스핀과 상관없다</button>
+      </div><div class="quiz-exp">전체가 반대칭이어야 하므로 공간이 반대칭이면 스핀은 대칭인 삼중항이다. 두 전자가 서로 피하므로 반발 에너지가 \(J-K\)로 작다.</div></div>
     </div>
   </section>
 
@@ -206,12 +342,22 @@
       <details class="sol"><summary>풀이</summary><p>교차 내적은 \(|\langle a|b\rangle|^2=1/4\)다. 두 노름 제곱은 \(2(1\pm1/4)\)이므로 대칭 결합은 \((|a,b\rangle+|b,a\rangle)/\sqrt{5/2}\), 반대칭 결합은 \((|a,b\rangle-|b,a\rangle)/\sqrt{3/2}\)다.</p></details></div>
     <div class="prob" id="prob-number-operator" data-level="2"><p>서로 직교한 \(|a\rangle,|b\rangle\)에 대해 \(\hat n_a=|a\rangle\langle a|\otimes I+I\otimes|a\rangle\langle a|\)를 정의한다. \(|a,b\rangle_\pm\)와 보손 상태 \(|a,a\rangle\)에서 \(\hat n_a\)의 고유값을 구하라.</p>
       <details class="sol"><summary>풀이</summary><p>첫 항과 둘째 항을 각각 \(|a,b\rangle\)에 작용시키면 \(1+0=1\), \(|b,a\rangle\)에도 \(0+1=1\)이다. 따라서 두 대칭성 모두 \(\hat n_a|a,b\rangle_\pm=|a,b\rangle_\pm\)다. \(|a,a\rangle\)에는 두 항이 각각 1을 주므로 고유값은 2다.</p></details></div>
+    <div class="prob" id="prob-ho-separation" data-level="2"><p>조화 진동자의 바닥 상태 \(\psi_0\)와 첫 들뜬 상태 \(\psi_1\)에 입자를 하나씩 넣었다. 길이 단위 \(b=\sqrt{\hbar/(m\omega)}\)로 \(\langle x^2\rangle_0=b^2/2\), \(\langle x^2\rangle_1=3b^2/2\), \(x_{01}=b/\sqrt2\)이다. 구별 가능한 입자, 동일 보손, 동일 페르미온의 \(\langle(x_1-x_2)^2\rangle\)를 각각 구하라. 페르미온의 결과를 <a class="ref" href="#ex-trap-identical"></a>의 \(\kappa=0\)인 바닥 상태와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>패리티 때문에 \(\langle x\rangle_0=\langle x\rangle_1=0\)이다. 식 <a class="ref" href="#eq-exchange-separation"></a>에서 앞 두 항의 합은 \(2b^2\), 교환 항은 \(2|x_{01}|^2=b^2\)이다. 구별 가능한 입자는 \(2b^2\), 보손은 \(b^2\), 페르미온은 \(3b^2\)이다. \(\kappa=0\)인 페르미온 바닥 상태는 상대 운동이 질량 \(\mu=m/2\)인 진동자의 \(n=1\) 상태이고, 그 상태의 \(\langle x^2\rangle=\tfrac32\hbar/(\mu\omega)=3b^2\)으로 같다.</p></details></div>
+    <div class="prob" id="prob-hom-partial" data-level="3"><p>빔 가르개 실험에서 두 광자의 편광이나 도착 시각 같은 내부 상태가 완전히 같지 않다고 하자. \(a\)로 들어오는 광자는 내부 상태 \(|\chi_1\rangle\), \(b\)로 들어오는 광자는 \(|\chi_2\rangle\)를 갖고 \(\gamma=\langle\chi_1|\chi_2\rangle\)다. 보손 상태 \((|a\chi_1,b\chi_2\rangle+|b\chi_2,a\chi_1\rangle)/\sqrt2\)에서 시작해 동시 검출 확률이 \((1-|\gamma|^2)/2\)임을 보여라. 페르미온이면 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hat U\)는 통로에만 작용한다. 출력 상태 \([(\hat Ua\,\chi_1)\otimes(\hat Ub\,\chi_2)+(\hat Ub\,\chi_2)\otimes(\hat Ua\,\chi_1)]/\sqrt2\)에 식 <a class="ref" href="#eq-beam-splitter"></a>을 넣고 통로가 하나는 \(c\), 하나는 \(d\)인 항만 모으면</p>
+        <div class="formula">\[ \begin{aligned}\frac1{2\sqrt2}\Bigl[&amp;|c,d\rangle\otimes\bigl(|\chi_1\chi_2\rangle-|\chi_2\chi_1\rangle\bigr)\\ &amp;+|d,c\rangle\otimes\bigl(|\chi_2\chi_1\rangle-|\chi_1\chi_2\rangle\bigr)\Bigr].\end{aligned} \]</div>
+        <p>\(\||\chi_1\chi_2\rangle-|\chi_2\chi_1\rangle\|^2=2-2|\gamma|^2\)이고 두 항은 통로 부분이 직교하므로, 동시 검출 확률은 \(\tfrac18\cdot2(2-2|\gamma|^2)=(1-|\gamma|^2)/2\)다. \(\gamma=1\)이면 0, \(\gamma=0\)이면 구별 가능한 입자의 \(1/2\)이다. 페르미온이면 둘째 곱에 음의 부호가 붙어 괄호 안이 합이 되므로 \((1+|\gamma|^2)/2\)다.</p></details></div>
     <div class="prob" id="prob-box-ground" data-level="2"><p>상호작용 없는 길이 \(L\)의 무한 우물에서 스핀 없는 동일 보손 둘과 스핀 없는 동일 페르미온 둘의 바닥 에너지 및 첫 들뜬 에너지를 \(E_1\) 단위로 구하라.</p>
       <details class="sol"><summary>풀이</summary><p>보손은 \((n_1,n_2)=(1,1)\)이 바닥으로 \(2E_1\), 다음은 \((1,2)\)로 \(5E_1\)이다. 페르미온은 같은 준위를 중복 점유할 수 없어 \((1,2)\)가 바닥 \(5E_1\), 다음은 \((1,3)\)으로 \(10E_1\)이다.</p></details></div>
     <div class="prob" id="prob-spin-orbital" data-level="2"><p>같은 공간 파동함수 \(\phi(x)\)에 놓인 전자 둘의 상태를 식 <a class="ref" href="#eq-same-orbital-spin"></a>처럼 쓰자. 전체 입자 교환에서 상태가 음수가 됨을 확인하고, 두 스핀도 모두 \(\uparrow\)로 바꾸면 왜 불가능한지 말하라.</p>
       <details class="sol"><summary>풀이</summary><p>교환하면 공간 인자 \(\phi(x_1)\phi(x_2)\)는 그대로이고 스핀 인자 \((|\uparrow\downarrow\rangle-|\downarrow\uparrow\rangle)/\sqrt2\)가 음수가 된다. 두 스핀이 \(\uparrow\)라면 두 완전한 한 입자 상태가 모두 \(\phi\uparrow\)여서 반대칭 결합이 0이다.</p></details></div>
-    <div class="prob" id="prob-counting" data-level="3"><p>서로 직교한 한 입자 상태가 \(d=4\)개일 때 입자 \(N=3\)개의 구별 가능한 곱공간, 동일 보손 공간, 동일 페르미온 공간의 차원을 각각 구하라. 페르미온의 가능한 점유수 한 예도 써라.</p>
-      <details class="sol"><summary>풀이</summary><p>구별 가능한 곱공간은 \(4^3=64\)차원이다. 보손은 \(\binom{4+3-1}{3}=\binom63=20\)차원, 페르미온은 \(\binom43=4\)차원이다. 페르미온 점유수 예로 \((1,1,1,0)\)이 있다. 어느 상태가 비었는지 네 가지 선택이다.</p></details></div>
+    <div class="prob" id="prob-counting" data-level="3"><p>서로 직교한 한 입자 상태가 \(d=4\)개일 때 입자 \(N=3\)개의 구별 가능한 곱공간, 동일 보손 공간, 동일 페르미온 공간의 차원을 각각 구하라. 페르미온의 가능한 점유수 한 예도 써라. 곱공간에서 두 공간을 빼고 남는 차원은 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p>구별 가능한 곱공간은 \(4^3=64\)차원이다. 보손은 \(\binom{4+3-1}{3}=\binom63=20\)차원, 페르미온은 \(\binom43=4\)차원이다. 페르미온 점유수 예로 \((1,1,1,0)\)이 있다. 어느 상태가 비었는지 네 가지 선택이다. 남는 차원은 \(64-20-4=40\)이다. 이 상태들은 모든 교환에 대해 같은 부호를 얻지 못해 동일 입자에게 허용되지 않는다.</p></details></div>
+    <div class="prob" id="prob-dirac-exchange" data-level="2"><p>\(\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2=\hat X\otimes\hat X+\hat Y\otimes\hat Y+\hat Z\otimes\hat Z\)의 \(4\times4\) 행렬을 크로네커 곱으로 계산하고, \((I+\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2)/2\)가 <a class="ref" href="#prob-exchange-matrix"></a>의 \(\hat P_{12}\)와 같음을 보여라. 삼중항과 단일항에서 \(\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2\)의 고유값은 각각 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p>블록 규칙으로 \(\hat X\otimes\hat X\)는 반대각선이 모두 1인 행렬, \(\hat Z\otimes\hat Z=\mathrm{diag}(1,-1,-1,1)\)이다. \(\hat Y\otimes\hat Y=\begin{pmatrix}0&amp;-i\hat Y\\ i\hat Y&amp;0\end{pmatrix}\)에서 \(-i\hat Y=\begin{pmatrix}0&amp;-1\\1&amp;0\end{pmatrix}\)이므로 반대각선이 \((-1,1,1,-1)\)이다. 더하면</p>
+        <div class="formula">\[ \begin{gathered}\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2=\begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;-1&amp;2&amp;0\\0&amp;2&amp;-1&amp;0\\0&amp;0&amp;0&amp;1\end{pmatrix},\\ \frac{I+\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2}{2}=\hat P_{12}.\end{gathered} \]</div>
+        <p>\(\hat P_{12}\)는 삼중항에서 \(+1\), 단일항에서 \(-1\)이므로 \(\boldsymbol\sigma_1\cdot\boldsymbol\sigma_2=2\hat P_{12}-I\)의 고유값은 삼중항에서 \(1\), 단일항에서 \(-3\)이다.</p></details></div>
   </section>
 </main>
 </body>
