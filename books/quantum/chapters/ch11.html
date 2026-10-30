@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>11 경로 적분 · QuantumBook</title>
-<meta name="description" content="전파 함수의 합성 법칙에서 경로 적분을 유도하고, 자유 입자를 계산한 뒤 정류 위상으로 고전 극한을 이해한다.">
+<meta name="description" content="전파 함수의 합성 법칙과 곱 공식에서 경로 적분을 유도하고, 자유 입자와 가우스 파속을 계산한 뒤 정류 위상으로 고전 극한을 이해한다. 조화 진동자의 전파 함수에서 에너지 준위를 다시 얻는다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -28,14 +28,15 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">11</span></div>
     <h1 data-fill="chapter-title">경로 적분</h1>
-    <p class="lead">10장에서 시간 변화 연산자 \(U\)가 상태를 옮기는 방법을 배웠다. 위치 \(x_a\)에서 \(x_b\)까지 가는 진폭을 구할 때, 중간 위치를 계속 끼워 넣으면 무슨 일이 일어날까? 시간 간격을 무한히 촘촘히 나누면 경로마다 작용에 따른 위상을 붙여 더하는 경로 적분이 나온다.</p>
+    <p class="lead">10장에서 시간 변화 연산자 \(U\)가 상태를 옮기는 방법을 배웠다. 위치 \(x_a\)에서 \(x_b\)까지 가는 진폭을 구할 때 중간 위치를 계속 끼워 넣으면, 경로마다 작용에 따른 위상을 붙여 더하는 경로 적분이 나온다. 작용이 이차식이면 이 적분을 끝까지 계산할 수 있고, 조화 진동자의 에너지 준위까지 다시 얻는다.</p>
     <ul class="objectives">
-      <li>전파 함수를 정의하고 파동함수의 시간 변화와 합성 법칙을 설명할 수 있다.</li>
-      <li>짧은 시간의 전파 함수를 운동량 적분으로 구하고 시간 분할 경로 적분을 유도할 수 있다.</li>
-      <li>자유 입자의 전파 함수를 계산하고 정규화와 초기 조건을 확인할 수 있다.</li>
+      <li>전파 함수를 정의하고 파동함수의 시간 변화, 합성 법칙, 에너지 고유상태 전개를 설명할 수 있다.</li>
+      <li>짧은 시간의 전파 함수를 운동량 적분으로 구하고, 곱 공식의 오차가 극한에서 사라지는 이유와 함께 시간 분할 경로 적분을 유도할 수 있다.</li>
+      <li>자유 입자의 전파 함수를 계산하고 정규화, 초기 조건, 가우스 파속의 퍼짐을 확인할 수 있다.</li>
       <li>작용의 변분과 정류 위상을 연결해 고전 궤도가 나타나는 조건을 설명할 수 있다.</li>
+      <li>작용이 이차식인 계의 전파 함수를 고전 작용과 요동 인자로 나누고, 조화 진동자의 전파 함수에서 에너지 준위를 읽어 낼 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (위치·운동량 기저), <a href="ch03.html">3장</a> (가우스 적분), <a href="ch04.html">4장</a> (작용과 변분), <a href="ch06.html">6장</a> (시간 변화), <a href="ch10.html">10장</a> (슈뢰딩거 묘사)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (완비성 관계, 파울리 행렬의 지수), <a href="ch03.html">3장</a> (위치·운동량 기저, 가우스 적분, 푸리에 변환), <a href="ch04.html">4장</a> (작용과 변분), <a href="ch06.html">6장</a> (시간 변화), <a href="ch07.html">7장</a> (파속의 퍼짐), <a href="ch08.html">8장</a> (조화 진동자), <a href="ch10.html">10장</a> (슈뢰딩거 묘사)</p>
   </header>
 
   <section id="s1">
@@ -43,7 +44,7 @@
     <p>파동함수 전체를 매번 새로 풀지 않아도 한 위치에서 다른 위치로 가는 진폭을 알면 시간 변화를 계산할 수 있다. 여기서 \(t_b&gt;t_a\), \(T=t_b-t_a&gt;0\)로 놓고, 한 차원에서 \(\langle x|x'\rangle=\delta(x-x')\)를 쓴다.</p>
     <div class="box def" id="def-propagator"><div class="box-h">전파 함수</div>
       <div class="formula" id="eq-propagator">\[ K(x_b,t_b;x_a,t_a)=\langle x_b|U(t_b,t_a)|x_a\rangle. \]</div>
-      <p><span class="term">전파 함수</span> <span class="en">(propagator)</span>는 \(x_a\)에서 출발해 \(x_b\)에 도달하는 복소 진폭의 적분핵이다. 위치 고유상태는 정규화 가능한 실제 상태가 아니므로 \(|K|^2\)만을 한 점에 도착할 확률로 해석하지 않는다.</p>
+      <p><span class="term">전파 함수</span> <span class="en">(propagator)</span>는 \(x_a\)에서 출발해 \(x_b\)에 도달하는 복소 진폭의 적분핵이다. 위치 고유상태는 정규화할 수 있는 실제 상태가 아니므로 \(|K|^2\)를 한 점에 도착할 확률로 해석할 수 없다.</p>
     </div>
     <p>처음 파동함수에 완비 관계 \(I=\int dx_a\,|x_a\rangle\langle x_a|\)를 끼우면</p>
     <div class="formula" id="eq-wave-evolution">\[ \psi(x_b,t_b)=\int_{-\infty}^{\infty}\!dx_a\,K(x_b,t_b;x_a,t_a)\psi(x_a,t_a). \]</div>
@@ -55,6 +56,14 @@
     <div class="box ex" id="ex-two-routes"><div class="box-h">두 중간 경로의 간섭</div>
       <p>두 중간 구간 \(A,B\)를 통한 부분 진폭이 각각 \(a_A=0.3\), \(a_B=-0.2\)라고 하자. 구간을 구별하지 않으면 진폭의 합은 \(0.1\), 그 제곱은 \(0.01\)이다. 구간을 측정해 구별하면 제곱을 각각 더해 \(0.09+0.04=0.13\)을 얻는다. 이 숫자들은 완전한 측정의 정규화된 확률이 아니라 간섭 항을 보여 주는 부분 진폭의 예다.</p>
     </div>
+    <h3 id="s1-spectral">에너지 고유상태로 펼치기</h3>
+    <p>해밀토니안이 시간에 무관하면 \(U(t_b,t_a)=e^{-i\hat HT/\hbar}\)이다. 에너지 고유상태 \(\hat H|n\rangle=E_n|n\rangle\)의 완비 관계 \(I=\sum_n|n\rangle\langle n|\)를 \(U\) 오른쪽에 넣으면 고유상태마다 위상 \(e^{-iE_nT/\hbar}\)만 붙는다. 양쪽에 \(\langle x_b|\)와 \(|x_a\rangle\)를 붙이면 다음 식이 된다.</p>
+    <div class="formula" id="eq-spectral-kernel">\[ \begin{aligned}&amp;K(x_b,t_b;x_a,t_a)\\ &amp;\qquad=\sum_n\psi_n(x_b)\psi_n^*(x_a)\,e^{-iE_nT/\hbar}.\end{aligned} \]</div>
+    <p>여기서 \(\psi_n(x)=\langle x|n\rangle\)이다. \(K\)는 두 시각의 차 \(T\)에만 의존한다. \(T=0\)이면 위치 표현의 완비 관계 \(\sum_n\psi_n(x_b)\psi_n^*(x_a)=\delta(x_b-x_a)\)가 되어 앞의 초기 조건과 맞는다. 스펙트럼이 연속이면 합을 적분으로 바꾼다. 자유 입자에서는 운동량 고유상태 \(\langle x|p\rangle=e^{ipx/\hbar}/\sqrt{2\pi\hbar}\)의 에너지가 \(p^2/2m\)이므로 다음 적분이 된다.</p>
+    <div class="formula" id="eq-free-momentum">\[ \begin{aligned}&amp;K_0(x_b,T;x_a,0)\\ &amp;\quad=\int_{-\infty}^{\infty}\frac{dp}{2\pi\hbar}\exp\!\left[\frac{i}{\hbar}\Bigl(p(x_b-x_a)-\frac{p^2T}{2m}\Bigr)\right].\end{aligned} \]</div>
+    <p>이 적분은 <a href="#s3">11.3절</a>에서 계산한다. 마지막으로 \(U^\dagger U=I\)도 전파 함수의 성질로 옮겨 두자. \(\langle x_a'|U^\dagger U|x_a\rangle\)의 가운데에 위치 완비 관계를 넣으면</p>
+    <div class="formula" id="eq-kernel-unitary">\[ \int_{-\infty}^{\infty}\!dx_b\,K^*(x_b,t_b;x_a',t_a)\,K(x_b,t_b;x_a,t_a)=\delta(x_a-x_a'). \]</div>
+    <p>확률이 보존된다는 사실을 전파 함수로 쓴 식이다. <a href="#s5">11.5절</a>에서 조화 진동자 전파 함수의 앞 인자를 정할 때 이 식을 쓴다.</p>
   </section>
 
   <section id="s2">
@@ -76,40 +85,84 @@
       <figcaption><b>그림 11-1.</b> 끝점은 고정하고 중간 시각의 위치를 모두 적분한다. 실선과 점선은 가능한 위치 선택의 예이며, 각 세로선 전체의 위치가 적분 범위다.</figcaption>
     </figure>
     <div class="formula" id="eq-sliced-composition">\[ K=\int dx_1\cdots dx_{N-1}\prod_{j=0}^{N-1}\langle x_{j+1}|e^{-i\varepsilon\hat H/\hbar}|x_j\rangle. \]</div>
-    <p>한 조각에서 운동 에너지와 퍼텐셜 에너지를 순서대로 작용시킨다. 보통 두 연산자는 교환하지 않으므로 유한한 \(\varepsilon\)에서의 등식이 아니라 시간 분할 극한에서 쓰는 근사다.</p>
+    <p>한 조각에서 운동 에너지와 퍼텐셜 에너지를 순서대로 작용시킨다. 보통 두 연산자는 교환하지 않으므로 유한한 \(\varepsilon\)에서는 등식이 아니다. 조각 하나의 오차는 \(\varepsilon^2\)에 비례하고, 이 오차가 극한에서 사라진다는 것은 이 절 뒤에서 확인한다.</p>
     <div class="formula" id="eq-short-split">\[ e^{-i\varepsilon(\hat p^2/2m+V)/\hbar}\simeq e^{-i\varepsilon\hat p^2/(2m\hbar)}e^{-i\varepsilon V(\hat x)/\hbar}. \]</div>
     <p>오른쪽의 퍼텐셜 연산자는 \(|x_j\rangle\)에 \(e^{-i\varepsilon V(x_j)/\hbar}\)를 곱한다. 운동량 완비 관계와 \(\langle x|p\rangle=e^{ipx/\hbar}/\sqrt{2\pi\hbar}\)를 사용하면 나머지는 가우스 적분이다.</p>
-    <div class="formula" id="eq-short-fourier">\[ \begin{aligned}\langle x_{j+1}|e^{-i\varepsilon\hat p^2/(2m\hbar)}|x_j\rangle &amp;=\int_{-\infty}^{\infty}\frac{dp}{2\pi\hbar}\exp\!\left[\frac{i}{\hbar}\left(p\Delta x_j-\frac{\varepsilon p^2}{2m}\right)\right],\\ \Delta x_j&amp;=x_{j+1}-x_j.\end{aligned} \]</div>
+    <div class="formula" id="eq-short-fourier">\[ \begin{aligned}&amp;\langle x_{j+1}|e^{-i\varepsilon\hat p^2/(2m\hbar)}|x_j\rangle\\ &amp;\quad=\int_{-\infty}^{\infty}\frac{dp}{2\pi\hbar}\exp\!\left[\frac{i}{\hbar}\Bigl(p\Delta x_j-\frac{\varepsilon p^2}{2m}\Bigr)\right],\\ &amp;\Delta x_j=x_{j+1}-x_j.\end{aligned} \]</div>
     <div class="box math" id="math-fresnel"><div class="box-h">진동하는 가우스 적분</div>
       <p>지수를 제곱 완성하면 \(p\Delta x_j-\varepsilon p^2/(2m)=-\varepsilon(p-m\Delta x_j/\varepsilon)^2/(2m)+m\Delta x_j^2/(2\varepsilon)\)이다. 진동 적분은 작은 감쇠 인자 \(e^{-\eta p^2}\), \(\eta&gt;0\)를 넣어 계산한 뒤 \(\eta\to0^+\)로 보낸다. \(\int e^{-ap^2}dp=\sqrt{\pi/a}\)를 이 방식으로 이어 붙이면 \(\sqrt{1/i}=e^{-i\pi/4}\)인 가지가 정해진다.</p>
     </div>
-    <div class="formula" id="eq-short-kernel">\[ \langle x_{j+1}|e^{-i\varepsilon\hat H/\hbar}|x_j\rangle\simeq\sqrt{\frac{m}{2\pi i\hbar\varepsilon}}\exp\!\left\{\frac{i}{\hbar}\left[\frac{m(\Delta x_j)^2}{2\varepsilon}-\varepsilon V(x_j)\right]\right\}. \]</div>
+    <div class="formula" id="eq-short-kernel">\[ \begin{aligned}&amp;\langle x_{j+1}|e^{-i\varepsilon\hat H/\hbar}|x_j\rangle\simeq\sqrt{\frac{m}{2\pi i\hbar\varepsilon}}\\ &amp;\qquad\times\exp\!\left\{\frac{i}{\hbar}\left[\frac{m(\Delta x_j)^2}{2\varepsilon}-\varepsilon V(x_j)\right]\right\}.\end{aligned} \]</div>
     <p>지수의 대괄호는 한 조각의 운동 에너지와 퍼텐셜 에너지 차이에 \(\varepsilon\)을 곱한 것이다. 이를 모두 곱하고 중간 위치를 적분하면 다음 처방이 나온다.</p>
     <div class="box thm" id="thm-path-integral"><div class="box-h">시간 분할 경로 적분</div>
-      <div class="formula" id="eq-path-sliced">\[ \begin{aligned}K(x_b,t_b;x_a,t_a)=\lim_{N\to\infty}&amp;\left(\frac{m}{2\pi i\hbar\varepsilon}\right)^{N/2}\int\!dx_1\cdots dx_{N-1}\\ &amp;\times\exp\!\left[\frac{i}{\hbar}\sum_{j=0}^{N-1}\left(\frac{m(x_{j+1}-x_j)^2}{2\varepsilon}-\varepsilon V(x_j)\right)\right],\quad\varepsilon=\frac{T}{N}.\end{aligned} \]</div>
-      <p>앞 인자는 정규화에 필수다. 흔히 \(K=\int_{x_a}^{x_b}\mathcal D x\,e^{iS[x]/\hbar}\)라고 짧게 쓰며, 여기서 \(\mathcal D x\)는 바로 위 시간 분할 극한을 뜻한다.</p>
+      <div class="formula" id="eq-path-sliced">\[ \begin{aligned}&amp;K(x_b,t_b;x_a,t_a)\\ &amp;=\lim_{N\to\infty}\Bigl(\frac{m}{2\pi i\hbar\varepsilon}\Bigr)^{N/2}\!\int\!dx_1\cdots dx_{N-1}\\ &amp;\quad\times\exp\!\left[\frac{i}{\hbar}\sum_{j=0}^{N-1}\Bigl(\frac{m(x_{j+1}-x_j)^2}{2\varepsilon}-\varepsilon V(x_j)\Bigr)\right].\end{aligned} \]</div>
+      <p>앞 인자는 정규화에 필수다. 흔히 \(K=\int_{x_a}^{x_b}\mathcal D x\,e^{iS[x]/\hbar}\)라고 짧게 쓰며, 여기서 \(\mathcal D x\)는 \(\varepsilon=T/N\)으로 나눈 바로 위 시간 분할 극한을 뜻한다.</p>
     </div>
-    <p>\(S[x]=\int_{t_a}^{t_b}[m\dot x^2/2-V(x)]dt\)는 <a href="ch04.html">4장</a>의 작용이다. 극한에서 기여하는 모든 양자 경로가 매끈하다고 가정해 경로마다 \(\dot x\)를 계산하는 방식은 조심해야 한다. 계산의 출발점은 식 <a class="ref" href="#eq-path-sliced"></a>의 <em>이산화된 합과 적분</em>이다.</p>
+    <p>\(S[x]=\int_{t_a}^{t_b}[m\dot x^2/2-V(x)]dt\)는 <a href="ch04.html">4장</a>의 작용이다. 다만 이 줄임 표기를 매끈한 경로의 \(\dot x\)로 읽으면 안 된다. 아래에서 보듯 적분에 주로 기여하는 경로는 매끈하지 않다. 계산의 출발점은 언제나 식 <a class="ref" href="#eq-path-sliced"></a>의 <em>이산화된 합과 적분</em>이다.</p>
     <div class="callout warn"><strong>한 경로의 확률은 없다</strong><p>중간 위치의 적분은 위상 \(e^{iS/\hbar}\)를 더한다. 특정 연속 경로 하나의 진폭 제곱을 도착 확률이라고 할 수 없다. 도착 확률은 정규화된 초기 파동함수를 식 <a class="ref" href="#eq-wave-evolution"></a>로 전파한 뒤 구한다.</p></div>
+    <h3 id="s2-trotter">조각을 늘리면 왜 오차가 사라질까</h3>
+    <p>식 <a class="ref" href="#eq-short-split"></a>의 오차가 얼마나 되는지, 그리고 왜 \(N\to\infty\)에서 사라지는지 따져 보자. 두 연산자를 일반적으로 \(\hat A,\hat B\)라 하면 경로 적분에서는 \(\hat A=-i\hat p^2/(2m\hbar)\), \(\hat B=-iV(\hat x)/\hbar\)이고 \(T(\hat A+\hat B)=-i\hat HT/\hbar\)이다.</p>
+    <div class="box math" id="math-trotter"><div class="box-h">곱 공식과 그 오차</div>
+      <p>작은 수 \(\varepsilon\)에 대해 두 지수 함수를 \(\varepsilon^2\)까지 전개한다. 연산자의 곱은 순서를 지켜 펼친다.</p>
+      <div class="formula" id="eq-split-error">\[ \begin{aligned}&amp;e^{\varepsilon\hat A}e^{\varepsilon\hat B}=I+\varepsilon(\hat A+\hat B)\\ &amp;\qquad+\frac{\varepsilon^2}{2}\bigl(\hat A^2+2\hat A\hat B+\hat B^2\bigr)+O(\varepsilon^3),\\[4pt] &amp;e^{\varepsilon(\hat A+\hat B)}=I+\varepsilon(\hat A+\hat B)\\ &amp;\qquad+\frac{\varepsilon^2}{2}\bigl(\hat A^2+\hat A\hat B+\hat B\hat A+\hat B^2\bigr)+O(\varepsilon^3).\end{aligned} \]</div>
+      <p>두 식의 차이는 \(\varepsilon^2[\hat A,\hat B]/2+O(\varepsilon^3)\)이다. 정확한 한 조각 \(U_\varepsilon=e^{\varepsilon(\hat A+\hat B)}\)와 나눈 한 조각 \(W_\varepsilon=e^{\varepsilon\hat A}e^{\varepsilon\hat B}\)는 \(\hat A,\hat B\)가 반에르미트이므로 둘 다 유니타리다. \(N\)번 곱한 결과의 차이는 한 자리씩 바꾸어 가며 쓸 수 있다.</p>
+      <div class="formula" id="eq-telescope">\[ U_\varepsilon^N-W_\varepsilon^N=\sum_{k=0}^{N-1}U_\varepsilon^{\,N-1-k}\,(U_\varepsilon-W_\varepsilon)\,W_\varepsilon^{\,k}. \]</div>
+      <p>오른쪽을 펼치면 이웃한 항이 서로 지워지고 양 끝만 남는다. 유니타리 연산자는 벡터의 길이를 바꾸지 않으므로 각 항이 만드는 오차는 \(U_\varepsilon-W_\varepsilon\) 하나가 만드는 오차를 넘지 않는다. 따라서 \(N\)조각 전체의 오차는 많아야 \(N\times O(\varepsilon^2)=O(T^2/N)\)이고 \(N\to\infty\)에서 0이 된다. 이 결과 \(e^{T(\hat A+\hat B)}=\lim_{N\to\infty}(e^{T\hat A/N}e^{T\hat B/N})^N\)을 <span class="term">리–트로터 곱 공식</span> <span class="en">(Lie–Trotter product formula)</span>이라 한다.</p>
+    </div>
+    <p>위 논증은 연산자가 유한한 행렬일 때 그대로 성립한다. \(\hat p^2\)과 \(V(\hat x)\)처럼 유계가 아닌 연산자에서는 더 섬세한 논증이 필요하지만, 보통의 퍼텐셜에서는 같은 극한이 성립한다는 것이 증명되어 있다(트로터 정리). 그 증명은 이 책의 범위를 넘으므로 유한 차원의 예로 크기를 확인해 보자.</p>
+    <div class="box ex" id="ex-trotter-spin"><div class="box-h">스핀으로 보는 곱 공식의 오차</div>
+      <p>\(\hat A=-i\sigma_z\), \(\hat B=-i\sigma_x\), \(T=1\)로 놓자. \(\sigma_z+\sigma_x=\sqrt2\,\hat n\cdot\boldsymbol\sigma\)이고 \((\hat n\cdot\boldsymbol\sigma)^2=I\)이므로, <a href="ch02.html#ex-exp-pauli">2장 예제 2.11</a>과 같은 방법으로 정확한 값 \(e^{-i(\sigma_z+\sigma_x)}=\cos\sqrt2\,I-i\sin\sqrt2\,(\sigma_z+\sigma_x)/\sqrt2\)를 얻는다. 한 조각 \(e^{-i\sigma_z/N}e^{-i\sigma_x/N}\)도 같은 방법으로 계산된다. 이를 \(N\)번 곱한 행렬과 정확한 행렬의 차이를 연산자 노름(상태 벡터의 길이를 가장 크게 늘리는 비율)으로 재면 다음과 같다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>조각 수 \(N\)</th><th>오차</th><th>\(N\times\)오차</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0.80</td><td>0.80</td></tr>
+          <tr><td>10</td><td>0.070</td><td>0.70</td></tr>
+          <tr><td>100</td><td>0.0070</td><td>0.70</td></tr>
+          <tr><td>1000</td><td>0.00070</td><td>0.70</td></tr>
+        </tbody>
+      </table></div>
+      <p>조각 수를 10배로 늘리면 오차가 10분의 1로 줄어든다. \([\hat A,\hat B]=-2i\sigma_y\)이므로 조각 하나의 오차는 \(\varepsilon^2\|[\hat A,\hat B]\|/2=1/N^2\)이고, 이를 \(N\)번 더한 상한은 \(1/N\)이다. 실제 오차가 상한보다 조금 작은 것은 조각마다 생기는 오차가 같은 방향으로만 쌓이지는 않기 때문이다.</p>
+    </div>
+    <h3 id="s2-rough">기여하는 경로는 매끈하지 않다</h3>
+    <p>식 <a class="ref" href="#eq-short-kernel"></a>의 운동 에너지 위상은 \(\Delta x_j\)가 커질수록 빠르게 돈다. 길이 \(\ell_\varepsilon\)를 다음처럼 정하면 위상의 크기를 바로 읽을 수 있다.</p>
+    <div class="formula" id="eq-slice-width">\[ \ell_\varepsilon=\sqrt{\frac{\hbar\varepsilon}{m}},\qquad \frac{m(\Delta x_j)^2}{2\hbar\varepsilon}=\frac12\Bigl(\frac{\Delta x_j}{\ell_\varepsilon}\Bigr)^2. \]</div>
+    <p>\(|\Delta x_j|\)가 \(\ell_\varepsilon\)의 몇 배 안쪽이면 위상이 몇 라디안 안에 머문다. 그보다 멀리 뛰면 이웃한 \(\Delta x_j\)끼리 위상이 크게 달라 적분에서 서로 상쇄한다. <a href="#s4">11.4절</a>에서 볼 정류 위상과 같은 이유다. 그러므로 한 조각에서 주로 기여하는 위치 변화는 \(\sqrt\varepsilon\)에 비례하고, 꺾인 선의 기울기 \(\Delta x_j/\varepsilon\sim\sqrt{\hbar/(m\varepsilon)}\)은 \(\varepsilon\to0\)에서 발산한다. 극한에서 주로 기여하는 경로는 연속이지만 매끈하지 않다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:11-2a--><svg viewBox="0 0 280 216" role="img" aria-label="시간 조각이 엡실론일 때 짧은 시간 핵의 위상 부분 코사인 곡선. 가운데 띠의 폭이 넓다"><defs><marker id="f112a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f112a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f112a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><rect x="90.1" y="48" width="95.7" height="124" class="f-acc-soft" style="stroke:none"/><line x1="30" y1="110" x2="246" y2="110" class="s-grid"/><line x1="30" y1="184" x2="258" y2="184" class="s-line" stroke-width="1.2" marker-end="url(#f112a-dim)"/><line x1="30" y1="184" x2="30" y2="188" class="s-line" stroke-width="1.2"/><text x="30" y="202" class="t-dim" text-anchor="middle">−4</text><line x1="84" y1="184" x2="84" y2="188" class="s-line" stroke-width="1.2"/><text x="84" y="202" class="t-dim" text-anchor="middle">−2</text><line x1="138" y1="184" x2="138" y2="188" class="s-line" stroke-width="1.2"/><text x="138" y="202" class="t-dim" text-anchor="middle">0</text><line x1="192" y1="184" x2="192" y2="188" class="s-line" stroke-width="1.2"/><text x="192" y="202" class="t-dim" text-anchor="middle">2</text><line x1="246" y1="184" x2="246" y2="188" class="s-line" stroke-width="1.2"/><text x="246" y="202" class="t-dim" text-anchor="middle">4</text><text x="276" y="178" class="t-math dim" text-anchor="end">Δ<tspan font-style="italic">x</tspan>/<tspan font-style="italic">ℓ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">ε</tspan></tspan></text><line x1="30" y1="56" x2="246" y2="56" class="s-faint" stroke-dasharray="2 4"/><text x="25" y="60" class="t-dim" text-anchor="end">1</text><line x1="30" y1="164" x2="246" y2="164" class="s-faint" stroke-dasharray="2 4"/><text x="25" y="168" class="t-dim" text-anchor="end">−1</text><path d="M30 117.9 L33.2 92.7 L35.3 78.6 L37.1 68.6 L38.8 61.7 L40.5 57.5 L42.2 56 L44 57.3 L45.8 61.3 L47.8 68.9 L50.3 81.4 L57.3 123 L60.1 138 L62.5 148.8 L64.8 156.6 L67.1 161.5 L69.4 163.8 L71.8 163.5 L74.5 160.3 L77.5 153.5 L81.5 141.4 L91 106.9 L95.7 91.8 L100 80.3 L104.4 71.3 L109.2 64.5 L114.7 59.7 L121.9 56.9 L145.6 56 L155 57.1 L161.3 59.7 L166.5 64.2 L171.1 70.6 L175.4 79.1 L179.8 90.5 L184.8 106.3 L194 139.5 L197.8 151.6 L200.7 158.8 L203.3 162.8 L205.8 164 L208.1 162.6 L210.4 158.6 L212.7 151.8 L215.1 141.9 L218 127.1 L224.7 87 L227.2 73.4 L229.3 64.6 L231.2 58.9 L232.9 56.3 L234.6 56.3 L236.3 59.1 L238 64.7 L239.8 73.3 L241.9 86.2 L246 117.9" class="s-acc" stroke-width="2"/><text x="12" y="22" class="t-b" text-anchor="start">(가) 시간 조각 ε</text></svg><!--/fig:11-2a--><!--fig:11-2b--><svg viewBox="0 0 280 216" role="img" aria-label="시간 조각을 4분의 1로 줄이면 가운데 띠의 폭이 절반이 되고 바깥에서 더 빨리 진동한다"><defs><marker id="f112b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f112b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f112b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><rect x="114.1" y="48" width="47.9" height="124" class="f-acc-soft" style="stroke:none"/><line x1="30" y1="110" x2="246" y2="110" class="s-grid"/><line x1="30" y1="184" x2="258" y2="184" class="s-line" stroke-width="1.2" marker-end="url(#f112b-dim)"/><line x1="30" y1="184" x2="30" y2="188" class="s-line" stroke-width="1.2"/><text x="30" y="202" class="t-dim" text-anchor="middle">−4</text><line x1="84" y1="184" x2="84" y2="188" class="s-line" stroke-width="1.2"/><text x="84" y="202" class="t-dim" text-anchor="middle">−2</text><line x1="138" y1="184" x2="138" y2="188" class="s-line" stroke-width="1.2"/><text x="138" y="202" class="t-dim" text-anchor="middle">0</text><line x1="192" y1="184" x2="192" y2="188" class="s-line" stroke-width="1.2"/><text x="192" y="202" class="t-dim" text-anchor="middle">2</text><line x1="246" y1="184" x2="246" y2="188" class="s-line" stroke-width="1.2"/><text x="246" y="202" class="t-dim" text-anchor="middle">4</text><text x="276" y="178" class="t-math dim" text-anchor="end">Δ<tspan font-style="italic">x</tspan>/<tspan font-style="italic">ℓ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">ε</tspan></tspan></text><line x1="30" y1="56" x2="246" y2="56" class="s-faint" stroke-dasharray="2 4"/><text x="25" y="60" class="t-dim" text-anchor="end">1</text><line x1="30" y1="164" x2="246" y2="164" class="s-faint" stroke-dasharray="2 4"/><text x="25" y="168" class="t-dim" text-anchor="end">−1</text><path d="M30 65 L30.4 59.7 L30.7 56.7 L31.1 56.1 L31.4 57.9 L31.8 61.9 L32.2 70 L32.8 83 L34.3 128.7 L34.9 143.1 L35.3 152.8 L35.8 159.7 L36.2 163.4 L36.6 163.9 L37 161.6 L37.5 156.1 L37.9 147.8 L38.5 134.9 L40 91.5 L40.5 77.8 L41 68.4 L41.4 61.4 L41.9 57.2 L42.3 56 L42.8 57.8 L43.2 62.4 L43.7 69.6 L44.2 81 L45.1 104.3 L46 128.6 L46.7 143.5 L47.2 153.5 L47.6 159.5 L48.1 163.1 L48.5 164 L49 162.3 L49.4 158 L50 150 L50.6 137.4 L52.4 92.9 L53 78.7 L53.6 68.8 L54.1 61.5 L54.7 57.1 L55.1 56 L55.7 57.6 L56.2 62.3 L56.7 69.7 L57.4 81.2 L58.5 107.4 L59.5 130.1 L60.2 144.4 L60.9 154.2 L61.4 160 L62 163.3 L62.5 163.9 L63 161.8 L63.6 157.1 L64.2 148.9 L64.9 136.6 L67 93.9 L67.8 78.7 L68.5 67.9 L69.2 61.1 L69.8 57.1 L70.4 56 L71 57.9 L71.7 62.5 L72.4 70.7 L73.2 83 L75.5 125.6 L76.4 140.4 L77.2 151.3 L78 158.3 L78.7 162.6 L79.4 164 L80.1 162.5 L80.8 158.3 L81.7 150.7 L82.7 138.3 L85.5 94 L86.6 79.1 L87.5 69.1 L88.4 61.7 L89.2 57.6 L90 56 L90.9 57.1 L91.8 61 L92.8 68.1 L94.1 80.4 L97.7 123.5 L99.1 138.9 L100.4 149.8 L101.5 157.3 L102.7 162 L103.9 163.9 L105.2 163.1 L106.5 159.3 L108 152.1 L110.2 138.3 L114.5 106.9 L116.8 91.8 L119 80.3 L121.2 71.5 L123.5 64.7 L126.2 59.9 L129.7 57 L141.5 56 L146.4 57 L149.6 59.7 L152.2 64.1 L154.6 70.6 L156.7 79.1 L158.9 90.2 L161.4 106.3 L166 139.5 L167.9 151.6 L169.4 159 L170.8 163 L171.9 164 L173.1 162.5 L174.3 158.2 L175.4 151.2 L176.7 140.6 L178.1 125.5 L181.3 87.5 L182.6 73.9 L183.6 64.6 L184.5 59.2 L185.4 56.3 L186.2 56.3 L187.1 58.7 L187.9 63.6 L188.8 71.8 L189.8 83.8 L191.2 105 L192.9 131.8 L193.9 145.4 L194.7 154.4 L195.4 160.2 L196.1 163.4 L196.9 163.8 L197.6 161.4 L198.3 156 L199 148 L199.8 136.2 L201.1 114.1 L202.5 87.6 L203.3 74.5 L204.1 65.3 L204.7 59.5 L205.3 56.5 L205.9 56.3 L206.6 59 L207.2 64.7 L207.8 73 L208.6 86.8 L210.7 129.6 L211.5 144.6 L212.2 154 L212.7 159.8 L213.2 163.2 L213.8 163.9 L214.3 162 L214.9 157.4 L215.5 148.9 L216.1 137.6 L217.1 115.9 L218.3 88.8 L219 74.3 L219.5 65.7 L220.1 59.6 L220.6 56.4 L221.1 56.2 L221.5 58.2 L222.1 63.6 L222.6 71.8 L223.2 84.5 L225 129 L225.7 143.2 L226.2 153 L226.6 159.1 L227.1 162.8 L227.6 164 L228 162.6 L228.4 158.5 L228.9 152.1 L229.4 141.5 L230.2 123.9 L231.3 92.2 L232 76.9 L232.5 66.5 L232.9 60.2 L233.4 56.7 L233.8 56.1 L234.3 58.6 L234.8 63.9 L235.2 71.9 L235.7 84.4 L237.4 130.1 L237.9 143.8 L238.4 153.1 L238.8 159.8 L239.2 163.4 L239.6 163.9 L240 162.3 L240.4 157.3 L240.9 149.2 L241.4 136.2 L242.9 90.6 L243.5 76.1 L243.9 66.4 L244.4 59.6 L244.7 56.7 L245.1 56.1 L245.5 57.9 L245.8 62 L246 65" class="s-acc" stroke-width="2"/><text x="12" y="22" class="t-b" text-anchor="start">(나) 시간 조각 ε/4</text></svg><!--/fig:11-2b--></div>
+      <figcaption><b>그림 11-2.</b> \(V=0\)일 때 짧은 시간 핵 식 <a class="ref" href="#eq-short-kernel"></a>의 위상 부분 \(\cos[m(\Delta x)^2/(2\hbar\varepsilon)]\). 가로축은 (가)의 시간 조각에서 정한 \(\ell_\varepsilon=\sqrt{\hbar\varepsilon/m}\)를 단위로 두 그림에 같게 잡았다. 색칠한 띠는 위상이 \(\pi/2\)보다 작은 가운데 영역이다. (나)처럼 시간 조각을 4분의 1로 줄이면 띠의 폭이 절반이 되고, 띠 바깥에서는 이웃한 \(\Delta x\)끼리 부호가 더 빨리 바뀐다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-rough-electron"><div class="box-h">전자의 시간 조각</div>
+      <p>전자(\(m=9.109\times10^{-31}\ \mathrm{kg}\))에서 \(\varepsilon=1\ \mathrm{fs}\)이면 \(\ell_\varepsilon=3.4\times10^{-10}\ \mathrm m\)이고, 이를 \(\varepsilon\)으로 나눈 기울기는 \(3.4\times10^{5}\ \mathrm{m/s}\)다. \(\varepsilon\)을 1000분의 1인 \(1\ \mathrm{as}\)로 줄이면 \(\ell_\varepsilon\)은 \(\sqrt{1000}\approx32\)분의 1인 \(1.1\times10^{-11}\ \mathrm m\)로 줄지만 기울기는 32배인 \(1.1\times10^{7}\ \mathrm{m/s}\)가 된다. 다시 1000분의 1로 줄이면 기울기가 \(3.4\times10^{8}\ \mathrm{m/s}\)로 광속을 넘는다. 이것은 측정되는 입자의 속도가 아니라 적분 변수 사이의 간격을 시간 조각으로 나눈 값이다. 비상대론적 해밀토니안에는 광속이 들어 있지 않으므로 모순도 아니다.</p>
+    </div>
   </section>
 
   <section id="s3">
     <h2>자유 입자의 전파 함수를 끝까지 계산하기</h2>
-    <p>\(V=0\)이면 짧은 시간의 자유 전파 함수는 그 시간에 대해 정확하다. 시작 시각을 0으로 잡고 운동량 적분에서 얻은 결과를 시간 \(T\) 전체에 적용하면</p>
-    <div class="formula" id="eq-free-kernel">\[ K_0(x_b,T;x_a,0)=\sqrt{\frac{m}{2\pi i\hbar T}}\exp\!\left[\frac{im(x_b-x_a)^2}{2\hbar T}\right],\qquad T&gt;0. \]</div>
+    <p>\(V=0\)이면 식 <a class="ref" href="#eq-short-split"></a>의 분리가 필요 없으므로 짧은 시간의 자유 전파 함수는 그 시간에 대해 정확하다. 식 <a class="ref" href="#eq-free-momentum"></a>의 운동량 적분도 식 <a class="ref" href="#eq-short-fourier"></a>에서 \(\varepsilon\)을 \(T\)로 바꾼 것과 같다. 시작 시각을 0으로 잡고 같은 가우스 적분을 하면</p>
+    <div class="formula" id="eq-free-kernel">\[ \begin{aligned}&amp;K_0(x_b,T;x_a,0)\\ &amp;\qquad=\sqrt{\frac{m}{2\pi i\hbar T}}\exp\!\left[\frac{im(x_b-x_a)^2}{2\hbar T}\right].\end{aligned} \]</div>
     <p>왜 \(N\)개 조각을 합쳐도 같은 꼴일까? 시간 \(T_1,T_2&gt;0\)인 두 전파 함수를 식 <a class="ref" href="#eq-composition"></a>으로 합성한다. 지수의 제곱을 완성하면</p>
     <div class="formula" id="eq-free-complete-square">\[ \begin{aligned}\frac{(x_b-x)^2}{T_2}+\frac{(x-x_a)^2}{T_1}&amp;=\frac{(x_b-x_a)^2}{T_1+T_2}+\frac{T_1+T_2}{T_1T_2}(x-x_*)^2,\\ x_*&amp;=\frac{T_1x_b+T_2x_a}{T_1+T_2}.\end{aligned} \]</div>
     <p>\(x_*\)는 시간 \(T_1\) 뒤 직선 궤도의 위치다. 나머지 \(x\) 적분은 프레넬 가우스 적분으로</p>
     <div class="formula" id="eq-free-gaussian-compose">\[ \int_{-\infty}^{\infty}\!dx\,\exp\!\left[\frac{im(T_1+T_2)}{2\hbar T_1T_2}(x-x_*)^2\right]=\sqrt{\frac{2\pi i\hbar T_1T_2}{m(T_1+T_2)}} \]</div>
     <p>가 된다. 여기에 두 전파 함수의 앞 인자를 곱하면 식 <a class="ref" href="#eq-free-kernel"></a>의 \(T=T_1+T_2\)인 앞 인자가 남는다. 이를 반복하면 모든 중간 위치 적분이 수행된다.</p>
     <div class="box ex" id="ex-free-action"><div class="box-h">직선 경로의 작용과 위상</div>
-      <p>자유 입자의 고전 경로는 \(x_{\mathrm{cl}}(t)=x_a+(x_b-x_a)t/T\)다. 속도 \((x_b-x_a)/T\)를 작용에 대입하면 \(S[x_{\mathrm{cl}}]=m(x_b-x_a)^2/(2T)\). 식 <a class="ref" href="#eq-free-kernel"></a>의 지수는 정확히 \(iS[x_{\mathrm{cl}}]/\hbar\)다. 예를 들어 \(m=\hbar=T=1\), \(x_a=0\), \(x_b=2\)인 단위계에서는 위상이 \(2\)라디안이고 \(K_0=e^{2i}/\sqrt{2\pi i}\)다. \(|K_0|^2=1/(2\pi)\)은 위치 한 점의 확률이 아니다.</p>
+      <p>자유 입자의 고전 경로는 \(x_{\mathrm{cl}}(t)=x_a+(x_b-x_a)t/T\)다. 속도 \((x_b-x_a)/T\)를 작용에 대입하면 \(S[x_{\mathrm{cl}}]=m(x_b-x_a)^2/(2T)\). 식 <a class="ref" href="#eq-free-kernel"></a>의 지수는 정확히 \(iS[x_{\mathrm{cl}}]/\hbar\)다. 예를 들어 \(m=\hbar=T=1\), \(x_a=0\), \(x_b=2\)인 단위계에서는 위상이 \(2\)라디안이고 \(K_0=e^{2i}/\sqrt{2\pi i}\)다. 이때 \(|K_0|^2=1/(2\pi)\) 역시 위치 한 점의 확률이 아니다.</p>
     </div>
     <h3 id="s3-checks">초기 조건과 운동 방정식 확인</h3>
-    <p>식 <a class="ref" href="#eq-free-kernel"></a>는 \(T\to0^+\)에서 보통 함수처럼 한 점의 값으로 수렴하지 않는다. 식 <a class="ref" href="#eq-short-fourier"></a>의 운동량 적분에서 \(e^{-ip^2T/(2m\hbar)}\to1\)로 보내면, 임의의 알맞은 시험 파동함수에 작용할 때 \(K_0\to\delta(x_b-x_a)\)가 된다. 또 \(x_b,T\)로 미분하면 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)가 성립한다.</p>
+    <p>식 <a class="ref" href="#eq-free-kernel"></a>는 \(T\to0^+\)에서 보통 함수처럼 한 점의 값으로 수렴하지 않는다. 식 <a class="ref" href="#eq-free-momentum"></a>의 운동량 적분에서 \(e^{-ip^2T/(2m\hbar)}\to1\)로 보내면, 임의의 알맞은 시험 파동함수에 작용할 때 \(K_0\to\delta(x_b-x_a)\)가 된다. 또 \(x_b,T\)로 미분하면 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)가 성립한다.</p>
     <div class="box ex" id="ex-constant-potential"><div class="box-h">공간적으로 일정한 퍼텐셜</div>
       <p>\(V(x)=V_0\)이면 모든 경로가 \(-V_0T\)만큼의 작용을 더 얻는다. 따라서 \(K_{V_0}=e^{-iV_0T/\hbar}K_0\)다. 초기 파동함수 전체에 같은 위상이 곱해지므로 위치 확률밀도는 자유 입자와 같다.</p>
     </div>
+    <h3 id="s3-packet">가우스 파속을 전파 함수로 옮기기</h3>
+    <p>전파 함수가 실제로 파동함수를 옮기는지 <a href="ch07.html">7장</a>의 가우스 파속으로 확인하자. <a href="ch03.html#eq-gauss-packet">3장 식 (3.26)</a>의 파속 \(\psi(x_a,0)=(\pi\sigma^2)^{-1/4}e^{-x_a^2/2\sigma^2+ip_0x_a/\hbar}\)를 식 <a class="ref" href="#eq-wave-evolution"></a>에 넣는다. 나중 위치를 \(x\)라 하면 적분 변수 \(x_a\)에 대한 지수는 이차식이다.</p>
+    <div class="formula" id="eq-packet-exponent">\[ \begin{aligned} &amp;\frac{im(x-x_a)^2}{2\hbar T}-\frac{x_a^2}{2\sigma^2}+\frac{ip_0x_a}{\hbar}\\ &amp;\qquad=-\alpha x_a^2+\beta x_a+\frac{imx^2}{2\hbar T},\\ &amp;\alpha=\frac{1}{2\sigma^2}-\frac{im}{2\hbar T},\qquad \beta=\frac{i}{\hbar}\Bigl(p_0-\frac{mx}{T}\Bigr).\end{aligned} \]</div>
+    <p>\(\mathrm{Re}\,\alpha=1/(2\sigma^2)&gt;0\)이므로 <a href="ch03.html#eq-gauss-shift">3장 식 (3.10)</a>의 가우스 적분 \(\int e^{-\alpha x_a^2+\beta x_a}dx_a=\sqrt{\pi/\alpha}\,e^{\beta^2/4\alpha}\)를 복소수 \(\alpha\)에도 쓸 수 있다. 확률밀도에는 지수의 실수부만 필요하다. \(\beta^2=-(m/\hbar T)^2(x-p_0T/m)^2\)는 실수이고, \(1/4\alpha\)의 분모를 실수로 만들면 \(\mathrm{Re}(1/4\alpha)=\frac{1}{2\sigma^2}\big/\bigl[\frac{1}{\sigma^4}+\bigl(\frac{m}{\hbar T}\bigr)^2\bigr]\)이다. 둘을 곱하면 \(\mathrm{Re}(\beta^2/4\alpha)=-(x-p_0T/m)^2/[2\sigma(T)^2]\)이고, 앞 인자의 크기 \(\frac{m}{2\pi\hbar T}\cdot\frac{\pi}{|\alpha|}\cdot\frac{1}{\sqrt\pi\,\sigma}\)도 같은 \(\sigma(T)\)로 정리된다.</p>
+    <div class="formula" id="eq-packet-density">\[ \begin{gathered}|\psi(x,T)|^2=\frac{1}{\sqrt\pi\,\sigma(T)}\exp\!\left[-\frac{(x-p_0T/m)^2}{\sigma(T)^2}\right],\\ \sigma(T)=\sigma\sqrt{1+\Bigl(\frac{\hbar T}{m\sigma^2}\Bigr)^2}.\end{gathered} \]</div>
+    <p><a href="ch07.html#eq-spreading">7장 식 (7.2)</a>와 같다. 7장에서는 운동량 성분마다 위상을 돌려 더했고, 여기서는 처음 위치마다 퍼져 나가는 파동을 더했다. 앞의 방법은 식 <a class="ref" href="#eq-spectral-kernel"></a>의 고유상태 전개를, 뒤의 방법은 식 <a class="ref" href="#eq-wave-evolution"></a>의 적분핵을 쓴 것이다. 처음 파동의 각 점에서 새 파동이 퍼져 나가 겹친다고 보는 생각은 광학의 <span class="term">호이겐스 원리</span> <span class="en">(Huygens' principle)</span>와 같다.</p>
+    <h3 id="s3-far">오래 지나면 위치 분포가 운동량 분포를 비춘다</h3>
+    <p>\(T\)가 퍼짐 시간 \(m\sigma^2/\hbar\)보다 훨씬 길면 계산이 더 간단해진다. 처음 파동함수가 원점 근처 \(|x_a|\lesssim\sigma\)에 모여 있다고 하자. 식 <a class="ref" href="#eq-free-kernel"></a>의 지수를 \((x-x_a)^2=x^2-2xx_a+x_a^2\)로 펼치면, 그 영역에서 \(mx_a^2/(2\hbar T)\lesssim m\sigma^2/(2\hbar T)\ll1\)이므로 마지막 항을 버릴 수 있다. 남은 \(x_a\) 적분은 <a href="ch03.html#eq-ft">3장 식 (3.23)</a>의 푸리에 변환 \(\phi(p)\)다.</p>
+    <div class="formula" id="eq-far-field">\[ \begin{gathered}\psi(x,T)\simeq\sqrt{\frac{m}{iT}}\,e^{imx^2/(2\hbar T)}\,\phi\Bigl(\frac{mx}{T}\Bigr),\\ |\psi(x,T)|^2\,dx\simeq|\phi(p)|^2\,dp,\qquad p=\frac{mx}{T}.\end{gathered} \]</div>
+    <p>오래 지난 뒤 \(x\) 근처에서 입자를 찾을 확률은 처음 운동량이 \(mx/T\) 근처일 확률과 같다. 운동량 \(p\)인 고전 입자가 시간 \(T\) 동안 \(pT/m\)만큼 가는 것과 맞는다. 원자를 가둔 덫을 끄고 원자 구름이 날아가게 둔 뒤 위치 분포를 찍어 처음 운동량 분포를 재는 <span class="term">비행 시간 측정</span> <span class="en">(time-of-flight measurement)</span>이 이 원리를 쓴다. 가우스 파속이면 \(|\phi(p)|^2\)의 폭 \(\hbar/\sigma\)가 위치 폭 \(\hbar T/(m\sigma)\)로 옮겨진다. 식 <a class="ref" href="#eq-packet-density"></a>의 \(\sigma(T)\)에서 \(T\gg m\sigma^2/\hbar\)인 극한과 같다.</p>
   </section>
 
   <section id="s4">
@@ -129,9 +182,9 @@
         <circle cx="60" cy="220" r="4" class="f-dim"/>
         <circle cx="360" cy="50" r="4" class="f-dim"/>
         <text x="70" y="38" class="t-dim">직선: 고전 경로</text>
-        <text x="211" y="38" class="t-acc">곡선: 다른 경로</text>
+        <text x="196" y="38" class="t-dim">색 곡선: 끝점이 같은 다른 경로</text>
       </svg>
-      <figcaption><b>그림 11-2.</b> \(x_a=0\), \(x_b=2\), \(T=1\)인 자유 입자의 경로. 직선은 \(x_{\mathrm{cl}}=2t\), 두 곡선은 \(2t+0.4\sin(\pi t)\)와 \(2t-0.4\sin(2\pi t)\)를 20개 시간 간격에서 계산해 이은 것이다. 모든 경로의 끝점은 같다.</figcaption>
+      <figcaption><b>그림 11-3.</b> \(x_a=0\), \(x_b=2\), \(T=1\)인 자유 입자의 경로. 직선은 \(x_{\mathrm{cl}}=2t\), 두 곡선은 \(2t+0.4\sin(\pi t)\)와 \(2t-0.4\sin(2\pi t)\)를 20개 시간 간격에서 계산해 이은 것이다. 모든 경로의 끝점은 같다.</figcaption>
     </figure>
     <p>끝점이 고정된 경로 \(x(t)\)에 작은 변형 \(\eta(t)\)를 더하자. \(\eta(t_a)=\eta(t_b)=0\)이다. \(x\to x+\alpha\eta\)로 놓고 \(\alpha=0\)에서 미분하면</p>
     <div class="formula" id="eq-action-variation">\[ \begin{aligned}\delta S&amp;=\int_{t_a}^{t_b}\!dt\,\bigl(m\dot x\dot\eta-V'(x)\eta\bigr)\\ &amp;=\left[m\dot x\eta\right]_{t_a}^{t_b}-\int_{t_a}^{t_b}\!dt\,\bigl(m\ddot x+V'(x)\bigr)\eta\\ &amp;=-\int_{t_a}^{t_b}\!dt\,\bigl(m\ddot x+V'(x)\bigr)\eta.\end{aligned} \]</div>
@@ -145,21 +198,77 @@
       <p>\(m=\hbar=T=1\)에서 \(A=0.5\)이면 \(\Delta\phi\simeq0.617\), \(A=1\)이면 \(\Delta\phi\simeq2.467\)라디안이다. \(\hbar\)가 작아질수록 같은 변형도 훨씬 빠르게 위상을 바꾼다.</p>
     </div>
     <div class="box thm" id="thm-classical-limit"><div class="box-h">경로 적분의 고전 극한</div>
-      <p>전형적인 작용 눈금이 \(\hbar\)보다 충분히 크고 정류 경로가 고립되어 있을 때, 인접한 비정류 경로의 위상은 빠르게 상쇄된다. 주요 기여는 \(\delta S=0\)인 고전 경로 주변에서 나온다. 자유 입자처럼 작용이 경로 변형에 대해 이차식이면 정류 경로의 위상 \(e^{iS[x_{\mathrm{cl}}]/\hbar}\)에 가우스 요인을 곱하는 계산이 정확하다.</p>
+      <p>전형적인 작용 눈금이 \(\hbar\)보다 충분히 크고 정류 경로가 고립되어 있을 때, 인접한 비정류 경로의 위상은 빠르게 상쇄된다. 주요 기여는 \(\delta S=0\)인 고전 경로 주변에서 나온다. 자유 입자처럼 작용이 경로에 대해 이차식이면, 정류 경로의 위상 \(e^{iS[x_{\mathrm{cl}}]/\hbar}\)에 그 주변 요동에서 오는 인자를 곱하는 계산이 근사가 아니라 정확하다(<a href="#s5">11.5절</a>).</p>
     </div>
-    <div class="callout deep"><strong>고전 경로 하나만 지나간다는 뜻일까?</strong><p>유한한 \(\hbar\)에서 전파 함수에는 고전 경로 주변의 변동도 기여한다. 여러 정류 경로가 있다면 각각의 위상도 간섭한다. 정류 위상은 어느 기여가 두드러지는지 알려 주는 근사이며, 매번 하나의 입자 궤적을 측정했다는 진술은 아니다.</p></div>
+    <div class="callout deep"><strong>고전 경로 하나만 지나간다는 뜻일까?</strong><p>유한한 \(\hbar\)에서 전파 함수에는 고전 경로 주변의 변동도 기여한다. 여러 정류 경로가 있다면 각각의 위상도 간섭한다. 정류 위상은 어느 기여가 두드러지는지 알려 주는 근사이며, 매번 하나의 입자 궤적을 측정했다는 진술은 아니다. <a href="ch18.html">18장</a>의 WKB 근사는 같은 생각을 파동함수에 적용해 \(e^{iS/\hbar}\) 꼴의 해를 찾는다.</p></div>
+  </section>
+
+  <section id="s5">
+    <h2>작용이 이차식이면: 조화 진동자</h2>
+    <p>자유 입자의 경로 적분을 끝까지 계산할 수 있었던 것은 지수가 적분 변수의 이차식이어서 모든 적분이 가우스 적분이었기 때문이다. 라그랑지안이 위치와 속도의 이차 이하 다항식이면 같은 일이 일어난다. 이 절에서는 \(L=m\dot x^2/2-m\omega^2x^2/2\)인 조화 진동자의 전파 함수를 구한다. 계산의 대부분은 고전역학이고, 마지막에 <a href="ch08.html">8장</a>의 에너지 준위가 다시 나온다.</p>
+    <h3 id="s5-split">고전 경로와 요동으로 나누기</h3>
+    <p>끝점이 \(x(0)=x_a\), \(x(T)=x_b\)로 고정된 정류 경로를 \(x_{\mathrm{cl}}(t)\)라 하고, 임의의 경로를 \(x(t)=x_{\mathrm{cl}}(t)+y(t)\)로 쓴다. 끝점은 이미 \(x_{\mathrm{cl}}\)이 맞추므로 <span class="term">요동</span> <span class="en">(fluctuation)</span> \(y\)는 양 끝에서 0이다. 작용에 넣고 \(y\)의 차수별로 모으면 다음과 같다.</p>
+    <div class="formula" id="eq-action-split">\[ \begin{aligned} S[x_{\mathrm{cl}}+y]=S[x_{\mathrm{cl}}]&amp;+\int_0^T\!dt\,\bigl(m\dot x_{\mathrm{cl}}\dot y-m\omega^2x_{\mathrm{cl}}y\bigr)\\ &amp;+\int_0^T\!dt\,\Bigl(\frac m2\dot y^2-\frac{m\omega^2}{2}y^2\Bigr).\end{aligned} \]</div>
+    <p>가운데 일차 항은 식 <a class="ref" href="#eq-action-variation"></a>의 \(\delta S\)에서 \(\eta\)를 \(y\)로 바꾼 것이므로 \(x_{\mathrm{cl}}\)이 정류 경로이면 0이다. 마지막 항은 \(y\)만의 작용이고 끝점 \(x_a,x_b\)를 전혀 모른다. 작용이 이차식이어서 \(y\)의 세제곱 이상인 항은 없다. 시간 분할된 적분에서 \(x_j=x_{\mathrm{cl}}(t_j)+y_j\)로 변수를 옮겨도 각 적분은 여전히 실수축 전체에 걸치고 \(dx_j=dy_j\)다. 따라서 다음 정리가 성립한다.</p>
+    <div class="box thm" id="thm-quadratic"><div class="box-h">이차 작용의 전파 함수</div>
+      <div class="formula" id="eq-quadratic-kernel">\[ \begin{gathered}K(x_b,T;x_a,0)=F(T)\,e^{iS_{\mathrm{cl}}(x_b,x_a;T)/\hbar},\\ F(T)=\int_{y(0)=0}^{y(T)=0}\!\mathcal Dy\;e^{iS[y]/\hbar}.\end{gathered} \]</div>
+      <p>끝점에 대한 의존성은 모두 고전 작용 \(S_{\mathrm{cl}}=S[x_{\mathrm{cl}}]\)에 들어 있다. <span class="term">요동 인자</span> <span class="en">(fluctuation factor)</span> \(F\)는 양 끝이 0인 요동의 경로 적분이어서 시간 \(T\)에만 의존한다. 자유 입자에서는 \(S_{\mathrm{cl}}=m(x_b-x_a)^2/(2T)\), \(F=\sqrt{m/(2\pi i\hbar T)}\)이다.</p>
+    </div>
+    <h3 id="s5-action">조화 진동자의 고전 작용</h3>
+    <p>운동 방정식 \(\ddot x=-\omega^2x\)의 해 가운데 양 끝 조건을 만족하는 것은 다음과 같다. \(t=0\)과 \(t=T\)를 넣으면 양 끝 조건이 바로 확인된다.</p>
+    <div class="formula" id="eq-ho-classical-path">\[ x_{\mathrm{cl}}(t)=\frac{x_a\sin\omega(T-t)+x_b\sin\omega t}{\sin\omega T}\qquad(\sin\omega T\ne0). \]</div>
+    <p>작용은 부분 적분으로 구한다. \(\int_0^T\dot x^2dt=[x\dot x]_0^T-\int_0^Tx\ddot x\,dt\)이고 고전 경로에서는 \(\ddot x=-\omega^2x\)이므로, 운동 에너지 적분의 나머지 항이 퍼텐셜 에너지 적분을 정확히 지운다. 그래서 \(S_{\mathrm{cl}}=\frac m2[x\dot x]_0^T\)만 남는다. 식 <a class="ref" href="#eq-ho-classical-path"></a>를 미분한 \(\dot x_{\mathrm{cl}}(0)=\omega(x_b-x_a\cos\omega T)/\sin\omega T\), \(\dot x_{\mathrm{cl}}(T)=\omega(x_b\cos\omega T-x_a)/\sin\omega T\)를 넣으면</p>
+    <div class="formula" id="eq-ho-action">\[ S_{\mathrm{cl}}(x_b,x_a;T)=\frac{m\omega}{2\sin\omega T}\Bigl[(x_a^2+x_b^2)\cos\omega T-2x_ax_b\Bigr]. \]</div>
+    <p>\(\omega\to0\)이면 \(\sin\omega T\to\omega T\), \(\cos\omega T\to1\)이므로 자유 입자의 \(m(x_b-x_a)^2/(2T)\)로 돌아간다.</p>
+    <h3 id="s5-prefactor">요동 인자는 확률 보존이 정한다</h3>
+    <p>\(F(T)\)를 구하려면 요동 \(y\)의 경로 적분을 직접 해야 할 것 같다. 그러나 식 <a class="ref" href="#eq-kernel-unitary"></a>을 쓰면 적분 없이 크기를 정할 수 있다. 식 <a class="ref" href="#eq-quadratic-kernel"></a>를 넣으면 \(K^*\)와 \(K\)의 지수에서 \(x_b^2\) 항이 서로 지워지고 \(x_b\)의 일차 항만 남는다.</p>
+    <div class="formula" id="eq-ho-unitary">\[ \begin{aligned}&amp;\int\!dx_b\,K^*(x_b;x_a')K(x_b;x_a)\\ &amp;\quad=|F|^2e^{i\theta}\!\int\!dx_b\,\exp\!\Bigl[-\frac{im\omega(x_a-x_a')x_b}{\hbar\sin\omega T}\Bigr]\\ &amp;\quad=|F|^2\,\frac{2\pi\hbar\,|\sin\omega T|}{m\omega}\,\delta(x_a-x_a').\end{aligned} \]</div>
+    <p>여기서 \(\theta=m\omega\cos\omega T\,(x_a^2-x_a'^2)/(2\hbar\sin\omega T)\)는 \(x_a=x_a'\)에서 0인 위상이다. 둘째 줄에는 <a href="ch03.html#eq-delta-fourier">3장 식 (3.14)</a>의 \(\int e^{-ikx}dx=2\pi\delta(k)\)와 <a href="ch03.html#eq-delta-scale">식 (3.11)</a>의 \(\delta(cu)=\delta(u)/|c|\)를 썼다. 결과가 \(\delta(x_a-x_a')\)와 같아야 하므로</p>
+    <div class="formula">\[ |F(T)|^2=\frac{m\omega}{2\pi\hbar\,|\sin\omega T|} \]</div>
+    <p>이다. 위상은 \(T\to0\)에서 자유 입자의 \(\sqrt{m/(2\pi i\hbar T)}\)와 이어지게 고른다. 짧은 시간에는 퍼텐셜이 작용에 주는 기여가 \(T\)에 비례해 작아지므로 자유 입자와 같아져야 하기 때문이다. 같은 논증을 자유 입자에 쓰면 프레넬 적분 없이도 앞 인자의 크기 \(\sqrt{m/(2\pi\hbar T)}\)를 얻는다.</p>
+    <div class="box thm" id="thm-ho-kernel"><div class="box-h">조화 진동자의 전파 함수</div>
+      <p>\(0&lt;\omega T&lt;\pi\)에서 전파 함수는 다음과 같다. 제곱근은 \(\sqrt{1/i}=e^{-i\pi/4}\)인 가지를 쓴다.</p>
+      <div class="formula" id="eq-ho-kernel">\[ \begin{aligned}&amp;K_\omega(x_b,T;x_a,0)\\ &amp;\quad=\sqrt{\frac{m\omega}{2\pi i\hbar\sin\omega T}}\,\exp\Bigl\{\frac{im\omega}{2\hbar\sin\omega T}\\ &amp;\qquad\times\Bigl[(x_a^2+x_b^2)\cos\omega T-2x_ax_b\Bigr]\Bigr\}.\end{aligned} \]</div>
+      <p>\(\omega\to0\)이면 식 <a class="ref" href="#eq-free-kernel"></a>로 돌아간다. 이 식이 슈뢰딩거 방정식 \(i\hbar\partial_TK_\omega=[-(\hbar^2/2m)\partial_{x_b}^2+m\omega^2x_b^2/2]K_\omega\)를 만족하는지는 <a class="ref" href="#prob-free-schrodinger"></a>처럼 직접 미분해 확인할 수 있다.</p>
+    </div>
+    <p>앞의 논증은 작용이 이차식이면 언제나 통한다. 일반적으로 \(|F|^2=|\partial^2S_{\mathrm{cl}}/\partial x_a\partial x_b|/(2\pi\hbar)\)이며, 이를 <span class="term">반 블렉 공식</span> <span class="en">(Van Vleck formula)</span>이라 한다. 조화 진동자에서는 \(\partial^2S_{\mathrm{cl}}/\partial x_a\partial x_b=-m\omega/\sin\omega T\), 자유 입자에서는 \(-m/T\)이다.</p>
+    <p>이 전파 함수가 무엇을 하는지 두 시각에서 보자. 그림 11-4는 같은 점을 서로 다른 속도로 떠난 고전 경로들이 그 두 시각에 어디에 있는지 보여 준다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:11-4--><svg viewBox="0 0 440 284" role="img" aria-label="조화 진동자에서 같은 점을 서로 다른 처음 속도로 떠난 고전 경로들이 4분의 1 주기에는 속도에 비례해 벌어지고 반주기에는 모두 반대편 한 점에 모인다"><defs><marker id="f114-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f114-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f114-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="64" y1="140" x2="396" y2="140" class="s-grid"/><line x1="230" y1="36" x2="230" y2="254" class="s-faint" stroke-dasharray="4 4"/><text x="230" y="26" class="t-dim" text-anchor="middle">4분의 1 주기</text><line x1="396" y1="36" x2="396" y2="254" class="s-faint" stroke-dasharray="4 4"/><text x="396" y="26" class="t-dim" text-anchor="middle">반주기</text><line x1="64" y1="254" x2="422" y2="254" class="s-line" stroke-width="1.2" marker-end="url(#f114-dim)"/><line x1="64" y1="254" x2="64" y2="258" class="s-line" stroke-width="1.2"/><text x="64" y="276" class="t-math dim" text-anchor="middle">0</text><line x1="230" y1="254" x2="230" y2="258" class="s-line" stroke-width="1.2"/><text x="230" y="276" class="t-math dim" text-anchor="middle"><tspan font-style="italic">π</tspan>/2</text><line x1="396" y1="254" x2="396" y2="258" class="s-line" stroke-width="1.2"/><text x="396" y="276" class="t-math dim" text-anchor="middle"><tspan font-style="italic">π</tspan></text><text x="436" y="276" class="t-math dim" text-anchor="end"><tspan font-style="italic">ωt</tspan></text><line x1="64" y1="254" x2="64" y2="30" class="s-line" stroke-width="1.2" marker-end="url(#f114-dim)"/><text x="72" y="38" class="t-math dim" text-anchor="start"><tspan font-style="italic">x</tspan></text><line x1="60" y1="90" x2="64" y2="90" class="s-line" stroke-width="1.2"/><text x="56" y="95" class="t-math dim" text-anchor="end"><tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">a</tspan></text><line x1="60" y1="140" x2="64" y2="140" class="s-line" stroke-width="1.2"/><text x="56" y="145" class="t-math dim" text-anchor="end">0</text><line x1="60" y1="190" x2="64" y2="190" class="s-line" stroke-width="1.2"/><text x="56" y="195" class="t-math dim" text-anchor="end">−<tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">a</tspan></text><path d="M64 90 L75.1 98.6 L87.5 108.9 L102.7 122 L138.7 153.9 L153.9 167.2 L166.4 177.6 L177.4 186.4 L187.1 193.8 L196.8 200.6 L205.1 206.1 L213.4 211.2 L221.7 215.8 L230 220 L238.3 223.7 L245.2 226.3 L252.1 228.6 L259.1 230.6 L266 232.1 L272.9 233.2 L279.8 234 L286.7 234.3 L293.6 234.3 L300.5 233.8 L307.5 232.9 L314.4 231.6 L321.3 230 L328.2 227.9 L335.1 225.5 L343.4 222.1 L351.7 218.2 L360 213.8 L368.3 209 L376.6 203.7 L386.3 197.1 L396 190" class="s-acc" stroke-width="1.9"/><path d="M64 90 L73.7 93.9 L84.8 98.8 L95.8 104.1 L108.3 110.6 L122.1 118.3 L140.1 128.8 L177.4 151.3 L194 161 L207.9 168.7 L220.3 175.3 L231.4 180.7 L242.5 185.6 L252.1 189.5 L261.8 193 L271.5 196.1 L281.2 198.7 L290.9 200.8 L299.2 202.2 L307.5 203.2 L315.8 203.8 L324.1 204 L332.4 203.9 L340.7 203.3 L349 202.3 L357.3 201 L367 199 L376.6 196.5 L386.3 193.5 L396 190" class="s-acc" stroke-width="1.9"/><path d="M64 90 L73.7 90.2 L83.4 90.8 L93 91.9 L102.7 93.3 L112.4 95.2 L123.5 97.7 L134.6 100.7 L145.6 104.2 L158.1 108.5 L170.5 113.3 L185.7 119.7 L203.7 127.7 L250.8 149.8 L268.7 157.9 L284 164.4 L297.8 169.9 L310.2 174.4 L321.3 178 L332.4 181.2 L343.4 183.9 L353.1 185.9 L362.8 187.6 L372.5 188.8 L382.2 189.6 L391.8 190 L396 190" class="s-acc" stroke-width="2.6"/><path d="M64 90 L73.7 86.5 L83.4 83.5 L93 81 L101.3 79.2 L109.7 77.8 L118 76.8 L126.2 76.2 L134.6 76 L142.9 76.1 L151.2 76.7 L159.4 77.6 L167.8 79 L177.4 81 L187.1 83.5 L196.8 86.5 L206.5 90 L216.2 93.8 L227.2 98.7 L238.3 104 L250.8 110.5 L264.6 118.2 L282.6 128.7 L319.9 151.2 L336.5 160.9 L350.3 168.7 L362.8 175.2 L373.9 180.6 L384.9 185.5 L394.6 189.5 L396 190" class="s-acc" stroke-width="1.9"/><path d="M64 90 L73.7 82.9 L82 77.2 L90.3 71.8 L98.6 66.9 L106.9 62.5 L115.2 58.5 L123.5 55 L130.4 52.5 L137.3 50.4 L144.2 48.7 L151.2 47.3 L158.1 46.4 L165 45.8 L171.9 45.7 L178.8 45.9 L185.7 46.6 L192.7 47.6 L199.6 49.1 L206.5 50.9 L213.4 53.2 L220.3 55.8 L228.6 59.4 L236.9 63.4 L245.2 68 L253.5 73 L261.8 78.4 L271.5 85.2 L281.2 92.5 L292.2 101.3 L304.7 111.6 L319.9 124.8 L353.1 154.4 L368.3 167.6 L380.8 178 L391.8 186.8 L396 190" class="s-acc" stroke-width="1.9"/><circle cx="230" cy="220" r="4" class="f-acc2"/><circle cx="230" cy="180" r="4" class="f-acc2"/><circle cx="230" cy="140" r="4" class="f-acc2"/><circle cx="230" cy="100" r="4" class="f-acc2"/><circle cx="230" cy="60" r="4" class="f-acc2"/><circle cx="64" cy="90" r="4.5" class="f-dim"/><circle cx="396" cy="190" r="5.5" class="f-acc2"/><text x="238" y="54" class="t-math acc2" text-anchor="start"><tspan font-style="italic">x</tspan> = <tspan font-style="italic">v</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>/<tspan font-style="italic">ω</tspan></text></svg><!--/fig:11-4--></div>
+      <figcaption><b>그림 11-4.</b> 조화 진동자에서 \(x_a\)를 처음 속도 \(v_0=0,\ \pm0.8\,\omega x_a,\ \pm1.6\,\omega x_a\)로 떠난 고전 경로 \(x(t)=x_a\cos\omega t+(v_0/\omega)\sin\omega t\). 4분의 1 주기에는 위치가 처음 속도에 비례하는 \(v_0/\omega\)로 벌어지고(점), 반주기에는 처음 속도와 상관없이 모든 경로가 \(-x_a\)에 모인다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-ho-quarter"><div class="box-h">4분의 1 주기: 푸리에 변환</div>
+      <p>\(\omega T=\pi/2\)이면 \(\cos\omega T=0\), \(\sin\omega T=1\)이므로 \(K_\omega=\sqrt{m\omega/(2\pi i\hbar)}\,e^{-im\omega x_ax_b/\hbar}\)이다. 식 <a class="ref" href="#eq-wave-evolution"></a>에 넣고 <a href="ch03.html#eq-ft">3장 식 (3.23)</a>의 푸리에 변환 \(\phi(p)\)와 비교하면 다음을 얻는다.</p>
+      <div class="formula" id="eq-ho-quarter">\[ \psi\Bigl(x,\frac{\pi}{2\omega}\Bigr)=e^{-i\pi/4}\sqrt{m\omega}\;\phi(m\omega x). \]</div>
+      <p>4분의 1 주기 뒤의 위치 분포 \(|\psi|^2=m\omega\,|\phi(m\omega x)|^2\)는 처음 운동량 분포의 눈금을 \(m\omega\)로 나누어 옮긴 것이다. 그림 11-4에서 \(\omega t=\pi/2\)의 위치가 처음 속도에 비례하는 것, 그리고 <a href="ch10.html#eq-ho-heis">10장 식 (10.19)</a>에서 \(\hat x_H(\pi/2\omega)=\hat p/(m\omega)\)인 것과 같은 내용이다. 바닥 상태 \(\psi_0=(\pi b^2)^{-1/4}e^{-x^2/2b^2}\)(\(b=\sqrt{\hbar/m\omega}\))는 푸리에 변환해도 모양이 같아서 \(e^{-i\pi/4}\psi_0\)로 돌아온다. 이 위상은 \(e^{-iE_0T/\hbar}\)에 \(E_0=\hbar\omega/2\), \(T=\pi/2\omega\)를 넣은 값이다.</p>
+    </div>
+    <div class="box ex" id="ex-ho-half"><div class="box-h">반주기: 뒤집혀 다시 나타나는 파동함수</div>
+      <p>\(\omega T\to\pi\)이면 \(\sin\omega T\to0\)이어서 식 <a class="ref" href="#eq-ho-kernel"></a>의 앞 인자가 발산하고 위상도 빠르게 돈다. 이때는 식 <a class="ref" href="#eq-spectral-kernel"></a>가 더 편하다. <a href="ch08.html">8장</a>의 고유함수는 실수이고 \(\psi_n(-x)=(-1)^n\psi_n(x)\)이므로, \(E_n=(n+\frac12)\hbar\omega\)를 넣으면 다음과 같다.</p>
+      <div class="formula" id="eq-ho-half">\[ \begin{aligned}&amp;K_\omega\Bigl(x_b,\frac{\pi}{\omega};x_a,0\Bigr)=\sum_n\psi_n(x_b)\psi_n(x_a)\,e^{-i(n+1/2)\pi}\\ &amp;\quad=-i\sum_n\psi_n(-x_b)\psi_n(x_a)=-i\,\delta(x_b+x_a).\end{aligned} \]</div>
+      <p>반주기 뒤의 파동함수는 \(\psi(x,\pi/\omega)=-i\,\psi(-x,0)\)이다. 처음 모양이 원점에 대해 뒤집혀 다시 나타난다. 그림 11-4처럼 \(x_a\)를 떠난 고전 경로는 처음 속도와 상관없이 모두 \(t=\pi/\omega\)에 \(-x_a\)를 지난다. 렌즈가 한 점에서 나온 빛을 반대편 한 점에 모으는 것과 같아서 이런 점을 <span class="term">초점</span> <span class="en">(focal point)</span>이라 한다. 초점에서는 끝점을 정해도 고전 경로가 하나로 정해지지 않으므로 식 <a class="ref" href="#eq-ho-classical-path"></a>의 분모 \(\sin\omega T\)가 0이 된다.</p>
+    </div>
+    <div class="callout deep"><strong>초점을 지나면</strong><p>\(\pi&lt;\omega T&lt;2\pi\)에서는 \(\sin\omega T&lt;0\)이다. 앞 인자를 \(\sqrt{m\omega/(2\pi\hbar|\sin\omega T|)}\,e^{-i\pi/4}\)로 쓰면, 식 <a class="ref" href="#eq-spectral-kernel"></a>와 맞추기 위해 \(e^{-i\pi/2}\)를 하나 더 곱해야 한다. 일반적으로 초점을 하나 지날 때마다 \(e^{-i\pi/2}\)가 붙는다. 이 횟수를 <span class="term">매슬로프 지수</span> <span class="en">(Maslov index)</span>라 한다. 고전 경로들이 겹치는 곳에서 생기는 위상이라는 점에서 <a href="ch18.html">18장</a> WKB의 전환점에서 나오는 \(\pi/4\) 위상과 같은 종류다.</p></div>
+    <h3 id="s5-trace">대각합에서 에너지 준위 읽기</h3>
+    <p>식 <a class="ref" href="#eq-spectral-kernel"></a>에서 \(x_b=x_a=x\)로 놓고 \(x\)로 적분하면 \(\int|\psi_n(x)|^2dx=1\)이므로 고유함수가 사라지고 에너지만 남는다.</p>
+    <div class="formula" id="eq-trace">\[ \int_{-\infty}^{\infty}\!dx\,K(x,T;x,0)=\sum_ne^{-iE_nT/\hbar}. \]</div>
+    <p>왼쪽은 \(U\)의 대각합 \(\mathrm{Tr}\,U\)를 위치 기저에서 계산한 것이다. 전파 함수만 알면 고유함수를 몰라도 에너지 준위를 읽을 수 있다. 조화 진동자에서 \(x_a=x_b=x\)이면 \((\cos\omega T-1)/\sin\omega T=-\tan(\omega T/2)\)이므로 식 <a class="ref" href="#eq-ho-kernel"></a>의 지수는 \(-i(m\omega/\hbar)\tan(\omega T/2)\,x^2\)이다. 가우스 적분을 하고 \(\sin\omega T\tan(\omega T/2)=2\sin^2(\omega T/2)\)를 쓰면</p>
+    <div class="formula" id="eq-ho-trace">\[ \begin{aligned}\int\!dx\,K_\omega(x,T;x,0)&amp;=\sqrt{\frac{m\omega}{2\pi i\hbar\sin\omega T}}\sqrt{\frac{\pi\hbar}{i\,m\omega\tan(\omega T/2)}}\\ &amp;=\frac{1}{2i\sin(\omega T/2)}.\end{aligned} \]</div>
+    <p>이다. \(0&lt;\omega T&lt;\pi\)에서 두 제곱근이 각각 \(e^{-i\pi/4}\)를 주므로 결과에 \(e^{-i\pi/2}=1/i\)가 붙는다. 오른쪽을 \(e^{-i\omega T/2}/(1-e^{-i\omega T})\)로 쓰고 등비급수로 펼치면</p>
+    <div class="formula" id="eq-ho-trace-series">\[ \frac{1}{2i\sin(\omega T/2)}=e^{-i\omega T/2}\sum_{n=0}^{\infty}e^{-in\omega T}=\sum_{n=0}^{\infty}e^{-i(n+1/2)\omega T}. \]</div>
+    <p>이다. 식 <a class="ref" href="#eq-trace"></a>과 항별로 비교하면 \(E_n=(n+\frac12)\hbar\omega\), 곧 <a href="ch08.html#eq-ho-energy">8장 식 (8.8)</a>이 나온다. \(|e^{-i\omega T}|=1\)이어서 이 급수는 보통의 뜻으로 수렴하지 않는다. \(T\)를 \(T-i\tau\)(\(\tau&gt;0\))로 바꾸면 각 항이 \(e^{-(n+1/2)\omega\tau}\)만큼 줄어 수렴하고, 계산을 마친 뒤 \(\tau\to0^+\)로 보낸다. 8장에서 미분 방정식과 사다리 연산자로 얻은 에너지 준위를, 여기서는 고전 경로의 작용과 가우스 적분만으로 다시 얻었다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li>전파 함수 \(K=\langle x_b|U|x_a\rangle\)는 초기 파동함수를 나중 파동함수로 보내는 적분핵이다.</li>
+      <li>전파 함수 \(K=\langle x_b|U|x_a\rangle\)는 초기 파동함수를 나중 파동함수로 보내는 적분핵이다. 에너지 고유상태로 펼치면 \(\sum_n\psi_n(x_b)\psi_n^*(x_a)e^{-iE_nT/\hbar}\)이다.</li>
       <li>시간 변화의 합성 법칙은 중간 위치에서 <em>진폭을 적분</em>하게 한다.</li>
-      <li>짧은 시간 핵의 앞 인자 \(\sqrt{m/(2\pi i\hbar\varepsilon)}\)는 정규화에 필수다.</li>
-      <li>시간 분할의 극한에서 각 이산 경로는 \(e^{iS/\hbar}\) 위상을 얻는다. \(\mathcal D x\)는 그 측도의 줄임 표기다.</li>
-      <li>자유 입자의 정확한 전파 함수는 \(\sqrt{m/(2\pi i\hbar T)}e^{im(x_b-x_a)^2/(2\hbar T)}\)이다.</li>
-      <li>끝점이 고정된 작용의 일차 변분이 0이면 고전 운동 방정식이 나온다.</li>
-      <li>고전 극한에서는 비정류 경로의 위상이 빠르게 상쇄되고 정류 경로 주변의 기여가 두드러진다.</li>
+      <li>짧은 시간 핵의 앞 인자 \(\sqrt{m/(2\pi i\hbar\varepsilon)}\)는 정규화에 필수다. 운동 에너지와 퍼텐셜 에너지를 나누는 오차는 조각마다 \(\varepsilon^2\)에 비례해 극한에서 사라진다(리–트로터 곱 공식).</li>
+      <li>시간 분할의 극한에서 각 이산 경로는 \(e^{iS/\hbar}\) 위상을 얻는다. \(\mathcal D x\)는 그 측도의 줄임 표기이고, 주로 기여하는 경로는 조각마다 \(\sqrt{\hbar\varepsilon/m}\)쯤 움직이는 매끈하지 않은 경로다.</li>
+      <li>자유 입자의 정확한 전파 함수는 \(\sqrt{m/(2\pi i\hbar T)}e^{im(x_b-x_a)^2/(2\hbar T)}\)이다. 가우스 파속에 적용하면 7장의 퍼짐 공식이 나오고, 오래 지나면 위치 분포가 처음 운동량 분포를 비춘다.</li>
+      <li>끝점이 고정된 작용의 일차 변분이 0이면 고전 운동 방정식이 나온다. 고전 극한에서는 비정류 경로의 위상이 빠르게 상쇄되고 정류 경로 주변의 기여가 두드러진다.</li>
+      <li>작용이 이차식이면 \(K=F(T)e^{iS_{\mathrm{cl}}/\hbar}\)이고, 요동 인자의 크기 \(|F|\)는 확률 보존으로 정해진다.</li>
+      <li>조화 진동자의 전파 함수는 4분의 1 주기에 푸리에 변환, 반주기에 반전이 된다. 그 대각합 \(1/(2i\sin(\omega T/2))\)를 펼치면 \(E_n=(n+\frac12)\hbar\omega\)가 나온다.</li>
     </ol>
   </section>
 
@@ -191,6 +300,11 @@
         <button class="opt">유한한 \(\hbar\)에서 한 경로만 존재한다는 조건</button>
         <button class="opt" data-correct>끝점 고정 변형에 대한 고전 운동 방정식</button>
       </div><div class="quiz-exp">일차 변분을 부분 적분하면 \(m\ddot x+V'(x)=0\)이 된다.</div></div>
+      <div class="quiz-q"><p>6. 조화 진동자에서 4분의 1 주기(\(\omega T=\pi/2\))가 지난 뒤의 위치 분포는?</p><div class="opts">
+        <button class="opt">처음 위치 분포와 같다.</button>
+        <button class="opt" data-correct>처음 운동량 분포의 눈금을 \(m\omega\)로 나누어 옮긴 것이다.</button>
+        <button class="opt">처음 위치 분포를 원점에 대해 뒤집은 것이다.</button>
+      </div><div class="quiz-exp">이때 전파 함수가 \(e^{-im\omega x_ax_b/\hbar}\) 꼴이 되어 파동함수를 푸리에 변환한다. 원점에 대해 뒤집히는 것은 반주기 뒤다.</div></div>
     </div>
   </section>
 
@@ -202,16 +316,24 @@
       <details class="sol"><summary>풀이</summary><p>\(p\Delta x-\varepsilon p^2/(2m)=-\varepsilon(p-m\Delta x/\varepsilon)^2/(2m)+m\Delta x^2/(2\varepsilon)\)이다. 가우스 계수 \(a=\eta+i\varepsilon/(2m\hbar)\)에 대해 \(\eta\to0^+\)로 보내면 \(\int dp\,e^{-i\varepsilon p^2/(2m\hbar)}=\sqrt{2\pi m\hbar/(i\varepsilon)}\)다. 여기에 \(1/(2\pi\hbar)\)를 곱하면 원하는 앞 인자가 나온다.</p></details></div>
     <div class="prob" id="prob-constant-v" data-level="1"><p>\(V(x)=V_0\)일 때 식 <a class="ref" href="#eq-path-sliced"></a>에서 \(K_{V_0}=e^{-iV_0T/\hbar}K_0\)를 얻어라. 위치 확률밀도가 바뀌는가?</p>
       <details class="sol"><summary>풀이</summary><p>퍼텐셜 항의 합은 \(\sum_j\varepsilon V_0=TV_0\)다. 따라서 적분 밖으로 \(e^{-iV_0T/\hbar}\)를 꺼낸다. 이는 공통 위상이므로 \(|\psi(x,T)|^2\)는 바뀌지 않는다.</p></details></div>
+    <div class="prob" id="prob-slicing-choice" data-level="2"><p>시간 조각마다 퍼텐셜을 왼쪽 \(V(x_j)\) 대신 오른쪽 \(V(x_{j+1})\)에서 평가한다면 두 이산 작용의 퍼텐셜 부분은 얼마만큼 다른가? 끝점을 고정한 채 \(N\to\infty\)로 보내면?</p>
+      <details class="sol"><summary>풀이</summary><p>오른쪽 평가에서 왼쪽 평가를 빼면 \(-\varepsilon\sum_j[V(x_{j+1})-V(x_j)]=-\varepsilon[V(x_b)-V(x_a)]\)다. 중간 위치와 무관한 끝점 항이며, \(\varepsilon=T/N\to0\)에서 0이다. 여기서는 위치에만 의존하는 퍼텐셜을 다룬다.</p></details></div>
+    <div class="prob" id="prob-symmetric-split" data-level="3"><p>대칭 분할 \(e^{\varepsilon\hat A/2}e^{\varepsilon\hat B}e^{\varepsilon\hat A/2}\)를 \(\varepsilon^2\)까지 전개하여 \(e^{\varepsilon(\hat A+\hat B)}\)와 \(\varepsilon^2\) 항까지 같음을 보여라. \(N\)조각 전체의 오차는 \(N\)에 어떻게 의존하는가? <a class="ref" href="#ex-trotter-spin"></a>의 스핀에서 이 분할의 오차는 \(N=10\)일 때 \(2.7\times10^{-3}\), \(N=100\)일 때 \(2.7\times10^{-5}\)이다. 경로 적분에서 \(\hat A\)를 퍼텐셜 부분으로 잡으면 이 분할은 무엇에 해당하는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\varepsilon\)의 일차 항은 \(\hat A/2+\hat B+\hat A/2=\hat A+\hat B\)다. 이차 항은 각 인자의 이차 항 \(\hat A^2/8+\hat B^2/2+\hat A^2/8\)과, 서로 다른 두 인자에서 일차 항을 하나씩 고른 곱 \(\hat A\hat B/2+\hat A^2/4+\hat B\hat A/2\)를 더한 \((\hat A^2+\hat A\hat B+\hat B\hat A+\hat B^2)/2=(\hat A+\hat B)^2/2\)이다. 따라서 한 조각의 차이는 \(O(\varepsilon^3)\)이고, 식 <a class="ref" href="#eq-telescope"></a>처럼 \(N\)개를 더하면 전체 오차는 \(N\varepsilon^3=T^3/N^2\)에 비례한다. 조각을 10배로 늘리면 오차가 100분의 1이 되는 것이 이 때문이다. 경로 적분에서는 \(\langle x_{j+1}|e^{-i\varepsilon V/2\hbar}e^{-i\varepsilon\hat p^2/2m\hbar}e^{-i\varepsilon V/2\hbar}|x_j\rangle\)가 되어 퍼텐셜을 조각 양 끝의 평균 \([V(x_j)+V(x_{j+1})]/2\)로 평가하는 것과 같다.</p></details></div>
     <div class="prob" id="prob-free-compose" data-level="2"><p>식 <a class="ref" href="#eq-free-complete-square"></a>과 가우스 적분으로 두 자유 입자 전파 함수를 합성하라. 앞 인자가 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 됨을 보여라.</p>
       <details class="sol"><summary>풀이</summary><p>두 앞 인자의 곱은 \(m/[2\pi i\hbar\sqrt{T_1T_2}]\)이다. 식 <a class="ref" href="#eq-free-gaussian-compose"></a>을 곱하면 \(\sqrt{m/[2\pi i\hbar(T_1+T_2)]}\)가 된다. 남은 지수는 \(im(x_b-x_a)^2/[2\hbar(T_1+T_2)]\)다.</p></details></div>
     <div class="prob" id="prob-free-schrodinger" data-level="2"><p>식 <a class="ref" href="#eq-free-kernel"></a>를 \(T,x_b\)로 미분하여 \(i\hbar\partial_TK_0=-(\hbar^2/2m)\partial_{x_b}^2K_0\)을 확인하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(y=x_b-x_a\)라 두면 \(\partial_TK_0=K_0[-1/(2T)-imy^2/(2\hbar T^2)]\)이다. 또 \(\partial_y^2K_0=K_0[im/(\hbar T)-m^2y^2/(\hbar^2T^2)]\)이다. 양변 모두 \(K_0[-i\hbar/(2T)+my^2/(2T^2)]\)다.</p></details></div>
-    <div class="prob" id="prob-constant-force" data-level="3"><p>일정한 힘 \(F\)의 라그랑지안은 \(L=m\dot x^2/2+Fx\)다. \(x(0)=x_a\), \(x(T)=x_b\)인 정류 경로를 구하고 \(S_{\mathrm{cl}}=m(x_b-x_a)^2/(2T)+FT(x_a+x_b)/2-F^2T^3/(24m)\)임을 보여라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(m\ddot x=F\)와 양끝 조건에서 \(x_{\mathrm{cl}}=x_a+v_0t+Ft^2/(2m)\), \(v_0=(x_b-x_a)/T-FT/(2m)\)다. 이를 \(S=\int_0^T[m\dot x^2/2+Fx]dt\)에 넣으면 \(S=(mv_0^2/2+Fx_a)T+Fv_0T^2+F^2T^3/(3m)\)이다. \(v_0\)를 대입하면 주어진 식이 된다.</p></details></div>
-    <div class="prob" id="prob-sine-phase" data-level="2"><p>식 <a class="ref" href="#eq-sine-action"></a>을 유도하고, 직선 경로와 위상 차이가 \(\pi\)가 되는 양의 진폭 \(A\)를 구하라.</p>
+    <div class="prob" id="prob-time-of-flight" data-level="2"><p>질량 \(1.443\times10^{-25}\ \mathrm{kg}\)인 루비듐-87 원자가 폭 \(\sigma=1.0\) μm인 가우스 파속(\(p_0=0\))에 있다가 덫이 꺼져 자유롭게 움직인다. (가) 퍼짐 시간 \(m\sigma^2/\hbar\)를 구하라. (나) \(T=20\ \mathrm{ms}\) 뒤의 폭을 식 <a class="ref" href="#eq-far-field"></a>의 근사와 식 <a class="ref" href="#eq-packet-density"></a>로 각각 구해 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(m\sigma^2/\hbar=1.443\times10^{-25}\times(10^{-6})^2/(1.0546\times10^{-34})=1.37\times10^{-3}\ \mathrm s\)다. (나) \(T\)가 퍼짐 시간의 약 15배이므로 먼 거리 근사를 쓸 수 있다. 근사의 폭은 \(\hbar T/(m\sigma)=1.462\times10^{-5}\ \mathrm m\)이고, 정확한 폭은 \(\sigma\sqrt{1+(\hbar T/m\sigma^2)^2}=1.465\times10^{-5}\ \mathrm m\)이다. 두 값은 0.2% 다르다. 원자 구름이 처음보다 약 15배 넓어지므로 사진으로 찍은 폭에서 처음 운동량 폭 \(\hbar/\sigma\)를 읽을 수 있다.</p></details></div>
+    <div class="prob" id="prob-constant-force" data-level="3"><p>일정한 힘 \(F\)의 라그랑지안은 \(L=m\dot x^2/2+Fx\)다. \(x(0)=x_a\), \(x(T)=x_b\)인 정류 경로를 구하고 \(S_{\mathrm{cl}}=m(x_b-x_a)^2/(2T)+FT(x_a+x_b)/2-F^2T^3/(24m)\)임을 보여라. 또 <a href="#s5">11.5절</a>의 논리로 이 계의 전파 함수가 \(\sqrt{m/(2\pi i\hbar T)}\,e^{iS_{\mathrm{cl}}/\hbar}\)임을 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(m\ddot x=F\)와 양끝 조건에서 \(x_{\mathrm{cl}}=x_a+v_0t+Ft^2/(2m)\), \(v_0=(x_b-x_a)/T-FT/(2m)\)다. 이를 \(S=\int_0^T[m\dot x^2/2+Fx]dt\)에 넣으면 \(S=(mv_0^2/2+Fx_a)T+Fv_0T^2+F^2T^3/(3m)\)이다. \(v_0\)를 대입하면 주어진 식이 된다. \(x=x_{\mathrm{cl}}+y\)로 놓으면 \(Fx\) 항은 일차 항 \(Fy\)만 더하는데, 이 항은 정류 조건으로 사라지는 일차 항 \(\int(m\dot x_{\mathrm{cl}}\dot y+Fy)dt=-\int(m\ddot x_{\mathrm{cl}}-F)y\,dt=0\)에 들어간다. 남는 \(y\)의 작용은 자유 입자의 \(\int m\dot y^2/2\,dt\)와 같으므로 요동 인자도 자유 입자의 \(\sqrt{m/(2\pi i\hbar T)}\)다.</p></details></div>
+    <div class="prob" id="prob-sine-phase" data-level="2"><p>식 <a class="ref" href="#eq-sine-action"></a>를 유도하고, 직선 경로와 위상 차이가 \(\pi\)가 되는 양의 진폭 \(A\)를 구하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(\dot x=\Delta x/T+(A\pi/T)\cos(\pi t/T)\)의 교차항은 적분하면 0이고 \(\int_0^T\cos^2(\pi t/T)dt=T/2\)다. 따라서 \(\Delta S=m\pi^2A^2/(4T)\)이다. \(\Delta S/\hbar=\pi\)에서 \(A=2\sqrt{\hbar T/(m\pi)}\)다.</p></details></div>
-    <div class="prob" id="prob-slicing-choice" data-level="2"><p>시간 조각마다 퍼텐셜을 왼쪽 \(V(x_j)\) 대신 오른쪽 \(V(x_{j+1})\)에서 평가한다면 두 이산 작용의 퍼텐셜 부분은 얼마만큼 다른가? 끝점을 고정한 채 \(N\to\infty\)로 보내면?</p>
-      <details class="sol"><summary>풀이</summary><p>오른쪽 평가에서 왼쪽 평가를 빼면 \(-\varepsilon\sum_j[V(x_{j+1})-V(x_j)]=-\varepsilon[V(x_b)-V(x_a)]\)다. 중간 위치와 무관한 끝점 항이며, \(\varepsilon=T/N\to0\)에서 0이다. 여기서는 위치에만 의존하는 퍼텐셜을 다룬다.</p></details></div>
+    <div class="prob" id="prob-ho-action" data-level="2"><p>식 <a class="ref" href="#eq-ho-classical-path"></a>가 운동 방정식과 양끝 조건을 만족함을 확인하고, \(S_{\mathrm{cl}}=\frac m2[x\dot x]_0^T\)를 써서 식 <a class="ref" href="#eq-ho-action"></a>을 유도하라.</p>
+      <details class="sol"><summary>풀이</summary><p>두 사인 함수가 각각 \(\ddot x=-\omega^2x\)를 만족하고, \(t=0\)에서 \(x_a\sin\omega T/\sin\omega T=x_a\), \(t=T\)에서 \(x_b\)이다. 미분하면 \(\dot x_{\mathrm{cl}}(t)=\omega[-x_a\cos\omega(T-t)+x_b\cos\omega t]/\sin\omega T\)이다. \(S_{\mathrm{cl}}=\frac m2[x_b\dot x_{\mathrm{cl}}(T)-x_a\dot x_{\mathrm{cl}}(0)]=\frac{m\omega}{2\sin\omega T}[x_b(x_b\cos\omega T-x_a)-x_a(x_b-x_a\cos\omega T)]\)를 정리하면 식 <a class="ref" href="#eq-ho-action"></a>이 된다.</p></details></div>
+    <div class="prob" id="prob-ho-ground" data-level="2"><p><a href="ch08.html#eq-ho-scales">8장 식 (8.4)</a>의 \(b=\sqrt{\hbar/m\omega}\)로 쓴 바닥 상태 \(\psi_0(x)=(\pi b^2)^{-1/4}e^{-x^2/2b^2}\)에 식 <a class="ref" href="#eq-ho-kernel"></a>을 적용하여, \(0&lt;\omega T&lt;\pi\)에서 \(\psi(x,T)=e^{-i\omega T/2}\psi_0(x)\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(m\omega/\hbar=1/b^2\)이다. \(x_a\)에 대한 지수는 \(-\alpha x_a^2+\beta x_a+\gamma x^2\)이고 \(\alpha=(1-i\cot\omega T)/(2b^2)=-ie^{i\omega T}/(2b^2\sin\omega T)\), \(\beta=-ix/(b^2\sin\omega T)\), \(\gamma=i\cot\omega T/(2b^2)\)이다. \(\beta^2/4\alpha=-ix^2e^{-i\omega T}/(2b^2\sin\omega T)\)이므로 \(x^2\)의 계수는 \(i(\cos\omega T-e^{-i\omega T})/(2b^2\sin\omega T)=-1/(2b^2)\)이다. 앞 인자는 \(\sqrt{1/(2\pi ib^2\sin\omega T)}\,\sqrt{\pi/\alpha}\,(\pi b^2)^{-1/4}=\sqrt{e^{-i\omega T}}\,(\pi b^2)^{-1/4}\)이다. \(T\to0\)에서 1로 가는 가지를 고르면 \(\sqrt{e^{-i\omega T}}=e^{-i\omega T/2}\)이다.</p></details></div>
   </section>
 </main>
 </body>
