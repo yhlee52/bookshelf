@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinAlgBook · 머신러닝을 위한 선형대수</title>
+<meta name="description" content="벡터와 행렬 곱에서 출발해 부분공간, 직교성, 고유값과 특잇값 분해, 행렬 미적분, 텐서와 어텐션까지 — 신경망의 층과 기울기, 최적화를 행렬과 그 분해로 읽어 내는 이론서입니다.">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../../assets/css/base.css">
+<link rel="stylesheet" href="../../assets/css/book.css">
+<script defer src="../../data/site.js"></script>
+<script defer src="../../data/books.js"></script>
+<script defer src="../../assets/js/viz.js"></script>
+<script defer src="../../assets/js/core.js"></script>
+<script defer src="../../assets/js/lab.js"></script>
+<script defer src="../../assets/sims/dl.js"></script>
+<script defer src="../../assets/sims/ts.js"></script>
+<script defer src="../../assets/sims/phys.js"></script>
+<script defer src="../../assets/js/heroes.js"></script>
+<script defer src="../../assets/js/book.js"></script>
+</head>
+<body data-root="../../" data-book="linear-algebra" data-field="math" data-page="book-home">
+
+<section class="home-hero">
+  <div class="inner">
+    <div>
+      <div class="eyebrow" data-fill="book-en">Linear Algebra for Machine Learning</div>
+      <h1>행렬 곱 뒤의<br><span class="grad">기하를 읽는 법</span></h1>
+      <p data-fill="book-desc">벡터와 행렬 곱에서 출발해 부분공간, 직교성, 고유값과 특잇값 분해, 행렬 미적분, 텐서와 어텐션까지 — 신경망의 층과 기울기, 최적화를 행렬과 그 분해로 읽어 내는 이론서입니다.</p>
+      <div class="cta">
+        <a class="btn primary big" href="chapters/ch01.html">1장부터 시작하기 →</a>
+        <a class="btn ghost big" href="#chapters">전체 목차</a>
+      </div>
+      <div class="hero-badges"><span><b data-fill="part-count">6</b>부 <b data-fill="chapter-count">20</b>장</span><span>정의 → 유도 → 예제 → 연습문제</span><span>장마다 머신러닝 연결 절</span><span data-fill="book-status">집필 중</span></div>
+    </div>
+    <div class="hero-stage" data-hero="svd"><span class="hint">드래그해서 돌려 보세요 · A = UΣVᵀ가 단위 구를 타원체로 바꾸는 세 단계 (화살표는 오른쪽 특이 벡터가 가는 곳, 내접한 정육면체의 부피는 |det A|배)</span></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>이 책의 지도</h2>
+  <p class="sub">1–3부가 뼈대입니다. 벡터와 행렬의 어휘를 익히고, 행렬이 공간을 어떻게 바꾸는지 본 뒤, 행렬을 고유값과 특잇값으로 나눕니다. 그다음 4–6부는 목적에 따라 골라 읽습니다. 상자를 누르면 그 부의 첫 장으로 갑니다.</p>
+  <figure class="diagram scroll">
+    <svg viewBox="0 0 1100 330" role="img" aria-label="이 책의 구성: 1부 벡터와 행렬, 2부 공간의 구조, 3부 행렬의 분해가 차례로 이어지고, 3부에서 4부 미분과 최적화, 5부 딥러닝 속의 행렬, 6부 큰 행렬과 높은 차원으로 갈라진다. 4부는 6부에서도 쓴다">
+      <defs><marker id="la-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+      <a href="chapters/ch01.html"><g transform="translate(20,95)">
+        <rect width="220" height="140" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">1부 · 1–3장</text>
+        <text x="16" y="56" class="t-b">벡터와 행렬</text>
+        <text x="16" y="82" class="t-dim">벡터와 내적 · 노름</text>
+        <text x="16" y="102" class="t-dim">행렬은 선형 사상</text>
+        <text x="16" y="122" class="t-dim">연립 방정식 · LU 분해</text>
+      </g></a>
+      <path d="M244 165 H284" class="s-acc" marker-end="url(#la-arr)"/>
+      <a href="chapters/ch04.html"><g transform="translate(290,95)">
+        <rect width="210" height="140" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">2부 · 4–7장</text>
+        <text x="16" y="56" class="t-b">공간의 구조</text>
+        <text x="16" y="82" class="t-dim">기저와 차원 · 랭크</text>
+        <text x="16" y="102" class="t-dim">네 부분공간 · 직교 투영</text>
+        <text x="16" y="122" class="t-dim">QR 분해 · 행렬식</text>
+      </g></a>
+      <path d="M504 165 H544" class="s-acc" marker-end="url(#la-arr)"/>
+      <a href="chapters/ch08.html"><g transform="translate(550,95)">
+        <rect width="210" height="140" rx="14" class="f-acc-soft" stroke-width="2"/>
+        <text x="16" y="28" class="t-acc">3부 · 8–11장</text>
+        <text x="16" y="56" class="t-b">행렬의 분해</text>
+        <text x="16" y="82" class="t-dim">고유값 · 대각화</text>
+        <text x="16" y="102" class="t-dim">스펙트럼 정리 · SVD</text>
+        <text x="16" y="122" class="t-dim">노름과 조건수</text>
+      </g></a>
+      <path d="M764 150 C 784 150, 778 52, 794 52" class="s-acc flow-dash" marker-end="url(#la-arr)"/>
+      <path d="M764 165 H794" class="s-acc flow-dash" marker-end="url(#la-arr)"/>
+      <path d="M764 180 C 784 180, 778 278, 794 278" class="s-acc flow-dash" marker-end="url(#la-arr)"/>
+      <a href="chapters/ch12.html"><g transform="translate(800,8)">
+        <rect width="260" height="88" rx="14" class="f-surface"/>
+        <text x="16" y="26" class="t-acc">4부 · 12–14장</text>
+        <text x="16" y="50" class="t-b">미분과 최적화</text>
+        <text x="16" y="72" class="t-dim">행렬 미적분 · 역전파 · 경사 하강법</text>
+      </g></a>
+      <a href="chapters/ch15.html"><g transform="translate(800,121)">
+        <rect width="260" height="88" rx="14" class="f-surface"/>
+        <text x="16" y="26" class="t-acc">5부 · 15–18장</text>
+        <text x="16" y="50" class="t-b">딥러닝 속의 행렬</text>
+        <text x="16" y="72" class="t-dim">einsum · 합성곱 · 어텐션 · 그래프</text>
+      </g></a>
+      <a href="chapters/ch19.html"><g transform="translate(800,234)">
+        <rect width="260" height="88" rx="14" class="f-surface"/>
+        <text x="16" y="26" class="t-acc">6부 · 19–20장</text>
+        <text x="16" y="50" class="t-b">큰 행렬과 높은 차원</text>
+        <text x="16" y="72" class="t-dim">무작위 행렬 · 반복법</text>
+      </g></a>
+      <path d="M1062 52 C 1092 52, 1092 278, 1066 278" class="s-acc2" stroke-dasharray="4 4" marker-end="url(#la-arr)"/>
+    </svg>
+    <figcaption><b>그림 0-1.</b> 여섯 부의 순서와 의존 관계. 화살표는 앞 부의 내용을 뒤 부에서 쓴다는 뜻입니다. 4–6부는 3부 다음에 어느 쪽을 먼저 읽어도 되고, 6부는 4부의 야코비 행렬과 헤세-벡터 곱(13장), 이차 함수의 최소화(14장)를 함께 씁니다(점선). 5부에서는 15장(einsum)을 먼저 읽기를 권합니다.</figcaption>
+  </figure>
+</section>
+
+<section class="home-section" id="chapters">
+  <h2>전체 목차</h2>
+  <p class="sub">카드 아래 줄이 그 장에서 다루는 내용의 요약입니다. 모든 장의 마지막 절은 그 장의 개념을 머신러닝에서 다시 만나는 절입니다.</p>
+  <div class="ch-grid" data-chapter-grid></div>
+</section>
+
+<section class="home-section">
+  <h2>추천 읽기 경로</h2>
+  <p class="sub">처음 읽는다면 1장부터 차례로 읽기를 권합니다. 지금 당장 궁금한 것이 있다면 아래 경로로 필요한 장만 골라 읽어도 됩니다.</p>
+  <div class="paths">
+    <div class="path"><h3>역전파를 행렬로</h3><p>선형 층의 기울기를 행렬 하나로 유도하고, 역전파가 야코비 행렬을 어느 쪽부터 곱하는 일인지, 기울기 하나에 역방향 한 번이면 되는 이유를 봅니다.</p><div class="steps"><a href="chapters/ch02.html">02</a><a href="chapters/ch12.html">12</a><a href="chapters/ch13.html">13</a><a href="chapters/ch15.html">15</a></div></div>
+    <div class="path"><h3>학습이 느리거나 터지는 이유</h3><p>고유값과 조건수로 경사 하강법의 수렴 속도와 학습률의 상한, RNN의 기울기 폭발, 깊은 신경망의 초기화를 설명합니다.</p><div class="steps"><a href="chapters/ch08.html">08</a><a href="chapters/ch09.html">09</a><a href="chapters/ch11.html">11</a><a href="chapters/ch14.html">14</a><a href="chapters/ch19.html">19</a></div></div>
+    <div class="path"><h3>저랭크와 압축</h3><p>랭크와 특잇값 분해로 LoRA, 가중치 압축, 주성분 분석, 큰 행렬의 무작위 SVD를 잇습니다.</p><div class="steps"><a href="chapters/ch05.html">05</a><a href="chapters/ch06.html">06</a><a href="chapters/ch10.html">10</a><a href="chapters/ch20.html">20</a></div></div>
+    <div class="path"><h3>트랜스포머를 행렬로 읽기</h3><p>임베딩의 내적, 배치 행렬 곱, 회전 행렬, einsum을 거쳐 어텐션 행렬과 회전 위치 인코딩을 씁니다.</p><div class="steps"><a href="chapters/ch01.html">01</a><a href="chapters/ch02.html">02</a><a href="chapters/ch08.html">08</a><a href="chapters/ch15.html">15</a><a href="chapters/ch17.html">17</a></div></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>이 책을 읽는 법</h2>
+  <p class="sub">고등학교 수학과 편미분을 안다고 가정합니다. 선형대수는 벡터부터 처음 세웁니다. 신경망을 직접 학습시켜 본 경험이 있으면 머신러닝 연결 절이 더 잘 읽히고, NumPy를 조금 써 봤으면 코드 조각을 따라 하기 쉽습니다.</p>
+  <div class="flow">
+    <div><b>목표 확인</b>장 머리의 학습 목표와 선수 지식을 먼저 봅니다.</div>
+    <div><b>정의와 유도</b>절마다 정의를 세우고 결과를 한 줄씩 끌어냅니다.</div>
+    <div><b>그림과 예제</b>행렬이 공간을 어떻게 바꾸는지 그림으로 먼저 보고, 2×2·3×3 행렬을 손으로 계산해 확인합니다.</div>
+    <div><b>머신러닝에서</b>장의 마지막 절에서 그 개념이 신경망의 층, 기울기, 최적화의 어디에 있는지 봅니다.</div>
+    <div><b>핵심 정리 · 퀴즈</b>장을 덮기 전에 요점을 짚고 바로 점검합니다.</div>
+    <div><b>연습문제</b>스스로 풀어 본 뒤 접어 둔 풀이와 맞춰 봅니다.</div>
+  </div>
+  <div class="callout tip"><strong>수학 상자</strong><p>새 수학 도구(복소수와 오일러 공식, 테일러 전개, 수학적 귀납법, 확률의 기초 등)는 처음 필요한 자리에 점선 테두리의 <b>수학 상자</b>로 따로 설명합니다. 이미 아는 내용이면 건너뛰어도 흐름이 이어집니다.</p></div>
+  <div class="callout"><strong>통계 책과 함께 읽기</strong><p><a href="../statistics/index.html">『머신러닝을 위한 통계』</a>는 이 책의 1–3부(행렬 곱, 역행렬, 고유값과 특잇값)를 안다고 가정합니다. 두 책이 함께 다루는 최소제곱(6장), 촐레스키 분해와 화이트닝(9장), 주성분 분석(10장)은 이 책에서 기하와 계산을, 통계 책에서 확률 모형을 봅니다.</p></div>
+</section>
+
+<section class="home-section" id="notation">
+  <h2>표기 규칙</h2>
+  <p class="sub">선형대수 교재와 머신러닝 코드는 같은 대상을 다른 모양으로 쓰는 일이 많습니다. 이 책은 아래 기호를 책 전체에서 같은 뜻으로 씁니다. 처음 나오는 장과 다른 관례는 작은 글씨로 덧붙였습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>기호</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td>\(a,\ \mathbf x,\ \mathbf A\)</td><td>스칼라는 보통 글씨, 벡터는 굵은 소문자, 행렬은 굵은 대문자<div class="note">1장, 2장</div></td></tr>
+      <tr><td>\(\mathbb R^n,\ \mathbb R^{m\times n}\)</td><td>실수 성분 \(n\)개짜리 벡터의 공간, \(m\)행 \(n\)열 행렬의 공간<div class="note">1장, 2장</div></td></tr>
+      <tr><td>\(\mathbf x\in\mathbb R^n\)</td><td>벡터는 열벡터. 행벡터는 \(\mathbf x^\top\)<div class="note">NumPy와 PyTorch의 1차원 배열에는 행·열 구분이 없습니다. 데이터 행렬 \(\mathbf X\in\mathbb R^{n\times d}\)는 행 하나가 표본 하나입니다(통계 책과 같음).</div></td></tr>
+      <tr><td>\(a_{ij},\ \mathbf A_{i,:},\ \mathbf A_{:,j}\)</td><td>\((i, j)\) 성분, \(i\)번째 행, \(j\)번째 열<div class="note">2장. NumPy의 <code>A[i, :]</code>, <code>A[:, j]</code>와 같은 모양으로 씁니다. 인덱스는 1부터 셉니다.</div></td></tr>
+      <tr><td>\(\mathbf A^\top,\ \mathbf A^{-1},\ \mathbf A^{+}\)</td><td>전치, 역행렬, 유사역행렬<div class="note">2장, 3장, 10장</div></td></tr>
+      <tr><td>\(\mathbf I_n,\ \mathbf 0,\ \mathbf e_i\)</td><td>\(n\times n\) 단위 행렬, 영벡터 또는 영행렬, \(i\)번째 성분만 1인 표준 기저 벡터<div class="note">크기가 분명하면 \(\mathbf I\)로 줄입니다.</div></td></tr>
+      <tr><td>\(\mathbf x^\top\mathbf y,\ \langle\mathbf x,\mathbf y\rangle\)</td><td>내적<div class="note">1장. \(\mathbb R^n\)에서는 \(\mathbf x^\top\mathbf y\)를 쓰고, 함수 공간처럼 일반적인 벡터 공간에서는 꺾쇠를 씁니다.</div></td></tr>
+      <tr><td>\(\|\mathbf x\|_1,\ \|\mathbf x\|_2,\ \|\mathbf x\|_\infty\)</td><td>L1, L2, L∞ 노름<div class="note">1장. 아래첨자 없는 \(\|\mathbf x\|\)는 L2 노름입니다.</div></td></tr>
+      <tr><td>\(C(\mathbf A),\ N(\mathbf A),\ \operatorname{rank}\mathbf A\)</td><td>열공간, 영공간, 랭크<div class="note">5장. 행공간은 \(C(\mathbf A^\top)\), 왼쪽 영공간은 \(N(\mathbf A^\top)\)</div></td></tr>
+      <tr><td>\(\det\mathbf A,\ \operatorname{tr}\mathbf A\)</td><td>행렬식, 대각합<div class="note">7장, 8장</div></td></tr>
+      <tr><td>\(\lambda_i,\ \mathbf A = \mathbf Q\boldsymbol\Lambda\mathbf Q^\top\)</td><td>고유값, 대칭 행렬의 스펙트럼 분해<div class="note">8장, 9장. \(\mathbf Q\)는 직교 행렬, \(\boldsymbol\Lambda\)는 고유값을 대각에 놓은 행렬</div></td></tr>
+      <tr><td>\(\mathbf A\succ 0,\ \mathbf A\succeq 0\)</td><td>양의 정부호, 양의 준정부호<div class="note">9장</div></td></tr>
+      <tr><td>\(\mathbf A = \mathbf U\boldsymbol\Sigma\mathbf V^\top\)</td><td>특잇값 분해. 특잇값은 큰 것부터 \(\sigma_1\ge\sigma_2\ge\dots\ge 0\)<div class="note">10장. 오른쪽 특이 벡터 \(\mathbf v_i\), 왼쪽 특이 벡터 \(\mathbf u_i\)</div></td></tr>
+      <tr><td>\(\|\mathbf A\|_2,\ \|\mathbf A\|_F,\ \kappa(\mathbf A)\)</td><td>스펙트럼 노름, 프로베니우스 노름, 조건수 \(\sigma_1/\sigma_n\)<div class="note">11장</div></td></tr>
+      <tr><td>\(\nabla f,\ \mathbf J_f,\ \nabla^2 f\)</td><td>기울기, 야코비 행렬, 헤세 행렬<div class="note">12장. 기울기는 입력과 같은 모양의 열벡터이고, \(f:\mathbb R^n\to\mathbb R^m\)의 야코비 행렬은 \(m\times n\)입니다. 이 규약을 고른 이유는 12장에 있습니다.</div></td></tr>
+      <tr><td>\(\otimes,\ \odot,\ \operatorname{vec}\)</td><td>크로네커 곱, 성분별 곱(아다마르 곱), 열을 차례로 쌓아 벡터로 만드는 연산<div class="note">15장</div></td></tr>
+      <tr><td>번호</td><td>식 (n.k), 정의·정리·예제 n.k, 문제 n.k<div class="note">장마다 1부터 센다</div></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="home-section">
+  <h2>숫자로 보는 선형대수</h2>
+  <p class="sub">이 책을 끝내면 어디서 나오는지 직접 유도할 수 있게 될 숫자들입니다.</p>
+  <div class="numbers">
+    <div><b>2/λ<sub>max</sub></b><span>볼록한 이차 함수 위에서 경사 하강법이 수렴하는 학습률의 상한. λ<sub>max</sub>는 헤세 행렬의 가장 큰 고유값 (14장)</span></div>
+    <div><b>κ²</b><span>정규 방정식의 행렬 AᵀA의 조건수는 A의 조건수의 제곱. 최소제곱을 QR 분해로 푸는 이유 (11장)</span></div>
+    <div><b>0.39%</b><span>4096×4096 가중치를 랭크 8인 LoRA로 고칠 때 학습하는 파라미터의 비율, 65,536 ÷ 16,777,216 (5장)</span></div>
+    <div><b>√d</b><span>어텐션 점수를 나누는 수. 성분이 서로 독립이고 평균 0, 분산 1인 d차원 벡터 두 개의 내적은 분산이 d다 (17장)</span></div>
+    <div><b>0.032</b><span>1,000차원에서 무작위 방향 두 개의 코사인 유사도의 표준편차 1/√1000. 고차원의 무작위 벡터는 거의 직교한다 (19장)</span></div>
+    <div><b>1 : n</b><span>입력이 n개인 스칼라 함수의 기울기를 구할 때 역방향 모드와 순방향 모드가 거쳐야 하는 패스 수 (13장)</span></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>참고 교재</h2>
+  <p class="sub">한 권의 교재를 따라가지 않고, 머신러닝 독자에게 필요한 순서로 목차를 새로 짰습니다. 아래 교재는 내용을 검산하고 같은 주제를 다른 각도에서 보는 데 씁니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>교재</th><th>이 책에서의 역할</th></tr></thead>
+    <tbody>
+      <tr><td>G. Strang, <i>Introduction to Linear Algebra</i>, 6th ed. (Wellesley-Cambridge Press, 2023)</td><td>행렬 곱의 여러 읽기, 소거와 LU 분해, 네 부분공간(2–6장)</td></tr>
+      <tr><td>G. Strang, <i>Linear Algebra and Learning from Data</i> (Wellesley-Cambridge Press, 2019)</td><td>저랭크 근사, 무작위 선형대수, 딥러닝 쪽 주제(10장, 19–20장)</td></tr>
+      <tr><td>S. Axler, <i>Linear Algebra Done Right</i>, 4th ed. (Springer, 2024)</td><td>벡터 공간과 선형 사상, 스펙트럼 정리의 엄밀한 정리(4장, 8–9장)</td></tr>
+      <tr><td>S. Boyd, L. Vandenberghe, <i>Introduction to Applied Linear Algebra</i> (Cambridge University Press, 2018)</td><td>노름, 최소제곱, 응용 예제(1장, 6장)</td></tr>
+      <tr><td>L. N. Trefethen, D. Bau III, <i>Numerical Linear Algebra</i> (SIAM, 1997)</td><td>QR 분해, 조건수와 수치 안정성, 크릴로프 반복법(6장, 11장, 20장)</td></tr>
+      <tr><td>G. H. Golub, C. F. Van Loan, <i>Matrix Computations</i>, 4th ed. (Johns Hopkins University Press, 2013)</td><td>분해 알고리즘과 계산량의 검산</td></tr>
+      <tr><td>K. B. Petersen, M. S. Pedersen, <i>The Matrix Cookbook</i> (Technical University of Denmark, 2012)</td><td>행렬 미분 공식의 검산(12장)</td></tr>
+      <tr><td>R. Vershynin, <i>High-Dimensional Probability</i> (Cambridge University Press, 2018)</td><td>고차원 기하와 무작위 행렬(19장)</td></tr>
+      <tr><td>F. R. K. Chung, <i>Spectral Graph Theory</i> (American Mathematical Society, 1997)</td><td>그래프 라플라시안과 스펙트럼(18장)</td></tr>
+      <tr><td>M. P. Deisenroth, A. A. Faisal, C. S. Ong, <i>Mathematics for Machine Learning</i> (Cambridge University Press, 2020)</td><td>머신러닝 연결 절의 범위와 표기</td></tr>
+      <tr><td>I. Goodfellow, Y. Bengio, A. Courville, <i>Deep Learning</i> (MIT Press, 2016)</td><td>머신러닝 연결 절의 딥러닝 쪽 관례</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><strong>이 책을 쓰는 원칙</strong><p>위 교재의 문장, 예제, 연습문제, 그림을 옮기지 않고 새로 씁니다. 유도와 수치는 따로 계산해 검산하고, 그림 속 도형은 실제 행렬로 계산해 그립니다.</p></div>
+</section>
+</body>
+</html>

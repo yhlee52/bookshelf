@@ -1,10 +1,10 @@
 # LabShelf · 인터랙티브 연구 서재
 
-딥러닝 논문 리뷰, 시계열 딥러닝, 물리학, 머신러닝을 위한 통계를 **직접 움직여 보는 실험**과 함께 읽는 웹 교과서 서재입니다.
+딥러닝 논문 리뷰, 시계열 딥러닝, 물리학, 머신러닝을 위한 수학(선형대수·통계)을 **직접 움직여 보는 실험**과 함께 읽는 웹 교과서 서재입니다.
 빌드 도구 없이 HTML · CSS · JavaScript 파일만으로 동작하므로 GitHub Pages에 그대로 올리면 됩니다.
 
 - 서재(허브): 홈 · 전체 책장 · 실험실(모든 실험 모음) · 실험 크게 보기
-- 책 5권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), 움직이는 물리학(4부 13장, 1부 고전역학부터 집필), 차근차근 양자역학(이론서, 6부 23장 집필 완료), 머신러닝을 위한 통계(이론서, 6부 20장 목차와 빈 슬롯)
+- 책 6권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), 움직이는 물리학(4부 13장, 1부 고전역학부터 집필), 차근차근 양자역학(이론서, 6부 23장 집필 완료), 머신러닝을 위한 선형대수(이론서, 6부 20장 목차와 빈 슬롯), 머신러닝을 위한 통계(이론서, 6부 20장 목차와 빈 슬롯)
 - 집필 예정 책 2권: 물리 × 딥러닝, 딥러닝 기초 (표지만 있고 페이지는 없음)
 - 인터랙티브 실험 54개 (2D 캔버스 + 3D three.js), 책별 3D 첫 화면, 밝은/어두운 테마, 통합 검색
 
@@ -118,6 +118,7 @@ books/
   timeseries-dl/        시계열 딥러닝     (index.html + chapters/ch01~ch08.html)
   physics/              움직이는 물리학   (index.html + chapters/ch01~ch13.html + GUIDE.md 집필 계획)
   quantum/              차근차근 양자역학 (index.html + chapters/ch01~ch23.html + GUIDE.md 집필 가이드)
+  linear-algebra/       머신러닝을 위한 선형대수 (index.html + chapters/ch01~ch20.html + GUIDE.md 집필 가이드)
   statistics/           머신러닝을 위한 통계 (index.html + chapters/ch01~ch20.html + GUIDE.md 집필 가이드)
 templates/
   chapter.html          새 교과서형 챕터 틀 (실험 중심 책)
@@ -208,7 +209,7 @@ SVG 그림 안에서는 테마를 따라 색이 바뀌는 클래스를 쓸 수 �
 ```js
 Lab.register({
   id: "my-sim",                    // data-sim="my-sim"으로 부름
-  field: "phys",                   // dl | ts | phys | stat | bridge
+  field: "phys",                   // dl | ts | phys | math | bridge
   title: "내 실험 — 부제",
   desc: "실험실 카드에 보일 한 줄 설명",
   tags: ["태그"],
@@ -237,5 +238,5 @@ Lab.register({
 
 - 사이트 이름·소개·저자·GitHub 주소: `data/site.js`
 - 분야 색: `data/books.js`의 `fields[].color` (표지·칩) + `assets/css/base.css`의 `body[data-field]` (책 페이지 강조색)
-- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `levels` · `bell` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
+- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `levels` · `bell` · `lattice` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
 - 서재 색(종이·책장): `assets/css/shelf.css` 맨 위

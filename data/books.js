@@ -7,7 +7,7 @@
    챕터 status:   "slot"(빈 템플릿) | "draft"(작성 중) | "done"(완성)
    chapter.sims:  그 챕터에 들어 있는 실험 id (assets/sims/*.js의 id). 카드에 칩으로 표시됨
    book.parts:    (선택) 부 목록 [{title, desc}]. chapter.part(1부터)로 묶어 책 홈과 서랍에 부 제목을 단다
-   motif:         표지 그림 (assets/js/covers.js): attention · waves · orbit · field · network · levels · bell · blank
+   motif:         표지 그림 (assets/js/covers.js): attention · waves · orbit · field · network · levels · bell · lattice · blank
    ========================================================================== */
 window.SHELF_DATA = {
   statusLabels: { published: "집필 완료", writing: "집필 중", planned: "집필 예정" },
@@ -20,8 +20,8 @@ window.SHELF_DATA = {
       desc: "시간 순서가 있는 데이터를 다루는 통계와 딥러닝 모델." },
     { id: "phys", name: "물리학", en: "Physics", color: "#ea580c", colorDark: "#fdba74",
       desc: "운동·파동·장·통계역학을 시뮬레이션으로 체험하고, 양자역학을 기초부터 유도합니다." },
-    { id: "stat", name: "확률·통계", en: "Probability & Statistics", color: "#0284c7", colorDark: "#7dd3fc",
-      desc: "머신러닝과 딥러닝이 기대는 확률과 통계를 정의부터 유도하며 익힙니다." },
+    { id: "math", name: "수학", en: "Mathematics", color: "#0284c7", colorDark: "#7dd3fc",
+      desc: "머신러닝과 딥러닝이 기대는 선형대수와 확률·통계를 정의부터 유도하며 익힙니다." },
     { id: "bridge", name: "융합 연구", en: "Physics × AI", color: "#c026d3", colorDark: "#f0abfc",
       desc: "물리 법칙을 아는 신경망, 신경망으로 푸는 물리." },
   ],
@@ -138,11 +138,52 @@ window.SHELF_DATA = {
       ],
     },
 
+    /* ------------------------------------------------------------ 선형대수 (이론서) */
+    // 집필 규칙: books/linear-algebra/GUIDE.md · 슬롯 챕터의 desc는 그 장의 절 목록이다 (작성하면 한두 문장 요약으로 바꾼다)
+    // 고급 장은 기존 장 사이에 끼우지 않고, parts 끝에 새 부를 더해 ch21부터 이어 붙인다 (GUIDE.md 9절)
+    {
+      id: "linear-algebra", field: "math", status: "writing", kind: "textbook", motif: "lattice",
+      series: "LinAlgBook", title: "머신러닝을 위한 선형대수", en: "Linear Algebra for Machine Learning",
+      tagline: "행렬 곱 뒤의 기하",
+      desc: "벡터와 행렬 곱에서 출발해 부분공간, 직교성, 고유값과 특잇값 분해, 행렬 미적분, 텐서와 어텐션까지 — 신경망의 층과 기울기, 최적화를 행렬과 그 분해로 읽어 내는 이론서입니다.",
+      path: "books/linear-algebra/",
+      parts: [
+        { title: "벡터와 행렬", desc: "벡터와 내적, 선형 사상으로서의 행렬, 연립 방정식이라는 기본 어휘를 익힙니다." },
+        { title: "공간의 구조", desc: "기저와 차원, 랭크와 네 부분공간, 직교 투영, 행렬식으로 행렬이 공간을 어떻게 바꾸는지 봅니다." },
+        { title: "행렬의 분해", desc: "고유값 분해, 스펙트럼 정리, 특잇값 분해로 행렬을 단순한 조각으로 나누고, 노름과 조건수로 그 크기를 잽니다." },
+        { title: "미분과 최적화", desc: "벡터와 행렬로 미분하는 법을 세우고, 역전파를 야코비 행렬의 곱으로, 경사 하강법을 고유값으로 읽습니다." },
+        { title: "딥러닝 속의 행렬", desc: "텐서와 einsum, 합성곱, 어텐션, 그래프 신경망을 앞에서 만든 도구로 다시 씁니다." },
+        { title: "큰 행렬과 높은 차원", desc: "고차원 공간과 무작위 행렬의 성질을 보고, 곱셈만으로 큰 행렬의 고유값과 해를 구하는 반복법을 다룹니다." },
+      ],
+      chapters: [
+        { slug: "ch01", num: "01", part: 1, status: "slot", title: "벡터와 내적", desc: "벡터: 화살표와 숫자 목록 · 선형 결합 · 내적과 각도 · 노름: L1, L2, L∞ · 코시-슈바르츠 부등식과 삼각 부등식 · 머신러닝에서: 임베딩의 코사인 유사도" },
+        { slug: "ch02", num: "02", part: 1, status: "slot", title: "행렬과 행렬 곱", desc: "행렬은 선형 사상이다 · 행렬 곱은 사상의 합성 · 행렬 곱을 읽는 네 가지 방법 · 전치와 블록 행렬 · 곱하는 순서와 계산량 · 머신러닝에서: 선형 층과 미니배치" },
+        { slug: "ch03", num: "03", part: 1, status: "slot", title: "연립 방정식과 LU 분해", desc: "가우스 소거법 · 피벗과 행 사다리꼴 · LU 분해 · 역행렬과 가역성 · 해가 없거나 무수히 많을 때 · 머신러닝에서: inv 대신 solve를 쓰는 이유" },
+        { slug: "ch04", num: "04", part: 2, status: "slot", title: "벡터 공간과 기저", desc: "벡터 공간과 부분공간 · 생성과 선형 독립 · 기저와 차원 · 좌표와 기저 바꾸기 · 선형 사상의 행렬 표현 · 머신러닝에서: 임베딩 공간의 방향과 선형 표현 가설" },
+        { slug: "ch05", num: "05", part: 2, status: "slot", title: "랭크와 네 부분공간", desc: "열공간과 영공간 · 행공간과 왼쪽 영공간 · 랭크-영공간 정리 · 랭크 1 행렬과 외적 · 곱의 랭크 · 머신러닝에서: 병목 층과 LoRA" },
+        { slug: "ch06", num: "06", part: 2, status: "slot", title: "직교성과 투영", desc: "직교와 직교 여공간 · 직교 투영과 투영 행렬 · 최소제곱과 정규 방정식 · 그람-슈미트 과정과 QR 분해 · 직교 행렬: 회전과 반사 · 머신러닝에서: 직교 초기화와 노름 보존" },
+        { slug: "ch07", num: "07", part: 2, status: "slot", title: "행렬식", desc: "넓이와 부피의 배율 · 세 가지 성질에서 공식으로 · 곱의 행렬식과 가역성 · 야코비 행렬식과 변수 변환 · 로그 행렬식 계산하기 · 머신러닝에서: 정규화 흐름의 로그 행렬식" },
+        { slug: "ch08", num: "08", part: 3, status: "slot", title: "고유값과 고유벡터", desc: "방향이 바뀌지 않는 벡터 · 특성 방정식 · 대각화 · 행렬의 거듭제곱과 행렬 지수 · 복소 고유값과 회전 · 머신러닝에서: RNN의 기울기 폭발과 소실" },
+        { slug: "ch09", num: "09", part: 3, status: "slot", title: "대칭 행렬과 양의 정부호 행렬", desc: "스펙트럼 정리 · 이차 형식 · 양의 정부호 판정 · 촐레스키 분해 · 레일리 몫과 최대·최소 고유값 · 머신러닝에서: 공분산 행렬과 커널 행렬은 왜 양의 준정부호인가" },
+        { slug: "ch10", num: "10", part: 3, status: "slot", title: "특잇값 분해", desc: "원을 타원으로 · 특잇값 분해의 존재와 AᵀA · 외적의 합과 축약 SVD · 에카르트-영 정리 · 유사역행렬과 최소 노름 해 · 머신러닝에서: 가중치 압축과 저랭크 근사" },
+        { slug: "ch11", num: "11", part: 3, status: "slot", title: "행렬 노름과 조건수", desc: "벡터 노름에서 행렬 노름으로 · 스펙트럼 노름과 프로베니우스 노름 · 조건수와 오차 증폭 · 정규 방정식과 QR의 수치 안정성 · 립시츠 상수와 층의 합성 · 머신러닝에서: 스펙트럼 정규화" },
+        { slug: "ch12", num: "12", part: 4, status: "slot", title: "행렬 미적분", desc: "기울기, 야코비 행렬, 헤세 행렬 · 모양과 레이아웃 규약 · 미분 형식과 대각합 기법 · 자주 쓰는 공식 · 연쇄 법칙 · 머신러닝에서: 선형 층과 소프트맥스-교차 엔트로피의 기울기" },
+        { slug: "ch13", num: "13", part: 4, status: "slot", title: "야코비 행렬로 보는 역전파", desc: "계산 그래프와 합성 함수 · 야코비 행렬의 곱 · 순방향 모드: 야코비-벡터 곱 · 역방향 모드: 벡터-야코비 곱 · 곱하는 순서와 비용 · 머신러닝에서: 헤세-벡터 곱과 작은 autograd" },
+        { slug: "ch14", num: "14", part: 4, status: "slot", title: "이차 함수 위의 경사 하강법", desc: "이차 근사와 헤세 행렬 · 고유 기저에서 본 경사 하강법 · 조건수와 수렴 속도 · 모멘텀 · 뉴턴법과 전처리 · 머신러닝에서: 학습률의 상한과 Adam의 대각 전처리" },
+        { slug: "ch15", num: "15", part: 5, status: "slot", title: "텐서와 einsum", desc: "축이 여럿인 배열 · 브로드캐스팅 · 아인슈타인 합 표기 · 크로네커 곱과 vec 연산 · 축약 순서와 계산량 · 머신러닝에서: einsum으로 읽는 층 구현" },
+        { slug: "ch16", num: "16", part: 5, status: "slot", title: "합성곱과 푸리에 변환", desc: "합성곱은 선형 사상이다 · 퇴플리츠 행렬과 순환 행렬 · 이산 푸리에 변환은 기저 바꾸기 · 순환 행렬의 대각화와 합성곱 정리 · 2차원 합성곱과 im2col · 머신러닝에서: CNN 층을 행렬 곱으로" },
+        { slug: "ch17", num: "17", part: 5, status: "slot", title: "어텐션의 선형대수", desc: "쌍선형 형식 QKᵀ · 소프트맥스와 행 확률 행렬 · 헤드 차원과 어텐션의 랭크 · 회전 행렬로 보는 위치 인코딩 · 선형 어텐션과 커널 · 머신러닝에서: KV 캐시와 계산량" },
+        { slug: "ch18", num: "18", part: 5, status: "slot", title: "그래프와 라플라시안", desc: "인접 행렬과 차수 행렬 · 그래프 라플라시안과 이차 형식 · 고유값과 연결 성분 · 스펙트럼 군집 · 무작위 보행과 확률 행렬 · 머신러닝에서: 그래프 합성곱 신경망" },
+        { slug: "ch19", num: "19", part: 6, status: "slot", title: "고차원 공간과 무작위 행렬", desc: "고차원에서는 부피가 껍질에 몰린다 · 무작위 벡터는 거의 직교한다 · 존슨-린덴스트라우스 보조정리 · 무작위 행렬의 특잇값 · 무작위 행렬의 곱 · 머신러닝에서: 초기화와 동역학적 등거리성" },
+        { slug: "ch20", num: "20", part: 6, status: "slot", title: "큰 행렬을 위한 반복법", desc: "곱셈만 쓸 수 있을 때 · 거듭제곱법 · 크릴로프 부분공간과 란초스 방법 · 켤레 기울기법 · 무작위 SVD · 머신러닝에서: 헤세 행렬의 스펙트럼 추정" },
+      ],
+    },
+
     /* ------------------------------------------------------------ 통계 (이론서) */
     // 집필 규칙: books/statistics/GUIDE.md · 슬롯 챕터의 desc는 그 장의 절 목록이다 (작성하면 한두 문장 요약으로 바꾼다)
     // 고급 장은 기존 장 사이에 끼우지 않고, parts 끝에 새 부를 더해 ch21부터 이어 붙인다 (GUIDE.md 9절)
     {
-      id: "statistics", field: "stat", status: "writing", kind: "textbook", motif: "bell",
+      id: "statistics", field: "math", status: "writing", kind: "textbook", motif: "bell",
       series: "StatBook", title: "머신러닝을 위한 통계", en: "Statistics for Machine Learning",
       tagline: "손실 함수 뒤의 확률 모형",
       desc: "확률의 공리에서 출발해 분포, 추정, 정보 이론, 검정, 회귀, 잠재 변수 모형까지 — 딥러닝의 손실 함수와 정규화, 평가 지표 뒤에 있는 통계를 정의부터 유도하며 쌓아 가는 이론서입니다.",
