@@ -122,6 +122,7 @@ svg .flow-dash { stroke-dasharray: 5 6; animation: flowdash 1.2s linear infinite
 .callout.warn { background: color-mix(in srgb, var(--warn) 14%, transparent); border-left-color: var(--warn); }
 .callout.deep { background: var(--accent-2-soft); border-left-color: var(--accent-2); }
 .callout.deep > strong:first-child::before { content: "심화 · "; color: var(--accent-2); }
+.callout.ml > strong:first-child::before { content: "머신러닝 · "; color: var(--accent); }
 .formula { margin: 22px 0; padding: 14px 18px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow-x: auto; }
 .formula .where { font-size: 14px; color: var(--text-dim); margin-top: 6px; }
 .katex { font-size: 1.08em; }

@@ -21,7 +21,7 @@
   function fill() {
     const map = {
       "book-title": book.title, "book-series": book.series, "book-en": book.en, "book-desc": book.desc, "book-tagline": book.tagline,
-      "book-status": LS.statusLabel(book), "chapter-count": book.chapters.length,
+      "book-status": LS.statusLabel(book), "chapter-count": book.chapters.length, "part-count": (book.parts || []).length,
       "sim-count": new Set(book.chapters.flatMap((c) => c.sims)).size,
     };
     if (chapter) Object.assign(map, { "chapter-title": chapter.title, "chapter-num": chapter.num, "chapter-desc": chapter.desc });

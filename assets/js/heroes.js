@@ -4,6 +4,7 @@
      <div class="hero-stage" data-hero="ribbons"></div>   3D 시계열 폭포 (시계열)
      <div class="hero-stage" data-hero="orbits"></div>    3D 행성 궤도 (물리)
      <div class="hero-stage" data-hero="orbital"></div>   3D 수소 오비탈 전자 구름 (양자역학)
+     <div class="hero-stage" data-hero="gauss"></div>     3D 2변량 정규 분포 곡면과 쌓이는 표본 (통계)
      <canvas class="bg" data-hero="flow"></canvas>         2D 흐름장 입자 (서재 홈 배경)
    three.js를 못 불러오면 조용히 안내 문구만 남긴다.
    ========================================================================== */
@@ -178,6 +179,107 @@
     }).catch(() => fail(el));
   }
 
+  /* ------------------------------------------------------------ 2변량 정규 분포 (통계) */
+  // 상관계수 R인 표준 2변량 정규 분포의 밀도 곡면과, 같은 분포에서 뽑혀 바닥에 쌓이는 표본.
+  // 뒤쪽 두 벽에는 주변 분포 N(0, 1)의 곡선과 지금까지 뽑은 표본의 히스토그램(밀도 단위)을 그린다
+  function gauss(el) {
+    const far = el.clientWidth < 520 ? 1.4 : 1;   // 좁은 화면에서는 벽까지 들어오도록 카메라를 물린다
+    VZ.three(el, { camera: [7.5 * far, 5.2 * far, 7.5 * far], target: [0, 0.7, 0], fov: 40, autoRotate: !reduced, autoRotateSpeed: 0.45, pan: false, minDistance: 6, maxDistance: 22 }).then((T) => {
+      const { THREE, scene } = T;
+      const R = 0.6, L = 3.2, HS = 11, HM = 5.5, N = 1500, BINS = 20;  // 상관계수, 그리는 범위 [-L, L], 곡면·주변 분포의 높이 배율, 표본 수, 히스토그램 칸 수
+      const c = 1 - R * R;
+      const pdf2 = (x, y) => Math.exp(-(x * x - 2 * R * x * y + y * y) / (2 * c)) / (2 * Math.PI * Math.sqrt(c));
+      const pdf1 = (x) => Math.exp((-x * x) / 2) / Math.sqrt(2 * Math.PI);
+      const peak = pdf2(0, 0);
+      // 장면 좌표: 데이터 x → X, 데이터 y → Z, 밀도 → 높이 Y
+      // 곡면: x를 고정한 선과 y를 고정한 선으로 엮은 격자. 색은 높이를 따라 흐린 색에서 강조색으로
+      const G = 28, K = 80, seg = [], hts = [];
+      const at = (x, y) => { seg.push(x, pdf2(x, y) * HS, y); hts.push(pdf2(x, y) / peak); };
+      for (let i = 0; i <= G; i++) {
+        const u = -L + (2 * L * i) / G;
+        for (let j = 0; j < K; j++) {
+          const a = -L + (2 * L * j) / K, b = -L + (2 * L * (j + 1)) / K;
+          at(u, a); at(u, b);
+          at(a, u); at(b, u);
+        }
+      }
+      const sg = new THREE.BufferGeometry();
+      sg.setAttribute("position", new THREE.Float32BufferAttribute(seg, 3));
+      const col = new Float32Array(hts.length * 3);
+      sg.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      scene.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.75 })));
+
+      // 표본: 상자-뮐러로 뽑은 z1, z2에서 x = z1, y = R z1 + √(1 − R²) z2
+      const gauss01 = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+      const xs = new Float32Array(N), ys = new Float32Array(N), pos = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) {
+        const z1 = gauss01(), z2 = gauss01();
+        xs[i] = z1; ys[i] = R * z1 + Math.sqrt(c) * z2;
+        pos.set([xs[i], 0.02, ys[i]], i * 3);
+      }
+      const pg = new THREE.BufferGeometry();
+      pg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const ptMat = new THREE.PointsMaterial({ color: hexOf("accent-2"), size: 0.08, transparent: true, opacity: 0.85, depthWrite: false });
+      scene.add(new THREE.Points(pg, ptMat));
+
+      // 벽: p(x)는 z = −L, p(y)는 x = −L. 테두리, 주변 분포 곡선, 표본 히스토그램
+      const HW = 2.6, frame = [], curve = [];
+      [[-L, 0, -L], [L, 0, -L], [L, HW, -L], [-L, HW, -L], [-L, HW, L], [-L, 0, L]].forEach((p, i, A) => { if (i) frame.push(...A[i - 1], ...p); });
+      frame.push(-L, 0, -L, -L, HW, -L);
+      const frameMat = new THREE.LineBasicMaterial({ color: hexOf("text-dim"), transparent: true, opacity: 0.25 });
+      scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(frame, 3)), frameMat));
+      for (let j = 0; j < K; j++) {
+        const a = -L + (2 * L * j) / K, b = -L + (2 * L * (j + 1)) / K;
+        curve.push(a, pdf1(a) * HM, -L, b, pdf1(b) * HM, -L);
+        curve.push(-L, pdf1(a) * HM, a, -L, pdf1(b) * HM, b);
+      }
+      const curveMat = new THREE.LineBasicMaterial({ color: hexOf("accent") });
+      scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(curve, 3)), curveMat));
+      const hpos = new Float32Array(BINS * 2 * 6 * 3);   // 칸마다 벽 두 개, 선분 세 개(꼭짓점 여섯 개)
+      const hg = new THREE.BufferGeometry();
+      hg.setAttribute("position", new THREE.BufferAttribute(hpos, 3));
+      const histMat = new THREE.LineBasicMaterial({ color: hexOf("accent-2"), transparent: true, opacity: 0.7 });
+      scene.add(new THREE.LineSegments(hg, histMat));
+      const bw = (2 * L) / BINS;
+      function hist(n) {
+        const cx = new Array(BINS).fill(0), cy = new Array(BINS).fill(0);
+        for (let i = 0; i < n; i++) {
+          const a = Math.floor((xs[i] + L) / bw), b = Math.floor((ys[i] + L) / bw);
+          if (a >= 0 && a < BINS) cx[a]++;
+          if (b >= 0 && b < BINS) cy[b]++;
+        }
+        let k = 0;
+        const put = (...p) => p.forEach((v) => (hpos[k++] = v));
+        for (let i = 0; i < BINS; i++) {
+          const u0 = -L + i * bw, u1 = u0 + bw, hx = n ? (cx[i] / (n * bw)) * HM : 0, hy = n ? (cy[i] / (n * bw)) * HM : 0;
+          put(u0, 0, -L, u0, hx, -L, u0, hx, -L, u1, hx, -L, u1, hx, -L, u1, 0, -L);
+          put(-L, 0, u0, -L, hy, u0, -L, hy, u0, -L, hy, u1, -L, hy, u1, -L, 0, u1);
+        }
+        hg.attributes.position.needsUpdate = true;
+        pg.setDrawRange(0, n);
+      }
+
+      const paint = () => {
+        const lo = hexOf("text-faint"), hi = hexOf("accent"), tmp = new THREE.Color();
+        hts.forEach((h, i) => tmp.copy(lo).lerp(hi, Math.sqrt(h)).toArray(col, i * 3));
+        sg.attributes.color.needsUpdate = true;
+        ptMat.color = hexOf("accent-2"); histMat.color = hexOf("accent-2"); curveMat.color = hexOf("accent"); frameMat.color = hexOf("text-dim");
+      };
+      paint();
+      window.addEventListener("ls:theme", () => requestAnimationFrame(paint));
+
+      // 7초에 걸쳐 표본을 하나씩 뽑아 쌓는다 (움직임을 줄인 설정이면 처음부터 모두 보인다)
+      let shown = reduced ? N : 0, acc = shown;
+      hist(shown);
+      T.onFrame((dt) => {
+        if (shown >= N) return;
+        acc = Math.min(N, acc + (N / 7) * dt);
+        if (Math.floor(acc) !== shown) { shown = Math.floor(acc); hist(shown); }
+      });
+      T.label("p(x, y)", [0, peak * HS + 0.45, 0]); T.label("p(x)", [2.4, 1.1, -L]); T.label("p(y)", [-L, 1.1, 2.4]);
+    }).catch(() => fail(el));
+  }
+
   /* ------------------------------------------------------------ 2D 흐름장 (서재 배경) */
   function flow(canvas) {
     const ctx = canvas.getContext("2d");
@@ -217,7 +319,7 @@
     VZ.loop(canvas, frame);
   }
 
-  const HEROES = { network, ribbons, orbits, orbital, flow };
+  const HEROES = { network, ribbons, orbits, orbital, gauss, flow };
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-hero]").forEach((el) => {
       const fn = HEROES[el.dataset.hero];

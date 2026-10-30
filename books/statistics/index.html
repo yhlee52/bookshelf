@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StatBook · 머신러닝을 위한 통계</title>
+<meta name="description" content="확률의 공리에서 출발해 분포, 추정, 정보 이론, 검정, 회귀, 잠재 변수 모형까지 — 딥러닝의 손실 함수와 정규화, 평가 지표 뒤에 있는 통계를 정의부터 유도하며 쌓아 가는 이론서입니다.">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../../assets/css/base.css">
+<link rel="stylesheet" href="../../assets/css/book.css">
+<script defer src="../../data/site.js"></script>
+<script defer src="../../data/books.js"></script>
+<script defer src="../../assets/js/viz.js"></script>
+<script defer src="../../assets/js/core.js"></script>
+<script defer src="../../assets/js/lab.js"></script>
+<script defer src="../../assets/sims/dl.js"></script>
+<script defer src="../../assets/sims/ts.js"></script>
+<script defer src="../../assets/sims/phys.js"></script>
+<script defer src="../../assets/js/heroes.js"></script>
+<script defer src="../../assets/js/book.js"></script>
+</head>
+<body data-root="../../" data-book="statistics" data-field="stat" data-page="book-home">
+
+<section class="home-hero">
+  <div class="inner">
+    <div>
+      <div class="eyebrow" data-fill="book-en">Statistics for Machine Learning</div>
+      <h1>손실 함수 뒤의<br><span class="grad">확률 모형을 읽는 법</span></h1>
+      <p data-fill="book-desc">확률의 공리에서 출발해 분포, 추정, 정보 이론, 검정, 회귀, 잠재 변수 모형까지 — 딥러닝의 손실 함수와 정규화, 평가 지표 뒤에 있는 통계를 정의부터 유도하며 쌓아 가는 이론서입니다.</p>
+      <div class="cta">
+        <a class="btn primary big" href="chapters/ch01.html">1장부터 시작하기 →</a>
+        <a class="btn ghost big" href="#chapters">전체 목차</a>
+      </div>
+      <div class="hero-badges"><span><b data-fill="part-count">6</b>부 <b data-fill="chapter-count">20</b>장</span><span>정의 → 유도 → 예제 → 연습문제</span><span>장마다 머신러닝 연결 절</span><span data-fill="book-status">집필 중</span></div>
+    </div>
+    <div class="hero-stage" data-hero="gauss"><span class="hint">드래그해서 돌려 보세요 · 상관계수 0.6인 2변량 정규 분포와 거기서 뽑은 표본 1,500개 (벽의 곡선은 주변 분포, 막대는 표본의 히스토그램)</span></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>이 책의 지도</h2>
+  <p class="sub">1–3부가 뼈대입니다. 확률의 어휘를 익히고, 평균이 안정되는 이유를 본 뒤, 데이터에서 모수를 고르는 원리를 세웁니다. 그다음 4–6부는 목적에 따라 골라 읽습니다. 상자를 누르면 그 부의 첫 장으로 갑니다.</p>
+  <figure class="diagram scroll">
+    <svg viewBox="0 0 1100 330" role="img" aria-label="이 책의 구성: 1부 확률의 언어, 2부 평균과 표집, 3부 추정과 정보가 차례로 이어지고, 3부에서 4부 구간과 검정, 5부 예측 모형, 6부 잠재 변수로 갈라진다. 4부는 5부에서도 쓴다">
+      <defs><marker id="st-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+      <a href="chapters/ch01.html"><g transform="translate(20,95)">
+        <rect width="220" height="140" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">1부 · 1–5장</text>
+        <text x="16" y="56" class="t-b">확률의 언어</text>
+        <text x="16" y="82" class="t-dim">확률과 베이즈 정리</text>
+        <text x="16" y="102" class="t-dim">확률 변수 · 자주 만나는 분포</text>
+        <text x="16" y="122" class="t-dim">공분산 · 다변량 정규 분포</text>
+      </g></a>
+      <path d="M244 165 H284" class="s-acc" marker-end="url(#st-arr)"/>
+      <a href="chapters/ch06.html"><g transform="translate(290,105)">
+        <rect width="190" height="120" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">2부 · 6–7장</text>
+        <text x="16" y="56" class="t-b">평균과 표집</text>
+        <text x="16" y="82" class="t-dim">큰 수의 법칙 · 중심 극한</text>
+        <text x="16" y="102" class="t-dim">몬테카를로 방법</text>
+      </g></a>
+      <path d="M484 165 H524" class="s-acc" marker-end="url(#st-arr)"/>
+      <a href="chapters/ch08.html"><g transform="translate(530,95)">
+        <rect width="210" height="140" rx="14" class="f-acc-soft" stroke-width="2"/>
+        <text x="16" y="28" class="t-acc">3부 · 8–11장</text>
+        <text x="16" y="56" class="t-b">추정과 정보</text>
+        <text x="16" y="82" class="t-dim">추정량 · 최대 가능도</text>
+        <text x="16" y="102" class="t-dim">베이즈 추론</text>
+        <text x="16" y="122" class="t-dim">엔트로피 · KL 발산</text>
+      </g></a>
+      <path d="M744 150 C 772 150, 770 52, 794 52" class="s-acc flow-dash" marker-end="url(#st-arr)"/>
+      <path d="M744 165 H794" class="s-acc flow-dash" marker-end="url(#st-arr)"/>
+      <path d="M744 180 C 772 180, 770 278, 794 278" class="s-acc flow-dash" marker-end="url(#st-arr)"/>
+      <a href="chapters/ch12.html"><g transform="translate(800,8)">
+        <rect width="280" height="88" rx="14" class="f-surface"/>
+        <text x="16" y="26" class="t-acc">4부 · 12–14장</text>
+        <text x="16" y="50" class="t-b">구간과 검정</text>
+        <text x="16" y="72" class="t-dim">신뢰 구간 · 가설 검정 · 부트스트랩</text>
+      </g></a>
+      <path d="M1040 98 V117" class="s-acc2" stroke-dasharray="4 4" marker-end="url(#st-arr)"/>
+      <a href="chapters/ch15.html"><g transform="translate(800,121)">
+        <rect width="280" height="88" rx="14" class="f-surface"/>
+        <text x="16" y="26" class="t-acc">5부 · 15–18장</text>
+        <text x="16" y="50" class="t-b">예측 모형</text>
+        <text x="16" y="72" class="t-dim">회귀 · 모형 선택 · 분류기 평가</text>
+      </g></a>
+      <a href="chapters/ch19.html"><g transform="translate(800,234)">
+        <rect width="280" height="88" rx="14" class="f-surface"/>
+        <text x="16" y="26" class="t-acc">6부 · 19–20장</text>
+        <text x="16" y="50" class="t-b">잠재 변수</text>
+        <text x="16" y="72" class="t-dim">혼합 모형과 EM · PCA에서 VAE까지</text>
+      </g></a>
+    </svg>
+    <figcaption><b>그림 0-1.</b> 여섯 부의 순서와 의존 관계. 화살표는 앞 부의 내용을 뒤 부에서 쓴다는 뜻입니다. 4부와 6부는 3부 다음에 어느 쪽을 먼저 읽어도 되고, 5부는 4부의 신뢰 구간(12장)과 부트스트랩(14장)을 함께 씁니다(점선).</figcaption>
+  </figure>
+</section>
+
+<section class="home-section" id="chapters">
+  <h2>전체 목차</h2>
+  <p class="sub">카드 아래 줄이 그 장에서 다루는 내용의 요약입니다. 모든 장의 마지막 절은 그 장의 개념을 머신러닝에서 다시 만나는 절입니다.</p>
+  <div class="ch-grid" data-chapter-grid></div>
+</section>
+
+<section class="home-section">
+  <h2>추천 읽기 경로</h2>
+  <p class="sub">처음 읽는다면 1장부터 차례로 읽기를 권합니다. 지금 당장 궁금한 것이 있다면 아래 경로로 필요한 장만 골라 읽어도 됩니다.</p>
+  <div class="paths">
+    <div class="path"><h3>손실 함수의 정체</h3><p>MSE와 교차 엔트로피가 어떤 확률 모형의 음의 로그 가능도인지, 소프트맥스의 기울기가 왜 p − y인지 봅니다.</p><div class="steps"><a href="chapters/ch02.html">02</a><a href="chapters/ch03.html">03</a><a href="chapters/ch09.html">09</a><a href="chapters/ch11.html">11</a><a href="chapters/ch16.html">16</a></div></div>
+    <div class="path"><h3>정규화와 일반화</h3><p>가중치 감쇠가 사전 분포라는 것, 편향과 분산의 균형, 교차 검증과 조기 종료를 잇습니다.</p><div class="steps"><a href="chapters/ch08.html">08</a><a href="chapters/ch10.html">10</a><a href="chapters/ch15.html">15</a><a href="chapters/ch17.html">17</a></div></div>
+    <div class="path"><h3>실험 결과를 제대로 읽기</h3><p>정확도에 오차 막대를 달고, 시드를 바꾼 두 모델을 공정하게 비교하고, 확률 출력이 믿을 만한지 확인합니다.</p><div class="steps"><a href="chapters/ch06.html">06</a><a href="chapters/ch12.html">12</a><a href="chapters/ch13.html">13</a><a href="chapters/ch14.html">14</a><a href="chapters/ch18.html">18</a></div></div>
+    <div class="path"><h3>생성 모형으로 가는 길</h3><p>다변량 정규 분포와 재매개변수화, KL 발산, 증거 하한을 거쳐 VAE의 손실을 유도합니다.</p><div class="steps"><a href="chapters/ch04.html">04</a><a href="chapters/ch05.html">05</a><a href="chapters/ch07.html">07</a><a href="chapters/ch11.html">11</a><a href="chapters/ch19.html">19</a><a href="chapters/ch20.html">20</a></div></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>이 책을 읽는 법</h2>
+  <p class="sub">미적분(편미분, 다중 적분)과 기초 선형대수(행렬 곱, 역행렬, 고유값)를 안다고 가정합니다. 확률과 통계는 처음부터 세웁니다. 신경망을 직접 학습시켜 본 경험이 있으면 머신러닝 연결 절이 더 잘 읽힙니다.</p>
+  <div class="flow">
+    <div><b>목표 확인</b>장 머리의 학습 목표와 선수 지식을 먼저 봅니다.</div>
+    <div><b>정의와 유도</b>절마다 정의를 세우고 결과를 한 줄씩 끌어냅니다.</div>
+    <div><b>예제와 실험</b>손으로 계산하는 예제로 확인하고, 무작위성이 핵심인 곳에서는 직접 표본을 뽑아 봅니다.</div>
+    <div><b>머신러닝에서</b>장의 마지막 절에서 그 개념이 손실 함수, 정규화, 평가 지표의 어디에 있는지 봅니다.</div>
+    <div><b>핵심 정리 · 퀴즈</b>장을 덮기 전에 요점을 짚고 바로 점검합니다.</div>
+    <div><b>연습문제</b>스스로 풀어 본 뒤 접어 둔 풀이와 맞춰 봅니다.</div>
+  </div>
+  <div class="callout tip"><strong>수학 상자</strong><p>새 수학 도구(야코비안, 가우스 적분, 고유분해와 촐레스키 분해, 젠센 부등식, 라그랑주 승수 등)는 처음 필요한 자리에 점선 테두리의 <b>수학 상자</b>로 따로 설명합니다. 이미 아는 내용이면 건너뛰어도 흐름이 이어집니다.</p></div>
+</section>
+
+<section class="home-section" id="notation">
+  <h2>표기 규칙</h2>
+  <p class="sub">통계와 머신러닝은 같은 대상을 다른 기호로 쓰는 일이 많습니다. 이 책은 아래 기호를 책 전체에서 같은 뜻으로 씁니다. 처음 나오는 장과 다른 관례는 작은 글씨로 덧붙였습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>기호</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td>\(X,\ x\)</td><td>확률 변수는 대문자, 그 실현값은 소문자<div class="note">2장. 예: \(P(X = x)\)</div></td></tr>
+      <tr><td>\(P(A)\)</td><td>사건 \(A\)의 확률<div class="note">1장</div></td></tr>
+      <tr><td>\(p(x),\ p(x\mid\theta)\)</td><td>확률 질량 함수 또는 확률 밀도 함수, 모수 \(\theta\)를 밝힌 모양<div class="note">어느 변수의 분포인지 밝혀야 할 때는 \(p_X(x)\). 머신러닝 문헌의 \(p_\theta(x)\)도 \(p(x\mid\theta)\)와 같은 뜻으로 함께 씁니다.</div></td></tr>
+      <tr><td>\(F(x),\ \Phi(z),\ \varphi(z)\)</td><td>누적 분포 함수, 표준 정규 분포의 누적 분포 함수와 밀도 함수<div class="note">2장, 3장</div></td></tr>
+      <tr><td>\(\mathbb E[X],\ \mathbb E_{x\sim p}[f(x)]\)</td><td>기댓값. 어느 분포에 대한 기댓값인지 아래첨자로 밝힌다<div class="note">2장</div></td></tr>
+      <tr><td>\(\operatorname{Var}(X),\ \operatorname{Cov}(X,Y)\)</td><td>분산, 공분산<div class="note">2장, 4장</div></td></tr>
+      <tr><td>\(\mathbf x,\ \mathbf A,\ \boldsymbol\mu,\ \boldsymbol\Sigma\)</td><td>벡터는 굵은 소문자, 행렬은 굵은 대문자<div class="note">벡터와 행렬에서는 확률 변수와 실현값을 대소문자로 구분하지 않습니다. 데이터 행렬 \(\mathbf X\in\mathbb R^{n\times d}\)는 행 하나가 표본 하나입니다.</div></td></tr>
+      <tr><td>\(\mathcal N(\mu,\sigma^2)\)</td><td>정규 분포. 둘째 자리는 분산<div class="note">PyTorch의 <code>torch.distributions.Normal(loc, scale)</code>은 둘째 자리로 표준편차를 받습니다.</div></td></tr>
+      <tr><td>\(X_1,\dots,X_n \overset{\text{iid}}{\sim} p\)</td><td>같은 분포 \(p\)에서 서로 독립으로 뽑은 표본<div class="note">4장</div></td></tr>
+      <tr><td>\(\hat\theta,\ \bar X_n\)</td><td>추정량(모자를 씌운다), 표본 평균<div class="note">6장, 8장</div></td></tr>
+      <tr><td>\(L(\theta),\ \ell(\theta)\)</td><td>가능도와 로그 가능도<div class="note">9장. likelihood는 한국통계학회 용어인 '가능도'로 씁니다. '우도'라고도 합니다.</div></td></tr>
+      <tr><td>\(\mathcal I(\theta)\)</td><td>피셔 정보<div class="note">9장. 상호 정보량 \(I(X;Y)\)와 구별하려고 필기체로 씁니다.</div></td></tr>
+      <tr><td>\(H(p),\ H(p,q),\ D_{\mathrm{KL}}(p\,\|\,q)\)</td><td>엔트로피, 교차 엔트로피, KL 발산<div class="note">11장. \(\log\)는 자연로그(단위 nat)이고, 비트가 필요할 때만 \(\log_2\)를 씁니다.</div></td></tr>
+      <tr><td>\(\mathbb I(A)\)</td><td>지시 함수: \(A\)가 참이면 1, 거짓이면 0</td></tr>
+      <tr><td>\(\xrightarrow{p},\ \xrightarrow{d}\)</td><td>확률 수렴, 분포 수렴<div class="note">6장</div></td></tr>
+      <tr><td>번호</td><td>식 (n.k), 정의·정리·예제 n.k, 문제 n.k<div class="note">장마다 1부터 센다</div></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="home-section">
+  <h2>숫자로 보는 통계</h2>
+  <p class="sub">이 책을 끝내면 어디서 나오는지 직접 유도할 수 있게 될 숫자들입니다.</p>
+  <div class="numbers">
+    <div><b>1.96</b><span>정규 근사로 만든 95% 신뢰 구간은 추정값 ± 1.96 × 표준 오차 (12장)</span></div>
+    <div><b>1/√n</b><span>표본 평균의 표준 오차가 줄어드는 빠르기. 오차를 10분의 1로 줄이려면 표본이 100배 필요하다 (6장)</span></div>
+    <div><b>n − 1</b><span>표본 분산의 분모. n으로 나누면 분산을 작게 어림한다 (8장)</span></div>
+    <div><b>2.303</b><span>10클래스 분류기가 모든 클래스에 같은 확률을 줄 때의 교차 엔트로피 ln 10, 학습 첫 손실의 기준값 (11장)</span></div>
+    <div><b>±0.59%p</b><span>테스트 샘플 10,000개에서 잰 정확도 90%의 95% 신뢰 구간 반폭 (12장)</span></div>
+    <div><b>63.2%</b><span>부트스트랩 표본 하나에 원래 데이터 점이 한 번 이상 들어갈 확률 1 − 1/e (14장)</span></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>참고 교재</h2>
+  <p class="sub">한 권의 교재를 따라가지 않고, 머신러닝 독자에게 필요한 순서로 목차를 새로 짰습니다. 아래 교재는 내용을 검산하고 같은 주제를 다른 각도에서 보는 데 씁니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>교재</th><th>이 책에서의 역할</th></tr></thead>
+    <tbody>
+      <tr><td>L. Wasserman, <i>All of Statistics</i> (Springer, 2004)</td><td>확률에서 추론까지 한 권에 담는 범위와 수준</td></tr>
+      <tr><td>J. K. Blitzstein, J. Hwang, <i>Introduction to Probability</i>, 2nd ed. (CRC Press, 2019)</td><td>확률 부분(1–7장)의 직관과 예제</td></tr>
+      <tr><td>G. Casella, R. L. Berger, <i>Statistical Inference</i>, 2nd ed. (Duxbury, 2002)</td><td>추정과 검정(8–14장)의 엄밀한 정리</td></tr>
+      <tr><td>T. M. Cover, J. A. Thomas, <i>Elements of Information Theory</i>, 2nd ed. (Wiley, 2006)</td><td>엔트로피와 KL 발산(11장)</td></tr>
+      <tr><td>C. M. Bishop, <i>Pattern Recognition and Machine Learning</i> (Springer, 2006)</td><td>다변량 정규 분포, 혼합 모형과 EM, 확률적 PCA(5장, 19–20장)</td></tr>
+      <tr><td>T. Hastie, R. Tibshirani, J. Friedman, <i>The Elements of Statistical Learning</i>, 2nd ed. (Springer, 2009)</td><td>회귀, 편향-분산, 모형 선택(15–17장)</td></tr>
+      <tr><td>I. Goodfellow, Y. Bengio, A. Courville, <i>Deep Learning</i> (MIT Press, 2016)</td><td>머신러닝 연결 절의 딥러닝 쪽 관례</td></tr>
+      <tr><td>G. Cowan, <i>Statistical Data Analysis</i> (Oxford University Press, 1998)</td><td>피팅, 가능도비 검정, 언폴딩 같은 입자물리 실험의 예제</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><strong>이 책을 쓰는 원칙</strong><p>위 교재의 문장, 예제, 연습문제, 그림을 옮기지 않고 새로 씁니다. 유도와 수치는 따로 계산해 검산하고, 확률에 관한 주장은 시뮬레이션으로 한 번 더 확인합니다.</p></div>
+</section>
+</body>
+</html>
