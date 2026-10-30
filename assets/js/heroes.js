@@ -5,6 +5,7 @@
      <div class="hero-stage" data-hero="orbits"></div>    3D 행성 궤도 (물리)
      <div class="hero-stage" data-hero="orbital"></div>   3D 수소 오비탈 전자 구름 (양자역학)
      <div class="hero-stage" data-hero="gauss"></div>     3D 2변량 정규 분포 곡면과 쌓이는 표본 (통계)
+     <div class="hero-stage" data-hero="svd"></div>       3D 단위 구가 회전·늘이기·회전을 거쳐 타원체가 되는 특잇값 분해 (선형대수)
      <canvas class="bg" data-hero="flow"></canvas>         2D 흐름장 입자 (서재 홈 배경)
    three.js를 못 불러오면 조용히 안내 문구만 남긴다.
    ========================================================================== */
@@ -280,6 +281,118 @@
     }).catch(() => fail(el));
   }
 
+  /* ------------------------------------------------------------ 특잇값 분해 (선형대수) */
+  // 3×3 행렬 A = UΣVᵀ가 단위 구를 타원체로 바꾸는 세 단계: 회전 Vᵀ → 축을 따라 늘이기 Σ → 회전 U.
+  // 구에 내접한 정육면체는 평행육면체가 되고(부피는 |det A| = σ₁σ₂σ₃배), 화살표는 오른쪽 특이 벡터 vᵢ가 옮겨 가는 곳이다
+  function svd(el) {
+    const far = el.clientWidth < 520 ? 1.35 : 1;
+    VZ.three(el, { camera: [6.2 * far, 4.4 * far, 7.4 * far], target: [0, 0, 0], fov: 40, autoRotate: !reduced, autoRotateSpeed: 0.4, pan: false, minDistance: 5, maxDistance: 22 }).then((T) => {
+      const { THREE, scene } = T;
+      const SIG = [2.1, 1.15, 0.5], S = 1.45, K = 72;   // 특잇값, 장면 축척, 원 하나의 선분 수
+      // U는 e₁을 처음 카메라에서 보아 비스듬히 오른쪽 위로 가로지르는 방향으로 보낸다 (긴 축이 화면을 가로지르도록)
+      const qU = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0.7, 0.41, -0.58).normalize());
+      const qVt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0.4, -0.6).normalize(), -0.8);
+
+      // 단계 a, b, c ∈ [0, 1]의 행렬 M = R_U(c) · diag(1 + b(σᵢ − 1)) · R_Vᵀ(a). 회전은 단위 쿼터니언에서 구면 보간
+      const I = new THREE.Quaternion(), qa = new THREE.Quaternion(), qc = new THREE.Quaternion();
+      const Ra = new THREE.Matrix4(), D = new THREE.Matrix4(), Rc = new THREE.Matrix4(), M = new THREE.Matrix4();
+      function setM(a, b, c) {
+        qa.copy(I).slerp(qVt, a); qc.copy(I).slerp(qU, c);
+        Ra.makeRotationFromQuaternion(qa); Rc.makeRotationFromQuaternion(qc);
+        D.makeScale(...SIG.map((s) => 1 + b * (s - 1)));
+        M.multiplyMatrices(Rc, D).multiply(Ra);
+      }
+
+      // 단위 구의 위선 7개와 경선 12개, 구에 내접한 정육면체(반변 1/√3)의 모서리 12개
+      const P = (th, ph) => [Math.cos(ph) * Math.cos(th), Math.sin(ph), Math.cos(ph) * Math.sin(th)];
+      const sph = [], cube = [], ghost = [];
+      for (let i = 1; i < 8; i++) {
+        const ph = -Math.PI / 2 + (i * Math.PI) / 8;
+        for (let j = 0; j < K; j++) sph.push(...P((2 * Math.PI * j) / K, ph), ...P((2 * Math.PI * (j + 1)) / K, ph));
+      }
+      for (let i = 0; i < 12; i++) {
+        const th = (i * Math.PI) / 6;
+        for (let j = 0; j < K / 2; j++) sph.push(...P(th, -Math.PI / 2 + (2 * Math.PI * j) / K), ...P(th, -Math.PI / 2 + (2 * Math.PI * (j + 1)) / K));
+      }
+      const h = 1 / Math.sqrt(3);
+      for (let d = 0; d < 3; d++) for (const a of [-h, h]) for (const b of [-h, h]) {
+        const p = [0, 0, 0], q = [0, 0, 0], [o1, o2] = [0, 1, 2].filter((k) => k !== d);
+        p[d] = -h; q[d] = h; p[o1] = q[o1] = a; p[o2] = q[o2] = b;
+        cube.push(...p, ...q);
+      }
+      // 제자리에 남는 것: 원래 단위 구의 대원 세 개와 좌표축
+      [[0, 1], [1, 2], [2, 0]].forEach(([i, k]) => {
+        for (let j = 0; j < K; j++) [j, j + 1].forEach((m) => { const p = [0, 0, 0], t = (2 * Math.PI * m) / K; p[i] = Math.cos(t) * S; p[k] = Math.sin(t) * S; ghost.push(...p); });
+      });
+      [0, 1, 2].forEach((i) => { const p = [0, 0, 0], q = [0, 0, 0]; p[i] = -SIG[0] * S - 0.4; q[i] = SIG[0] * S + 0.4; ghost.push(...p, ...q); });
+      const ghostMat = new THREE.LineBasicMaterial({ color: hexOf("text-faint"), transparent: true, opacity: 0.35 });
+      scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(ghost, 3)), ghostMat));
+
+      const moving = (base, mat) => {
+        const g = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(base.length), 3));
+        scene.add(new THREE.LineSegments(g, mat));
+        return g.attributes.position;
+      };
+      const sphMat = new THREE.LineBasicMaterial({ color: hexOf("accent"), transparent: true, opacity: 0.6 });
+      const cubeMat = new THREE.LineBasicMaterial({ color: hexOf("text-dim"), transparent: true, opacity: 0.75 });
+      const sphPos = moving(sph, sphMat), cubePos = moving(cube, cubeMat);
+
+      // 오른쪽 특이 벡터 vᵢ = V eᵢ. Vᵀ 다음에는 eᵢ, Σ 다음에는 σᵢeᵢ, U 다음에는 σᵢuᵢ에 놓인다
+      const V = qVt.clone().invert();
+      const vs = [0, 1, 2].map((i) => new THREE.Vector3(+(i === 0), +(i === 1), +(i === 2)).applyQuaternion(V));
+      const arrows = vs.map(() => { const a = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1, hexOf("accent-2"), 0.24, 0.13); scene.add(a); return a; });
+
+      const v = new THREE.Vector3();
+      function place(base, attr) {
+        const p = attr.array;
+        for (let i = 0; i < base.length; i += 3) {
+          v.set(base[i], base[i + 1], base[i + 2]).applyMatrix4(M).multiplyScalar(S);
+          p[i] = v.x; p[i + 1] = v.y; p[i + 2] = v.z;
+        }
+        attr.needsUpdate = true;
+      }
+      function draw() {
+        place(sph, sphPos); place(cube, cubePos);
+        vs.forEach((vi, i) => {
+          v.copy(vi).applyMatrix4(M).multiplyScalar(S);
+          const L = v.length();
+          arrows[i].setDirection(v.normalize());
+          arrows[i].setLength(L, 0.24, 0.13);
+        });
+      }
+
+      // 지금 단계의 이름은 왼쪽 위에 고정해 둔다
+      const stage = document.createElement("div");
+      stage.className = "overlay-label";
+      Object.assign(stage.style, { left: "14px", top: "14px", transform: "none" });
+      el.appendChild(stage);
+      const say = (s) => { if (stage.textContent !== s) stage.textContent = s; };
+
+      const paint = () => {
+        sphMat.color = hexOf("accent"); cubeMat.color = hexOf("text-dim"); ghostMat.color = hexOf("text-faint");
+        arrows.forEach((a) => a.setColor(hexOf("accent-2")));
+      };
+      paint();
+      window.addEventListener("ls:theme", () => requestAnimationFrame(paint));
+
+      // 한 주기 13초: 멈춤 1 → Vᵀ 2 → 멈춤 0.6 → Σ 2 → 멈춤 0.6 → U 2 → 멈춤 2.6 → 처음으로 2.2
+      // (움직임을 줄인 설정이면 A를 다 적용한 모양에서 멈춘다)
+      const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+      if (reduced) { setM(1, 1, 1); draw(); say("A = UΣVᵀ"); return; }
+      T.onFrame((dt, t) => {
+        t %= 13;
+        if (t > 10.8) {
+          const r = 1 - ease((t - 10.8) / 2.2);
+          setM(r, r, r); say("단위 구로");
+        } else {
+          setM(ease((t - 1) / 2), ease((t - 3.6) / 2), ease((t - 6.2) / 2));
+          say(t < 1 ? "단위 구" : t < 3.6 ? "Vᵀ: 회전" : t < 6.2 ? "Σ: 축을 따라 늘이기" : t < 8.2 ? "U: 회전" : "A = UΣVᵀ");
+        }
+        draw();
+      });
+    }).catch(() => fail(el));
+  }
+
   /* ------------------------------------------------------------ 2D 흐름장 (서재 배경) */
   function flow(canvas) {
     const ctx = canvas.getContext("2d");
@@ -319,7 +432,7 @@
     VZ.loop(canvas, frame);
   }
 
-  const HEROES = { network, ribbons, orbits, orbital, gauss, flow };
+  const HEROES = { network, ribbons, orbits, orbital, gauss, svd, flow };
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-hero]").forEach((el) => {
       const fn = HEROES[el.dataset.hero];

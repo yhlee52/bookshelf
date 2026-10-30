@@ -103,6 +103,29 @@
       });
       return svg(s);
     },
+    // 행렬 A = R(θu) diag(σ₁, σ₂) R(θv)ᵀ가 바꾼 격자, 점선 단위원이 옮겨 간 타원, 타원의 두 축 σᵢuᵢ
+    lattice() {
+      const u = 28, X = (x) => 100 + x * u, Y = (y) => 65 - y * u;
+      const tu = (28 * Math.PI) / 180, tv = (-20 * Math.PI) / 180, s1 = 1.9, s2 = 0.7;
+      const rot = (t, [x, y]) => [x * Math.cos(t) - y * Math.sin(t), x * Math.sin(t) + y * Math.cos(t)];
+      const A = (p) => { const q = rot(-tv, p); return rot(tu, [q[0] * s1, q[1] * s2]); };
+      let s = "";
+      range(13).forEach((i) => {
+        const k = i - 6;
+        [[[k, -7], [k, 7]], [[-7, k], [7, k]]].forEach(([a, b]) => {
+          const [x1, y1] = A(a), [x2, y2] = A(b);
+          s += `<line x1="${X(x1).toFixed(1)}" y1="${Y(y1).toFixed(1)}" x2="${X(x2).toFixed(1)}" y2="${Y(y2).toFixed(1)}" stroke="${W}" stroke-opacity="${k ? 0.26 : 0.5}"/>`;
+        });
+      });
+      s += `<circle cx="100" cy="65" r="${u}" fill="none" stroke="${W}" stroke-opacity=".55" stroke-dasharray="3 4"/>`;
+      s += `<ellipse cx="100" cy="65" rx="${s1 * u}" ry="${s2 * u}" transform="rotate(${(-tu * 180) / Math.PI} 100 65)" fill="${W}" fill-opacity=".12" stroke="${W}" stroke-width="2.2"/>`;
+      [[s1, tu], [s2, tu + Math.PI / 2]].forEach(([r, t], i) => {
+        const x = X(r * Math.cos(t)), y = Y(r * Math.sin(t));
+        s += `<line x1="100" y1="65" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${W}" stroke-width="2.4" stroke-linecap="round"/>`;
+        s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6" fill="${W}" class="cv-pulse" style="animation-delay:${(i * 0.6).toFixed(1)}s"/>`;
+      });
+      return svg(s + `<circle cx="100" cy="65" r="2.6" fill="${W}"/>`);
+    },
     // 빈 책: 점선 사각형과 +
     blank() {
       return svg(`<rect x="60" y="20" width="80" height="90" rx="8" fill="none" stroke="${W}" stroke-opacity=".6" stroke-dasharray="5 5"/><path d="M100 48v34M83 65h34" stroke="${W}" stroke-width="3" stroke-linecap="round"/>`);
