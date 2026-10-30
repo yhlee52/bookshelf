@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>13 대칭과 보존 · QuantumBook</title>
-<meta name="description" content="공간·시간 병진과 운동량·에너지 보존을 유도하고, 패리티 선택 규칙과 스핀 없는 입자의 시간 반전을 다룬다.">
+<meta name="description" content="공간 병진과 운동량, 이산 병진과 블로흐 정리, 시간 병진과 에너지, 패리티와 이중 우물의 터널링, 스핀 없는 입자의 시간 반전을 대칭과 보존의 관점에서 유도한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -28,24 +28,25 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">13</span></div>
     <h1 data-fill="chapter-title">대칭과 보존</h1>
-    <p class="lead">공간의 어느 곳에서 실험하든 법칙이 같다면 무엇이 보존될까? 시간을 옮겨도 법칙이 같다면 또 무엇이 보존될까? 이 장에서는 병진 대칭의 생성자에서 운동량과 에너지를 찾고, 거울처럼 뒤집는 패리티와 운동을 거꾸로 재생하는 시간 반전이 연속 대칭과 어떻게 다른지 살핀다.</p>
+    <p class="lead">공간의 어느 곳에서 실험하든 법칙이 같다면 무엇이 보존될까? 시간을 옮겨도 법칙이 같다면 또 무엇이 보존될까? 이 장에서는 병진 대칭의 생성자에서 운동량과 에너지를 찾고, 결정처럼 한 간격씩만 옮길 수 있는 대칭에서 에너지 띠를, 거울처럼 뒤집는 패리티에서 선택 규칙과 터널링을, 운동을 거꾸로 재생하는 시간 반전에서 실수 고유함수를 얻는다.</p>
     <ul class="objectives">
-      <li>공간 병진 연산자가 파동함수를 옮기는 방향을 유도하고 운동량 보존 조건을 판정할 수 있다.</li>
+      <li>공간 병진 연산자가 파동함수를 옮기는 방향을 유도하고, 연속 대칭에서 보존량과 그 확률 분포의 보존을 이끌어낼 수 있다.</li>
+      <li>이산 병진 대칭에서 블로흐 정리를 유도하고, 강결합 고리의 에너지 띠와 군속도를 계산할 수 있다.</li>
       <li>시간 병진과 에너지 보존을 연결하고 시간 의존 해밀토니안의 에너지 변화를 계산할 수 있다.</li>
-      <li>패리티 고유값과 선택 규칙으로 행렬원소가 0인 경우를 찾을 수 있다.</li>
-      <li>스핀 없는 입자의 시간 반전이 반유니타리임을 설명하고 역재생한 파동함수를 만들 수 있다.</li>
+      <li>패리티 선택 규칙으로 행렬원소가 0인 경우를 찾고, 대칭 이중 우물에서 준위의 갈라짐과 터널링 진동을 계산할 수 있다.</li>
+      <li>스핀 없는 입자의 시간 반전이 반유니타리임을 설명하고, 역재생한 파동함수와 실수 고유함수를 만들 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (연산자와 교환자), <a href="ch03.html">3장</a> (위치·운동량 표현), <a href="ch04.html">4장</a> (고전역학의 대칭), <a href="ch06.html">6장</a> (슈뢰딩거 방정식), <a href="ch10.html">10장</a> (하이젠베르크 운동 방정식)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (교환자와 동시 대각화), <a href="ch03.html">3장</a> (위치·운동량 표현), <a href="ch04.html#thm-noether">4장</a> (뇌터 정리), <a href="ch06.html">6장</a> (슈뢰딩거 방정식), <a href="ch07.html">7장</a> (델타 우물과 1차원 속박 상태), <a href="ch10.html">10장</a> (하이젠베르크 운동 방정식)</p>
   </header>
 
   <section id="s1">
     <h2>공간 병진과 운동량</h2>
     <p>책상을 오른쪽으로 옮겨도 빈 공간의 물리 법칙은 같다. 양자역학에서 <span class="term">대칭</span> <span class="en">(symmetry)</span>은 상태에 가하는 변환과 해밀토니안의 관계로 표현한다. 연속적인 변환 \(\hat U(a)\)가 \(\hat U^\dagger(a)\hat H\hat U(a)=\hat H\)를 만족하면 해밀토니안은 그 변환에 대해 불변이다. 여기서는 오른쪽으로 거리 \(a\)만큼 옮기는 <em>능동적</em> 공간 병진을 택한다.</p>
     <div class="box def" id="def-translation"><div class="box-h">공간 병진 연산자</div>
-      <div class="formula" id="eq-translation-def">\[ \hat T(a)=e^{-ia\hat p/\hbar},\qquad
+      <div class="formula" id="eq-translation-def">\[ \begin{gathered}\hat T(a)=e^{-ia\hat p/\hbar},\\
       \hat T(a)|x\rangle=|x+a\rangle,\qquad
-      (\hat T(a)\psi)(x)=\psi(x-a). \]</div>
-      <p>마지막 식은 \(\hat p=-i\hbar\,\partial_x\)를 대입해 \(\hat T(a)=e^{-a\partial_x}\)로 쓰거나, \(\langle x|\hat T(a)|\psi\rangle=\langle x-a|\psi\rangle\)로 확인할 수 있다. \(a&gt;0\)이면 파동함수의 봉우리는 오른쪽으로 간다.</p>
+      (\hat T(a)\psi)(x)=\psi(x-a).\end{gathered} \]</div>
+      <p>마지막 식은 \(\hat p=-i\hbar\,\partial_x\)를 대입해 \(\hat T(a)=e^{-a\partial_x}\)로 쓰고 테일러 전개와 비교하거나, \(\langle x|\hat T(a)|\psi\rangle=\langle x-a|\psi\rangle\)로 확인할 수 있다. \(a&gt;0\)이면 파동함수의 봉우리는 오른쪽으로 간다.</p>
     </div>
     <p>부호를 한 번 더 확인하자. \(\hat T^\dagger(a)=e^{ia\hat p/\hbar}\)이고 \([\hat p,\hat x]=-i\hbar\)다. \(\hat F(a)=\hat T^\dagger(a)\hat x\hat T(a)\)를 미분하면</p>
     <div class="formula" id="eq-translation-position">\[ \frac{d\hat F}{da}=\frac{i}{\hbar}\hat T^\dagger(a)[\hat p,\hat x]\hat T(a)=I,\qquad
@@ -57,39 +58,63 @@
     <h3 id="s1-conservation">대칭이 보존 법칙이 되는 단계</h3>
     <p>연속 유니타리 변환을 \(\hat U(a)=e^{-ia\hat G/\hbar}\)로 쓰자. \(\hat G\)는 에르미트이고 시간에 명시적으로 의존하지 않는다고 가정한다. \(\hat U^\dagger(a)\hat H\hat U(a)=\hat H\)를 \(a=0\)에서 미분하면 \((i/\hbar)[\hat G,\hat H]=0\)이다. <a href="ch10.html#eq-heis-equation">10장의 하이젠베르크 운동 방정식</a>을 기댓값에 적용하면</p>
     <div class="box thm" id="thm-symmetry-conservation"><div class="box-h">연속 대칭의 생성자와 보존량</div>
-      <div class="formula" id="eq-generator-conservation">\[ \hat U^\dagger(a)\hat H\hat U(a)=\hat H\ \text{(모든 작은 }a\text{)}
-      \ \Longrightarrow\ [\hat H,\hat G]=0
+      <div class="formula" id="eq-generator-conservation">\[ \begin{gathered}\hat U^\dagger(a)\hat H\hat U(a)=\hat H\quad(\text{모든 작은 }a)\\
+      \Longrightarrow\ [\hat H,\hat G]=0
       \ \Longrightarrow\ \frac{d\langle\hat G\rangle}{dt}
-      =\frac{i}{\hbar}\langle[\hat H,\hat G]\rangle=0. \]</div>
-      <p>고전역학의 대칭·보존 관계(<a href="ch04.html">4장</a>)가 양자역학에서는 생성자와 교환자의 언어로 나타난다. 반대로 임의의 유니타리 변환이 아니라, 해밀토니안을 실제로 보존하는 변환이어야 한다.</p>
+      =\frac{i}{\hbar}\langle[\hat H,\hat G]\rangle=0.\end{gathered} \]</div>
+      <p>고전역학의 <a href="ch04.html#thm-noether">뇌터 정리</a>가 양자역학에서는 생성자와 교환자의 언어로 나타난다. 여기서 대칭이란 아무 유니타리 변환이 아니라 해밀토니안을 실제로 바꾸지 않는 변환이다. 거꾸로 \([\hat H,\hat G]=0\)이면 모든 \(a\)에서 \(\hat U^\dagger(a)\hat H\hat U(a)=\hat H\)이므로, 생성자가 보존되는 것과 변환이 대칭인 것은 같은 말이다.</p>
     </div>
     <p>한 입자의 \(\hat H=\hat p^2/(2m)+V(\hat x)\)에 대해 \(\hat T^\dagger(a)\hat H\hat T(a)=\hat p^2/(2m)+V(\hat x+a)\)다. 모든 \(a\)에서 같으려면 이 모형의 \(V\)가 위치에 무관해야 한다. 같은 결과를 교환자로 확인하면</p>
     <div class="formula" id="eq-momentum-force">\[ [\hat H,\hat p]=[V(\hat x),\hat p]=i\hbar V'(\hat x),\qquad
     \frac{d\langle\hat p\rangle}{dt}=-\langle V'(\hat x)\rangle. \]</div>
     <p>즉 공간 병진 대칭이 있으면 운동량 기댓값이 일정하다. 식 <a class="ref" href="#eq-momentum-force"></a>는 <a href="ch09.html">9장</a>의 에렌페스트 정리와도 같다.</p>
-    <div class="callout warn"><strong>한 간격만큼의 병진과 모든 거리의 병진</strong><p>\(V(x+L)=V(x)\)인 주기 퍼텐셜은 \(L\)만큼 옮기는 <em>이산</em> 병진에는 불변이지만, 임의의 작은 \(a\)에 대한 병진에는 불변이 아니다. 따라서 이 장의 연속 병진 논증만으로 \(\langle p\rangle\) 보존을 주장할 수 없다.</p></div>
+    <h3 id="s1-distribution">보존되는 것은 기댓값만이 아니다</h3>
+    <p>\([\hat H,\hat G]=0\)이면 시간 변화 연산자 \(\hat U(t)=e^{-i\hat Ht/\hbar}\)도 \(\hat G\)와 교환하고, \(\hat G\)의 함수와도 모두 교환한다. 고유값 \(g\)의 고유공간으로 가는 투영 연산자 \(\hat\Pi_g\)도 그런 함수이므로, 측정에서 \(g\)를 얻을 확률은</p>
+    <div class="formula" id="eq-distribution-conserved">\[ \begin{aligned}P_g(t)&amp;=\langle\psi(t)|\hat\Pi_g|\psi(t)\rangle\\ &amp;=\langle\psi(0)|\hat U^\dagger(t)\hat\Pi_g\hat U(t)|\psi(0)\rangle=P_g(0).\end{aligned} \]</div>
+    <p>측정값의 확률 분포 전체가 시간에 따라 변하지 않는다. 하이젠베르크 묘사로 말하면 \(\hat G_H(t)=\hat U^\dagger\hat G\hat U=\hat G\) 자체가 상수다. <a href="ch07.html">7장</a>의 자유 입자 파속이 좋은 예다. 위치 분포는 퍼지지만 \([\hat H,\hat p]=0\)이어서 운동량 분포 \(|\phi(p)|^2\)은 처음 그대로이고, \(\phi(p,t)=e^{-ip^2t/(2m\hbar)}\phi(p,0)\)처럼 위상만 바뀐다. 또 교환하는 두 에르미트 연산자는 동시 고유기저를 가지므로(<a href="ch02.html">2장</a>), 에너지 고유상태를 보존량의 고유값으로 이름 붙일 수 있다.</p>
+    <div class="callout warn"><strong>한 간격만큼의 병진과 모든 거리의 병진</strong><p>\(V(x+L)=V(x)\)인 주기 퍼텐셜은 \(L\)만큼 옮기는 <em>이산</em> 병진에는 불변이지만, 임의의 작은 \(a\)에 대한 병진에는 불변이 아니다. 따라서 연속 병진 논증만으로 \(\langle p\rangle\) 보존을 주장할 수 없다. 이산 병진 대칭이 대신 무엇을 보존하는지는 <a href="#s2">13.2절</a>에서 본다.</p></div>
   </section>
 
   <section id="s2">
+    <h2>이산 병진과 블로흐 정리</h2>
+    <p>결정 속 전자가 느끼는 퍼텐셜은 원자 간격 \(L\)마다 되풀이된다. 연속 병진 대칭은 없지만, 정확히 \(L\)만큼 옮기는 \(\hat T(L)\)은 대칭이다. \(\hat T^\dagger(L)\hat H\hat T(L)=\hat p^2/(2m)+V(\hat x+L)=\hat H\)이므로 \([\hat H,\hat T(L)]=0\)이다.</p>
+    <p>\(\hat T(L)\)은 유니타리여서 고유값의 크기가 1이다. 고유값을 \(e^{-ikL}\)로 쓰자. \(kL\)이 \(2\pi\)만큼 달라도 고유값은 같으므로, \(k\)는 \(-\pi/L&lt;k\le\pi/L\)에서 고르면 충분하다. 이 범위를 <span class="term">첫째 브릴루앙 영역</span> <span class="en">(first Brillouin zone)</span>이라 한다.</p>
+    <div class="box thm" id="thm-bloch"><div class="box-h">블로흐 정리</div>
+      <p>주기 \(L\)인 퍼텐셜의 에너지 고유함수는 \(\hat T(L)\)의 고유함수로 고를 수 있다. 그 고유값을 \(e^{-ikL}\)이라 하면 고유함수는 첫 줄을 만족하고, 같은 말로 둘째 줄처럼 쓸 수 있다.</p>
+      <div class="formula" id="eq-bloch">\[ \begin{gathered}\psi_k(x-L)=e^{-ikL}\psi_k(x),\\ \psi_k(x)=e^{ikx}u_k(x),\qquad u_k(x+L)=u_k(x).\end{gathered} \]</div>
+    </div>
+    <p>\([\hat H,\hat T(L)]=0\)이므로 동시 고유기저가 있다(<a href="ch02.html">2장</a>). 첫 식은 식 <a class="ref" href="#eq-translation-def"></a>의 \((\hat T\psi)(x)=\psi(x-L)\)에 고유값을 적은 것이다. \(u_k(x)\equiv e^{-ikx}\psi_k(x)\)로 두면</p>
+    <div class="formula">\[ \begin{aligned}u_k(x-L)&amp;=e^{-ik(x-L)}\psi_k(x-L)\\ &amp;=e^{-ikx}e^{ikL}e^{-ikL}\psi_k(x)=u_k(x)\end{aligned} \]</div>
+    <p>여서 \(u_k\)는 격자와 같은 주기의 함수다. 결정 속의 고유상태는 평면파 \(e^{ikx}\)에 격자 주기의 함수를 곱한 꼴이다. \(\hbar k\)를 <span class="term">결정 운동량</span> <span class="en">(crystal momentum)</span>이라 한다. \(\hbar k\)는 운동량 \(\hat p\)의 고유값이 아니다. \(u_k\)를 푸리에 급수로 펼치면 \(\psi_k\)는 운동량 \(\hbar(k+2\pi n/L)\)들의 중첩이기 때문이다. 그래도 \(\hat T(L)\)이 보존되므로 <a href="#s1">13.1절</a>의 논리로 \(k\)는 시간에 따라 변하지 않는다. 다만 \(2\pi/L\)의 정수배만큼 다른 \(k\)는 같은 고유값을 주므로, \(\hbar k\)는 \(2\pi\hbar/L\)의 정수배를 빼고서만 정해진다.</p>
+    <h3 id="s2-tight">강결합 고리: 에너지 띠</h3>
+    <p>블로흐 정리가 무엇을 주는지 가장 간단한 모형에서 계산해 보자. 간격 \(a\)로 원자 \(N\)개를 고리 모양으로 놓고, 전자가 \(n\)번째 원자에 있는 상태를 \(|n\rangle\)이라 하자(\(|N\rangle\equiv|0\rangle\)). 전자는 원자에 머물면 에너지 \(E_0\)을 갖고, 이웃 원자로 진폭 \(t&gt;0\)으로 건너뛴다. 이런 모형을 <span class="term">강결합 모형</span> <span class="en">(tight-binding model)</span>이라 한다.</p>
+    <div class="formula" id="eq-tight-binding">\[ \hat H=\sum_{n=0}^{N-1}\Bigl[E_0|n\rangle\langle n|-t\bigl(|n+1\rangle\langle n|+|n\rangle\langle n+1|\bigr)\Bigr]. \]</div>
+    <p>한 칸 옮기는 연산자 \(\hat T|n\rangle=|n+1\rangle\)은 고리 전체를 돌리므로 \(\hat H\)와 교환한다. 블로흐 정리에 따라 고유상태를 \(\hat T\)의 고유상태에서 찾는다.</p>
+    <div class="formula" id="eq-bloch-ring">\[ \begin{gathered}|k\rangle=\frac1{\sqrt N}\sum_{n=0}^{N-1}e^{ikna}|n\rangle,\\ k=\frac{2\pi j}{Na},\quad j=0,1,\ldots,N-1.\end{gathered} \]</div>
+    <p>\(k\)의 조건은 \(|N\rangle=|0\rangle\)이어서 \(e^{ikNa}=1\)이어야 한다는 데서 온다. 합의 이름을 \(n\to n-1\)로 바꾸면 \(\hat T|k\rangle=N^{-1/2}\sum_ne^{ik(n-1)a}|n\rangle=e^{-ika}|k\rangle\)다. \(\hat H\)를 작용시키면 건너뛰기 항이 \(n\)번째 성분에 \(n\mp1\)번째 성분을 가져오므로</p>
+    <div class="formula">\[ \begin{aligned}\langle n|\hat H|k\rangle&amp;=\frac1{\sqrt N}\Bigl[E_0e^{ikna}-t\bigl(e^{ik(n-1)a}+e^{ik(n+1)a}\bigr)\Bigr]\\ &amp;=(E_0-2t\cos ka)\langle n|k\rangle.\end{aligned} \]</div>
+    <div class="formula" id="eq-band">\[ E(k)=E_0-2t\cos ka. \]</div>
+    <p>에너지가 \(k\)에 따라 연속적으로 바뀌는 너비 \(4t\)의 구간, 곧 <span class="term">에너지 띠</span> <span class="en">(energy band)</span>가 생긴다(그림 13-1). 원자 하나의 준위 \(E_0\)이 원자 \(N\)개에서 준위 \(N\)개로 갈라져 띠를 이룬 것이다. \(k\)와 \(-k\)는 같은 에너지를 갖는데, 이 축퇴의 까닭은 <a href="#s4">13.4절</a>에서 본다.</p>
+    <figure class="diagram" id="fig-band">
+      <div class="fig-narrow"><!--fig:13-1--><svg viewBox="0 0 440 284" role="img" aria-label="강결합 고리의 에너지 띠. 에너지는 k가 0일 때 가장 낮고 브릴루앙 영역의 양 끝에서 가장 높은 코사인 곡선이며, 원자 8개일 때 허용되는 k가 점으로 표시되어 있다"><defs><marker id="f131-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f131-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f131-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="92" y1="44" x2="372" y2="44" class="s-faint" stroke-dasharray="2 4"/><text x="84" y="49" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>+2<tspan font-style="italic">t</tspan></text><line x1="92" y1="132" x2="372" y2="132" class="s-faint" stroke-dasharray="2 4"/><text x="84" y="137" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><line x1="92" y1="220" x2="372" y2="220" class="s-faint" stroke-dasharray="2 4"/><text x="84" y="225" class="t-math dim" text-anchor="end"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>−2<tspan font-style="italic">t</tspan></text><line x1="86" y1="246" x2="394" y2="246" class="s-line" stroke-width="1.2" marker-end="url(#f131-dim)"/><line x1="92" y1="246" x2="92" y2="250" class="s-line" stroke-width="1.2"/><text x="92" y="268" class="t-math dim" text-anchor="middle">−<tspan font-style="italic">π</tspan>/<tspan font-style="italic">a</tspan></text><line x1="92" y1="32" x2="92" y2="246" class="s-faint" stroke-dasharray="4 4"/><line x1="232" y1="246" x2="232" y2="250" class="s-line" stroke-width="1.2"/><text x="232" y="268" class="t-math dim" text-anchor="middle">0</text><line x1="372" y1="246" x2="372" y2="250" class="s-line" stroke-width="1.2"/><text x="372" y="268" class="t-math dim" text-anchor="middle"><tspan font-style="italic">π</tspan>/<tspan font-style="italic">a</tspan></text><line x1="372" y1="32" x2="372" y2="246" class="s-faint" stroke-dasharray="4 4"/><text x="436" y="268" class="t-math dim" text-anchor="end"><tspan font-style="italic">k</tspan></text><path d="M92 44 L96.2 44.4 L100.4 45.6 L104.6 47.5 L109.5 50.7 L114.4 54.9 L119.3 60 L124.2 66 L129.8 73.8 L135.4 82.5 L141.7 93.3 L149.4 107.4 L171.1 149.8 L178.8 164.4 L185.1 175.6 L190.7 184.8 L196.3 193.2 L201.2 199.8 L206.1 205.6 L211 210.4 L215.9 214.3 L220.1 216.9 L224.3 218.7 L228.5 219.7 L232.7 220 L236.9 219.5 L241.1 218.2 L245.3 216.1 L250.2 212.8 L255.1 208.4 L260 203.2 L264.9 197.1 L270.5 189.2 L276.1 180.3 L282.4 169.5 L290.1 155.2 L311.1 114.2 L318.8 99.6 L325.1 88.4 L330.7 79.2 L336.3 70.8 L341.2 64.2 L346.1 58.4 L351 53.6 L355.9 49.7 L360.1 47.1 L364.3 45.3 L368.5 44.3 L372 44" class="s-acc" stroke-width="2.4"/><circle cx="127" cy="69.8" r="5" class="f-acc2"/><circle cx="162" cy="132" r="5" class="f-acc2"/><circle cx="197" cy="194.2" r="5" class="f-acc2"/><circle cx="232" cy="220" r="5" class="f-acc2"/><circle cx="267" cy="194.2" r="5" class="f-acc2"/><circle cx="302" cy="132" r="5" class="f-acc2"/><circle cx="337" cy="69.8" r="5" class="f-acc2"/><circle cx="372" cy="44" r="5" class="f-acc2"/><circle cx="92" cy="44" r="4.5" class="s-acc2" stroke-width="2" style="fill:var(--bg-elev)"/><line x1="398" y1="46" x2="398" y2="218" class="s-line" stroke-width="1.2" marker-start="url(#f131-dim)" marker-end="url(#f131-dim)"/><text x="392" y="126" class="t-math dim" text-anchor="end">4<tspan font-style="italic">t</tspan></text><text x="232" y="24" class="t-dim" text-anchor="middle">첫째 브릴루앙 영역</text></svg><!--/fig:13-1--></div>
+      <figcaption><b>그림 13-1.</b> 강결합 고리의 에너지 띠 \(E(k)=E_0-2t\cos ka\). 곡선은 원자 수 \(N\)이 아주 클 때이고, 점은 \(N=8\)일 때 허용되는 \(k=2\pi j/(8a)\)다. 빈 점 \(k=-\pi/a\)는 \(k=\pi/a\)와 같은 상태다. 띠의 너비는 \(4t\)이고, \(k=0\)과 영역의 양 끝 \(k=\pm\pi/a\)에서 곡선의 기울기, 곧 군속도가 0이다.</figcaption>
+    </figure>
+    <p>띠 상태의 전자는 어떻게 움직일까? 위치 연산자 \(\hat X=\sum_n na|n\rangle\langle n|\)으로 속도 연산자를 <a href="ch10.html#eq-heis-equation">하이젠베르크 방정식</a>처럼 \(\hat v=(i/\hbar)[\hat H,\hat X]\)로 정의하자. 고리의 이음매를 무시할 만큼 \(N\)이 크다고 하면, \([|n+1\rangle\langle n|,\hat X]=-a|n+1\rangle\langle n|\)과 \([|n\rangle\langle n+1|,\hat X]=a|n\rangle\langle n+1|\)에서 건너뛰기 항만 남는다.</p>
+    <div class="formula" id="eq-ring-velocity">\[ \hat v=\frac{ita}{\hbar}\sum_n\bigl(|n+1\rangle\langle n|-|n\rangle\langle n+1|\bigr). \]</div>
+    <p>\(\langle k|n+1\rangle\langle n|k\rangle=e^{-ika}/N\)이므로 블로흐 상태에서의 기댓값은</p>
+    <div class="formula" id="eq-group-velocity">\[ \langle k|\hat v|k\rangle=\frac{ita}{\hbar}\bigl(e^{-ika}-e^{ika}\bigr)=\frac{2ta}{\hbar}\sin ka=\frac1\hbar\frac{dE}{dk}. \]</div>
+    <p>\(|k\rangle\)은 에너지 고유상태이므로 이 속도는 시간에 따라 변하지 않는다. 완벽한 결정 속의 전자는 원자 하나하나에 부딪혀 흩어지지 않고 일정한 속도로 나아간다. 금속의 전기 저항은 격자 진동이나 불순물처럼 주기성을 깨는 요인에서 생긴다. 띠의 바닥 \(k=0\)과 영역의 끝 \(k=\pm\pi/a\)에서는 속도가 0이다. \(k=\pi/a\)와 \(-\pi/a\)는 \(e^{\pm i\pi n}=(-1)^n\)으로 같은 상태이고, 오른쪽과 왼쪽으로 가는 성분이 같은 정상파다.</p>
+    <div class="callout deep"><strong>도체와 부도체</strong><p>실제 결정에서는 원자의 여러 준위가 각각 띠를 이루고, 전자는 <a href="ch12.html#thm-pauli">12장의 파울리 원리</a>에 따라 아래 띠부터 채운다. 꽉 찬 띠에서는 \(k\)와 \(-k\) 상태의 속도가 짝지어 지워져 전류가 흐르지 못한다. 마지막 띠가 일부만 차 있으면 작은 전기장에도 전자가 비어 있는 상태로 옮겨 가 전류가 흐르고(도체), 띠가 꽉 차 있고 다음 띠까지 간격이 크면 전류가 흐르지 않는다(부도체).</p></div>
+  </section>
+
+  <section id="s3">
     <h2>시간 병진과 에너지</h2>
     <p>실험을 오늘 시작하든 내일 시작하든 해밀토니안 자체가 같다면 시간의 원점을 옮겨도 운동 법칙은 같다. 해밀토니안에 명시적인 시간 의존성이 없을 때, <a href="ch06.html">6장</a>의 시간 변화 연산자는 시간 간격 \(\tau\)에만 의존한다.</p>
-    <div class="formula" id="eq-time-translation">\[ \hat U(\tau)=e^{-i\tau\hat H/\hbar},\qquad
-    |\psi(t+\tau)\rangle=\hat U(\tau)|\psi(t)\rangle,\qquad
-    \hat U^\dagger(\tau)\hat H\hat U(\tau)=\hat H. \]</div>
-    <p>\(\hat U(\tau)=I-i\tau\hat H/\hbar+O(\tau^2)\)이므로 에너지를 나타내는 \(\hat H\)가 시간 병진의 생성자다. 공간 병진의 생성자가 운동량이었던 식 <a class="ref" href="#eq-translation-def"></a>과 짝을 이룬다. 여기서 시간은 변환의 매개변수이며, 이 논증에 별도의 '시간 관측량 연산자'는 필요하지 않다.</p>
-    <figure class="diagram">
-      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="공간과 시간 병진 대칭에서 생성자와 보존량으로 이어지는 대응">
-
-        <text x="30" y="40" class="t-b">대칭</text><text x="174" y="40" class="t-b">생성자</text><text x="321" y="40" class="t-b">보존량</text>
-        <line x1="25" y1="53" x2="415" y2="53" class="s-faint"/>
-        <rect x="20" y="75" width="400" height="63" rx="8" class="f-acc-soft"/>
-        <text x="32" y="113" class="t">공간 병진</text><text x="154" y="113" class="t-acc">→ 운동량 p</text><text x="293" y="113" class="t">→ 운동량 보존</text>
-        <rect x="20" y="157" width="400" height="63" rx="8" class="f-acc2-soft"/>
-        <text x="32" y="195" class="t">시간 병진</text><text x="154" y="195" class="t">→ 에너지 H</text><text x="293" y="195" class="t">→ 에너지 보존</text>
-      </svg></div>
-      <figcaption><b>그림 13-1.</b> 연속 병진의 생성자가 대응하는 보존량이다. 공간 병진에 대한 운동량 보존은 해밀토니안과 운동량의 교환 관계에서, 시간 병진에 대한 에너지 보존은 명시적인 시간 의존성이 없을 때 성립한다.</figcaption>
-    </figure>
-    <h3 id="s2-energy-balance">해밀토니안이 시간에 따라 바뀌면</h3>
+    <div class="formula" id="eq-time-translation">\[ \begin{gathered}\hat U(\tau)=e^{-i\tau\hat H/\hbar},\qquad
+    |\psi(t+\tau)\rangle=\hat U(\tau)|\psi(t)\rangle,\\
+    \hat U^\dagger(\tau)\hat H\hat U(\tau)=\hat H.\end{gathered} \]</div>
+    <p>\(\hat U(\tau)=I-i\tau\hat H/\hbar+O(\tau^2)\)이므로 에너지를 나타내는 \(\hat H\)가 시간 병진의 생성자다. 공간 병진의 생성자가 운동량이었던 식 <a class="ref" href="#eq-translation-def"></a>과 짝을 이룬다. 여기서 시간은 변환의 매개변수이며, 이 논증에 별도의 '시간 관측량 연산자'는 필요하지 않다. 식 <a class="ref" href="#eq-distribution-conserved"></a>를 \(\hat G=\hat H\)에 쓰면, 에너지 측정값의 분포도 시간에 따라 변하지 않는다.</p>
+    <h3 id="s3-energy-balance">해밀토니안이 시간에 따라 바뀌면</h3>
     <p>시간 의존 \(\hat H(t)\)를 허용하고 에너지 기댓값 \(E(t)=\langle\psi(t)|\hat H(t)|\psi(t)\rangle\)를 미분해 보자. 슈뢰딩거 방정식 \(i\hbar|\dot\psi\rangle=\hat H|\psi\rangle\)과 그 켤레를 각 항에 넣으면</p>
     <div class="formula" id="eq-energy-derivation">\[ \begin{aligned}\frac{dE}{dt}
     &amp;=\langle\dot\psi|\hat H|\psi\rangle
@@ -111,21 +136,21 @@
     <div class="callout tip"><strong>일정한 에너지와 일정한 운동량은 다른 조건</strong><p>시간에 무관한 우물 \(V(x)\)은 에너지를 보존하지만 위치에 따라 힘이 작용하므로 운동량은 변할 수 있다. 반대로 공간에 균일한 \(V(t)\)는 운동량을 보존하면서 해밀토니안의 기댓값을 바꾼다. 이 경우의 변화는 공통 에너지 기준점의 이동이므로 파동함수에는 전체 위상만 준다. 각 보존량은 대응하는 대칭 조건을 따로 확인해야 한다.</p></div>
   </section>
 
-  <section id="s3">
+  <section id="s4">
     <h2>패리티: 공간을 뒤집는 이산 대칭</h2>
-    <p>한 차원에서 원점에 거울을 놓고 \(x\)를 \(-x\)로 뒤집는 변환을 <span class="term">패리티</span> <span class="en">(parity)</span>라고 한다. 한 번 더 뒤집으면 원상복귀하므로 연속 병진과 달리 중간 단계의 작은 변환으로 만들지 않는다.</p>
+    <p>한 차원에서 원점에 거울을 놓고 \(x\)를 \(-x\)로 뒤집는 변환을 <span class="term">패리티</span> <span class="en">(parity)</span>라고 한다. 두 번 뒤집으면 원래대로 돌아오는 이산 변환이어서, 연속 병진처럼 작은 변환을 이어 붙여 만들 수 없다.</p>
     <div class="box def" id="def-parity"><div class="box-h">패리티 연산자</div>
-      <div class="formula" id="eq-parity-def">\[ \hat\Pi|x\rangle=|-x\rangle,\qquad
-      (\hat\Pi\psi)(x)=\psi(-x),\qquad
-      \hat\Pi^2=I,\quad\hat\Pi^\dagger=\hat\Pi. \]</div>
+      <div class="formula" id="eq-parity-def">\[ \begin{gathered}\hat\Pi|x\rangle=|-x\rangle,\qquad
+      (\hat\Pi\psi)(x)=\psi(-x),\\
+      \hat\Pi^2=I,\qquad\hat\Pi^\dagger=\hat\Pi.\end{gathered} \]</div>
       <p>고유값은 \(+1\) 또는 \(-1\)이다. \(\hat\Pi|\psi_+\rangle=+|\psi_+\rangle\)이면 짝함수, \(\hat\Pi|\psi_-\rangle=-|\psi_-\rangle\)이면 홀함수다. 임의의 파동함수는 \(\psi_\pm(x)=[\psi(x)\pm\psi(-x)]/2\)로 짝·홀 성분에 투영할 수 있다. 이 성분들은 필요하면 각각 다시 정규화한다.</p>
     </div>
     <p>패리티는 위치와 운동량을 모두 반전한다. 위치는 \(\hat\Pi\hat x\hat\Pi=-\hat x\)이고, \(\hat p=-i\hbar\partial_x\)에 \(\psi(-x)\)를 대입하면 미분의 부호가 바뀌므로 \(\hat\Pi\hat p\hat\Pi=-\hat p\)다. 따라서</p>
-    <div class="formula" id="eq-parity-hamiltonian">\[ \hat\Pi\hat H\hat\Pi
-      =\frac{\hat p^2}{2m}+V(-\hat x),\qquad
-      V(-x)=V(x)\ \Longrightarrow\ [\hat H,\hat\Pi]=0. \]</div>
-    <p>대칭 퍼텐셜에서는 패리티가 시간에 따라 보존된다. 비축퇴 에너지 고유상태라면 \(\hat\Pi|n\rangle\)도 같은 에너지의 고유상태이므로 \(\hat\Pi|n\rangle=\pi_n|n\rangle\), \(\pi_n=\pm1\)이어야 한다. 축퇴가 있더라도 같은 에너지 부분공간 안에서 패리티 고유기저를 고를 수 있다.</p>
-    <h3 id="s3-selection">패리티로 행렬원소를 계산하기 전에 지우기</h3>
+    <div class="formula" id="eq-parity-hamiltonian">\[ \begin{gathered}\hat\Pi\hat H\hat\Pi
+      =\frac{\hat p^2}{2m}+V(-\hat x),\\
+      V(-x)=V(x)\ \Longrightarrow\ [\hat H,\hat\Pi]=0.\end{gathered} \]</div>
+    <p>대칭 퍼텐셜에서는 패리티가 시간에 따라 보존된다. 비축퇴 에너지 고유상태라면 \(\hat\Pi|n\rangle\)도 같은 에너지의 고유상태이므로 \(\hat\Pi|n\rangle=\pi_n|n\rangle\), \(\pi_n=\pm1\)이어야 한다. <a href="ch07.html#thm-real-parity">7장의 정리</a>에서 1차원 속박 상태가 짝이거나 홀이라고 한 것이 바로 이 경우다. 축퇴가 있더라도 같은 에너지 부분공간 안에서 패리티 고유기저를 고를 수 있다.</p>
+    <h3 id="s4-selection">패리티로 행렬원소를 계산하기 전에 지우기</h3>
     <p>연산자 \(\hat O\)가 패리티에 대해 \(\hat\Pi\hat O\hat\Pi=\eta_O\hat O\), \(\eta_O=\pm1\)라고 하자. 패리티 고유상태 \(|i\rangle,|f\rangle\)의 고유값을 \(\pi_i,\pi_f\)라 하면</p>
     <div class="formula" id="eq-parity-selection">\[ \langle f|\hat O|i\rangle
     =\langle f|\hat\Pi(\hat\Pi\hat O\hat\Pi)\hat\Pi|i\rangle
@@ -136,30 +161,57 @@
     <div class="box ex" id="ex-oscillator-parity"><div class="box-h">조화 진동자에서 적분 없이 판정하기</div>
       <p><a href="ch08.html">8장</a>의 조화 진동자는 짝수 퍼텐셜을 갖고 \(n\)번째 고유상태의 패리티는 \((-1)^n\)이다. 따라서 \(\langle0|\hat x|0\rangle=\langle0|\hat x|2\rangle=0\)이다. \(n=0\)과 \(n=1\)은 패리티가 반대여서 허용된다. 실제로 \(\hat x=\sqrt{\hbar/(2m\omega)}(\hat a+\hat a^\dagger)\)와 \(\hat a|1\rangle=|0\rangle\)를 쓰면 \(\langle0|\hat x|1\rangle=\sqrt{\hbar/(2m\omega)}\)다.</p>
     </div>
+    <h3 id="s4-degeneracy">대칭이 축퇴를 만든다</h3>
+    <p>자유 입자의 \(e^{ikx}\)와 \(e^{-ikx}\), 강결합 고리의 \(|k\rangle\)과 \(|-k\rangle\)은 같은 에너지를 가졌다. 이런 축퇴는 우연이 아니다.</p>
+    <div class="box thm" id="thm-symmetry-degeneracy"><div class="box-h">교환하지 않는 두 대칭과 축퇴</div>
+      <p>\(\hat H\)가 두 연산자 \(\hat A,\hat B\)와 각각 교환하지만 \([\hat A,\hat B]\ne0\)이면, \(\hat H\)에는 축퇴된 고유값이 있다.</p>
+    </div>
+    <p>모든 고유값이 비축퇴라고 가정해 보자. 고유상태 \(|n\rangle\)에 대해 \(\hat H(\hat A|n\rangle)=\hat A\hat H|n\rangle=E_n\hat A|n\rangle\)이므로 \(\hat A|n\rangle\)은 같은 에너지의 고유상태이고, 비축퇴이므로 \(|n\rangle\)의 상수배다. \(\hat B\)도 마찬가지다. 그러면 완비 기저 \(\{|n\rangle\}\)이 \(\hat A\)와 \(\hat B\)의 공통 고유기저가 되어 \([\hat A,\hat B]=0\)이 되므로 모순이다.</p>
+    <p>자유 입자에서는 \(\hat p\)와 \(\hat\Pi\)가 모두 \(\hat H\)와 교환하지만 \(\hat\Pi\hat p=-\hat p\hat\Pi\)다. \(\hat\Pi\)가 \(e^{ikx}\)를 \(e^{-ikx}\)로 보내므로 둘은 같은 에너지다. 강결합 고리에서는 \(|n\rangle\to|-n\rangle\)으로 뒤집는 \(\hat R\)가 \(\hat H\)와 교환하고 \(\hat R\hat T\hat R=\hat T^{-1}\)이어서, \(\hat R|k\rangle=|-k\rangle\)이 같은 에너지를 갖는다(\(k=0,\pi/a\)는 \(-k\)와 같은 상태라 예외다). 1차원 속박 상태는 축퇴되지 않으므로(<a href="ch07.html#thm-nondegenerate">7장</a>) 이런 두 대칭을 함께 가질 수 없다.</p>
+    <h3 id="s4-double-well">두 우물: 패리티 고유상태와 터널링</h3>
+    <p>대칭 퍼텐셜의 비축퇴 고유상태는 짝이거나 홀이므로, 거울 대칭인 두 우물이 있으면 고유상태는 두 우물에 똑같이 퍼진다. 그렇다면 입자를 한쪽 우물에만 넣으면 어떻게 될까? <a href="ch07.html#prob-delta-well">7장 문제</a>의 델타 우물 두 개를 \(x=\pm d\)에 놓은 퍼텐셜에서 계산해 보자.</p>
+    <div class="formula" id="eq-double-delta-potential">\[ \begin{gathered}V(x)=-\alpha\bigl[\delta(x-d)+\delta(x+d)\bigr],\\ \kappa_0=\frac{m\alpha}{\hbar^2},\qquad E_0=\frac{\hbar^2\kappa_0^2}{2m}.\end{gathered} \]</div>
+    <p>우물이 하나뿐이면 속박 상태는 \(e^{-\kappa_0|x|}\) 하나이고 에너지는 \(-E_0\)이다. 우물이 둘이면 속박 상태 \(E=-\hbar^2\kappa^2/(2m)\)는 바깥 \(|x|&gt;d\)에서 \(e^{-\kappa|x|}\)로 줄고, 두 우물 사이 \(|x|&lt;d\)에서는 짝 상태가 \(\cosh\kappa x\), 홀 상태가 \(\sinh\kappa x\)다. 각 우물에서 도함수는 \(\psi'(d^+)-\psi'(d^-)=-2\kappa_0\psi(d)\)만큼 뛴다(<a href="ch07.html#eq-derivative-jump">7장</a>). 짝 상태 \(\psi_+=\cosh\kappa x\) (\(|x|&lt;d\)), \(\cosh\kappa d\,e^{-\kappa(|x|-d)}\) (\(|x|&gt;d\))에 적용하면</p>
+    <div class="formula">\[ \begin{gathered}-\kappa\cosh\kappa d-\kappa\sinh\kappa d=-2\kappa_0\cosh\kappa d\\ \Longrightarrow\quad\kappa(1+\tanh\kappa d)=2\kappa_0.\end{gathered} \]</div>
+    <p>\(1+\tanh y=2/(1+e^{-2y})\)를 쓰면 \(\kappa_+=\kappa_0(1+e^{-2\kappa_+d})\)다. 홀 상태는 같은 조건에서 \(\kappa(1+\coth\kappa d)=2\kappa_0\)이고 \(1+\coth y=2/(1-e^{-2y})\)를 쓴다.</p>
+    <div class="formula" id="eq-double-delta">\[ \kappa_\pm=\kappa_0\bigl(1\pm e^{-2\kappa_\pm d}\bigr). \]</div>
+    <p>짝 상태는 \(\kappa_+&gt;\kappa_0\)이어서 우물 하나일 때보다 낮고, 홀 상태는 \(\kappa_-&lt;\kappa_0\)이어서 높다. 홀 상태의 식은 \(2\kappa_0d&gt;1\)일 때만 양의 해를 갖는다(<a class="ref" href="#prob-double-delta"></a>). 우물 사이가 멀어 \(e^{-2\kappa_0d}\ll1\)이면 오른쪽 지수에 \(\kappa_0\)을 넣어 \(\kappa_\pm\approx\kappa_0(1\pm e^{-2\kappa_0d})\)이고, \(E=-E_0(\kappa/\kappa_0)^2\)을 1차까지 전개하면</p>
+    <div class="formula" id="eq-double-splitting">\[ E_\pm\approx-E_0\bigl(1\pm2e^{-2\kappa_0d}\bigr),\qquad \Delta\equiv E_--E_+\approx4E_0\,e^{-2\kappa_0d}. \]</div>
+    <p>갈라짐은 파동함수가 두 우물 사이로 얼마나 스며드는지를 나타내는 \(e^{-2\kappa_0d}\)에 비례하고, 우물 사이 거리에 지수적으로 작다. \(\kappa_0d=3\)이면 근사식이 정확한 값과 0.03% 안에서 맞는다.</p>
+    <figure class="diagram" id="fig-double-well">
+      <div class="fig-row"><!--fig:13-2a--><svg viewBox="0 0 280 210" role="img" aria-label="두 델타 우물의 바닥 상태는 짝함수로 두 우물에 고르게 퍼져 있고, 첫 들뜬 상태는 홀함수로 왼쪽은 음수, 오른쪽은 양수다"><defs><marker id="f132a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f132a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f132a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="118" x2="264" y2="118" class="s-line" stroke-width="1.2"/><line x1="102.8" y1="34" x2="102.8" y2="196" class="s-faint" stroke-dasharray="4 4"/><line x1="102.8" y1="168" x2="102.8" y2="190" class="s-line" stroke-width="1.6" marker-end="url(#f132a-dim)"/><line x1="177.2" y1="34" x2="177.2" y2="196" class="s-faint" stroke-dasharray="4 4"/><line x1="177.2" y1="168" x2="177.2" y2="190" class="s-line" stroke-width="1.6" marker-end="url(#f132a-dim)"/><text x="102.8" y="206" class="t-math dim" text-anchor="middle">−<tspan font-style="italic">d</tspan></text><text x="177.2" y="206" class="t-math dim" text-anchor="middle"><tspan font-style="italic">d</tspan></text><path d="M16 116.8 L23.1 116.4 L29.3 116 L34.9 115.4 L39.9 114.9 L44.5 114.2 L48.5 113.5 L52.3 112.7 L55.7 111.9 L59.1 110.9 L62.2 110 L65 109 L67.8 107.8 L70.2 106.7 L72.7 105.5 L75.2 104.1 L77.4 102.8 L79.5 101.3 L81.7 99.7 L83.6 98.2 L85.4 96.6 L87.3 94.9 L89.2 93 L90.7 91.3 L92.3 89.5 L93.8 87.6 L95.4 85.5 L96.9 83.3 L98.5 81 L99.7 79 L100.9 76.9 L102.2 74.7 L102.8 73.6 L104 75.7 L105.3 77.6 L106.5 79.4 L108.1 81.6 L109.6 83.6 L111.2 85.4 L112.7 87.1 L114.3 88.7 L115.8 90.2 L117.4 91.5 L118.9 92.7 L120.8 94.1 L122.6 95.3 L124.5 96.3 L126.4 97.2 L128.2 98 L130.1 98.6 L131.9 99.2 L133.8 99.6 L135.7 99.9 L137.8 100.1 L140 100.2 L142.2 100.1 L144.3 99.9 L146.2 99.6 L148.1 99.2 L149.9 98.6 L151.8 98 L153.6 97.2 L155.5 96.3 L157.4 95.3 L159.2 94.1 L161.1 92.7 L162.6 91.5 L164.2 90.2 L165.7 88.7 L167.3 87.1 L168.8 85.4 L170.4 83.6 L171.9 81.6 L173.5 79.4 L174.7 77.6 L176 75.7 L177.2 73.6 L178.4 75.8 L179.7 78 L180.9 80 L182.5 82.4 L184 84.7 L185.6 86.8 L187.1 88.7 L188.7 90.6 L190.2 92.3 L192.1 94.3 L193.9 96 L195.8 97.7 L197.7 99.2 L199.8 100.9 L202 102.4 L204.2 103.7 L206.7 105.1 L209.1 106.4 L211.6 107.6 L214.4 108.7 L217.2 109.7 L220.3 110.8 L223.7 111.7 L227.4 112.6 L231.4 113.5 L235.8 114.2 L240.4 114.9 L245.7 115.5 L251.6 116.1 L258.4 116.5 L264 116.8" class="s-acc" stroke-width="2.2"/><path d="M16 119.7 L22.5 120.2 L28.4 120.8 L33.7 121.4 L38.6 122.1 L43 122.9 L47 123.7 L50.7 124.5 L54.1 125.4 L57.5 126.4 L60.6 127.5 L63.7 128.7 L66.5 129.9 L69.3 131.2 L71.8 132.5 L74.3 133.9 L76.4 135.3 L78.6 136.8 L80.8 138.4 L83 140.1 L84.8 141.7 L86.7 143.5 L88.5 145.3 L90.4 147.3 L92.3 149.5 L93.8 151.4 L95.4 153.4 L96.9 155.6 L98.5 157.8 L100 160.2 L101.6 162.8 L102.8 165 L104.3 161.9 L105.9 159.1 L107.4 156.3 L109 153.7 L110.5 151.2 L112.1 148.9 L114 146.2 L115.8 143.6 L117.7 141.2 L119.8 138.5 L122 135.9 L124.5 133.2 L127 130.5 L129.8 127.7 L133.2 124.4 L138.8 119.1 L144.7 113.7 L148.4 110.1 L151.5 107.1 L154.3 104.2 L156.7 101.5 L158.9 99 L161.1 96.4 L162.9 94 L164.8 91.6 L166.7 89 L168.5 86.2 L170.1 83.8 L171.6 81.3 L173.2 78.6 L174.7 75.8 L176.3 72.9 L177.2 71 L178.8 73.7 L180.3 76.2 L181.8 78.6 L183.4 80.9 L184.9 83 L186.5 85 L188.1 86.9 L189.9 89 L191.8 91 L193.6 92.8 L195.5 94.5 L197.3 96.1 L199.5 97.9 L201.7 99.4 L203.9 100.9 L206.3 102.4 L208.8 103.8 L211.3 105.1 L214.1 106.4 L216.9 107.6 L220 108.7 L223.1 109.8 L226.5 110.8 L230.2 111.7 L234.2 112.6 L238.6 113.4 L243.2 114.2 L248.5 114.9 L254.4 115.5 L260.9 116 L264 116.3" class="s-acc2" stroke-width="2.2"/><text x="131.3" y="90.2" class="t-math acc" text-anchor="start"><tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%">+</tspan></text><text x="25.9" y="148.6" class="t-math acc2" text-anchor="start"><tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%">−</tspan></text><text x="12" y="22" class="t-b" text-anchor="start">(가) 에너지 고유상태</text></svg><!--/fig:13-2a--><!--fig:13-2b--><svg viewBox="0 0 280 210" role="img" aria-label="두 고유상태의 합은 오른쪽 우물에, 차는 왼쪽 우물에 몰려 있다"><defs><marker id="f132b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f132b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f132b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="16" y1="118" x2="264" y2="118" class="s-line" stroke-width="1.2"/><line x1="102.8" y1="34" x2="102.8" y2="196" class="s-faint" stroke-dasharray="4 4"/><line x1="102.8" y1="168" x2="102.8" y2="190" class="s-line" stroke-width="1.6" marker-end="url(#f132b-dim)"/><line x1="177.2" y1="34" x2="177.2" y2="196" class="s-faint" stroke-dasharray="4 4"/><line x1="177.2" y1="168" x2="177.2" y2="190" class="s-line" stroke-width="1.6" marker-end="url(#f132b-dim)"/><text x="102.8" y="206" class="t-math dim" text-anchor="middle">−<tspan font-style="italic">d</tspan></text><text x="177.2" y="206" class="t-math dim" text-anchor="middle"><tspan font-style="italic">d</tspan></text><path d="M16 116 L21.9 115.4 L27.2 114.8 L31.8 114.2 L36.1 113.4 L40.2 112.7 L43.9 111.8 L47.3 110.9 L50.4 110 L53.5 108.9 L56.3 107.9 L59.1 106.7 L61.6 105.5 L64 104.2 L66.5 102.8 L68.7 101.4 L70.9 99.9 L73 98.3 L74.9 96.8 L76.8 95.1 L78.6 93.4 L80.5 91.5 L82.3 89.4 L83.9 87.6 L85.4 85.7 L87 83.6 L88.5 81.4 L90.1 79.1 L91.6 76.6 L92.9 74.5 L94.1 72.3 L95.4 70 L96.6 67.6 L97.8 65 L99.1 62.3 L100.3 59.5 L101.6 56.5 L102.8 53.4 L104 56.6 L105.3 59.6 L106.5 62.5 L107.8 65.2 L109 67.9 L110.2 70.4 L111.5 72.7 L112.7 75 L114.3 77.7 L115.8 80.2 L117.4 82.6 L118.9 84.9 L120.5 87 L122 89 L123.6 90.9 L125.4 93 L127.3 95 L129.2 96.8 L131 98.5 L133.2 100.4 L135.3 102.1 L137.5 103.7 L140 105.4 L142.5 107 L145.3 108.6 L148.1 110 L151.2 111.5 L154.3 112.9 L157.7 114.2 L161.4 115.5 L165.1 116.7 L169.1 117.9 L173.2 118.9 L177.2 119.8 L181.5 120 L186.8 120.1 L193.6 120.1 L204.5 119.8 L229 119.1 L246 118.7 L264 118.4" class="s-line" stroke-dasharray="6 5" stroke-width="1.8"/><path d="M16 118.4 L33.7 118.7 L50.7 119.1 L76.8 119.9 L85.8 120.1 L92.3 120.1 L97.5 120 L101.9 119.9 L102.8 119.8 L106.8 118.9 L110.9 117.9 L114.9 116.7 L118.6 115.5 L122 114.3 L125.4 113 L128.5 111.7 L131.3 110.3 L134.1 108.9 L136.6 107.5 L139.1 106 L141.6 104.4 L143.7 102.8 L145.9 101.2 L148.1 99.3 L149.9 97.7 L151.8 95.9 L153.6 94 L155.5 91.9 L157.4 89.7 L158.9 87.8 L160.5 85.7 L162 83.5 L163.6 81.2 L165.1 78.7 L166.7 76.1 L167.9 73.9 L169.1 71.6 L170.4 69.1 L171.6 66.6 L172.9 63.9 L174.1 61.1 L175.3 58.1 L176.6 55 L177.2 53.4 L178.4 56.5 L179.7 59.5 L180.9 62.3 L182.2 65 L183.4 67.6 L184.6 70 L185.9 72.3 L187.1 74.5 L188.7 77.1 L190.2 79.6 L191.8 81.9 L193.3 84 L194.9 86.1 L196.4 88 L198 89.8 L199.8 91.8 L201.7 93.7 L203.6 95.4 L205.4 97 L207.6 98.8 L209.8 100.4 L211.9 101.8 L214.1 103.2 L216.6 104.5 L219.1 105.8 L221.8 107.1 L224.6 108.2 L227.7 109.4 L230.8 110.4 L234.2 111.3 L238 112.2 L242 113.1 L246.3 113.9 L251 114.6 L256.2 115.2 L262.1 115.8 L264 116" class="s-acc" stroke-width="2.2"/><text x="187.2" y="57.4" class="t-math acc" text-anchor="start"><tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">R</tspan></tspan></text><text x="68.8" y="57.4" class="t-math dim" text-anchor="start"><tspan font-style="italic">ψ</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">L</tspan></tspan></text><text x="12" y="22" class="t-b" text-anchor="start">(나) 한쪽에 몰린 상태</text></svg><!--/fig:13-2b--></div>
+      <figcaption><b>그림 13-2.</b> \(x=\pm d\)에 놓인 두 델타 우물(\(\kappa_0d=1.5\), 아래 화살표)의 속박 상태. (가) 바닥 상태 \(\psi_+\)는 짝함수, 첫 들뜬 상태 \(\psi_-\)는 홀함수이고, 둘 다 두 우물에 고르게 퍼져 있다. (나) 둘의 합과 차 \(\psi_{R,L}=(\psi_+\pm\psi_-)/\sqrt2\)는 확률의 98.6%가 각각 오른쪽, 왼쪽 우물 쪽에 있다. 다만 에너지 고유상태가 아니어서 시간이 지나면 두 우물을 오간다.</figcaption>
+    </figure>
+    <p>처음에 입자가 오른쪽 우물에 몰린 상태 \(\psi_R=(\psi_++\psi_-)/\sqrt2\)에서 출발하면, 두 성분이 각자의 에너지로 위상을 얻는다.</p>
+    <div class="formula" id="eq-tunnel-evolution">\[ \psi(x,t)=\frac{e^{-iE_+t/\hbar}}{\sqrt2}\Bigl[\psi_+(x)+e^{-i\Delta t/\hbar}\psi_-(x)\Bigr]. \]</div>
+    <p>\(t=\pi\hbar/\Delta\)에서 둘째 항의 위상이 \(-1\)이 되어 \(\psi\propto\psi_L\)이다. 입자는 주기 \(2\pi\hbar/\Delta\)로 두 우물을 오간다. \(\psi_\pm^2\)은 짝함수여서 \(\int_0^\infty\psi_\pm^2\,dx=1/2\)이므로, 오른쪽에서 발견될 확률은 \(P_R(t)=\tfrac12[1+c\cos(\Delta t/\hbar)]\)이다. 여기서 \(c=2\int_0^\infty\psi_+\psi_-\,dx\)이고, 그림 13-2의 경우 \(0.972\)다. 에너지 고유상태는 모두 짝·홀이어서 정지해 있지만, 한쪽에 몰린 상태는 고유상태가 아니어서 움직인다.</p>
+    <div class="box ex" id="ex-ammonia"><div class="box-h">암모니아 분자의 뒤집힘</div>
+      <p>암모니아 분자 NH<sub>3</sub>에서 질소 원자는 수소 원자 셋이 이루는 평면의 위나 아래에 있을 수 있고, 두 자리 사이에 퍼텐셜 장벽이 있다. 이것이 대칭 이중 우물이다. 가장 낮은 두 준위의 갈라짐은 진동수 \(\nu=23.87\ \mathrm{GHz}\)(파장 \(1.26\ \mathrm{cm}\))의 마이크로파에 해당하므로 \(\Delta=h\nu=9.87\times10^{-5}\ \mathrm{eV}\)다. 질소가 한쪽에서 반대쪽으로 넘어가는 데 걸리는 시간은 반주기 \(\pi\hbar/\Delta=1/(2\nu)=21\ \mathrm{ps}\)다. 1954년에 발표된 최초의 메이저가 바로 이 두 준위 사이의 전이를 이용했다.</p>
+    </div>
     <div class="callout warn"><strong>패리티는 연속 대칭의 생성자가 아니다</strong><p>패리티 고유값 \(+1,-1\)은 대칭 퍼텐셜에서 유지되지만, 공간 병진처럼 작은 거리 \(a\)를 변화시키는 생성자는 없다. 패리티 선택 규칙은 유용한 보존 정보이며, 식 <a class="ref" href="#eq-generator-conservation"></a>의 연속 대칭 논증과는 구분한다.</p></div>
   </section>
 
-  <section id="s4">
+  <section id="s5">
     <h2>시간 반전: 운동을 거꾸로 재생하기</h2>
     <p>자유 입자의 영상을 거꾸로 틀면 위치는 같은 장면을 역순으로 지나지만 운동량은 반대 방향을 가리킨다. 양자역학에서는 단지 \(t\to-t\)만 대입하면 슈뢰딩거 방정식의 \(i\) 부호가 맞지 않는다. 이 절은 <em>스핀 없는 입자</em>와 실수의 정적인 스칼라 퍼텐셜에 집중한다.</p>
     <div class="box def" id="def-time-reversal"><div class="box-h">스핀 없는 입자의 시간 반전</div>
-      <div class="formula" id="eq-time-reversal-def">\[ (\hat\Theta\psi)(x)=\psi^*(x),\qquad
+      <div class="formula" id="eq-time-reversal-def">\[ \begin{gathered}(\hat\Theta\psi)(x)=\psi^*(x),\\
       \hat\Theta(c_1|\psi\rangle+c_2|\phi\rangle)
-      =c_1^*\hat\Theta|\psi\rangle+c_2^*\hat\Theta|\phi\rangle. \]</div>
+      =c_1^*\hat\Theta|\psi\rangle+c_2^*\hat\Theta|\phi\rangle.\end{gathered} \]</div>
       <p>복소수를 켤레로 바꾸는 연산자를 <span class="term">반유니타리</span> <span class="en">(antiunitary)</span>라고 한다. \(\langle\hat\Theta\phi|\hat\Theta\psi\rangle=\langle\psi|\phi\rangle\)여서 확률과 노름은 보존한다. 이 위치 표현에서는 \(\hat\Theta\)가 복소 켤레 연산자이며 \(\hat\Theta^2=I\)다.</p>
     </div>
-    <p>\(\hat\Theta i\hat\Theta^{-1}=-i\)다. 실수 함수 \(x\)는 그대로지만 \(\hat p=-i\hbar\partial_x\)는 \(i\)의 부호가 뒤집혀 반전한다.</p>
+    <div class="callout deep"><strong>대칭은 왜 유니타리 아니면 반유니타리인가</strong><p>실험으로 확인할 수 있는 것은 전이 확률 \(|\langle\phi|\psi\rangle|^2\)이다. 위그너는 모든 전이 확률을 보존하는 변환이 위상을 빼면 유니타리이거나 반유니타리라는 것을 증명했다. 연속 변환은 언제나 유니타리다. \(\hat T(a)=\hat T(a/2)^2\)처럼 반쪽 변환을 두 번 한 것으로 쓸 수 있는데, 반유니타리 변환 둘의 곱은 선형이기 때문이다. 반유니타리는 시간 반전 같은 이산 변환에서만 나타난다.</p></div>
+    <p>\(\hat\Theta i\hat\Theta^{-1}=-i\)다. 실수 함수 \(x\)는 그대로지만 \(\hat p=-i\hbar\partial_x\)는 \(i\)의 부호가 뒤집혀 반전한다. 실수 퍼텐셜의 \(\hat H=\hat p^2/(2m)+V(\hat x)\)라면</p>
     <div class="formula" id="eq-time-reversal-operators">\[ \hat\Theta\hat x\hat\Theta^{-1}=\hat x,\qquad
       \hat\Theta\hat p\hat\Theta^{-1}=-\hat p,\qquad
-      \hat\Theta\hat H\hat\Theta^{-1}=\hat H
-      \quad\left(\hat H=\frac{\hat p^2}{2m}+V(\hat x),\ V\text{ 실수}\right). \]</div>
+      \hat\Theta\hat H\hat\Theta^{-1}=\hat H. \]</div>
     <p>실수의 시간 독립 \(V\)에서 \(i\hbar\partial_t\psi=\hat H\psi\)의 해 \(\psi(x,t)\)가 있다면, 시간을 뒤집고 복소 켤레를 취한 함수</p>
     <div class="formula" id="eq-reversed-solution">\[ \psi_{\mathrm{rev}}(x,t)=\psi^*(x,-t) \]</div>
     <p>도 해다. 실제로 \(s=-t\)라 쓰고 원래 방정식을 켤레 취하면 \(-i\hbar\,\partial_s\psi^*(x,s)=\hat H\psi^*(x,s)\)다. \(\partial_t\psi^*(x,-t)=-\partial_s\psi^*(x,s)|_{s=-t}\)를 대입하면 \(i\hbar\partial_t\psi_{\mathrm{rev}}=\hat H\psi_{\mathrm{rev}}\)가 된다.</p>
     <div class="box ex" id="ex-reversed-plane-wave"><div class="box-h">오른쪽으로 가는 파동의 역재생</div>
-      <p>\(\psi(x,t)=e^{i(kx-\omega t)}\)에서 \(k&gt;0\), \(E=\hbar\omega=\hbar^2k^2/(2m)\)라고 하자. 식 <a class="ref" href="#eq-reversed-solution"></a>을 적용하면 \(\psi_{\mathrm{rev}}(x,t)=e^{-ikx-i\omega t}\)다. 에너지는 \(E\) 그대로이고 운동량은 \(+\hbar k\)에서 \(-\hbar k\)로 바뀐다. 평면파는 정규화된 실제 입자 상태가 아니지만 방향을 확인하는 데 편리하다.</p>
+      <p>\(\psi(x,t)=e^{i(kx-\omega t)}\)에서 \(k&gt;0\), \(E=\hbar\omega=\hbar^2k^2/(2m)\)라고 하자. 식 <a class="ref" href="#eq-reversed-solution"></a>를 적용하면 \(\psi_{\mathrm{rev}}(x,t)=e^{-ikx-i\omega t}\)다. 에너지는 \(E\) 그대로이고 운동량은 \(+\hbar k\)에서 \(-\hbar k\)로 바뀐다. 평면파는 정규화된 실제 입자 상태가 아니지만 방향을 확인하는 데 편리하다.</p>
     </div>
-    <h3 id="s4-not-conservation">시간 반전 대칭이 뜻하는 것</h3>
+    <h3 id="s5-not-conservation">시간 반전 대칭이 뜻하는 것</h3>
     <p>시간 독립 \(\hat H\)에서 시간 반전은 진화를 역방향으로 바꾼다. 반유니타리성이 지수의 \(i\)를 뒤집으므로</p>
     <div class="formula" id="eq-time-reversal-evolution">\[ \hat\Theta\hat U(t)\hat\Theta^{-1}
       =\hat\Theta e^{-i\hat Ht/\hbar}\hat\Theta^{-1}
@@ -173,19 +225,39 @@
         <tr><td>시간 반전 \(\hat\Theta\)</td><td>\(x\)</td><td>\(-p\)</td><td>\(-t\)</td><td>\(-i\)</td><td>반유니타리</td></tr>
       </tbody>
     </table></div>
-    <div class="callout deep"><strong>스핀을 넣으면 복소 켤레만으로는 부족하다</strong><p>스핀은 시간 반전에서 방향이 바뀐다. 따라서 스핀 \(1/2\) 상태의 시간 반전 연산자는 단순한 복소 켤레보다 더 많은 변환을 포함하며, 이 절의 \(\hat\Theta^2=I\)도 그대로 적용되지 않는다. 스핀 자체는 <a href="ch16.html">16장</a>에서 도입한다.</p></div>
+    <h3 id="s5-real">시간 반전과 실수 고유함수</h3>
+    <p>보존량을 주지 않는 대신, 시간 반전 대칭은 정상 상태의 모양을 제한한다.</p>
+    <div class="box thm" id="thm-time-reversal-real"><div class="box-h">비축퇴 고유상태는 시간 반전에 불변으로 고를 수 있다</div>
+      <p>\(\hat\Theta\hat H\hat\Theta^{-1}=\hat H\)이고 에너지 \(E\)가 비축퇴이면, 그 고유상태는 위상을 골라 \(\hat\Theta|n\rangle=|n\rangle\)이 되게 할 수 있다. 스핀 없는 입자에서는 위치 파동함수가 실수라는 뜻이다.</p>
+    </div>
+    <p>\(E\)가 실수이므로 \(\hat H(\hat\Theta|n\rangle)=\hat\Theta\hat H|n\rangle=\hat\Theta(E|n\rangle)=E\,\hat\Theta|n\rangle\)이다. 비축퇴이므로 \(\hat\Theta|n\rangle=e^{i\gamma}|n\rangle\)이다. \(|n'\rangle=e^{i\gamma/2}|n\rangle\)으로 두면 반선형성 때문에 \(\hat\Theta|n'\rangle=e^{-i\gamma/2}\hat\Theta|n\rangle=e^{i\gamma/2}|n\rangle=|n'\rangle\)이다.</p>
+    <p><a href="ch07.html#thm-real-parity">7장의 정리</a>에서 1차원 속박 상태를 실수로 고를 수 있었던 것이 이 정리의 한 경우다. 이 정리는 차원과 상관없이 성립한다. 실수 파동함수의 확률 흐름 \(j=(\hbar/m)\operatorname{Im}(\psi^*\partial_x\psi)\)는 0이므로, 비축퇴 정상 상태에서는 확률이 흐르지 않는다. 흐름이 있는 \(e^{ikx}\)는 시간 반전 짝 \(e^{-ikx}\)와 축퇴되어 있다. 강결합 고리에서도 \(\hat\Theta|k\rangle=|-k\rangle\)이어서, <a href="#s4">13.4절</a>의 거울 대칭과 함께 시간 반전도 \(\pm k\)의 축퇴를 설명한다.</p>
+    <div class="callout warn"><strong>자기장은 시간 반전 대칭을 깬다</strong><p>벡터 퍼텐셜 \(\boldsymbol A\) 안의 전하 \(q\)는 \(\hat H=(\hat{\boldsymbol p}-q\boldsymbol A(\hat{\boldsymbol r}))^2/(2m)\)를 따른다. \(\hat\Theta\)는 \(\hat{\boldsymbol p}\)를 \(-\hat{\boldsymbol p}\)로 바꾸지만 \(\boldsymbol A(\hat{\boldsymbol r})\)는 그대로 두므로, \(\boldsymbol A\ne0\)이면 \(\hat\Theta\hat H\hat\Theta^{-1}\ne\hat H\)다. 자기장을 만드는 전류까지 거꾸로 돌려 \(\boldsymbol A\to-\boldsymbol A\)로 바꿔야 대칭이 돌아온다. 자기장 속에서는 고유함수가 실수일 필요가 없고 확률이 원을 그리며 흐를 수 있다.</p></div>
+    <div class="callout deep"><strong>스핀을 넣으면: 크라머스 축퇴</strong><p>스핀은 시간 반전에서 방향이 바뀐다. 그래서 스핀 \(1/2\)의 시간 반전은 복소 켤레 \(K\)에 스핀을 뒤집는 연산을 더한 \(\hat\Theta=-i\sigma_yK\)이고(<a href="ch16.html">16장</a>의 파울리 행렬), \(\hat\Theta^2=-I\)이다. 반유니타리성 \(\langle\hat\Theta\alpha|\hat\Theta\beta\rangle=\langle\beta|\alpha\rangle\)에 \(\alpha=\hat\Theta\psi\), \(\beta=\psi\)를 넣으면 \(\langle\psi|\hat\Theta\psi\rangle=\langle\hat\Theta^2\psi|\hat\Theta\psi\rangle=-\langle\psi|\hat\Theta\psi\rangle\), 곧 \(\langle\psi|\hat\Theta\psi\rangle=0\)이다. \(|\psi\rangle\)와 \(\hat\Theta|\psi\rangle\)는 서로 직교하는 다른 상태이면서 에너지가 같다. 따라서 전자가 홀수 개인 계의 준위는 시간 반전 대칭이 있는 한 적어도 두 겹으로 축퇴된다. 이것이 크라머스 정리다.</p></div>
+    <p>이 장에서 다룬 대칭을 모으면 다음과 같다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>대칭</th><th>종류</th><th>생성자·고유값</th><th>결과</th></tr></thead>
+      <tbody>
+        <tr><td>공간 병진</td><td>연속, 유니타리</td><td>생성자 \(\hat p\)</td><td>운동량 보존</td></tr>
+        <tr><td>이산 병진</td><td>이산, 유니타리</td><td>고유값 \(e^{-ikL}\)</td><td>블로흐 정리, 결정 운동량 보존</td></tr>
+        <tr><td>시간 병진</td><td>연속, 유니타리</td><td>생성자 \(\hat H\)</td><td>에너지 보존</td></tr>
+        <tr><td>패리티</td><td>이산, 유니타리</td><td>고유값 \(\pm1\)</td><td>선택 규칙, 짝·홀 고유상태</td></tr>
+        <tr><td>시간 반전</td><td>이산, 반유니타리</td><td>없음</td><td>역재생, 실수 고유함수</td></tr>
+      </tbody>
+    </table></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
       <li>오른쪽으로 \(a\)만큼 옮기는 연산자는 \(\hat T(a)=e^{-ia\hat p/\hbar}\)이며 \((\hat T\psi)(x)=\psi(x-a)\)다.</li>
-      <li>해밀토니안이 연속 유니타리 변환에 불변이면 그 시간 독립 생성자는 해밀토니안과 교환하고 보존된다.</li>
-      <li>공간 병진 대칭의 생성자는 운동량이다. \(d\langle p\rangle/dt=-\langle V'(x)\rangle\)가 이를 확인한다.</li>
-      <li>시간 병진 대칭의 생성자는 에너지다. 일반적으로 \(d\langle H\rangle/dt=\langle\partial H/\partial t\rangle\)다.</li>
-      <li>대칭 퍼텐셜에서 패리티 고유값은 \(\pm1\)이고, 홀수 연산자의 행렬원소는 같은 패리티 상태 사이에서 0이다.</li>
-      <li>스핀 없는 입자의 시간 반전은 복소 켤레를 포함하는 반유니타리 변환으로 \(x\)를 유지하고 \(p\)와 \(t\)를 뒤집는다.</li>
-      <li>시간 반전은 \(\hat\Theta\hat U(t)\hat\Theta^{-1}=\hat U(-t)\)를 뜻하며, 연속 병진처럼 새로운 보존량을 주지 않는다.</li>
+      <li>해밀토니안이 연속 유니타리 변환에 불변이면 그 생성자는 해밀토니안과 교환하고, 기댓값뿐 아니라 측정값의 확률 분포 전체가 보존된다.</li>
+      <li>공간 병진의 생성자는 운동량, 시간 병진의 생성자는 에너지다. 일반적으로 \(d\langle H\rangle/dt=\langle\partial H/\partial t\rangle\)다.</li>
+      <li>주기 퍼텐셜에서는 \(\hat T(L)\)이 대칭이고 고유상태는 블로흐 꼴 \(e^{ikx}u_k(x)\)다. 결정 운동량 \(\hbar k\)는 \(2\pi\hbar/L\)의 정수배를 빼고 보존된다.</li>
+      <li>강결합 고리의 띠는 \(E_0-2t\cos ka\)이고, 띠 상태의 전자는 군속도 \((1/\hbar)dE/dk\)로 흩어지지 않고 움직인다.</li>
+      <li>대칭 퍼텐셜에서 패리티 고유값은 \(\pm1\)이고, 홀수 연산자의 행렬원소는 같은 패리티 사이에서 0이다. 서로 교환하지 않는 두 대칭은 축퇴를 만든다.</li>
+      <li>대칭 이중 우물의 고유상태는 짝·홀이고 갈라짐 \(\Delta\)는 우물 사이 거리에 지수적으로 작다. 한쪽 우물에 넣은 입자는 주기 \(2\pi\hbar/\Delta\)로 두 우물을 오간다.</li>
+      <li>스핀 없는 입자의 시간 반전은 \(x\)를 두고 \(p\)와 \(t\)를 뒤집는 반유니타리 변환이다. 보존량 대신 역재생 가능성과 비축퇴 고유함수의 실수성을 준다.</li>
     </ol>
   </section>
 
@@ -195,21 +267,21 @@
       <div class="quiz-q"><p>1. \(\hat T(a)=e^{-ia\hat p/\hbar}\)를 상태에 작용시키면 위치 파동함수는?</p><div class="opts">
         <button class="opt" data-correct>\(\psi(x-a)\)</button><button class="opt">\(\psi(x+a)\)</button><button class="opt">\(e^{-iax/\hbar}\psi(x)\)</button>
       </div><div class="quiz-exp">오른쪽으로 옮긴 봉우리는 \(x-a\)가 원래 봉우리 위치일 때 나타난다.</div></div>
-      <div class="quiz-q"><p>2. \(\hat H=\hat p^2/(2m)+V(\hat x)\)에서 운동량 기댓값이 모든 상태에 대해 보존되기 위한 이 장의 충분한 조건은?</p><div class="opts">
-        <button class="opt">\(V(x)\)가 짝함수다.</button><button class="opt" data-correct>\(V(x)\)가 위치에 무관하다.</button><button class="opt">\(V(x)\)가 시간에 무관하다.</button>
-      </div><div class="quiz-exp">모든 거리의 공간 병진에 불변이어야 \([\hat H,\hat p]=0\)이다.</div></div>
+      <div class="quiz-q"><p>2. 주기 \(L\)인 퍼텐셜의 블로흐 상태에서 \(k\)와 \(k+2\pi/L\)은?</p><div class="opts">
+        <button class="opt">에너지가 다른 두 상태다.</button><button class="opt" data-correct>\(\hat T(L)\)의 고유값이 같아 같은 표지다.</button><button class="opt">운동량 고유값이 \(2\pi\hbar/L\)만큼 다르다.</button>
+      </div><div class="quiz-exp">\(e^{-i(k+2\pi/L)L}=e^{-ikL}\)이다. 블로흐 상태는 운동량 고유상태가 아니므로 셋째 보기도 틀리다.</div></div>
       <div class="quiz-q"><p>3. 시간 의존 해밀토니안에서 에너지 기댓값의 변화율은?</p><div class="opts">
         <button class="opt">항상 0이다.</button><button class="opt">항상 \(\langle[\hat H,\hat p]\rangle\)이다.</button><button class="opt" data-correct>\(\langle\partial\hat H/\partial t\rangle\)이다.</button>
       </div><div class="quiz-exp">상태 변화에서 생기는 두 항은 서로 상쇄되고 해밀토니안의 명시적 시간 변화만 남는다.</div></div>
       <div class="quiz-q"><p>4. 짝수 퍼텐셜의 패리티 고유상태 두 개가 같은 패리티일 때 반드시 0인 행렬원소는?</p><div class="opts">
         <button class="opt" data-correct>\(\langle f|\hat x|i\rangle\)</button><button class="opt">\(\langle f|\hat x^2|i\rangle\)</button><button class="opt">\(\langle f|I|i\rangle\)</button>
       </div><div class="quiz-exp">\(\hat x\)는 패리티에 홀수라 같은 패리티 사이의 행렬원소가 사라진다.</div></div>
-      <div class="quiz-q"><p>5. 스핀 없는 입자의 시간 반전에서 옳은 것은?</p><div class="opts">
+      <div class="quiz-q"><p>5. 대칭 이중 우물의 가장 낮은 두 준위 간격이 \(\Delta\)다. 왼쪽 우물에 넣은 입자가 처음으로 다시 왼쪽에 몰리는 시각은?</p><div class="opts">
+        <button class="opt">\(\pi\hbar/\Delta\)</button><button class="opt" data-correct>\(2\pi\hbar/\Delta\)</button><button class="opt">입자는 영원히 왼쪽에 머문다.</button>
+      </div><div class="quiz-exp">\(\pi\hbar/\Delta\)에 오른쪽으로 넘어가고, 한 주기 \(2\pi\hbar/\Delta\)가 지나야 돌아온다.</div></div>
+      <div class="quiz-q"><p>6. 스핀 없는 입자의 시간 반전에서 옳은 것은?</p><div class="opts">
         <button class="opt">위치와 운동량이 모두 부호가 바뀐다.</button><button class="opt" data-correct>위치는 그대로, 운동량과 \(i\)의 부호가 바뀐다.</button><button class="opt">시간 반전은 언제나 선형 유니타리다.</button>
       </div><div class="quiz-exp">복소 켤레를 취하는 반유니타리 변환이므로 \(i\to-i\), \(p=-i\hbar\partial_x\to-p\)다.</div></div>
-      <div class="quiz-q"><p>6. 시간 독립 해밀토니안이 시간 반전 대칭일 때 \(\hat\Theta\hat U(t)\hat\Theta^{-1}\)는?</p><div class="opts">
-        <button class="opt">\(\hat U(t)\)</button><button class="opt" data-correct>\(\hat U(-t)\)</button><button class="opt">항등 연산자</button>
-      </div><div class="quiz-exp">반유니타리 변환은 지수의 \(i\)를 켤레로 바꾸어 시간 진화 방향을 반전한다.</div></div>
     </div>
   </section>
 
@@ -221,16 +293,20 @@
       <details class="sol"><summary>풀이</summary><p>\(d\hat F/da=(i/\hbar)\hat T^\dagger[\hat p,\hat x]\hat T=I\), \(\hat F(0)=\hat x\)이므로 \(\hat F(a)=\hat x+a\)다. \(\hat x\hat T|x_0\rangle=\hat T(\hat T^\dagger\hat x\hat T)|x_0\rangle=(x_0+a)\hat T|x_0\rangle\)이어서 고유값은 \(x_0+a\)다.</p></details></div>
     <div class="prob" id="prob-harmonic-force" data-level="1"><p>\(V(x)=m\omega^2x^2/2\)인 조화 진동자에서 식 <a class="ref" href="#eq-momentum-force"></a>로 \(d\langle p\rangle/dt\)를 구하라. 이 계는 공간 병진 대칭인가?</p>
       <details class="sol"><summary>풀이</summary><p>\(V'(x)=m\omega^2x\)이므로 \(d\langle p\rangle/dt=-m\omega^2\langle x\rangle\)다. \(V(x+a)\ne V(x)\)인 일반 \(a\)가 있으므로 공간 병진 대칭은 아니다.</p></details></div>
-    <div class="prob" id="prob-periodic-potential" data-level="2"><p>\(V(x)=V_0\cos(2\pi x/L)\)일 때 \(\hat T(L)\)은 해밀토니안의 대칭인지 확인하라. 모든 작은 \(a\)에 대해 대칭인지도 확인하고 \(d\langle p\rangle/dt\)를 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(V(x+L)=V(x)\)이므로 \(\hat T^\dagger(L)\hat H\hat T(L)=\hat H\)다. 하지만 임의의 작은 \(a\)에는 일반적으로 \(V(x+a)\ne V(x)\)다. \(V'(x)=-(2\pi V_0/L)\sin(2\pi x/L)\)이므로 \(d\langle p\rangle/dt=(2\pi V_0/L)\langle\sin(2\pi\hat x/L)\rangle\)다.</p></details></div>
+    <div class="prob" id="prob-periodic-potential" data-level="2"><p>\(V(x)=V_0\cos(2\pi x/L)\)일 때 \(\hat T(L)\)은 해밀토니안의 대칭인지 확인하라. 모든 작은 \(a\)에 대해 대칭인지도 확인하고 \(d\langle p\rangle/dt\)를 구하라. 이 계에서 보존되는 양은 무엇인가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(V(x+L)=V(x)\)이므로 \(\hat T^\dagger(L)\hat H\hat T(L)=\hat H\)다. 하지만 임의의 작은 \(a\)에는 일반적으로 \(V(x+a)\ne V(x)\)다. \(V'(x)=-(2\pi V_0/L)\sin(2\pi x/L)\)이므로 \(d\langle p\rangle/dt=(2\pi V_0/L)\langle\sin(2\pi\hat x/L)\rangle\)로 일반적으로 0이 아니다. 보존되는 것은 \(\hat T(L)\)의 고유값 \(e^{-ikL}\), 곧 \(2\pi\hbar/L\)의 정수배를 뺀 결정 운동량 \(\hbar k\)다.</p></details></div>
+    <div class="prob" id="prob-ring-four" data-level="2"><p>원자 4개로 된 강결합 고리의 해밀토니안 식 <a class="ref" href="#eq-tight-binding"></a>을 기저 \(|0\rangle,\ldots,|3\rangle\)에서 \(4\times4\) 행렬로 쓰라. 블로흐 상태 식 <a class="ref" href="#eq-bloch-ring"></a>의 네 에너지를 구하고, 축퇴된 두 상태의 실수 결합이 고유벡터임을 직접 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>대각 성분이 \(E_0\)이고 \((0,1),(1,2),(2,3),(3,0)\) 자리와 그 대칭 자리가 \(-t\)인 행렬이다. \(k=0,\pi/(2a),\pi/a,3\pi/(2a)\)에서 \(E=E_0-2t,\ E_0,\ E_0+2t,\ E_0\)이다. \(3\pi/(2a)\)는 \(-\pi/(2a)\)와 같으므로 \(E_0\)의 두 상태는 \(\pm k\) 짝이다. 실수 결합 \((1,0,-1,0)/\sqrt2\)에 행렬을 곱하면 둘째·넷째 성분은 \(-t(1)-t(-1)=0\)이고 첫째·셋째 성분은 \(E_0\)배가 되어 고윳값 \(E_0\)을 준다. \((0,1,0,-1)/\sqrt2\)도 같다.</p></details></div>
+    <div class="prob" id="prob-effective-mass" data-level="2"><p>강결합 띠의 바닥 \(k=0\) 근처에서 \(E(k)\)를 \(k^2\)까지 전개해 자유 입자 \(\hbar^2k^2/(2m^*)\)와 비교하고 <span class="term">유효 질량</span> \(m^*\)을 구하라. \(t=1\ \mathrm{eV}\), \(a=0.3\ \mathrm{nm}\)이면 \(m^*\)은 전자 질량의 몇 배이고, 가장 큰 군속도는 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\cos ka\approx1-k^2a^2/2\)이므로 \(E\approx E_0-2t+ta^2k^2\)이다. \(\hbar^2/(2m^*)=ta^2\)에서 \(m^*=\hbar^2/(2ta^2)=3.86\times10^{-31}\ \mathrm{kg}\), 전자 질량의 0.42배다. 가장 큰 군속도는 \(ka=\pi/2\)에서 \(2ta/\hbar=9.1\times10^5\ \mathrm{m/s}\)다. 띠가 넓을수록(\(t\)가 클수록) 유효 질량이 가볍다.</p></details></div>
     <div class="prob" id="prob-energy-drive" data-level="2"><p>\(\hat H(t)=\hbar\omega(t)\sigma_z/2\), \(|\psi(0)\rangle=|z{+}\rangle\)일 때 상태의 시간 변화와 에너지 기댓값을 구하라. \(\omega(t)=\omega_0+\alpha t\)이면 \(dE/dt\)는?</p>
       <details class="sol"><summary>풀이</summary><p>\(|z{+}\rangle\)는 모든 시각에 \(\sigma_z\)의 고유값 \(+1\)을 가지므로 \(|\psi(t)\rangle=\exp[-\frac i2\int_0^t\omega(s)\,ds]|z{+}\rangle\)다. \(E(t)=\hbar\omega(t)/2\)이고 \(\omega(t)=\omega_0+\alpha t\)이면 \(dE/dt=\hbar\alpha/2\)다.</p></details></div>
     <div class="prob" id="prob-parity-components" data-level="2"><p>정규화된 \(\psi(x)\)에 대해 \(\psi_\pm(x)=[\psi(x)\pm\psi(-x)]/2\)가 짝·홀 함수이고 서로 직교함을 보여라. 이 둘이 항상 각각 정규화되는가?</p>
       <details class="sol"><summary>풀이</summary><p>\(\psi_+(-x)=\psi_+(x)\), \(\psi_-(-x)=-\psi_-(x)\)다. \(\psi_+^*(x)\psi_-(x)\)는 홀함수이므로 대칭 구간 또는 전체 실수에서 적분하면 0이다. \(\|\psi_+\|^2+\|\psi_-\|^2=1\)이지만 각각의 노름이 1일 필요는 없다. 한 성분이 0일 수도 있다.</p></details></div>
     <div class="prob" id="prob-selection-rule" data-level="2"><p>\(\hat\Pi\hat O\hat\Pi=\eta_O\hat O\)이고 \(\hat\Pi|i\rangle=\pi_i|i\rangle\), \(\hat\Pi|f\rangle=\pi_f|f\rangle\)일 때 식 <a class="ref" href="#eq-parity-selection"></a>을 유도하라. \(\hat O=\hat x^2\)라면 어떤 패리티 조합에서 행렬원소가 반드시 0인가?</p>
       <details class="sol"><summary>풀이</summary><p>항등 \(\hat\Pi^2=I\)를 \(\hat O\) 양옆에 넣고 브라와 켓에 \(\hat\Pi\)를 작용시키면 \(\langle f|\hat O|i\rangle=\pi_f\eta_O\pi_i\langle f|\hat O|i\rangle\)다. \(\hat x^2\)는 짝수여서 \(\eta_O=+1\)이다. \(\pi_f\pi_i=-1\), 곧 패리티가 반대이면 행렬원소는 0이다.</p></details></div>
-    <div class="prob" id="prob-real-eigenstate" data-level="3"><p>\(\hat H=\hat p^2/(2m)+V(\hat x)\)에서 \(V(x)\)가 실수이고, 에너지 \(E\)의 고유상태가 비축퇴라고 하자. 그 위치 파동함수를 전체 위상을 골라 실수로 만들 수 있음을 보여라.</p>
-      <details class="sol"><summary>풀이</summary><p>위치 표현의 \(\hat H\)는 실수 계수의 미분 연산자이므로 \(\hat H\psi=E\psi\)를 켤레 취하면 \(\hat H\psi^*=E\psi^*\)다. 비축퇴이므로 \(\psi^*=e^{i\gamma}\psi\)인 상수 위상이 있다. \(\tilde\psi=e^{i\gamma/2}\psi\)라 놓으면 \(\tilde\psi^*=e^{-i\gamma/2}\psi^*=e^{i\gamma/2}\psi=\tilde\psi\)여서 실수다.</p></details></div>
+    <div class="prob" id="prob-double-delta" data-level="3"><p>(가) 이중 델타 우물의 홀 상태 식 \(\kappa=\kappa_0(1-e^{-2\kappa d})\)가 양의 해를 가질 조건이 \(2\kappa_0d&gt;1\)임을 보여라. (나) \(\kappa_0d=1\)일 때 식 <a class="ref" href="#eq-double-delta"></a>를 되풀이 대입으로 풀어 \(\Delta/E_0\)를 구하고 근사식 <a class="ref" href="#eq-double-splitting"></a>과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(f(\kappa)=\kappa-\kappa_0+\kappa_0e^{-2\kappa d}\)로 두면 \(f(0)=0\), \(f'(0)=1-2\kappa_0d\)이고 \(f''=4\kappa_0d^2e^{-2\kappa d}&gt;0\)이어서 아래로 볼록하다. \(\kappa\to\infty\)에서 \(f\to\infty\)이므로, 양의 근은 \(f\)가 0에서 처음에 내려갈 때, 곧 \(f'(0)&lt;0\)일 때만 있다. (나) \(\kappa_+=1.109\kappa_0\), \(\kappa_-=0.797\kappa_0\)이고 \(\Delta/E_0=(\kappa_+^2-\kappa_-^2)/\kappa_0^2=0.595\)다. 근사식은 \(4e^{-2}=0.541\)로 9% 작다. 근사는 \(e^{-2\kappa_0d}\ll1\)일 때만 정확하다.</p></details></div>
     <div class="prob" id="prob-time-reverse-current" data-level="3"><p>스핀 없는 입자의 확률 흐름 \(j[\psi](x,t)=\frac{\hbar}{m}\operatorname{Im}[\psi^*(x,t)\partial_x\psi(x,t)]\)에 대해 \(\psi_{\mathrm{rev}}(x,t)=\psi^*(x,-t)\)를 대입해 \(j[\psi_{\mathrm{rev}}](x,t)=-j[\psi](x,-t)\)를 보여라. 평면파의 경우에도 확인하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(\psi_{\mathrm{rev}}^*\partial_x\psi_{\mathrm{rev}}=\psi(x,-t)\partial_x\psi^*(x,-t)=[\psi^*(x,-t)\partial_x\psi(x,-t)]^*\)이므로 허수부가 음수다. \(e^{i(kx-\omega t)}\)에는 \(j=\hbar k/m\)에 비례하는 양의 흐름이 있고 역재생 파동 \(e^{-ikx-i\omega t}\)에는 같은 크기의 음의 흐름이 있다. 평면파는 정규화되지 않으므로 흐름의 단위 면적당 크기만 비교한다.</p></details></div>
     <div class="prob" id="prob-time-reversal-evolution" data-level="2"><p>실수의 시간 독립 스핀 없는 해밀토니안에서 \(\hat\Theta\hat H\hat\Theta^{-1}=\hat H\)이지만, 일반적으로 \(\hat\Theta\hat U(t)\ne\hat U(t)\hat\Theta\)임을 식 <a class="ref" href="#eq-time-reversal-evolution"></a>로 설명하라.</p>
