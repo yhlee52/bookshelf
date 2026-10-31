@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>01 벡터와 내적 · LinAlgBook</title>
-<meta name="description" content="벡터: 화살표와 숫자 목록 · 선형 결합 · 내적과 각도 · 노름: L1, L2, L∞ · 코시-슈바르츠 부등식과 삼각 부등식 · 머신러닝에서: 임베딩의 코사인 유사도">
+<meta name="description" content="벡터를 화살표와 숫자 목록 두 가지로 읽고, 선형 결합, 내적과 각도, L1·L2·L∞ 노름, 코시-슈바르츠 부등식과 삼각 부등식을 세운 뒤, 임베딩 검색과 대조 학습이 쓰는 코사인 유사도를 유도한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -24,66 +24,601 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="linear-algebra" data-field="math" data-chapter="ch01">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/linear-algebra/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">01</span></div>
     <h1 data-fill="chapter-title">벡터와 내적</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">신경망이 받고 내놓는 것은 모두 숫자의 목록이다. 이미지 한 장, 단어 하나, 모델의 가중치 전체가 그렇다. 이 장에서는 숫자의 목록을 화살표로 읽는 법을 익히고, 두 벡터가 얼마나 같은 쪽을 향하는지 재는 내적과 벡터의 크기를 재는 노름을 세운 뒤, 이 도구로 임베딩 검색과 대조 학습이 쓰는 코사인 유사도를 유도한다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>벡터를 화살표와 숫자 목록 두 가지로 읽고, 덧셈, 스칼라배, 선형 결합을 그림과 성분으로 계산할 수 있다.</li>
+      <li>내적을 성분으로 계산하고, 내적과 각도의 관계 \(\mathbf x^\top\mathbf y = \|\mathbf x\|\,\|\mathbf y\|\cos\theta\)를 유도할 수 있다.</li>
+      <li>L1, L2, L∞ 노름을 계산하고, 단위 공의 모양과 세 노름 사이의 부등식을 설명할 수 있다.</li>
+      <li>코시-슈바르츠 부등식과 삼각 부등식을 증명하고, 등호가 성립하는 조건을 말할 수 있다.</li>
+      <li>임베딩의 내적, 코사인 유사도, 거리 사이의 관계를 유도하고, 검색에서 어느 것을 쓸지 판단할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>고등학교 수학: 좌표평면, 피타고라스 정리, 코사인 법칙, 삼각함수의 덧셈 정리, 이차 함수의 최솟값. NumPy 배열을 다뤄 본 경험 (코드 조각을 읽는 데만 필요하다)</p>
   </header>
 
+  <!-- ============================================================ 1.1 -->
   <section id="s1">
     <h2>벡터: 화살표와 숫자 목록</h2>
-    <p class="slot" data-slot="1.1절">아직 쓰지 않은 절입니다.</p>
+    <p>신경망을 학습시켜 본 사람은 이미 벡터를 많이 다뤄 봤다. MNIST의 손글씨 숫자 이미지 한 장은 28×28 = 784개의 밝기 값이다. 집값을 예측하는 모델에 넣는 집 한 채는 넓이, 방 수, 지은 지 몇 년 같은 숫자 몇 개다. BERT-base 같은 언어 모델 안에서 토큰(단어 조각) 하나는 768개의 숫자로 표현된다. 모두 숫자를 정해진 순서로 늘어놓은 것이고, 이것을 벡터라 부른다.</p>
+    <p>벡터를 보는 눈은 두 가지다. 하나는 <b>숫자 목록</b>이다. 계산은 이쪽으로 한다. 다른 하나는 <b>화살표</b>다. 2차원과 3차원에서는 벡터를 원점에서 뻗은 화살표로 그릴 수 있어서 덧셈, 길이, 각도가 눈에 보인다. 784차원의 화살표는 그릴 수 없지만 계산 규칙은 2차원과 똑같다. 그래서 이 책은 늘 같은 방법을 쓴다. 2차원 그림에서 무슨 일이 일어나는지 보고, 그 일을 숫자 계산으로 적은 다음, 같은 계산을 \(n\)차원에 그대로 쓴다.</p>
+
+    <div class="box def" id="def-vector"><div class="box-h">벡터와 \(\mathbb R^n\)</div>
+      <p>실수 \(n\)개를 정해진 순서로 세로로 늘어놓은 것을 \(n\)차원 <span class="term">벡터</span> <span class="en">(vector)</span>라 한다.</p>
+      <div class="formula">\[ \mathbf x = \begin{pmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{pmatrix} \]</div>
+      <p>\(i\)번째 숫자 \(x_i\)를 \(\mathbf x\)의 \(i\)번째 <span class="term">성분</span> <span class="en">(component)</span>이라 하고, \(n\)차원 벡터 전체의 집합을 \(\mathbb R^n\)으로 쓴다. 두 벡터는 차원이 같고 모든 성분이 같을 때 같다. 벡터와 구별해, 보통의 실수 하나를 <span class="term">스칼라</span> <span class="en">(scalar)</span>라 부른다.</p>
+    </div>
+    <p>이 책에서 벡터는 굵은 소문자 \(\mathbf x, \mathbf y, \mathbf w\)로, 스칼라는 보통 글씨 \(a, c, t\)로 쓴다. 벡터는 언제나 세로로 선 <span class="term">열벡터</span> <span class="en">(column vector)</span>다. 가로로 누운 <span class="term">행벡터</span> <span class="en">(row vector)</span>는 전치 기호를 붙여 \(\mathbf x^\top = \begin{pmatrix} x_1 &amp; x_2 &amp; \cdots &amp; x_n \end{pmatrix}\)으로 쓴다. 본문에서는 자리를 아끼려고 열벡터를 \(\mathbf x = (x_1, x_2, \dots, x_n)\)처럼 쉼표를 찍어 가로로 적기도 하는데, 뜻은 위의 열이다. 행과 열의 구별이 실제로 중요해지는 것은 2장에서 행렬과 곱할 때다.</p>
+
+    <h3 id="s1-arrow">화살표로 보기</h3>
+    <p>\(\mathbb R^2\)의 벡터 \(\mathbf x = (x_1, x_2)\)는 좌표평면의 원점에서 점 \((x_1, x_2)\)까지 뻗은 화살표로 그린다. 화살표에서 중요한 것은 방향과 길이뿐이어서, 평행하게 옮겨 꼬리를 다른 곳에 두어도 같은 벡터로 본다. 꼬리를 원점에 두면 머리가 가리키는 점이 \((x_1, x_2)\)이므로, 벡터와 점을 같은 숫자 쌍으로 적는다. 앞으로 '점 \(\mathbf p\)'라고 하면 원점에서 \(\mathbf p\)까지의 화살표를 함께 뜻한다. 3차원도 같다.</p>
+
+    <h3 id="s1-ops">덧셈과 스칼라배</h3>
+    <div class="box def" id="def-ops"><div class="box-h">덧셈과 스칼라배</div>
+      <p>같은 차원의 두 벡터의 합과, 벡터에 스칼라 \(c\)를 곱한 스칼라배를 성분마다 정의한다.</p>
+      <div class="formula" id="eq-ops">\[ \mathbf x + \mathbf y = \begin{pmatrix} x_1 + y_1 \\ \vdots \\ x_n + y_n \end{pmatrix},\;\; c\mathbf x = \begin{pmatrix} cx_1 \\ \vdots \\ cx_n \end{pmatrix} \]</div>
+      <p>차원이 다른 두 벡터는 더하지 않는다.</p>
+    </div>
+    <p>화살표로 보면 두 연산은 다음과 같다(그림 1-1).</p>
+    <ul>
+      <li><b>덧셈</b>: \(\mathbf a\)의 머리에 \(\mathbf b\)의 꼬리를 이어 붙이면, 원점에서 \(\mathbf b\)의 머리까지가 \(\mathbf a + \mathbf b\)다. 순서를 바꿔 \(\mathbf b\) 다음에 \(\mathbf a\)를 붙여도 같은 점에 닿는다. 두 경로는 평행사변형의 두 변을 이루고, \(\mathbf a + \mathbf b\)는 그 대각선이다.</li>
+      <li><b>스칼라배</b>: \(c\mathbf x\)는 \(\mathbf x\)와 같은 직선 위에 있고 길이가 \(|c|\)배다. \(c &lt; 0\)이면 방향이 반대로 뒤집힌다.</li>
+    </ul>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:1-1a--><svg viewBox="0 0 300 245" role="img" aria-label="a = (3, 1)과 b = (1, 2)를 이어 붙이면 a + b = (4, 3)이 되고, 두 순서가 평행사변형을 이룬다"><defs><marker id="f11a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f11a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f11a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="40" y1="225" x2="40" y2="30" class="s-grid"/><line x1="90" y1="225" x2="90" y2="30" class="s-grid"/><line x1="140" y1="225" x2="140" y2="30" class="s-grid"/><line x1="190" y1="225" x2="190" y2="30" class="s-grid"/><line x1="240" y1="225" x2="240" y2="30" class="s-grid"/><line x1="290" y1="225" x2="290" y2="30" class="s-grid"/><line x1="15" y1="205" x2="295" y2="205" class="s-grid"/><line x1="15" y1="155" x2="295" y2="155" class="s-grid"/><line x1="15" y1="105" x2="295" y2="105" class="s-grid"/><line x1="15" y1="55" x2="295" y2="55" class="s-grid"/><line x1="15" y1="205" x2="295" y2="205" class="s-line" stroke-width="1"/><line x1="40" y1="225" x2="40" y2="30" class="s-line" stroke-width="1"/><line x1="190" y1="155" x2="240" y2="55" class="s-acc2" stroke-width="2" marker-end="url(#f11a-acc2)" stroke-dasharray="5 4" opacity="0.75"/><line x1="90" y1="105" x2="240" y2="55" class="s-acc2" stroke-width="2" marker-end="url(#f11a-acc2)" stroke-dasharray="5 4" opacity="0.75"/><line x1="40" y1="205" x2="190" y2="155" class="s-acc2" stroke-width="3" marker-end="url(#f11a-acc2)" /><line x1="40" y1="205" x2="90" y2="105" class="s-acc2" stroke-width="3" marker-end="url(#f11a-acc2)" /><line x1="40" y1="205" x2="240" y2="55" class="s-acc" stroke-width="3" marker-end="url(#f11a-acc)" /><circle cx="40" cy="205" r="3" class="f-dim"/><text x="196" y="169" class="t-math acc2" text-anchor="start"><tspan font-weight="bold">a</tspan></text><text x="80" y="101" class="t-math acc2" text-anchor="end"><tspan font-weight="bold">b</tspan></text><text x="246" y="53" class="t-math acc" text-anchor="start"><tspan font-weight="bold">a</tspan> + <tspan font-weight="bold">b</tspan></text><text x="12" y="24" class="t-math" text-anchor="start">(가) (3, 1) + (1, 2) = (4, 3)</text></svg><!--/fig:1-1a--><!--fig:1-1b--><svg viewBox="0 0 300 245" role="img" aria-label="v = (1.5, 1)의 2배, 0.5배, −1배는 모두 같은 직선 위에 있고 −1배는 방향이 반대다"><defs><marker id="f11b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f11b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f11b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="30" y1="239" x2="30" y2="31" class="s-grid"/><line x1="70" y1="239" x2="70" y2="31" class="s-grid"/><line x1="110" y1="239" x2="110" y2="31" class="s-grid"/><line x1="150" y1="239" x2="150" y2="31" class="s-grid"/><line x1="190" y1="239" x2="190" y2="31" class="s-grid"/><line x1="230" y1="239" x2="230" y2="31" class="s-grid"/><line x1="270" y1="239" x2="270" y2="31" class="s-grid"/><line x1="6" y1="215" x2="294" y2="215" class="s-grid"/><line x1="6" y1="175" x2="294" y2="175" class="s-grid"/><line x1="6" y1="135" x2="294" y2="135" class="s-grid"/><line x1="6" y1="95" x2="294" y2="95" class="s-grid"/><line x1="6" y1="55" x2="294" y2="55" class="s-grid"/><line x1="6" y1="135" x2="294" y2="135" class="s-line" stroke-width="1"/><line x1="150" y1="239" x2="150" y2="31" class="s-line" stroke-width="1"/><line x1="6" y1="231" x2="294" y2="39" class="s-faint" stroke-dasharray="3 4"/><line x1="150" y1="135" x2="270" y2="55" class="s-acc" stroke-width="3" marker-end="url(#f11b-acc)" /><line x1="150" y1="135" x2="90" y2="175" class="s-acc2" stroke-width="3" marker-end="url(#f11b-acc2)" /><line x1="150" y1="135" x2="180" y2="115" class="s-line" stroke-width="3" marker-end="url(#f11b-dim)" /><circle cx="150" cy="135" r="3" class="f-dim"/><text x="264" y="47" class="t-math acc" text-anchor="end">2<tspan font-weight="bold">v</tspan></text><text x="88" y="193" class="t-math acc2" text-anchor="end">−<tspan font-weight="bold">v</tspan></text><text x="190" y="127" class="t-math dim" text-anchor="start">0.5<tspan font-weight="bold">v</tspan></text><text x="12" y="24" class="t-math" text-anchor="start">(나) <tspan font-weight="bold">v</tspan> = (1.5, 1)의 스칼라배</text></svg><!--/fig:1-1b--></div>
+      <figcaption><b>그림 1-1.</b> 덧셈과 스칼라배. (가) \(\mathbf a = (3, 1)\)과 \(\mathbf b = (1, 2)\)를 어느 순서로 이어 붙여도 \(\mathbf a + \mathbf b = (4, 3)\)에 닿는다. 점선은 평행하게 옮겨 그린 \(\mathbf a\)와 \(\mathbf b\)다. (나) \(\mathbf v\)의 스칼라배는 모두 원점을 지나는 한 직선 위에 있다. 음수를 곱하면 방향이 뒤집힌다.</figcaption>
+    </figure>
+    <p>성분이 모두 0인 벡터를 <span class="term">영벡터</span> <span class="en">(zero vector)</span>라 하고 \(\mathbf 0\)으로 쓴다. \((-1)\mathbf x\)는 \(-\mathbf x\)로, \(\mathbf y + (-\mathbf x)\)는 \(\mathbf y - \mathbf x\)로 쓴다. 뺄셈은 화살표로 보면 쓸모가 크다. \(\mathbf x + (\mathbf y - \mathbf x) = \mathbf y\)이므로 \(\mathbf y - \mathbf x\)는 <b>점 \(\mathbf x\)에서 점 \(\mathbf y\)로 가는 화살표</b>다. 두 데이터 점이 얼마나 떨어져 있는지 잴 때(1.4절), 경사 하강법이 파라미터를 한 걸음 옮길 때 다루는 것이 이런 차이 벡터다.</p>
+
+    <div class="box thm" id="thm-rules"><div class="box-h">덧셈과 스칼라배의 성질</div>
+      <p>모든 \(\mathbf x, \mathbf y, \mathbf z\in\mathbb R^n\)과 스칼라 \(a, b\)에 대해 다음이 성립한다.</p>
+      <ol>
+        <li>\(\mathbf x + \mathbf y = \mathbf y + \mathbf x\), &nbsp; \((\mathbf x + \mathbf y) + \mathbf z = \mathbf x + (\mathbf y + \mathbf z)\)</li>
+        <li>\(\mathbf x + \mathbf 0 = \mathbf x\), &nbsp; \(\mathbf x + (-\mathbf x) = \mathbf 0\)</li>
+        <li>\(a(\mathbf x + \mathbf y) = a\mathbf x + a\mathbf y\), &nbsp; \((a + b)\mathbf x = a\mathbf x + b\mathbf x\)</li>
+        <li>\(a(b\mathbf x) = (ab)\mathbf x\), &nbsp; \(1\mathbf x = \mathbf x\)</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>정의 <a class="ref" href="#def-ops"></a>에 따라 양변의 \(i\)번째 성분을 비교하면 모두 실수의 성질이 된다. 예를 들어 1의 첫 식은 \(x_i + y_i = y_i + x_i\)이고, 3의 첫 식은 \(a(x_i + y_i) = ax_i + ay_i\)다. 모든 \(i\)에서 성분이 같으므로 두 벡터가 같다.</p>
+      </details>
+    </div>
+    <p>이 성질들 덕분에 벡터 식은 보통의 문자식처럼 괄호를 풀고 항을 옮기며 계산할 수 있다. 4장에서는 거꾸로, 이 성질들을 만족하는 것이면 무엇이든 벡터라고 부르는 것으로 벡터 공간을 정의한다. 함수나 행렬도 그렇게 해서 벡터가 된다.</p>
+
+    <div class="box ex" id="ex-image"><div class="box-h">이미지를 벡터로</div>
+      <p>밝기가 0(검정)에서 1(흰색) 사이인 2×2 흑백 이미지 두 장이 있다.</p>
+      <div class="formula">\[ A = \begin{pmatrix} 0.2 &amp; 0.8 \\ 0.6 &amp; 0.0 \end{pmatrix}, \quad B =\begin{pmatrix} 0.4 &amp; 0.4 \\ 0.2 &amp; 1.0 \end{pmatrix} \]</div>
+      <p>픽셀을 윗줄부터 왼쪽에서 오른쪽으로 읽어 늘어놓으면 \(\mathbf a = (0.2, 0.8, 0.6, 0.0)\), \(\mathbf b = (0.4, 0.4, 0.2, 1.0)\)인 \(\mathbb R^4\)의 벡터가 된다.</p>
+      <ul>
+        <li>두 이미지를 반씩 겹친 이미지는 \(\tfrac12(\mathbf a + \mathbf b) = (0.3, 0.6, 0.4, 0.5)\)다.</li>
+        <li>차이 \(\mathbf b - \mathbf a = (0.2, -0.4, -0.4, 1.0)\)은 \(A\)를 \(B\)로 바꾸려면 픽셀마다 얼마를 더해야 하는지 알려 준다. 음수 성분은 그 픽셀을 어둡게 한다는 뜻이다.</li>
+        <li>\(2\mathbf a = (0.4, 1.6, 1.2, 0.0)\)에는 1보다 큰 성분이 있다. 벡터로서는 아무 문제가 없지만 밝기의 범위를 벗어나므로, 이미지로 보이려면 1에서 잘라 내야 한다.</li>
+      </ul>
+      <p>마지막 항목은 작지만 중요하다. 벡터 연산은 \(\mathbb R^4\) 전체에서 정의되고, 올바른 이미지는 그 안의 일부분일 뿐이다. 연산의 결과가 다시 그 일부분 안에 남는지는 따로 확인해야 한다. 4장에서 이것을 '닫혀 있다'는 말로 정리한다.</p>
+    </div>
+    <p>NumPy에서 벡터는 1차원 배열이고, 덧셈과 스칼라배는 식 <a class="ref" href="#eq-ops"></a>처럼 성분마다 계산된다.</p>
+<pre><code>import numpy as np
+A = np.array([[0.2, 0.8], [0.6, 0.0]])
+B = np.array([[0.4, 0.4], [0.2, 1.0]])
+a, b = A.reshape(-1), B.reshape(-1)   # 윗줄부터 읽어 길이 4의 1차원 배열로
+print(a.shape)       # (4,)
+print((a + b) / 2)   # [0.3 0.6 0.4 0.5]
+print(b - a)         # [ 0.2 -0.4 -0.4  1. ]
+print(a[0])          # 0.2  ← 코드의 a[0]이 본문의 a₁이다</code></pre>
+    <div class="callout warn"><strong>NumPy의 1차원 배열은 행도 열도 아니다</strong><p><code>np.array([1, 2, 3])</code>은 모양이 <code>(3,)</code>인 1차원 배열이다. 행벡터도 열벡터도 아니어서 <code>.T</code>를 해도 그대로다. 열벡터를 구별해야 하면 모양이 <code>(3, 1)</code>인 2차원 배열을 쓴다. 이 둘을 섞으면 오류 없이 틀린 답이 나온다. 모양 <code>(3, 1)</code>과 <code>(3,)</code>을 더하면 브로드캐스팅(15장)이 일어나 모양 <code>(3, 3)</code>인 배열이 나오기 때문이다. 예측값의 모양이 <code>(n, 1)</code>이고 정답의 모양이 <code>(n,)</code>인 채로 <code>((pred - y)**2).mean()</code>을 계산하면 정확히 이 일이 일어난다(<a class="ref" href="#prob-broadcast"></a>). 또 코드의 인덱스는 0부터 센다. 본문의 \(x_1\)이 코드의 <code>x[0]</code>이다.</p></div>
   </section>
 
+  <!-- ============================================================ 1.2 -->
   <section id="s2">
     <h2>선형 결합</h2>
-    <p class="slot" data-slot="1.2절">아직 쓰지 않은 절입니다.</p>
+    <p>1.1절의 두 연산을 함께 쓰면 벡터 몇 개에 각각 숫자를 곱해 더할 수 있다. 선형대수의 거의 모든 계산이 이 한 가지 동작으로 이루어진다.</p>
+    <div class="box def" id="def-lincomb"><div class="box-h">선형 결합</div>
+      <p>벡터 \(\mathbf v_1, \dots, \mathbf v_k\in\mathbb R^n\)과 스칼라 \(c_1, \dots, c_k\)로 만든 벡터</p>
+      <div class="formula" id="eq-lincomb">\[ c_1\mathbf v_1 + c_2\mathbf v_2 + \cdots + c_k\mathbf v_k = \sum_{j=1}^{k} c_j\mathbf v_j \]</div>
+      <p>를 \(\mathbf v_1, \dots, \mathbf v_k\)의 <span class="term">선형 결합</span> <span class="en">(linear combination)</span>이라 하고, \(c_j\)를 <span class="term">계수</span> <span class="en">(coefficient)</span>라 한다.</p>
+    </div>
+    <p>'선형'이라는 말은 이 장에서부터 책 끝까지 같은 뜻이다. 벡터에 곱하는 것은 스칼라뿐이고, 그 결과를 더하기만 한다. 벡터끼리 곱하거나, 성분을 제곱하거나, 함수에 넣지 않는다.</p>
+
+    <h3 id="s2-std">표준 기저</h3>
+    <p>가장 단순한 선형 결합부터 보자. \(\mathbb R^n\)에서 \(i\)번째 성분만 1이고 나머지가 0인 벡터를 \(\mathbf e_i\)로 쓴다. \(\mathbb R^3\)에서는 \(\mathbf e_1 = (1, 0, 0)\), \(\mathbf e_2 = (0, 1, 0)\), \(\mathbf e_3 = (0, 0, 1)\)이다. 그러면 모든 벡터가 이들의 선형 결합이다.</p>
+    <div class="formula" id="eq-std">\[ \begin{aligned} \mathbf x &amp;= x_1\begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix} + x_2\begin{pmatrix} 0 \\ 1 \\ 0 \end{pmatrix} + x_3\begin{pmatrix} 0 \\ 0 \\ 1 \end{pmatrix} \\ &amp;= x_1\mathbf e_1 + x_2\mathbf e_2 + x_3\mathbf e_3 \end{aligned} \]</div>
+    <p>성분 \(x_i\)는 '\(\mathbf e_i\)를 얼마나 쓰는가'를 나타내는 계수다. \(\{\mathbf e_1, \dots, \mathbf e_n\}\)을 <span class="term">표준 기저</span> <span class="en">(standard basis)</span>라 한다. 기저가 무엇인지는 4장에서 정의하는데, 그때 다른 기저를 고르면 같은 벡터가 다른 계수를 가진다는 것을 본다.</p>
+
+    <h3 id="s2-span">두 벡터가 채우는 곳</h3>
+    <p>영벡터가 아닌 벡터 하나 \(\mathbf v\)의 선형 결합 \(c\mathbf v\)는 원점을 지나는 직선 하나를 이룬다(그림 1-1의 (나)). 방향이 다른 두 벡터 \(\mathbf u\), \(\mathbf v\)로는 무엇을 만들 수 있을까? 그림 1-2는 \(\mathbf u = (2, 1)\), \(\mathbf v = (1, 2)\)의 계수가 정수인 결합을 점으로 찍은 것이다. 점들은 비스듬한 격자를 이루고, 계수를 실수로 넓히면 격자 사이가 메워져 평면 전체가 채워진다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-2--><svg viewBox="0 0 340 290" role="img" aria-label="u = (2, 1)과 v = (1, 2)의 정수 배를 더한 점들이 비스듬한 격자를 이룬다. (4, 5)는 u + 2v다"><defs><marker id="f12-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f12-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f12-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="7.2" y1="61.6" x2="34.5" y2="7" class="s-grid" /><line x1="7.2" y1="187.6" x2="97.5" y2="7" class="s-grid" /><line x1="301.2" y1="267.4" x2="343.2" y2="246.4" class="s-grid" /><line x1="30.3" y1="267.4" x2="160.5" y2="7" class="s-grid" /><line x1="175.2" y1="267.4" x2="343.2" y2="183.4" class="s-grid" /><line x1="93.3" y1="267.4" x2="223.5" y2="7" class="s-grid" /><line x1="49.2" y1="267.4" x2="343.2" y2="120.4" class="s-grid" /><line x1="156.3" y1="267.4" x2="286.5" y2="7" class="s-grid" /><line x1="7.2" y1="225.4" x2="343.2" y2="57.4" class="s-grid" /><line x1="219.3" y1="267.4" x2="343.2" y2="19.6" class="s-grid" /><line x1="7.2" y1="162.4" x2="318" y2="7" class="s-grid" /><line x1="282.3" y1="267.4" x2="343.2" y2="145.6" class="s-grid" /><line x1="7.2" y1="99.4" x2="192" y2="7" class="s-grid" /><line x1="7.2" y1="36.4" x2="66" y2="7" class="s-grid" /><line x1="7.2" y1="238" x2="343.2" y2="238" class="s-line" stroke-width="1" opacity="0.5"/><line x1="108" y1="267.4" x2="108" y2="7" class="s-line" stroke-width="1" opacity="0.5"/><circle cx="24" cy="28" r="2.2" class="f-dim"/><circle cx="24" cy="154" r="2.2" class="f-dim"/><circle cx="66" cy="70" r="2.2" class="f-dim"/><circle cx="66" cy="196" r="2.2" class="f-dim"/><circle cx="108" cy="112" r="2.2" class="f-dim"/><circle cx="150" cy="28" r="2.2" class="f-dim"/><circle cx="108" cy="238" r="2.2" class="f-dim"/><circle cx="150" cy="154" r="2.2" class="f-dim"/><circle cx="192" cy="70" r="2.2" class="f-dim"/><circle cx="192" cy="196" r="2.2" class="f-dim"/><circle cx="234" cy="112" r="2.2" class="f-dim"/><circle cx="276" cy="28" r="2.2" class="f-dim"/><circle cx="234" cy="238" r="2.2" class="f-dim"/><circle cx="276" cy="154" r="2.2" class="f-dim"/><circle cx="318" cy="70" r="2.2" class="f-dim"/><circle cx="318" cy="196" r="2.2" class="f-dim"/><line x1="192" y1="196" x2="276" y2="28" class="s-acc2" stroke-width="2.2" marker-end="url(#f12-acc2)" stroke-dasharray="5 4"/><line x1="108" y1="238" x2="192" y2="196" class="s-acc2" stroke-width="3" marker-end="url(#f12-acc2)" /><line x1="108" y1="238" x2="150" y2="154" class="s-acc2" stroke-width="3" marker-end="url(#f12-acc2)" /><line x1="108" y1="238" x2="276" y2="28" class="s-acc" stroke-width="3" marker-end="url(#f12-acc)" /><circle cx="108" cy="238" r="3" class="f-dim"/><text x="196" y="212" class="t-math acc2" text-anchor="start"><tspan font-weight="bold">u</tspan></text><text x="142" y="156" class="t-math acc2" text-anchor="end"><tspan font-weight="bold">v</tspan></text><text x="244" y="122" class="t-math acc2" text-anchor="start">2<tspan font-weight="bold">v</tspan></text><text x="262" y="34" class="t-math acc" text-anchor="end">(4, 5) = <tspan font-weight="bold">u</tspan> + 2<tspan font-weight="bold">v</tspan></text><text x="62" y="188" class="t-math dim" text-anchor="end">−<tspan font-weight="bold">u</tspan> + <tspan font-weight="bold">v</tspan></text><circle cx="66" cy="196" r="3.2" class="f-acc2"/></svg><!--/fig:1-2--></div>
+      <figcaption><b>그림 1-2.</b> \(\mathbf u = (2, 1)\)과 \(\mathbf v = (1, 2)\)의 선형 결합. 점은 계수가 모두 정수인 결합 \(c_1\mathbf u + c_2\mathbf v\)이고, 격자선은 두 계수 가운데 하나가 정수인 곳이다. \((4, 5)\)는 \(\mathbf u\)를 따라 한 칸, \(\mathbf v\)를 따라 두 칸 가서 닿는다. 원점 왼쪽 위의 점은 \(-\mathbf u + \mathbf v = (-1, 1)\)이다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-coeffs"><div class="box-h">계수 구하기</div>
+      <p>\((4, 5)\)를 \(\mathbf u = (2, 1)\)과 \(\mathbf v = (1, 2)\)의 선형 결합으로 나타내 보자. \(c_1\mathbf u + c_2\mathbf v = (2c_1 + c_2,\ c_1 + 2c_2)\)가 \((4, 5)\)와 같아야 하므로 성분마다</p>
+      <div class="formula">\[ \begin{aligned} 2c_1 + c_2 &amp;= 4 \\ c_1 + 2c_2 &amp;= 5 \end{aligned} \]</div>
+      <p>이다. 첫 식에서 얻은 \(c_2 = 4 - 2c_1\)을 둘째 식에 넣으면 \(c_1 + 8 - 4c_1 = 5\), 곧 \(c_1 = 1\)이고 \(c_2 = 2\)다. 따라서 \((4, 5) = \mathbf u + 2\mathbf v\)이고, 그림 1-2와 맞는다. 같은 방법으로 아무 점 \((b_1, b_2)\)나 풀면 \(c_1 = (2b_1 - b_2)/3\), \(c_2 = (2b_2 - b_1)/3\)이 나온다. 어떤 점이든 계수가 하나씩 정해지므로 \(\mathbf u\)와 \(\mathbf v\)의 선형 결합은 평면 전체를 채운다.</p>
+      <p>\(\mathbf v\) 대신 \(\mathbf u\)와 평행한 \(\mathbf w = (4, 2)\)를 쓰면 사정이 다르다. \(c_1\mathbf u + c_2\mathbf w = (c_1 + 2c_2)(2, 1)\)이므로 결합은 모두 \(\mathbf u\) 방향의 직선 위에 있다. 첫 성분이 언제나 둘째 성분의 두 배여서 \((4, 5)\)에는 닿지 못한다. 반대로 그 직선 위의 점, 예를 들어 \((6, 3)\)에는 \(c_1 + 2c_2 = 3\)인 모든 계수로, 곧 무수히 많은 방법으로 닿는다.</p>
+    </div>
+    <p>벡터들의 선형 결합 전체가 이루는 집합을 그 벡터들의 <span class="term">생성</span> <span class="en">(span)</span>이라 한다. 위의 예에서 \(\mathbf u, \mathbf v\)의 생성은 평면 전체이고, \(\mathbf u, \mathbf w\)의 생성은 직선 하나다. 3차원에서 방향이 다른 두 벡터의 생성은 원점을 지나는 평면이고, 여기에 셋째 벡터를 더해 3차원 전체를 채울 수 있는지는 셋째 벡터가 그 평면 밖으로 나가는지에 달려 있다. "언제 공간 전체를 채우는가"와 "계수는 하나뿐인가"라는 두 질문이 3장(연립 방정식)과 4–5장(기저와 랭크)의 중심 주제다.</p>
+    <div class="callout tip"><strong>행렬 곱의 예고</strong><p><a class="ref" href="#ex-coeffs"></a>에서 계수를 찾는 일은 "\(\mathbf u\)와 \(\mathbf v\)를 몇 개씩 섞어야 \((4, 5)\)가 되는가"를 묻는 일이었다. 2장에서는 \(\mathbf u, \mathbf v\)를 열로 세운 행렬 \(\mathbf A\)와 계수 벡터 \(\mathbf c\)의 곱 \(\mathbf A\mathbf c\)를 바로 이 선형 결합 \(c_1\mathbf u + c_2\mathbf v\)로 정의한다. 그러면 위의 연립 방정식은 \(\mathbf A\mathbf c = \mathbf b\) 한 줄이 된다.</p></div>
+
+    <h3 id="s2-convex">계수의 합이 1일 때: 가중 평균</h3>
+    <p>계수에 조건을 붙이면 특별한 결합이 된다. 두 점 \(\mathbf a, \mathbf b\)와 실수 \(t\)로 만든</p>
+    <div class="formula" id="eq-affine">\[ (1 - t)\,\mathbf a + t\,\mathbf b = \mathbf a + t\,(\mathbf b - \mathbf a) \]</div>
+    <p>는 계수의 합이 \((1 - t) + t = 1\)인 결합이다. 오른쪽 모양으로 읽으면, \(\mathbf a\)에서 출발해 '\(\mathbf a\)에서 \(\mathbf b\)로 가는 화살표'의 \(t\)배만큼 간 점이다. \(t\)가 실수 전체를 움직이면 두 점을 지나는 직선이 되고, \(0 \le t \le 1\)이면 두 점을 잇는 선분이 된다. \(t = 1/2\)이면 중점이다.</p>
+    <div class="box def" id="def-convex"><div class="box-h">볼록 결합</div>
+      <p>계수가 모두 0 이상이고 합이 1인 선형 결합 \(\sum_j c_j\mathbf v_j\) (\(c_j \ge 0\), \(\sum_j c_j = 1\))을 \(\mathbf v_1, \dots, \mathbf v_k\)의 <span class="term">볼록 결합</span> <span class="en">(convex combination)</span>이라 한다.</p>
+    </div>
+    <p>볼록 결합은 가중 평균이다. 계수가 0 이상이고 합이 1이므로 결과는 언제나 원래 벡터들 '사이'에 놓인다. 두 점이면 선분 위, 세 점이면 세 점이 만드는 삼각형 안이다. 데이터 \(\mathbf x_1, \dots, \mathbf x_m\)의 평균 \(\bar{\mathbf x} = \frac1m\sum_i \mathbf x_i\)는 계수가 모두 \(1/m\)인 볼록 결합이다.</p>
+    <div class="callout ml"><strong>딥러닝 속의 가중 평균</strong><p>볼록 결합은 딥러닝 곳곳에 있다.</p>
+      <ul>
+        <li><b>어텐션의 출력</b>: 트랜스포머의 어텐션은 값 벡터 \(\mathbf v_1, \dots, \mathbf v_m\)을 소프트맥스로 만든 가중치 \(\alpha_j\)로 섞은 \(\sum_j\alpha_j\mathbf v_j\)를 내놓는다. 소프트맥스의 출력은 0보다 크고 합이 1이므로 이것은 볼록 결합이고, 출력은 값 벡터들이 둘러싼 영역 밖으로 나가지 못한다(17장).</li>
+        <li><b>믹스업</b> <span class="en">(mixup)</span>: 두 학습 예의 입력과 원-핫 레이블을 같은 \(\lambda\in[0, 1]\)로 섞은 \(\lambda\mathbf x_a + (1 - \lambda)\mathbf x_b\)와 \(\lambda\mathbf y_a + (1 - \lambda)\mathbf y_b\)로 학습하는 데이터 증강이다. 섞은 레이블도 성분이 0 이상이고 합이 1인 확률 벡터다.</li>
+        <li><b>가중치의 지수 이동 평균</b>: \(\boldsymbol\theta_{\text{EMA}} \leftarrow \beta\,\boldsymbol\theta_{\text{EMA}} + (1 - \beta)\,\boldsymbol\theta\)는 파라미터 벡터 두 개의 볼록 결합을 매 단계 되풀이한다.</li>
+      </ul>
+    </div>
   </section>
 
+  <!-- ============================================================ 1.3 -->
   <section id="s3">
     <h2>내적과 각도</h2>
-    <p class="slot" data-slot="1.3절">아직 쓰지 않은 절입니다.</p>
+    <p>두 벡터가 비슷한지 묻고 싶을 때가 많다. 두 이미지가 비슷한지, 두 단어의 뜻이 가까운지, 입력이 뉴런의 가중치와 같은 쪽을 향하는지. 화살표로 생각하면 두 가지를 재야 한다. 각 화살표의 길이와, 두 화살표 사이의 각도다. 둘 다 성분끼리 곱해 더하는 한 가지 계산에서 나온다.</p>
+    <div class="box def" id="def-dot"><div class="box-h">내적</div>
+      <p>\(\mathbf x, \mathbf y\in\mathbb R^n\)의 <span class="term">내적</span> <span class="en">(inner product)</span>은 성분끼리 곱해 더한 스칼라다.</p>
+      <div class="formula" id="eq-dot">\[ \begin{aligned} \mathbf x^\top\mathbf y &amp;= x_1y_1 + x_2y_2 + \cdots + x_ny_n \\ &amp;= \sum_{i=1}^{n} x_iy_i \end{aligned} \]</div>
+      <p><span class="term">점곱</span> <span class="en">(dot product)</span>이라고도 하며 \(\mathbf x\cdot\mathbf y\)로 쓰기도 한다.</p>
+    </div>
+    <p>기호 \(\mathbf x^\top\mathbf y\)는 행벡터 \(\mathbf x^\top\)에 열벡터 \(\mathbf y\)를 곱한다는 뜻이다. 2장에서 정의할 행렬 곱의 가장 작은 경우인데, 지금은 식 <a class="ref" href="#eq-dot"></a>의 줄임말로 읽으면 된다. 예를 들어 \(\mathbf x = (1, 2, 2)\), \(\mathbf y = (3, 0, 4)\)이면 \(\mathbf x^\top\mathbf y = 1\cdot 3 + 2\cdot 0 + 2\cdot 4 = 11\)이다. 계산에는 곱셈 \(n\)번과 덧셈 \(n - 1\)번이 들고, NumPy에서는 <code>x @ y</code>나 <code>np.dot(x, y)</code>로 쓴다.</p>
+    <div class="box thm" id="thm-dot"><div class="box-h">내적의 성질</div>
+      <p>모든 \(\mathbf x, \mathbf y, \mathbf z\in\mathbb R^n\)과 스칼라 \(a, b\)에 대해 다음이 성립한다.</p>
+      <ol>
+        <li><b>대칭</b>: \(\mathbf x^\top\mathbf y = \mathbf y^\top\mathbf x\)</li>
+        <li><b>선형</b>: \((a\mathbf x + b\mathbf y)^\top\mathbf z = a\,\mathbf x^\top\mathbf z + b\,\mathbf y^\top\mathbf z\). 대칭이므로 오른쪽 자리에서도 선형이다.</li>
+        <li><b>양의 정부호</b>: \(\mathbf x^\top\mathbf x = \sum_i x_i^2 \ge 0\)이고, 등호는 \(\mathbf x = \mathbf 0\)일 때만 성립한다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1은 \(x_iy_i = y_ix_i\)를 모든 \(i\)에 대해 더한 것이다. 2는 \(\sum_i (ax_i + by_i)z_i = a\sum_i x_iz_i + b\sum_i y_iz_i\)다. 3에서 제곱의 합은 0 이상이고, 합이 0이면 모든 \(x_i^2\)이 0이어야 하므로 \(\mathbf x = \mathbf 0\)이다.</p>
+      </details>
+    </div>
+    <p>이 세 성질이 앞으로 쓰는 내적의 성질 전부다. 성분이 없는 벡터 공간(예를 들어 함수의 공간)에서 내적을 정의할 때도 이 세 성질을 요구하고, 그때는 \(\langle\mathbf x, \mathbf y\rangle\)로 쓴다.</p>
+    <div class="callout deep"><strong>복소 벡터의 내적</strong><p>성분이 복소수이면 식 <a class="ref" href="#eq-dot"></a>를 그대로 쓸 수 없다. \((1, i)\)를 자기 자신과 곱해 더하면 \(1 + i^2 = 0\)이 되어 영벡터가 아닌데 '길이'가 0이 된다. 그래서 한쪽 성분에 켤레를 씌워 \(\sum_i \bar x_iy_i\)로 정의하고, 대칭은 \(\langle \mathbf x, \mathbf y\rangle = \overline{\langle \mathbf y, \mathbf x\rangle}\)로 바뀐다. 양자역학의 상태가 이런 공간에 산다. 『차근차근 양자역학』 1장의 <a href="../../quantum/chapters/ch01.html#def-inner-product">내적의 정의</a>가 같은 이야기를 복소수로 한다. 이 책은 8장과 16장에서만 복소수를 필요한 만큼 쓴다.</p></div>
+
+    <h3 id="s3-length">길이</h3>
+    <p>평면 벡터 \(\mathbf x = (x_1, x_2)\)의 길이는 피타고라스 정리로 \(\sqrt{x_1^2 + x_2^2}\)이다. 3차원에서는 피타고라스 정리를 두 번 쓴다. 바닥에 비친 그림자의 길이가 \(\sqrt{x_1^2 + x_2^2}\)이고 이것이 높이 \(x_3\)과 직각을 이루므로, 길이는 \(\sqrt{x_1^2 + x_2^2 + x_3^2}\)이다. 어느 쪽이든 길이의 제곱은 자기 자신과의 내적 \(\mathbf x^\top\mathbf x\)다. 그래서 \(n\)차원에서도 같은 식으로 길이를 정한다.</p>
+    <div class="box def" id="def-length"><div class="box-h">길이와 단위 벡터</div>
+      <p>\(\mathbf x\)의 <span class="term">길이</span> <span class="en">(length)</span>는 \(\|\mathbf x\| = \sqrt{\mathbf x^\top\mathbf x} = \sqrt{x_1^2 + \cdots + x_n^2}\)이다. 길이가 1인 벡터를 <span class="term">단위 벡터</span> <span class="en">(unit vector)</span>라 한다. 1.4절에서 이 길이를 L2 노름이라 부르고 \(\|\mathbf x\|_2\)로도 쓴다.</p>
+    </div>
+    <p>스칼라배의 길이는 \(\|c\mathbf x\| = \sqrt{c^2\,\mathbf x^\top\mathbf x} = |c|\,\|\mathbf x\|\)이다. 그래서 영벡터가 아닌 벡터를 자기 길이로 나누면 방향은 그대로이고 길이가 1인 벡터 \(\mathbf x/\|\mathbf x\|\)가 된다. 이 일을 벡터의 <span class="term">정규화</span> <span class="en">(normalization)</span>라 한다. 예를 들어 \((1, 2, 2)\)의 길이는 \(\sqrt{1 + 4 + 4} = 3\)이고, 정규화하면 \((1/3, 2/3, 2/3)\)가 된다.</p>
+    <div class="callout warn"><strong>'정규화'의 두 뜻</strong><p>우리말 '정규화'는 두 영어 낱말을 함께 옮긴다. 벡터를 길이로 나누는 것은 normalization이고, 과적합을 막으려고 손실에 가중치의 크기를 벌점으로 더하는 것은 regularization이다. 배치 정규화와 층 정규화는 앞쪽에 가깝다. 이 책에서 '벡터를 정규화한다'고 하면 언제나 길이로 나누는 일이고, regularization은 『머신러닝을 위한 통계』와 같이 '정규화'라 쓰되 헷갈릴 만한 곳에서는 영어를 함께 적는다.</p></div>
+    <p>내적의 성질에서 바로 나오는 전개식이 하나 있다. 내적의 선형성(<a class="ref" href="#thm-dot"></a>의 2)을 양쪽 자리에 쓰고 대칭을 쓰면</p>
+    <div class="formula" id="eq-expand">\[ \begin{aligned} \|\mathbf x + \mathbf y\|^2 &amp;= (\mathbf x + \mathbf y)^\top(\mathbf x + \mathbf y) \\ &amp;= \mathbf x^\top\mathbf x + \mathbf x^\top\mathbf y + \mathbf y^\top\mathbf x + \mathbf y^\top\mathbf y \\ &amp;= \|\mathbf x\|^2 + 2\,\mathbf x^\top\mathbf y + \|\mathbf y\|^2 \end{aligned} \]</div>
+    <p>이다. \((a + b)^2 = a^2 + 2ab + b^2\)과 같은 모양이다. \(\mathbf y\) 대신 \(-\mathbf y\)를 넣으면 \(\|\mathbf x - \mathbf y\|^2 = \|\mathbf x\|^2 - 2\,\mathbf x^\top\mathbf y + \|\mathbf y\|^2\)이다. 이 장의 거의 모든 유도가 이 두 식에서 출발한다.</p>
+
+    <h3 id="s3-angle">내적과 각도</h3>
+    <p>이제 내적이 각도와 어떻게 이어지는지 보자. 먼저 그림을 그릴 수 있는 2차원에서 증명한다.</p>
+    <div class="box thm" id="thm-angle2d"><div class="box-h">평면에서 내적과 각도</div>
+      <p>영벡터가 아닌 \(\mathbf x, \mathbf y\in\mathbb R^2\) 사이의 각을 \(\theta\) (\(0 \le \theta \le \pi\))라 하면 다음이 성립한다.</p>
+      <div class="formula" id="eq-angle">\[ \mathbf x^\top\mathbf y = \|\mathbf x\|\,\|\mathbf y\|\cos\theta \]</div>
+    </div>
+    <p>증명에는 삼각함수의 덧셈 정리 하나면 된다. \(\mathbf x\)와 \(\mathbf y\)가 \(x_1\)축의 양의 방향과 이루는 각을 각각 \(\alpha\), \(\beta\)라 하고 길이를 \(r = \|\mathbf x\|\), \(s = \|\mathbf y\|\)라 하면, 극좌표로 \(\mathbf x = r(\cos\alpha, \sin\alpha)\), \(\mathbf y = s(\cos\beta, \sin\beta)\)이다. 성분으로 내적을 계산하면</p>
+    <div class="formula">\[ \begin{aligned} \mathbf x^\top\mathbf y &amp;= rs\,(\cos\alpha\cos\beta + \sin\alpha\sin\beta) \\ &amp;= rs\cos(\beta - \alpha) \end{aligned} \]</div>
+    <p>이다. 둘째 줄은 코사인의 덧셈 정리다. 두 벡터 사이의 각 \(\theta\)는 \(\beta - \alpha\)이거나 \(\alpha - \beta\)이거나, 그 값에 \(2\pi\)의 정수배를 더한 것이다. 코사인은 짝함수이고 주기가 \(2\pi\)이므로 어느 경우든 \(\cos(\beta - \alpha) = \cos\theta\)이다.</p>
+    <p>식 <a class="ref" href="#eq-angle"></a>은 내적에 그림을 준다(그림 1-3의 (가)). \(\mathbf x\)를 품은 직선에 수직으로 빛을 비추면 \(\mathbf y\)의 그림자가 그 직선 위에 생기는데, 그 (부호 있는) 길이가 \(\|\mathbf y\|\cos\theta\)이다. 내적은 \(\|\mathbf x\|\)와 이 그림자 길이의 곱이다. 특히 \(\mathbf u\)가 단위 벡터이면 \(\mathbf u^\top\mathbf y\)는 그림자의 길이 자체, 곧 \(\mathbf y\)의 \(\mathbf u\) 방향 성분이다. 그림자를 벡터로 만든 \((\mathbf u^\top\mathbf y)\,\mathbf u\)를 \(\mathbf y\)의 \(\mathbf u\) 방향 <span class="term">정사영</span> <span class="en">(orthogonal projection)</span>이라 하며, 6장에서 이것을 직선에서 부분공간으로 넓힌다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:1-3a--><svg viewBox="0 0 300 245" role="img" aria-label="y를 x 방향으로 비춘 그림자의 길이는 ‖y‖cos θ이고, 내적은 ‖x‖에 이 길이를 곱한 것이다"><defs><marker id="f13a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f13a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f13a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="29.2" y1="197.2" x2="307.6" y2="147.1" class="s-faint" stroke-dasharray="3 4"/><line x1="137.2" y1="58" x2="158.1" y2="174" class="s-line" stroke-dasharray="4 4"/><path d="M149.2 175.6 L147.6 166.8 L156.5 165.2" class="s-line" stroke-width="1.2"/><line x1="37.6" y1="204.9" x2="159.7" y2="182.9" class="s-acc" stroke-width="5" opacity="0.55" stroke-linecap="round"/><line x1="158.1" y1="174" x2="160.6" y2="188.2" class="s-acc" stroke-width="1.2" opacity="0.7"/><line x1="36" y1="196" x2="266" y2="154.6" class="s-acc2" stroke-width="3" marker-end="url(#f13a-acc2)" /><line x1="36" y1="196" x2="137.2" y2="58" class="s-acc" stroke-width="3" marker-end="url(#f13a-acc)" /><path d="M65.5 190.7 L65.4 190.1 L65.3 189.6 L65.2 189 L65 188.5 L64.9 187.9 L64.7 187.4 L64.6 186.8 L64.4 186.3 L64.2 185.7 L64 185.2 L63.8 184.7 L63.6 184.1 L63.3 183.6 L63.1 183.1 L62.8 182.6 L62.6 182.1 L62.3 181.6 L62 181.1 L61.7 180.6 L61.4 180.1 L61.1 179.6 L60.8 179.2 L60.5 178.7 L60.2 178.2 L59.8 177.8 L59.5 177.3 L59.1 176.9 L58.7 176.4 L58.4 176 L58 175.6 L57.6 175.2 L57.2 174.8 L56.8 174.4 L56.4 174 L56 173.6 L55.5 173.2 L55.1 172.9 L54.6 172.5 L54.2 172.1 L53.7 171.8" class="s-line" stroke-width="1.2"/><text x="69.9" y="179.8" class="t-math" text-anchor="start"><tspan font-style="italic">θ</tspan></text><circle cx="36" cy="196" r="3" class="f-dim"/><text x="268" y="172.6" class="t-math acc2" text-anchor="end"><tspan font-weight="bold">x</tspan></text><text x="143.2" y="56" class="t-math acc" text-anchor="start"><tspan font-weight="bold">y</tspan></text><text x="97" y="219" class="t-math acc" text-anchor="middle">‖<tspan font-weight="bold">y</tspan>‖ cos <tspan font-style="italic">θ</tspan></text><text x="12" y="24" class="t-math" text-anchor="start">(가) <tspan font-weight="bold">x</tspan>ᵀ<tspan font-weight="bold">y</tspan> = ‖<tspan font-weight="bold">x</tspan>‖ × (그림자의 길이)</text></svg><!--/fig:1-3a--><!--fig:1-3b--><svg viewBox="0 0 300 245" role="img" aria-label="w에 수직인 직선이 평면을 wᵀx가 양수인 쪽과 음수인 쪽으로 나누고, wᵀx = 5인 점들은 그 직선과 평행하고 w의 끝점을 지나는 직선이다"><defs><marker id="f13b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f13b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f13b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><path d="M199.3 240.6 L296.2 240.6 L296.2 40 L99 40 Z" class="f-acc-soft" stroke="none" opacity="0.55"/><line x1="14" y1="240.6" x2="14" y2="40" class="s-grid"/><line x1="48" y1="240.6" x2="48" y2="40" class="s-grid"/><line x1="82" y1="240.6" x2="82" y2="40" class="s-grid"/><line x1="116" y1="240.6" x2="116" y2="40" class="s-grid"/><line x1="150" y1="240.6" x2="150" y2="40" class="s-grid"/><line x1="184" y1="240.6" x2="184" y2="40" class="s-grid"/><line x1="218" y1="240.6" x2="218" y2="40" class="s-grid"/><line x1="252" y1="240.6" x2="252" y2="40" class="s-grid"/><line x1="286" y1="240.6" x2="286" y2="40" class="s-grid"/><line x1="3.8" y1="210" x2="296.2" y2="210" class="s-grid"/><line x1="3.8" y1="176" x2="296.2" y2="176" class="s-grid"/><line x1="3.8" y1="142" x2="296.2" y2="142" class="s-grid"/><line x1="3.8" y1="108" x2="296.2" y2="108" class="s-grid"/><line x1="3.8" y1="74" x2="296.2" y2="74" class="s-grid"/><line x1="3.8" y1="40" x2="296.2" y2="40" class="s-grid"/><line x1="199.3" y1="240.6" x2="99" y2="40" class="s-line" stroke-width="1.6"/><line x1="284.3" y1="240.6" x2="184" y2="40" class="s-acc" stroke-width="1.4" stroke-dasharray="6 4"/><line x1="150" y1="142" x2="218" y2="108" class="s-acc" stroke-width="3" marker-end="url(#f13b-acc)" /><circle cx="150" cy="142" r="3" class="f-dim"/><text x="224" y="112" class="t-math acc" text-anchor="start"><tspan font-weight="bold">w</tspan></text><line x1="150" y1="142" x2="204.4" y2="203.2" class="s-line" stroke-width="1.8" marker-end="url(#f13b-dim)" /><line x1="150" y1="142" x2="116.5" y2="75.1" class="s-line" stroke-width="1.8" marker-end="url(#f13b-dim)" /><line x1="150" y1="142" x2="75.2" y2="182.8" class="s-line" stroke-width="1.8" marker-end="url(#f13b-dim)" /><text x="234.4" y="225.2" class="t-math dim" text-anchor="middle"><tspan font-weight="bold">w</tspan>ᵀ<tspan font-weight="bold">x</tspan> &gt; 0</text><text x="108.5" y="69.1" class="t-math dim" text-anchor="end"><tspan font-weight="bold">w</tspan>ᵀ<tspan font-weight="bold">x</tspan> = 0</text><text x="75.2" y="206.8" class="t-math dim" text-anchor="middle"><tspan font-weight="bold">w</tspan>ᵀ<tspan font-weight="bold">x</tspan> &lt; 0</text><text x="198.8" y="59.6" class="t-math acc" text-anchor="start"><tspan font-weight="bold">w</tspan>ᵀ<tspan font-weight="bold">x</tspan> = 5</text><text x="12" y="24" class="t-math" text-anchor="start">(나) <tspan font-weight="bold">w</tspan> = (2, 1)과 내적의 부호</text></svg><!--/fig:1-3b--></div>
+      <figcaption><b>그림 1-3.</b> 내적의 그림. (가) \(\mathbf y\)를 \(\mathbf x\) 방향으로 비춘 그림자(굵은 띠)의 길이는 \(\|\mathbf y\|\cos\theta\)이고, 내적 \(\mathbf x^\top\mathbf y\)는 여기에 \(\|\mathbf x\|\)를 곱한 값이다. (나) \(\mathbf w = (2, 1)\)에 수직인 직선 \(\mathbf w^\top\mathbf x = 0\)이 평면을 둘로 나눈다. 칠한 쪽에서 \(\mathbf w^\top\mathbf x &gt; 0\)이다. 점선은 \(\mathbf w^\top\mathbf x = 5\)인 점들로, 원점에서 \(5/\|\mathbf w\| = \sqrt5\)만큼 떨어진 평행한 직선이다. \(\mathbf w^\top\mathbf w = 5\)이므로 \(\mathbf w\)의 끝점도 이 직선 위에 있다.</figcaption>
+    </figure>
+    <p>3차원에서도 두 벡터는 원점을 지나는 한 평면 위에 놓이므로 같은 식이 성립한다. 그러나 4차원 이상에서는 각을 그림으로 잴 수 없다. 그래서 거꾸로, 식 <a class="ref" href="#eq-angle"></a>을 각의 정의로 삼는다.</p>
+    <div class="box def" id="def-angle"><div class="box-h">두 벡터 사이의 각</div>
+      <p>영벡터가 아닌 \(\mathbf x, \mathbf y\in\mathbb R^n\) 사이의 각 \(\theta\in[0, \pi]\)를 다음 식으로 정의한다.</p>
+      <div class="formula" id="eq-angle-def">\[ \cos\theta = \frac{\mathbf x^\top\mathbf y}{\|\mathbf x\|\,\|\mathbf y\|} \]</div>
+    </div>
+    <p>이 정의가 말이 되려면 두 가지를 확인해야 한다. 첫째, 오른쪽 값이 언제나 \(-1\)과 \(1\) 사이에 있어야 \(\theta\)가 존재한다. 이것이 1.5절의 코시-슈바르츠 부등식이다. 둘째, 이렇게 정한 각이 우리가 아는 기하와 맞아야 한다. 식 <a class="ref" href="#eq-expand"></a>의 뺄셈 꼴에 정의를 넣으면</p>
+    <div class="formula" id="eq-cosine-law">\[ \|\mathbf x - \mathbf y\|^2 = \|\mathbf x\|^2 + \|\mathbf y\|^2 - 2\,\|\mathbf x\|\,\|\mathbf y\|\cos\theta \]</div>
+    <p>이 되는데, 이것은 세 변의 길이가 \(\|\mathbf x\|\), \(\|\mathbf y\|\), \(\|\mathbf x - \mathbf y\|\)인 삼각형의 코사인 법칙이다. 곧 정의한 각은 원점, \(\mathbf x\), \(\mathbf y\) 세 점이 이루는 삼각형에서 원점에 있는 각과 같다. 몇 차원이든 세 점은 한 평면 위에 있으므로, 그 평면에 그린 그림이 그대로 맞는다.</p>
+    <div class="box def" id="def-orth"><div class="box-h">직교</div>
+      <p>\(\mathbf x^\top\mathbf y = 0\)이면 \(\mathbf x\)와 \(\mathbf y\)가 <span class="term">직교한다</span> <span class="en">(orthogonal)</span>고 하고 \(\mathbf x\perp\mathbf y\)로 쓴다. 영벡터는 모든 벡터와 직교한다.</p>
+    </div>
+    <p>영벡터가 아닌 두 벡터가 직교한다는 것은 \(\cos\theta = 0\), 곧 \(\theta = 90°\)라는 뜻이다. 이때 식 <a class="ref" href="#eq-expand"></a>의 가운데 항이 사라지므로, 직교하는 두 벡터에 대해 피타고라스 정리 \(\|\mathbf x + \mathbf y\|^2 = \|\mathbf x\|^2 + \|\mathbf y\|^2\)이 몇 차원에서든 성립한다.</p>
+    <div class="box ex" id="ex-angles"><div class="box-h">각 계산하기</div>
+      <p><b>(가)</b> \(\mathbf x = (1, 2, 2)\), \(\mathbf y = (3, 0, 4)\): \(\mathbf x^\top\mathbf y = 11\), \(\|\mathbf x\| = 3\), \(\|\mathbf y\| = 5\)이므로 \(\cos\theta = 11/15 \approx 0.733\), \(\theta \approx 42.8°\)이다.</p>
+      <p><b>(나)</b> \((1, 1, 0)\)과 \((0, 1, 1)\): 내적은 1이고 길이는 둘 다 \(\sqrt2\)이므로 \(\cos\theta = 1/2\), \(\theta = 60°\)이다. 정육면체의 한 꼭짓점에서 뻗은 두 면의 대각선이 이루는 각이다.</p>
+      <p><b>(다)</b> \((1, 2, 2)\)와 \((2, 1, -2)\): 내적이 \(2 + 2 - 4 = 0\)이므로 직교한다.</p>
+      <p><b>(라)</b> \(\mathbb R^n\)의 축 방향 \(\mathbf e_1\)과 대각선 방향 \(\mathbf 1 = (1, 1, \dots, 1)\): 내적은 1, 길이는 1과 \(\sqrt n\)이므로 \(\cos\theta = 1/\sqrt n\)이다. \(n = 2\)이면 45°, \(n = 3\)이면 약 54.7°이고, MNIST 이미지의 차원 \(n = 784\)에서는 \(\cos\theta = 1/28\), \(\theta \approx 87.95°\)이다. 대각선이 모든 축과 거의 수직이다. 고차원에서는 이처럼 '거의 직교'가 흔하다. 19장에서 무작위로 고른 두 방향이 거의 직교한다는 것을 보인다.</p>
+    </div>
+
+    <h3 id="s3-sign">내적의 부호와 초평면</h3>
+    <p>길이는 언제나 양수이므로 \(\mathbf w^\top\mathbf x\)의 부호는 \(\cos\theta\)의 부호와 같다. \(\mathbf w\)를 하나 고정하고 \(\mathbf x\)를 움직이면 다음과 같다.</p>
+    <ul>
+      <li>\(\mathbf w^\top\mathbf x &gt; 0\): \(\mathbf x\)가 \(\mathbf w\)와 90°보다 작은 각을 이룬다. 같은 쪽을 향한다.</li>
+      <li>\(\mathbf w^\top\mathbf x = 0\): 수직이다.</li>
+      <li>\(\mathbf w^\top\mathbf x &lt; 0\): 90°보다 큰 각을 이룬다. 반대쪽을 향한다.</li>
+    </ul>
+    <p>\(\mathbf w^\top\mathbf x = 0\)인 점들은 평면에서는 \(\mathbf w\)에 수직인 직선이고, 3차원에서는 \(\mathbf w\)에 수직인 평면이다. \(n\)차원에서는 차원이 하나 낮은 <span class="term">초평면</span> <span class="en">(hyperplane)</span>이다. 그림 1-3의 (나)처럼 이 초평면이 공간을 둘로 나눈다.</p>
+    <p>0 대신 다른 값 \(b\)를 놓은 \(\{\mathbf x : \mathbf w^\top\mathbf x = b\}\)도 \(\mathbf w\)에 수직인 초평면인데, 원점을 지나지 않고 평행하게 옮겨져 있다. 얼마나 옮겨졌을까? 단위 벡터 \(\mathbf u = \mathbf w/\|\mathbf w\|\)를 쓰면 조건은 \(\mathbf u^\top\mathbf x = b/\|\mathbf w\|\)가 된다. 초평면 위의 모든 점은 \(\mathbf u\) 방향의 그림자 길이가 똑같이 \(h = b/\|\mathbf w\|\)라는 뜻이다. 초평면 위의 점 \(\mathbf x\)를 \(h\mathbf u\)와 나머지 \(\mathbf r = \mathbf x - h\mathbf u\)로 나누면 \(\mathbf u^\top\mathbf r = \mathbf u^\top\mathbf x - h = 0\)이므로 둘은 직교하고, 피타고라스 정리로 \(\|\mathbf x\|^2 = h^2 + \|\mathbf r\|^2 \ge h^2\)이다. 따라서 원점에 가장 가까운 점은 \(\mathbf r = \mathbf 0\)인 \(h\mathbf u\)이고, 원점에서 초평면까지의 거리는</p>
+    <div class="formula" id="eq-plane-dist">\[ |h| = \frac{|b|}{\|\mathbf w\|} \]</div>
+    <p>이다. 그림 1-3의 (나)에서 \(\mathbf w = (2, 1)\), \(b = 5\)이면 거리는 \(5/\sqrt5 = \sqrt5\)로 \(\|\mathbf w\|\)와 같다. \(\mathbf w^\top\mathbf w = \|\mathbf w\|^2 = 5\)여서 \(\mathbf w\)의 끝점이 바로 원점에서 가장 가까운 점 \(h\mathbf u\)이기 때문이다.</p>
+    <div class="callout ml"><strong>뉴런 하나는 내적 하나</strong><p>신경망의 뉴런 하나는 입력 \(\mathbf x\)와 가중치 \(\mathbf w\)의 내적에 편향 \(b\)를 더한 \(z = \mathbf w^\top\mathbf x + b\)를 계산하고, 그 값을 활성 함수에 넣는다. \(\mathbf w^\top\mathbf x = \|\mathbf w\|\,\|\mathbf x\|\cos\theta\)이므로 \(z\)는 '입력이 \(\mathbf w\) 쪽을 얼마나 향하는가'를 재는 점수다. 로지스틱 회귀처럼 \(z\)의 부호로 두 범주를 나누는 선형 분류기에서 결정 경계 \(\mathbf w^\top\mathbf x + b = 0\)은 \(\mathbf w\)에 수직인 초평면이고, 식 <a class="ref" href="#eq-plane-dist"></a>에 따라 원점에서 \(|b|/\|\mathbf w\|\)만큼 떨어져 있다. 한 점에서 이 경계까지의 거리는 <a class="ref" href="#prob-margin"></a>에서 구하는데, 서포트 벡터 머신이 키우려는 마진이 바로 이 거리다.</p></div>
   </section>
 
+  <!-- ============================================================ 1.4 -->
   <section id="s4">
     <h2>노름: L1, L2, L∞</h2>
-    <p class="slot" data-slot="1.4절">아직 쓰지 않은 절입니다.</p>
+    <p>1.3절의 길이 \(\|\mathbf x\|\)는 벡터의 크기를 재는 한 가지 방법일 뿐이다. 바둑판 모양의 도로를 따라 걷는 거리는 가로 이동과 세로 이동을 더한 값이고, 이미지를 얼마나 바꿨는지는 '가장 많이 바뀐 픽셀이 얼마나 바뀌었나'로 잴 수도 있다. 머신러닝도 여러 가지 크기를 쓴다. 가중치에 벌점을 줄 때, 기울기를 자를 때, 적대적 예제의 섭동을 제한할 때 쓰는 크기가 다르고, 어느 크기를 고르느냐에 따라 결과가 달라진다. 먼저 '크기'라고 부를 자격의 조건부터 정하자.</p>
+    <div class="box def" id="def-norm"><div class="box-h">노름</div>
+      <p>\(\mathbb R^n\)의 벡터마다 실수 \(\|\mathbf x\|\)를 하나씩 대응시키는 함수가 모든 \(\mathbf x, \mathbf y\)와 스칼라 \(c\)에 대해 다음 세 성질을 만족하면 <span class="term">노름</span> <span class="en">(norm)</span>이라 한다.</p>
+      <ol>
+        <li><b>양의 정부호</b>: \(\|\mathbf x\| \ge 0\)이고, \(\|\mathbf x\| = 0\)은 \(\mathbf x = \mathbf 0\)일 때뿐이다.</li>
+        <li><b>동차성</b>: \(\|c\mathbf x\| = |c|\,\|\mathbf x\|\)</li>
+        <li><b>삼각 부등식</b>: \(\|\mathbf x + \mathbf y\| \le \|\mathbf x\| + \|\mathbf y\|\)</li>
+      </ol>
+      <p>노름이 있으면 두 벡터 사이의 거리를 \(\|\mathbf x - \mathbf y\|\)로 잰다.</p>
+    </div>
+    <p>셋 모두 길이라면 당연한 성질이다. 길이가 0인 화살표는 영벡터뿐이고, 두 배로 늘이면 길이도 두 배이며, 두 화살표를 이어 붙인 길은 곧장 가는 길보다 짧을 수 없다.</p>
+    <div class="box def" id="def-lp"><div class="box-h">L1, L2, L∞ 노름</div>
+      <div class="formula" id="eq-norms">\[ \begin{aligned} \|\mathbf x\|_1 &amp;= |x_1| + |x_2| + \cdots + |x_n| \\ \|\mathbf x\|_2 &amp;= \sqrt{x_1^2 + x_2^2 + \cdots + x_n^2} \\ \|\mathbf x\|_\infty &amp;= \max\big(|x_1|, |x_2|, \dots, |x_n|\big) \end{aligned} \]</div>
+      <p>위에서부터 <span class="term">L1 노름</span> <span class="en">(L1 norm)</span>, <span class="term">L2 노름</span> <span class="en">(L2 norm)</span>, <span class="term">L∞ 노름</span> <span class="en">(L∞ norm)</span>이라 한다. 맨해튼 노름, 유클리드 노름, 최대 노름이라고도 한다. 아래첨자 없이 쓴 \(\|\mathbf x\|\)는 L2 노름이다.</p>
+    </div>
+    <p>세 노름은 \(p \ge 1\)인 <span class="term">Lp 노름</span> <span class="en">(Lp norm)</span></p>
+    <div class="formula" id="eq-lp">\[ \|\mathbf x\|_p = \big(|x_1|^p + |x_2|^p + \cdots + |x_n|^p\big)^{1/p} \]</div>
+    <p>의 특별한 경우다. \(p = 1\)과 \(p = 2\)는 바로 보이고, L∞ 노름은 \(p\)를 한없이 키운 극한이다. 예를 들어 \(\mathbf x = (3, -4)\)의 \(\|\mathbf x\|_p\)는 \(p = 1, 2, 4, 10\)일 때 7, 5, 4.28, 4.02로 줄어들며, 가장 큰 성분의 절댓값 4에 다가간다. 지수를 키울수록 가장 큰 성분의 몫이 압도적으로 커지기 때문이다(<a class="ref" href="#prob-pinf"></a>).</p>
+    <div class="box ex" id="ex-norms"><div class="box-h">세 노름 계산하기</div>
+      <p>\(\mathbf x = (3, -4)\)이면 \(\|\mathbf x\|_1 = 3 + 4 = 7\), \(\|\mathbf x\|_2 = \sqrt{9 + 16} = 5\), \(\|\mathbf x\|_\infty = 4\)이다. \(\mathbf y = (1, -2, 2, 0)\)이면 \(\|\mathbf y\|_1 = 5\), \(\|\mathbf y\|_2 = \sqrt{1 + 4 + 4} = 3\), \(\|\mathbf y\|_\infty = 2\)이다. 두 벡터 모두 \(\|\cdot\|_\infty \le \|\cdot\|_2 \le \|\cdot\|_1\) 순서다. 우연이 아니라는 것을 아래에서 보인다.</p>
+<pre><code>x = np.array([3.0, -4.0])
+np.linalg.norm(x, 1)        # 7.0
+np.linalg.norm(x)           # 5.0  (기본값이 L2)
+np.linalg.norm(x, np.inf)   # 4.0</code></pre>
+    </div>
+
+    <h3 id="s4-balls">단위 공의 모양</h3>
+    <p>노름마다 '크기가 1 이하인 벡터'들이 이루는 모양이 다르다. 이 집합 \(\{\mathbf x : \|\mathbf x\| \le 1\}\)을 그 노름의 <span class="term">단위 공</span> <span class="en">(unit ball)</span>이라 한다. 평면에 그려 보면(그림 1-4) L2의 단위 공은 원판이고, L1은 \(|x_1| + |x_2| \le 1\)이 만드는 마름모, L∞는 \(\max(|x_1|, |x_2|) \le 1\)이 만드는 정사각형이다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-4--><svg viewBox="0 0 340 280" role="img" aria-label="L1 단위 공은 마름모, L2 단위 공은 원판, L∞ 단위 공은 정사각형이다. 마름모가 원 안에, 원이 정사각형 안에 들어간다"><defs><marker id="f14-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f14-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f14-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="48" y1="272" x2="48" y2="56" class="s-grid"/><line x1="88" y1="272" x2="88" y2="56" class="s-grid"/><line x1="128" y1="272" x2="128" y2="56" class="s-grid"/><line x1="168" y1="272" x2="168" y2="56" class="s-grid"/><line x1="208" y1="272" x2="208" y2="56" class="s-grid"/><line x1="12" y1="240" x2="228" y2="240" class="s-grid"/><line x1="12" y1="200" x2="228" y2="200" class="s-grid"/><line x1="12" y1="160" x2="228" y2="160" class="s-grid"/><line x1="12" y1="120" x2="228" y2="120" class="s-grid"/><line x1="12" y1="80" x2="228" y2="80" class="s-grid"/><line x1="12" y1="160" x2="232" y2="160" class="s-line" stroke-width="1"/><line x1="128" y1="272" x2="128" y2="54.4" class="s-line" stroke-width="1"/><path d="M48 240 L208 240 L208 80 L48 80 Z" class="f-acc2-soft" stroke-width="2" fill-opacity="0.35"/><circle cx="128" cy="160" r="80" class="s-acc" stroke-width="2.2"/><path d="M208 160 L128 80 L48 160 L128 240 Z" class="s-line" stroke-width="2" stroke-dasharray="6 4"/><line x1="128" y1="160" x2="208" y2="80" class="s-line" stroke-width="1" stroke-dasharray="3 4"/><circle cx="208" cy="80" r="3.5" class="f-acc2"/><circle cx="184.6" cy="103.4" r="3.5" class="f-acc"/><circle cx="168" cy="120" r="3.5" class="f-dim"/><line x1="208" y1="80" x2="242" y2="79" class="s-line" stroke-width="0.9" stroke-dasharray="2 3"/><text x="246" y="84" class="t-math acc2" text-anchor="start">(1, 1)</text><line x1="184.6" y1="103.4" x2="242" y2="105" class="s-line" stroke-width="0.9" stroke-dasharray="2 3"/><text x="246" y="110" class="t-math acc" text-anchor="start">(0.71, 0.71)</text><line x1="168" y1="120" x2="242" y2="131" class="s-line" stroke-width="0.9" stroke-dasharray="2 3"/><text x="246" y="136" class="t-math dim" text-anchor="start">(0.5, 0.5)</text><text x="213" y="177" class="t-math dim" text-anchor="start">1</text><text x="122" y="74" class="t-math dim" text-anchor="end">1</text><line x1="16" y1="25" x2="40" y2="25" class="s-line" stroke-width="2" stroke-dasharray="6 4"/><text x="46" y="30" class="t-math" text-anchor="start">L1</text><line x1="100" y1="25" x2="124" y2="25" class="s-acc" stroke-width="2.2"/><text x="130" y="30" class="t-math" text-anchor="start">L2</text><rect x="188" y="17" width="16" height="16" class="f-acc2-soft" stroke-width="2"/><text x="214" y="30" class="t-math" text-anchor="start">L∞</text></svg><!--/fig:1-4--></div>
+      <figcaption><b>그림 1-4.</b> 평면에서 세 노름의 단위 공. 마름모(L1, 점선)는 원판(L2) 안에, 원판은 정사각형(L∞) 안에 들어간다. 대각선 위의 세 점은 차례로 L1, L2, L∞ 단위 공의 경계에 있다. \((0.5, 0.5)\)는 L1 노름이, \((0.71, 0.71)\)은 L2 노름이, \((1, 1)\)은 L∞ 노름이 1이다.</figcaption>
+    </figure>
+    <p>모양은 달라도 공통점이 있다. 세 단위 공 모두 원점에 대해 대칭이고(동차성에서 \(c = -1\)), 움푹 들어간 곳이 없다. 단위 공 안의 두 점 \(\mathbf x, \mathbf y\)를 잇는 선분 위의 점은 볼록 결합 \((1 - t)\mathbf x + t\mathbf y\) (\(0 \le t \le 1\))인데, 삼각 부등식과 동차성으로</p>
+    <div class="formula">\[ \|(1 - t)\mathbf x + t\mathbf y\| \le (1 - t)\|\mathbf x\| + t\|\mathbf y\| \le 1 \]</div>
+    <p>이므로 선분 전체가 단위 공 안에 있다. 이런 집합을 <span class="term">볼록</span> <span class="en">(convex)</span>하다고 한다. 노름의 단위 공은 언제나 볼록하다.</p>
+    <div class="callout warn"><strong>노름이 아닌 '노름'</strong><p>0이 아닌 성분의 개수를 흔히 L0 '노름' \(\|\mathbf x\|_0\)이라 부르지만 노름이 아니다. \(\|2\mathbf x\|_0 = \|\mathbf x\|_0\)이어서 동차성이 깨진다. \(0 &lt; p &lt; 1\)인 식 <a class="ref" href="#eq-lp"></a>도 노름이 아니다. \(p = 1/2\)이면 \(\mathbf e_1\)과 \(\mathbf e_2\)의 '크기'는 1인데 \(\|\mathbf e_1 + \mathbf e_2\|_{1/2} = (1 + 1)^2 = 4\)로 \(1 + 1\)보다 커서 삼각 부등식이 깨진다. 이때의 단위 공은 볼록하지 않고, 네 꼭짓점이 축을 따라 뾰족하게 뻗은 별 모양이다.</p></div>
+
+    <h3 id="s4-compare">노름 사이의 부등식</h3>
+    <div class="box thm" id="thm-norm-chain"><div class="box-h">세 노름의 대소</div>
+      <p>모든 \(\mathbf x\in\mathbb R^n\)에 대해 다음이 성립한다.</p>
+      <div class="formula" id="eq-norm-chain">\[ \begin{gathered} \|\mathbf x\|_\infty \le \|\mathbf x\|_2 \le \|\mathbf x\|_1, \\[2pt] \|\mathbf x\|_1 \le \sqrt n\,\|\mathbf x\|_2, \qquad \|\mathbf x\|_2 \le \sqrt n\,\|\mathbf x\|_\infty \end{gathered} \]</div>
+      <details class="proof"><summary>증명</summary>
+        <p>가장 큰 성분의 절댓값을 \(m = \|\mathbf x\|_\infty\)라 하자.</p>
+        <ul>
+          <li>\(m^2\)은 제곱합 \(\sum_i x_i^2\)의 한 항이므로 \(m^2 \le \|\mathbf x\|_2^2\), 곧 \(\|\mathbf x\|_\infty \le \|\mathbf x\|_2\)이다.</li>
+          <li>\(\|\mathbf x\|_1^2 = \big(\sum_i |x_i|\big)^2\)을 전개하면 제곱항 \(\sum_i x_i^2\)에 0 이상인 곱 \(2|x_i|\,|x_j|\) (\(i &lt; j\))들이 더해지므로 \(\|\mathbf x\|_1^2 \ge \|\mathbf x\|_2^2\)이다.</li>
+          <li>모든 \(i\)에서 \(x_i^2 \le m^2\)이므로 \(\|\mathbf x\|_2^2 \le n\,m^2\)이다.</li>
+          <li>남은 \(\|\mathbf x\|_1 \le \sqrt n\,\|\mathbf x\|_2\)는 1.5절의 코시-슈바르츠 부등식에서 한 줄로 나온다(<a href="#s5-apps">1.5절의 끝</a>).</li>
+        </ul>
+      </details>
+    </div>
+    <p>등호가 언제 성립하는지 보면 부등식의 뜻이 보인다. 첫 줄의 두 등호는 0이 아닌 성분이 하나뿐인 벡터(예: \(\mathbf e_1\))에서 성립하고, 둘째 줄의 두 등호는 모든 성분의 절댓값이 같은 벡터(예: \(\mathbf 1\))에서 성립한다. 그림 1-4에서 세 단위 공이 축 위의 점 \((1, 0)\)에서 만나고 대각선 방향에서 가장 많이 벌어지는 것과 같은 이야기다.</p>
+    <p>차원이 클 때 이 차이는 무시할 수 없다. 성분이 \(n\)개인 벡터의 L1 노름과 L2 노름은 최대 \(\sqrt n\)배까지 차이 난다. 파라미터가 100만 개인 모델의 기울기라면 1000배다. 같은 벡터도 어떤 노름으로 재느냐에 따라 작기도 하고 크기도 하다. 거꾸로, 비율 \(\|\mathbf x\|_1/\|\mathbf x\|_2\)는 1(성분 하나에 몰림)과 \(\sqrt n\)(고르게 퍼짐) 사이에 있으므로, 벡터가 몇 개의 성분에 몰려 있는지 재는 지표로 쓰기도 한다.</p>
+
+    <h3 id="s4-sparse">노름이 고르는 해</h3>
+    <p>노름의 모양이 결과를 바꾸는 예를 보자. 직선 \(x_1 + 2x_2 = 2\) 위의 점 가운데 노름이 가장 작은 점을 찾는다. 조건을 만족하는 점이 무수히 많을 때 '가장 작은 것'을 고르는 문제로, 머신러닝에서 정규화(regularization)가 하는 일의 축소판이다. 그림 1-5처럼 단위 공을 원점에서부터 키워 직선에 처음 닿는 곳이 답이다. 직선 위의 점을 \((2 - 2t,\ t)\)로 쓰고 노름마다 계산해 보자.</p>
+    <ul>
+      <li><b>L2</b>: \(\|\mathbf x\|_2^2 = (2 - 2t)^2 + t^2 = 5t^2 - 8t + 4\)이다. 이차 함수의 꼭짓점 \(t = 4/5\)에서 가장 작으므로 답은 \((0.4, 0.8)\)이고 노름은 \(\sqrt{0.8} \approx 0.894\)이다. 두 성분이 모두 0이 아니다.</li>
+      <li><b>L1</b>: \(\|\mathbf x\|_1 = |2 - 2t| + |t|\)는 \(0 \le t \le 1\)에서 \(2 - t\), \(t &gt; 1\)에서 \(3t - 2\), \(t &lt; 0\)에서 \(2 - 3t\)다. 가장 작은 값은 \(t = 1\)에서의 1이고, 답은 \((0, 1)\)이다. 한 성분이 정확히 0이다.</li>
+      <li><b>L∞</b>: \(\max(|2 - 2t|, |t|)\)는 \(0 \le t \le 1\)에서 앞의 값이 줄고 뒤의 값이 늘므로, 두 값이 같아지는 \(2 - 2t = t\), 곧 \(t = 2/3\)에서 가장 작다. 답은 \((2/3, 2/3)\)이고 노름은 \(2/3\)이다. 두 성분의 크기가 똑같다.</li>
+    </ul>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-5--><svg viewBox="0 0 340 270" role="img" aria-label="직선 x1 + 2x2 = 2에 처음 닿을 때까지 단위 공을 키우면 L1은 꼭짓점 (0, 1)에서, L2는 (0.4, 0.8)에서, L∞는 (2/3, 2/3)에서 닿는다"><defs><marker id="f15-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f15-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f15-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="20" y1="255.6" x2="20" y2="44" class="s-grid"/><line x1="66" y1="255.6" x2="66" y2="44" class="s-grid"/><line x1="112" y1="255.6" x2="112" y2="44" class="s-grid"/><line x1="158" y1="255.6" x2="158" y2="44" class="s-grid"/><line x1="204" y1="255.6" x2="204" y2="44" class="s-grid"/><line x1="250" y1="255.6" x2="250" y2="44" class="s-grid"/><line x1="296" y1="255.6" x2="296" y2="44" class="s-grid"/><line x1="10.8" y1="228" x2="332.8" y2="228" class="s-grid"/><line x1="10.8" y1="182" x2="332.8" y2="182" class="s-grid"/><line x1="10.8" y1="136" x2="332.8" y2="136" class="s-grid"/><line x1="10.8" y1="90" x2="332.8" y2="90" class="s-grid"/><line x1="10.8" y1="44" x2="332.8" y2="44" class="s-grid"/><line x1="6.2" y1="182" x2="332.8" y2="182" class="s-line" stroke-width="1"/><line x1="112" y1="255.6" x2="112" y2="44" class="s-line" stroke-width="1"/><line x1="10.8" y1="39.4" x2="332.8" y2="200.4" class="s-line" stroke-width="2"/><path d="M50.7 243.3 L173.3 243.3 L173.3 120.7 L50.7 120.7 Z" class="f-acc2-soft" stroke-width="1.8" fill-opacity="0.3"/><circle cx="112" cy="182" r="82.3" class="s-acc" stroke-width="2"/><path d="M204 182 L112 90 L20 182 L112 274 Z" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><circle cx="112" cy="90" r="4.5" class="f-dim"/><circle cx="148.8" cy="108.4" r="4.5" class="f-acc"/><circle cx="173.3" cy="120.7" r="4.5" class="f-acc2"/><line x1="112" y1="90" x2="210" y2="49" class="s-line" stroke-width="0.9" stroke-dasharray="2 3"/><text x="214" y="54" class="t-math dim" text-anchor="start">L1: (0, 1)</text><line x1="148.8" y1="108.4" x2="210" y2="73" class="s-line" stroke-width="0.9" stroke-dasharray="2 3"/><text x="214" y="78" class="t-math acc" text-anchor="start">L2: (0.4, 0.8)</text><line x1="173.3" y1="120.7" x2="210" y2="97" class="s-line" stroke-width="0.9" stroke-dasharray="2 3"/><text x="214" y="102" class="t-math acc2" text-anchor="start">L∞: (⅔, ⅔)</text><text x="332.8" y="222.4" class="t-math" text-anchor="end"><tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan> + 2<tspan font-style="italic">x</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan> = 2</text></svg><!--/fig:1-5--></div>
+      <figcaption><b>그림 1-5.</b> 직선 \(x_1 + 2x_2 = 2\) 위에서 노름이 가장 작은 점. 각 단위 공을 직선에 닿을 때까지 키운 모습이다. L1의 마름모(점선)는 축 위의 꼭짓점 \((0, 1)\)에서, L2의 원은 \((0.4, 0.8)\)에서, L∞의 정사각형은 꼭짓점 \((2/3, 2/3)\)에서 닿는다.</figcaption>
+    </figure>
+    <p>차이는 모양에서 나온다. L1의 단위 공은 꼭짓점이 축 위에 있어서, 커지다가 먼저 닿는 곳이 꼭짓점이기 쉽고, 꼭짓점에서는 성분 대부분이 0이다. L∞의 꼭짓점은 대각선 위에 있어서 성분의 크기를 고르게 맞춘다. L2의 원에는 꼭짓점이 없다. 원은 직선의 법선 방향, 곧 \((1, 2)\) 방향의 점 \(0.4\,(1, 2)\)에서 닿는다.</p>
+    <div class="callout ml"><strong>정규화, 기울기 클리핑, 적대적 섭동</strong>
+      <ul>
+        <li>손실에 \(\lambda\|\mathbf w\|_1\)을 더하는 L1 정규화(라소)는 위의 예처럼 많은 가중치를 정확히 0으로 만들고, \(\tfrac\lambda2\|\mathbf w\|_2^2\)을 더하는 L2 정규화(가중치 감쇠)는 모든 가중치를 고르게 줄인다. L2 쪽을 제곱으로 쓰는 것은 미분이 깔끔하기 때문이다. \(\tfrac12\sum_j w_j^2\)을 \(w_i\)로 편미분하면 \(w_i\)가 남는다.</li>
+        <li>기울기 클리핑은 모든 파라미터의 기울기를 한 벡터 \(\mathbf g\)로 이어 붙여 L2 노름을 재고, \(\|\mathbf g\|\)가 상한 \(c\)를 넘으면 \(\mathbf g \leftarrow (c/\|\mathbf g\|)\,\mathbf g\)로 줄인다. 양수를 곱하는 스칼라배이므로 방향은 그대로이고 길이만 \(c\)로 줄어든다. PyTorch의 <code>torch.nn.utils.clip_grad_norm_(params, max_norm)</code>이 이 일을 한다(기본값 <code>norm_type=2</code>).</li>
+        <li>이미지 분류기의 적대적 예제는 흔히 \(\|\boldsymbol\delta\|_\infty \le \varepsilon\), 곧 '모든 픽셀을 \(\varepsilon\) 이하로만 바꾼다'는 조건 아래에서 찾는다. 이 조건에서 가장 해로운 섭동의 방향은 1.5절의 끝에서 구한다.</li>
+      </ul>
+    </div>
   </section>
 
+  <!-- ============================================================ 1.5 -->
   <section id="s5">
     <h2>코시-슈바르츠 부등식과 삼각 부등식</h2>
-    <p class="slot" data-slot="1.5절">아직 쓰지 않은 절입니다.</p>
+    <p>앞의 두 절에 미뤄 둔 약속이 둘 있다. 1.3절에서 \(n\)차원의 각을 정의하려면 \(\mathbf x^\top\mathbf y/(\|\mathbf x\|\,\|\mathbf y\|)\)가 \(-1\)과 \(1\) 사이에 있어야 했고, 1.4절에서 L2 노름이 정말 노름이려면 삼각 부등식을 만족해야 했다. 두 약속 모두 이 절의 부등식 하나로 지킨다.</p>
+    <div class="box thm" id="thm-cs"><div class="box-h">코시-슈바르츠 부등식</div>
+      <p>모든 \(\mathbf x, \mathbf y\in\mathbb R^n\)에 대해 다음이 성립한다.</p>
+      <div class="formula" id="eq-cs">\[ |\mathbf x^\top\mathbf y| \le \|\mathbf x\|\,\|\mathbf y\| \]</div>
+      <p>등호는 한 벡터가 다른 벡터의 스칼라배일 때(어느 한쪽이 영벡터인 경우를 포함해), 그리고 그때만 성립한다.</p>
+    </div>
+    <p>이 부등식을 <span class="term">코시-슈바르츠 부등식</span> <span class="en">(Cauchy–Schwarz inequality)</span>이라 한다. 2차원과 3차원에서는 식 <a class="ref" href="#eq-angle"></a>과 \(|\cos\theta| \le 1\)에서 바로 나온다. 그러나 \(n\)차원에서는 각을 이 부등식으로 정의하려는 참이므로, 각을 쓰지 않고 증명해야 한다. 증명의 생각은 그림 1-6에 있다. \(\mathbf x\)에서 \(\mathbf y\) 방향 성분을 빼면 \(\mathbf y\)에 수직인 벡터가 남는데, 직각삼각형의 빗변은 밑변보다 짧을 수 없다.</p>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-6--><svg viewBox="0 0 340 230" role="img" aria-label="x에서 y 방향 성분 t*y를 빼면 y에 수직인 벡터가 남는다. 빗변 x는 밑변 t*y보다 짧을 수 없다"><defs><marker id="f16-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f16-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f16-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="24.9" y1="190.9" x2="342.6" y2="135.9" class="s-faint" stroke-dasharray="3 4"/><path d="M183.7 163.4 L182 153.5 L172.2 155.2" class="s-line" stroke-width="1.2"/><line x1="30" y1="190" x2="300.4" y2="143.2" class="s-acc2" stroke-width="3" marker-end="url(#f16-acc2)" /><line x1="30" y1="190" x2="173.9" y2="165.1" class="s-acc" stroke-width="3.2" marker-end="url(#f16-acc)" /><line x1="173.9" y1="165.1" x2="154.8" y2="54.8" class="s-line" stroke-width="2.4" marker-end="url(#f16-dim)" /><line x1="30" y1="190" x2="154.8" y2="54.8" class="s-acc" stroke-width="2" marker-end="url(#f16-acc)" stroke-dasharray="5 4" opacity="0.9"/><circle cx="30" cy="190" r="3" class="f-dim"/><text x="304.4" y="161.2" class="t-math acc2" text-anchor="end"><tspan font-weight="bold">y</tspan></text><text x="148.8" y="48.8" class="t-math acc" text-anchor="end"><tspan font-weight="bold">x</tspan></text><text x="165.9" y="191.1" class="t-math acc" text-anchor="middle"><tspan font-style="italic">t</tspan><tspan baseline-shift="sub" font-size="72%">*</tspan><tspan font-weight="bold">y</tspan></text><text x="174.3" y="113.9" class="t-math dim" text-anchor="start"><tspan font-weight="bold">x</tspan> − <tspan font-style="italic">t</tspan><tspan baseline-shift="sub" font-size="72%">*</tspan><tspan font-weight="bold">y</tspan></text><text x="330" y="24" class="t-math" text-anchor="end">‖<tspan font-weight="bold">x</tspan>‖² = ‖<tspan font-style="italic">t</tspan><tspan baseline-shift="sub" font-size="72%">*</tspan><tspan font-weight="bold">y</tspan>‖² + ‖<tspan font-weight="bold">x</tspan> − <tspan font-style="italic">t</tspan><tspan baseline-shift="sub" font-size="72%">*</tspan><tspan font-weight="bold">y</tspan>‖²</text></svg><!--/fig:1-6--></div>
+      <figcaption><b>그림 1-6.</b> 코시-슈바르츠 부등식의 그림. \(\mathbf x\)에서 \(\mathbf y\) 방향 성분 \(t_*\mathbf y\)를 빼면 \(\mathbf y\)에 수직인 \(\mathbf x - t_*\mathbf y\)가 남는다. 피타고라스 정리에 따라 빗변의 길이 \(\|\mathbf x\|\)는 밑변의 길이 \(\|t_*\mathbf y\| = |\mathbf x^\top\mathbf y|/\|\mathbf y\|\)보다 작을 수 없다.</figcaption>
+    </figure>
+    <p><b>증명.</b> \(\mathbf y = \mathbf 0\)이면 양변이 모두 0이므로, \(\mathbf y \ne \mathbf 0\)이라 하자. 실수 \(t\)에 대해 \(\mathbf x - t\mathbf y\)의 길이의 제곱은 0 이상이고, 식 <a class="ref" href="#eq-expand"></a>으로 펼치면 \(t\)의 이차식이다.</p>
+    <div class="formula" id="eq-cs-quad">\[ \begin{aligned} 0 &amp;\le \|\mathbf x - t\mathbf y\|^2 \\ &amp;= \|\mathbf x\|^2 - 2t\,\mathbf x^\top\mathbf y + t^2\|\mathbf y\|^2 \end{aligned} \]</div>
+    <p>이 부등식은 모든 \(t\)에서 성립하므로, 오른쪽을 가장 작게 만드는 \(t\)에서도 성립한다. 아래로 볼록한 이차식의 꼭짓점은 \(t_* = \mathbf x^\top\mathbf y/\|\mathbf y\|^2\)이다. 이 값을 넣으면</p>
+    <div class="formula">\[ \begin{aligned} 0 &amp;\le \|\mathbf x\|^2 - 2\,\frac{(\mathbf x^\top\mathbf y)^2}{\|\mathbf y\|^2} + \frac{(\mathbf x^\top\mathbf y)^2}{\|\mathbf y\|^2} \\ &amp;= \|\mathbf x\|^2 - \frac{(\mathbf x^\top\mathbf y)^2}{\|\mathbf y\|^2} \end{aligned} \]</div>
+    <p>이다. 양변에 \(\|\mathbf y\|^2\)을 곱해 정리하면 \((\mathbf x^\top\mathbf y)^2 \le \|\mathbf x\|^2\,\|\mathbf y\|^2\)이고, 양변의 제곱근을 취하면 식 <a class="ref" href="#eq-cs"></a>가 된다.</p>
+    <p><b>등호 조건.</b> 위의 계산에서 등호는 \(\|\mathbf x - t_*\mathbf y\| = 0\), 곧 \(\mathbf x = t_*\mathbf y\)일 때만 성립한다. 거꾸로 \(\mathbf x = c\mathbf y\)이면 양변이 모두 \(|c|\,\|\mathbf y\|^2\)이다. ∎</p>
+    <p>그림 1-6이 \(t_*\)를 고른 이유를 보여 준다. \(\mathbf y^\top(\mathbf x - t_*\mathbf y) = \mathbf x^\top\mathbf y - t_*\|\mathbf y\|^2 = 0\)이므로 \(\mathbf x - t_*\mathbf y\)는 \(\mathbf y\)와 직교한다. 그래서 \(\mathbf x = t_*\mathbf y + (\mathbf x - t_*\mathbf y)\)는 직교하는 두 벡터의 합이고, 피타고라스 정리로 \(\|\mathbf x\|^2 = \|t_*\mathbf y\|^2 + \|\mathbf x - t_*\mathbf y\|^2 \ge \|t_*\mathbf y\|^2\)이다. 위의 계산은 이 식을 각도 없이 적은 것이다. \(t_*\mathbf y\)는 1.3절에서 본 정사영이다.</p>
+    <details class="proof"><summary>다른 증명: 판별식</summary>
+      <p>식 <a class="ref" href="#eq-cs-quad"></a>의 오른쪽은 모든 실수 \(t\)에서 0 이상인 이차식이므로 서로 다른 두 실근을 가질 수 없고, 판별식이 0 이하다. \((2\,\mathbf x^\top\mathbf y)^2 - 4\|\mathbf y\|^2\|\mathbf x\|^2 \le 0\)을 정리하면 같은 부등식이다. 판별식이 0이 되는 것은 이차식이 0이 되는 \(t\)가 있을 때, 곧 어떤 \(t\)에서 \(\mathbf x = t\mathbf y\)일 때다.</p>
+    </details>
+    <div class="box ex" id="ex-cs"><div class="box-h">부등식과 직각삼각형 확인하기</div>
+      <p>\(\mathbf x = (1, 2, 2)\), \(\mathbf y = (3, 0, 4)\)에서 \(|\mathbf x^\top\mathbf y| = 11\)이고 \(\|\mathbf x\|\,\|\mathbf y\| = 15\)이다. \(t_* = 11/25\)이므로</p>
+      <div class="formula">\[ \begin{aligned} \mathbf x - t_*\mathbf y &amp;= \Big(1 - \tfrac{33}{25},\ 2,\ 2 - \tfrac{44}{25}\Big) \\ &amp;= \Big({-\tfrac{8}{25}},\ 2,\ \tfrac{6}{25}\Big) \end{aligned} \]</div>
+      <p>이고, 이 벡터와 \(\mathbf y\)의 내적은 \(-\tfrac{24}{25} + 0 + \tfrac{24}{25} = 0\)이다. 길이의 제곱은 \(\|t_*\mathbf y\|^2 = (11/25)^2\cdot 25 = 121/25\), \(\|\mathbf x - t_*\mathbf y\|^2 = (64 + 2500 + 36)/625 = 104/25\)이고, 합은 \(225/25 = 9 = \|\mathbf x\|^2\)이다. 피타고라스 정리가 성립한다.</p>
+    </div>
+    <p>이것으로 1.3절의 약속을 지켰다. 영벡터가 아닌 두 벡터에 대해 식 <a class="ref" href="#eq-cs"></a>의 양변을 \(\|\mathbf x\|\,\|\mathbf y\|\)로 나누면 \(-1 \le \mathbf x^\top\mathbf y/(\|\mathbf x\|\,\|\mathbf y\|) \le 1\)이므로 <a class="ref" href="#def-angle"></a>의 각이 언제나 존재한다. 등호 조건에 따르면 \(\cos\theta = \pm1\)은 두 벡터가 한 직선 위에 있을 때뿐이다. 복소 벡터에서도 같은 부등식이 성립하며, 양자역학에서는 이것이 불확정성 관계의 뿌리가 된다(『차근차근 양자역학』 1장의 <a href="../../quantum/chapters/ch01.html#thm-schwarz">슈바르츠 부등식</a>).</p>
+
+    <h3 id="s5-triangle">삼각 부등식</h3>
+    <div class="box thm" id="thm-triangle"><div class="box-h">삼각 부등식</div>
+      <div class="formula" id="eq-triangle">\[ \|\mathbf x + \mathbf y\| \le \|\mathbf x\| + \|\mathbf y\| \]</div>
+      <p>등호는 한 벡터가 다른 벡터의 0 이상인 스칼라배일 때 성립한다.</p>
+    </div>
+    <p>식 <a class="ref" href="#eq-expand"></a>에 코시-슈바르츠 부등식을 쓰면</p>
+    <div class="formula">\[ \begin{aligned} \|\mathbf x + \mathbf y\|^2 &amp;= \|\mathbf x\|^2 + 2\,\mathbf x^\top\mathbf y + \|\mathbf y\|^2 \\ &amp;\le \|\mathbf x\|^2 + 2\,\|\mathbf x\|\,\|\mathbf y\| + \|\mathbf y\|^2 \\ &amp;= \big(\|\mathbf x\| + \|\mathbf y\|\big)^2 \end{aligned} \]</div>
+    <p>이고, 양변이 0 이상이므로 제곱근을 취하면 된다. 둘째 줄의 부등호는 \(\mathbf x^\top\mathbf y \le |\mathbf x^\top\mathbf y| \le \|\mathbf x\|\,\|\mathbf y\|\)이다. 등호는 \(\mathbf x^\top\mathbf y = \|\mathbf x\|\,\|\mathbf y\|\)일 때, 곧 두 벡터가 같은 방향을 향할 때(\(\cos\theta = 1\)) 성립한다. 그림으로는 삼각형의 한 변이 나머지 두 변의 합보다 길 수 없다는 뜻이다.</p>
+    <p>이제 L2 노름은 노름의 세 성질을 모두 만족한다. 양의 정부호는 <a class="ref" href="#thm-dot"></a>의 3이고, 동차성은 1.3절의 \(\|c\mathbf x\| = |c|\,\|\mathbf x\|\)이다. L1과 L∞의 삼각 부등식은 더 쉽다. 실수의 삼각 부등식 \(|x_i + y_i| \le |x_i| + |y_i|\)를 모든 \(i\)에 대해 더하면 L1의 부등식이다. 또 오른쪽 \(|x_i| + |y_i|\)는 언제나 \(\|\mathbf x\|_\infty + \|\mathbf y\|_\infty\) 이하이므로, 왼쪽의 최댓값 \(\|\mathbf x + \mathbf y\|_\infty\)도 그렇다. 이것이 L∞의 부등식이다.</p>
+    <p>삼각 부등식을 거꾸로 쓴 꼴도 자주 쓴다. \(\mathbf x = (\mathbf x - \mathbf y) + \mathbf y\)에 삼각 부등식을 쓰면 \(\|\mathbf x\| - \|\mathbf y\| \le \|\mathbf x - \mathbf y\|\)이고, \(\mathbf x\)와 \(\mathbf y\)를 바꿔도 마찬가지이므로</p>
+    <div class="formula" id="eq-reverse">\[ \big|\,\|\mathbf x\| - \|\mathbf y\|\,\big| \le \|\mathbf x - \mathbf y\| \]</div>
+    <p>이다. 가까운 두 벡터는 길이도 가깝다는 뜻이다. 삼각 부등식만 썼으므로 이 식은 어느 노름에서나 성립한다. 11장에서 층의 출력이 입력에 얼마나 민감한지 잴 때 이런 꼴의 부등식을 다시 만난다.</p>
+
+    <h3 id="s5-apps">부등식 하나에서 여럿이</h3>
+    <p>코시-슈바르츠 부등식은 \(\mathbf x\)와 \(\mathbf y\)를 잘 고르면 여러 부등식이 된다.</p>
+    <ul>
+      <li><b>L1과 L2</b>: \(\mathbf a = (|x_1|, \dots, |x_n|)\)과 \(\mathbf 1 = (1, \dots, 1)\)에 쓰면 \(\|\mathbf x\|_1 = \mathbf 1^\top\mathbf a \le \|\mathbf 1\|\,\|\mathbf a\| = \sqrt n\,\|\mathbf x\|_2\)이다. <a class="ref" href="#thm-norm-chain"></a>에 남겨 둔 부등식이다.</li>
+      <li><b>평균과 제곱 평균</b>: 같은 식을 \(n\)으로 나누면 \(\frac1n\sum_i|x_i| \le \sqrt{\frac1n\sum_i x_i^2}\)이다. 절댓값의 평균은 제곱 평균의 제곱근(RMS)을 넘지 않는다.</li>
+    </ul>
+    <p>L1과 L∞ 사이에도 비슷한 부등식이 있는데, 이것은 코시-슈바르츠를 쓰지 않고 더 쉽게 나온다. 각 \(|y_i|\)를 가장 큰 값 \(\|\mathbf y\|_\infty\)로 바꾸면 합이 커지기만 하므로</p>
+    <div class="formula" id="eq-holder">\[ \begin{aligned} |\mathbf x^\top\mathbf y| &amp;\le \sum_i |x_i|\,|y_i| \\ &amp;\le \Big(\max_j |y_j|\Big)\sum_i |x_i| \\ &amp;= \|\mathbf x\|_1\,\|\mathbf y\|_\infty \end{aligned} \]</div>
+    <p>이다. 등호는 \(|y_i|\)가 가장 큰 성분에만 \(\mathbf x\)가 0이 아닌 값을 두고, 그 값들의 부호가 모두 \(y_i\)의 부호와 같거나 모두 반대일 때 성립한다.</p>
+    <div class="callout deep"><strong>횔더 부등식과 쌍대 노름</strong><p>식 <a class="ref" href="#eq-cs"></a>와 식 <a class="ref" href="#eq-holder"></a>은 횔더 부등식 \(|\mathbf x^\top\mathbf y| \le \|\mathbf x\|_p\,\|\mathbf y\|_q\) (\(1/p + 1/q = 1\))의 두 경우다. \(p = q = 2\)가 코시-슈바르츠이고, \(p = 1, q = \infty\)가 식 <a class="ref" href="#eq-holder"></a>이다. 이렇게 짝을 이루는 두 노름을 서로의 <span class="term">쌍대 노름</span> <span class="en">(dual norm)</span>이라 한다. 일반적인 \(p\)의 증명에는 볼록 함수의 성질이 필요해서 이 책에서는 다루지 않는다. 아래에서 보듯 쌍대 노름은 "크기가 1 이하인 벡터로 내적을 얼마까지 키울 수 있는가"의 답이다.</p></div>
+
+    <h3 id="s5-steepest">가장 가파른 방향은 노름이 정한다</h3>
+    <p>다음 질문은 머신러닝에서 여러 모양으로 나온다. 벡터 \(\mathbf w\)가 주어졌을 때, 크기가 \(\varepsilon\) 이하인 \(\boldsymbol\delta\) 가운데 \(\mathbf w^\top\boldsymbol\delta\)를 가장 크게 만드는 것은 무엇인가? \(\mathbf w\)가 선형 모델의 가중치라면 입력을 조금 바꿔 점수를 가장 많이 올리는 방법이고, \(\mathbf w\)가 손실의 기울기라면 파라미터나 입력을 조금 바꿔 손실을 가장 빨리 바꾸는 방법이다. 답은 '크기'를 어느 노름으로 재느냐에 달렸다. 아래에서 \(\operatorname{sign}(w)\)는 \(w\)가 양수면 1, 음수면 \(-1\), 0이면 0이다.</p>
+    <ul>
+      <li><b>L2</b>: 코시-슈바르츠 부등식으로 \(\mathbf w^\top\boldsymbol\delta \le \|\mathbf w\|_2\,\|\boldsymbol\delta\|_2 \le \varepsilon\|\mathbf w\|_2\)이다. 등호는 \(\boldsymbol\delta\)가 \(\mathbf w\)와 같은 방향이고 길이가 \(\varepsilon\)일 때, 곧 \(\boldsymbol\delta = \varepsilon\,\mathbf w/\|\mathbf w\|_2\)일 때 성립한다.</li>
+      <li><b>L∞</b>: 식 <a class="ref" href="#eq-holder"></a>로 \(\mathbf w^\top\boldsymbol\delta \le \|\mathbf w\|_1\,\|\boldsymbol\delta\|_\infty \le \varepsilon\|\mathbf w\|_1\)이다. 성분마다 \(\delta_i = \varepsilon\operatorname{sign}(w_i)\)로 두면 \(\mathbf w^\top\boldsymbol\delta = \varepsilon\sum_i|w_i|\)이 되어 등호가 성립한다. 모든 성분을 한도 끝까지, \(w_i\)의 부호 쪽으로 민다.</li>
+      <li><b>L1</b>: 같은 식에서 두 벡터의 자리를 바꾸면 \(\mathbf w^\top\boldsymbol\delta \le \|\mathbf w\|_\infty\,\|\boldsymbol\delta\|_1 \le \varepsilon\|\mathbf w\|_\infty\)이다. \(|w_k|\)가 가장 큰 성분 \(k\) 하나만 \(\delta_k = \varepsilon\operatorname{sign}(w_k)\)로 바꾸고 나머지를 0으로 두면 등호가 성립한다. 예산을 한 성분에 몰아 쓴다.</li>
+    </ul>
+    <div class="box ex" id="ex-steepest"><div class="box-h">\(\mathbf w = (3, -1)\)일 때</div>
+      <p>\(\varepsilon = 1\)로 두자. L2에서는 \(\boldsymbol\delta = (3, -1)/\sqrt{10} \approx (0.95, -0.32)\)이고 \(\mathbf w^\top\boldsymbol\delta = \sqrt{10} \approx 3.16\)이다. L∞에서는 \(\boldsymbol\delta = (1, -1)\)이고 \(\mathbf w^\top\boldsymbol\delta = 4 = \|\mathbf w\|_1\)이다. L1에서는 \(\boldsymbol\delta = (1, 0)\)이고 \(\mathbf w^\top\boldsymbol\delta = 3 = \|\mathbf w\|_\infty\)이다. 그림 1-7에서 보듯 각 답은 \(\mathbf w\)에 수직인 등고선(\(\mathbf w^\top\boldsymbol\delta\)가 일정한 직선)이 단위 공에 마지막으로 닿는 점이다. 원에서는 \(\mathbf w\) 방향의 점이고, 정사각형과 마름모에서는 꼭짓점이다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-narrow"><!--fig:1-7--><svg viewBox="0 0 340 270" role="img" aria-label="w = (3, −1)과의 내적을 가장 크게 만드는 단위 노름 벡터는 L2에서는 w 방향, L∞에서는 꼭짓점 (1, −1), L1에서는 꼭짓점 (1, 0)이다"><defs><marker id="f17-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f17-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f17-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="28" y1="246.4" x2="28" y2="17.6" class="s-grid"/><line x1="72" y1="246.4" x2="72" y2="17.6" class="s-grid"/><line x1="116" y1="246.4" x2="116" y2="17.6" class="s-grid"/><line x1="160" y1="246.4" x2="160" y2="17.6" class="s-grid"/><line x1="204" y1="246.4" x2="204" y2="17.6" class="s-grid"/><line x1="248" y1="246.4" x2="248" y2="17.6" class="s-grid"/><line x1="292" y1="246.4" x2="292" y2="17.6" class="s-grid"/><line x1="19.2" y1="220" x2="300.8" y2="220" class="s-grid"/><line x1="19.2" y1="176" x2="300.8" y2="176" class="s-grid"/><line x1="19.2" y1="132" x2="300.8" y2="132" class="s-grid"/><line x1="19.2" y1="88" x2="300.8" y2="88" class="s-grid"/><line x1="19.2" y1="44" x2="300.8" y2="44" class="s-grid"/><line x1="14.8" y1="132" x2="305.2" y2="132" class="s-line" stroke-width="1"/><line x1="160" y1="250.8" x2="160" y2="13.2" class="s-line" stroke-width="1"/><line x1="89.6" y1="255.2" x2="168.8" y2="17.6" class="s-faint" stroke-dasharray="2 5"/><line x1="118.9" y1="255.2" x2="198.1" y2="17.6" class="s-faint" stroke-dasharray="2 5"/><line x1="148.3" y1="255.2" x2="227.5" y2="17.6" class="s-faint" stroke-dasharray="2 5"/><line x1="177.6" y1="255.2" x2="256.8" y2="17.6" class="s-faint" stroke-dasharray="2 5"/><line x1="206.9" y1="255.2" x2="286.1" y2="17.6" class="s-faint" stroke-dasharray="2 5"/><line x1="236.3" y1="255.2" x2="315.5" y2="17.6" class="s-faint" stroke-dasharray="2 5"/><path d="M72 220 L248 220 L248 44 L72 44 Z" class="f-acc2-soft" stroke-width="1.8" fill-opacity="0.3"/><circle cx="160" cy="132" r="88" class="s-acc" stroke-width="2"/><path d="M248 132 L160 44 L72 132 L160 220 Z" class="s-line" stroke-width="1.8" stroke-dasharray="6 4"/><line x1="160" y1="132" x2="305.2" y2="180.4" class="s-acc" stroke-width="2.4" marker-end="url(#f17-acc)" opacity="0.9"/><text x="309.2" y="198.4" class="t-math acc" text-anchor="start"><tspan font-weight="bold">w</tspan></text><circle cx="248" cy="132" r="4.5" class="f-dim"/><circle cx="243.5" cy="159.8" r="4.5" class="f-acc"/><circle cx="248" cy="220" r="4.5" class="f-acc2"/><text x="256" y="124" class="t-math dim" text-anchor="start">L1: (1, 0)</text><text x="251.5" y="153.8" class="t-math acc" text-anchor="start">L2</text><text x="238" y="238" class="t-math acc2" text-anchor="end">L∞: (1, −1)</text><text x="12" y="22" class="t-math" text-anchor="start"><tspan font-weight="bold">w</tspan> = (3, −1), ‖<tspan font-style="italic">δ</tspan>‖ ≤ 1</text></svg><!--/fig:1-7--></div>
+      <figcaption><b>그림 1-7.</b> \(\mathbf w = (3, -1)\)과의 내적을 가장 크게 만드는 노름 1 이하의 벡터. 가는 점선은 \(\mathbf w^\top\boldsymbol\delta\)가 일정한 등고선이고, 오른쪽 아래로 갈수록 값이 크다. L2의 원은 \(\mathbf w\) 방향의 점 \((0.95, -0.32)\)에서, L∞의 정사각형은 꼭짓점 \((1, -1)\)에서, L1의 마름모(점선)는 꼭짓점 \((1, 0)\)에서 가장 높은 등고선에 닿는다.</figcaption>
+    </figure>
+    <div class="callout ml"><strong>FGSM과 부호 기울기</strong><p>Goodfellow 등(2015)의 FGSM(fast gradient sign method)은 이미지 \(\mathbf x\)에 \(\boldsymbol\delta = \varepsilon\operatorname{sign}(\nabla_{\mathbf x}L)\)을 더해 적대적 예제를 만든다. 여기서 \(\nabla_{\mathbf x}L\)은 손실 \(L\)을 입력의 각 성분으로 편미분한 값을 모은 벡터, 곧 기울기다(12장). 손실을 \(\mathbf x\) 근처에서 일차식 \(L(\mathbf x + \boldsymbol\delta) \approx L(\mathbf x) + \nabla_{\mathbf x}L^\top\boldsymbol\delta\)로 근사하면, FGSM은 위의 L∞ 경우에서 \(\mathbf w = \nabla_{\mathbf x}L\)로 둔 답 그대로다. '모든 픽셀을 \(\varepsilon\) 이하로'라는 제약이 기울기의 부호만 남긴다. 같은 계산에 따르면 경사 하강법이 기울기의 반대 방향으로 가는 것은 걸음의 크기를 L2로 쟀을 때 가장 가파른 방향이기 때문이고, 기울기의 부호만 쓰는 최적화 방법은 걸음을 L∞로 재는 셈이다.</p></div>
   </section>
 
+  <!-- ============================================================ 1.6 -->
   <section id="s6">
     <h2>머신러닝에서: 임베딩의 코사인 유사도</h2>
-    <p class="slot" data-slot="1.6절">아직 쓰지 않은 절입니다.</p>
+    <p>검색, 추천, 중복 탐지, 검색 증강 생성(RAG)은 모두 같은 질문을 한다. "이 질의와 가장 비슷한 것은 무엇인가?" 요즘의 답은 대개 <span class="term">임베딩</span> <span class="en">(embedding)</span>이다. 문장, 이미지, 사용자, 상품을 학습된 모델에 넣어 \(\mathbb R^d\)의 벡터로 바꾸고(\(d\)는 보통 수백에서 수천), 벡터가 가까운 것을 비슷한 것으로 본다. 그런데 '가깝다'를 무엇으로 잴까? 이 장에서 만든 도구로 후보가 셋 나온다. 내적 \(\mathbf q^\top\mathbf d\), 거리 \(\|\mathbf q - \mathbf d\|\), 그리고 각의 코사인이다.</p>
+    <div class="box def" id="def-cos"><div class="box-h">코사인 유사도</div>
+      <p>영벡터가 아닌 \(\mathbf x, \mathbf y\)의 <span class="term">코사인 유사도</span> <span class="en">(cosine similarity)</span>는 다음과 같다.</p>
+      <div class="formula" id="eq-cos">\[ \begin{aligned} \cos(\mathbf x, \mathbf y) &amp;= \frac{\mathbf x^\top\mathbf y}{\|\mathbf x\|\,\|\mathbf y\|} \\ &amp;= \Big(\frac{\mathbf x}{\|\mathbf x\|}\Big)^{\!\top}\Big(\frac{\mathbf y}{\|\mathbf y\|}\Big) \end{aligned} \]</div>
+      <p><a class="ref" href="#def-angle"></a>의 \(\cos\theta\) 그 자체다.</p>
+    </div>
+    <p>성질은 이 장의 결과에서 바로 나온다. 코시-슈바르츠 부등식으로 값은 \(-1\)과 \(1\) 사이이고, 1은 같은 방향, \(-1\)은 반대 방향, 0은 직교다. 둘째 줄에서 보듯 코사인 유사도는 정규화한 두 벡터의 내적이므로 벡터에 양수를 곱해도 변하지 않는다. \(a, b &gt; 0\)이면 \(\cos(a\mathbf x, b\mathbf y) = \cos(\mathbf x, \mathbf y)\)이다. 코사인 유사도는 길이를 버리고 방향만 본다.</p>
+
+    <h3 id="s6-three">세 기준은 다른 답을 낸다</h3>
+    <div class="box ex" id="ex-search"><div class="box-h">작은 검색 문제</div>
+      <p>질의 \(\mathbf q = (4, 2)\)와 문서 세 개 \(\mathbf d_1 = (3, 3)\), \(\mathbf d_2 = (8, 0)\), \(\mathbf d_3 = (2, 1)\)이 있다(그림 1-8의 (가)). 길이는 \(\|\mathbf q\| = \sqrt{20}\)이고 문서는 차례로 \(\sqrt{18}\), 8, \(\sqrt5\)다. 세 기준을 계산하면 다음과 같다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>문서</th><th class="num">내적</th><th class="num">코사인</th><th class="num">거리</th></tr></thead>
+        <tbody>
+          <tr><td>\(\mathbf d_1\)</td><td class="num">18</td><td class="num">0.949</td><td class="num"><b>1.41</b></td></tr>
+          <tr><td>\(\mathbf d_2\)</td><td class="num"><b>32</b></td><td class="num">0.894</td><td class="num">4.47</td></tr>
+          <tr><td>\(\mathbf d_3\)</td><td class="num">10</td><td class="num"><b>1</b></td><td class="num">2.24</td></tr>
+        </tbody>
+      </table></div>
+      <p>코사인 유사도의 정확한 값은 차례로 \(18/(\sqrt{20}\sqrt{18}) = 3/\sqrt{10}\), \(32/(8\sqrt{20}) = 2/\sqrt5\), 1이고, 거리는 \(\|(1, -1)\| = \sqrt2\), \(\|(-4, 2)\| = \sqrt{20}\), \(\|(2, 1)\| = \sqrt5\)다. 내적은 \(\mathbf d_2\)를, 코사인 유사도는 \(\mathbf d_3\)을, 거리는 \(\mathbf d_1\)을 1등으로 뽑는다(굵은 글씨). 세 기준이 서로 다른 답을 낸다. 내적은 \(\|\mathbf q\|\,\|\mathbf d\|\cos\theta\)이므로 방향이 조금 어긋나도 긴 \(\mathbf d_2\)가 이기고, 코사인 유사도는 길이를 무시하므로 방향이 정확히 같은 \(\mathbf d_3 = \mathbf q/2\)가 이기며, 거리는 방향과 길이가 모두 비슷한 \(\mathbf d_1\)을 고른다.</p>
+    </div>
+    <p>거리와 각의 관계를 식으로 보면 이유가 분명하다. 코사인 법칙 <a class="ref" href="#eq-cosine-law"></a>를 \(\mathbf q\)와 \(\mathbf d\)에 쓰면</p>
+    <div class="formula">\[ \|\mathbf q - \mathbf d\|^2 = \|\mathbf q\|^2 + \|\mathbf d\|^2 - 2\,\|\mathbf q\|\,\|\mathbf d\|\cos\theta \]</div>
+    <p>이다. 거리에는 각뿐 아니라 두 길이가 함께 들어 있다. 질의 하나를 두고 비교하면 \(\|\mathbf q\|\)는 고정이지만 \(\|\mathbf d\|\)는 문서마다 달라서 순위를 바꾼다. 내적 \(\|\mathbf q\|\,\|\mathbf d\|\cos\theta\)도 마찬가지로 \(\|\mathbf d\|\)가 순위에 끼어든다.</p>
+
+    <h3 id="s6-unit">길이를 지우면 셋이 같아진다</h3>
+    <p>모든 벡터를 미리 정규화해 두면 사정이 달라진다. 단위 벡터 \(\hat{\mathbf q} = \mathbf q/\|\mathbf q\|\)와 \(\hat{\mathbf d} = \mathbf d/\|\mathbf d\|\)에 대해 위 식의 길이가 모두 1이 되므로</p>
+    <div class="formula" id="eq-unit-dist">\[ \|\hat{\mathbf q} - \hat{\mathbf d}\|^2 = 2 - 2\,\hat{\mathbf q}^\top\hat{\mathbf d} = 2\,(1 - \cos\theta) \]</div>
+    <p>이다. 단위 벡터끼리는 내적이 곧 코사인 유사도이고, 거리는 코사인 유사도가 커질수록 작아진다. 그러므로 <b>정규화한 벡터에서는 내적이 큰 순서, 코사인 유사도가 큰 순서, 거리가 작은 순서가 모두 같다.</b> <a class="ref" href="#ex-search"></a>의 벡터를 정규화하면(그림 1-8의 (나)) 세 기준 모두 \(\mathbf d_3, \mathbf d_1, \mathbf d_2\) 순서가 되고, 질의까지의 거리는 차례로 0, 0.32, 0.46이다.</p>
+    <figure class="diagram">
+      <div class="fig-row"><!--fig:1-8a--><svg viewBox="0 0 300 245" role="img" aria-label="질의 q = (4, 2)와 문서 d1 = (3, 3), d2 = (8, 0), d3 = (2, 1)"><defs><marker id="f18a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f18a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f18a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="26" y1="210.5" x2="26" y2="45.2" class="s-grid"/><line x1="55" y1="210.5" x2="55" y2="45.2" class="s-grid"/><line x1="84" y1="210.5" x2="84" y2="45.2" class="s-grid"/><line x1="113" y1="210.5" x2="113" y2="45.2" class="s-grid"/><line x1="142" y1="210.5" x2="142" y2="45.2" class="s-grid"/><line x1="171" y1="210.5" x2="171" y2="45.2" class="s-grid"/><line x1="200" y1="210.5" x2="200" y2="45.2" class="s-grid"/><line x1="229" y1="210.5" x2="229" y2="45.2" class="s-grid"/><line x1="258" y1="210.5" x2="258" y2="45.2" class="s-grid"/><line x1="287" y1="210.5" x2="287" y2="45.2" class="s-grid"/><line x1="11.5" y1="196" x2="292.8" y2="196" class="s-grid"/><line x1="11.5" y1="167" x2="292.8" y2="167" class="s-grid"/><line x1="11.5" y1="138" x2="292.8" y2="138" class="s-grid"/><line x1="11.5" y1="109" x2="292.8" y2="109" class="s-grid"/><line x1="11.5" y1="80" x2="292.8" y2="80" class="s-grid"/><line x1="11.5" y1="51" x2="292.8" y2="51" class="s-grid"/><line x1="11.5" y1="196" x2="292.8" y2="196" class="s-line" stroke-width="1"/><line x1="26" y1="210.5" x2="26" y2="45.2" class="s-line" stroke-width="1"/><line x1="26" y1="196" x2="258" y2="196" class="s-line" stroke-width="2.4" marker-end="url(#f18a-dim)" /><line x1="26" y1="196" x2="113" y2="109" class="s-line" stroke-width="2.4" marker-end="url(#f18a-dim)" /><line x1="26" y1="196" x2="142" y2="138" class="s-acc" stroke-width="3" marker-end="url(#f18a-acc)" /><line x1="26" y1="196" x2="84" y2="167" class="s-acc2" stroke-width="2.4" marker-end="url(#f18a-acc2)" /><circle cx="26" cy="196" r="3" class="f-dim"/><text x="148" y="134" class="t-math acc" text-anchor="start"><tspan font-weight="bold">q</tspan></text><text x="117" y="103" class="t-math dim" text-anchor="start"><tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="254" y="214" class="t-math dim" text-anchor="end"><tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text x="86" y="185" class="t-math acc2" text-anchor="start"><tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan></text><text x="12" y="24" class="t-math" text-anchor="start">(가) 정규화 전</text></svg><!--/fig:1-8a--><!--fig:1-8b--><svg viewBox="0 0 300 245" role="img" aria-label="정규화하면 모든 벡터가 단위원 위에 놓인다. d3은 q와 같은 점이 되고, 질의까지의 거리는 d1이 0.32, d2가 0.46이다"><defs><marker id="f18b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f18b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker><marker id="f18b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs><line x1="40" y1="235" x2="40" y2="25" class="s-grid"/><line x1="115" y1="235" x2="115" y2="25" class="s-grid"/><line x1="190" y1="235" x2="190" y2="25" class="s-grid"/><line x1="265" y1="235" x2="265" y2="25" class="s-grid"/><line x1="10" y1="205" x2="287.5" y2="205" class="s-grid"/><line x1="10" y1="130" x2="287.5" y2="130" class="s-grid"/><line x1="10" y1="55" x2="287.5" y2="55" class="s-grid"/><line x1="10" y1="205" x2="287.5" y2="205" class="s-line" stroke-width="1"/><line x1="40" y1="235" x2="40" y2="25" class="s-line" stroke-width="1"/><path d="M189.8 212.5 L190 206.2 L189.9 200 L189.6 193.7 L189 187.5 L188.1 181.3 L187 175.1 L185.6 169 L184 162.9 L182.1 157 L180 151.1 L177.6 145.3 L175 139.6 L172.1 134 L169.1 128.6 L165.8 123.2 L162.2 118.1 L158.5 113 L154.5 108.2 L150.4 103.5 L146.1 98.9 L141.5 94.6 L136.8 90.5 L132 86.5 L126.9 82.8 L121.8 79.2 L116.4 75.9 L111 72.9 L105.4 70 L99.7 67.4 L93.9 65 L88 62.9 L82.1 61 L76 59.4 L69.9 58 L63.7 56.9 L57.5 56 L51.3 55.4 L45 55.1 L38.8 55 L32.5 55.2" class="s-line" stroke-width="1.2" stroke-dasharray="4 4"/><line x1="174.2" y1="137.9" x2="146.1" y2="98.9" class="s-acc2" stroke-width="1.8"/><line x1="174.2" y1="137.9" x2="190" y2="205" class="s-acc2" stroke-width="1.8"/><line x1="40" y1="205" x2="190" y2="205" class="s-line" stroke-width="2.4" marker-end="url(#f18b-dim)" /><line x1="40" y1="205" x2="146.1" y2="98.9" class="s-line" stroke-width="2.4" marker-end="url(#f18b-dim)" /><line x1="40" y1="205" x2="174.2" y2="137.9" class="s-acc" stroke-width="3" marker-end="url(#f18b-acc)" /><circle cx="40" cy="205" r="3" class="f-dim"/><text x="108.1" y="131.9" class="t-math dim" text-anchor="end"><tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>/‖<tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan>‖</text><text x="186" y="223" class="t-math dim" text-anchor="end"><tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>/‖<tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan>‖</text><text x="182.2" y="143.9" class="t-math acc" text-anchor="start"><tspan font-weight="bold">q</tspan>/‖<tspan font-weight="bold">q</tspan>‖ = <tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan>/‖<tspan font-weight="bold">d</tspan><tspan baseline-shift="sub" font-size="72%">3</tspan>‖</text><text x="168.1" y="112.4" class="t-math acc2" text-anchor="start">0.32</text><text x="190.1" y="177.5" class="t-math acc2" text-anchor="start">0.46</text><text x="12" y="24" class="t-math" text-anchor="start">(나) 정규화 후: 모두 단위원 위</text></svg><!--/fig:1-8b--></div>
+      <figcaption><b>그림 1-8.</b> <a class="ref" href="#ex-search"></a>의 벡터. (가) 정규화하기 전에는 내적, 코사인 유사도, 거리가 각각 다른 문서를 고른다. (나) 정규화하면 모든 벡터가 단위원 위에 놓이고, 질의까지의 거리(가는 선의 길이)는 각만으로 정해진다. \(\mathbf d_3\)은 \(\mathbf q\)와 같은 점이 된다.</figcaption>
+    </figure>
+    <p>그래서 실제 시스템은 보통 임베딩을 한 번 정규화해 저장하고, 질의도 정규화한 뒤 내적으로 검색한다. 곱셈과 덧셈만으로 끝나고, 문서가 많을 때는 2장에서 볼 행렬-벡터 곱 하나로 모든 점수를 한꺼번에 낸다. 벡터 검색 라이브러리 FAISS의 문서도 코사인 유사도 검색을 이렇게 하라고 안내하며, 식 <a class="ref" href="#eq-unit-dist"></a>의 관계 때문에 L2 거리로 검색한 것과 같다고 밝힌다. 반대로 길이에 정보가 담겨 있다면 정규화하지 않은 내적을 쓴다. 추천 시스템의 행렬 분해 모델은 사용자 벡터와 상품 벡터의 내적을 점수로 쓰는데, 이때 상품 벡터의 길이에는 그 상품이 전반적으로 얼마나 자주 선택되는지가 담길 수 있다. 어느 기준을 쓸지는 모델이 길이에 무엇을 담도록 학습되었는지에 달렸다.</p>
+<pre><code>import numpy as np
+np.set_printoptions(precision=4)
+q = np.array([4.0, 2.0])
+D = np.array([[3.0, 3.0],     # d1  (문서 하나가 한 행)
+              [8.0, 0.0],     # d2
+              [2.0, 1.0]])    # d3
+
+def normalize(v):
+    return v / np.linalg.norm(v, axis=-1, keepdims=True)
+
+print(D @ q)                          # 내적   [18. 32. 10.]
+print(normalize(D) @ normalize(q))    # 코사인 [0.9487 0.8944 1.    ]
+print(np.linalg.norm(D - q, axis=1))  # 거리   [1.4142 4.4721 2.2361]</code></pre>
+    <p><code>D @ q</code>는 각 행과 <code>q</code>의 내적을 한꺼번에 계산하는 행렬-벡터 곱이고(2장), <code>D - q</code>는 각 행에서 <code>q</code>를 빼는 브로드캐스팅이다(15장). PyTorch에서는 <code>torch.nn.functional.cosine_similarity(x1, x2, dim=1, eps=1e-8)</code>가 \(\mathbf x_1^\top\mathbf x_2 / \big(\max(\|\mathbf x_1\|, \epsilon)\max(\|\mathbf x_2\|, \epsilon)\big)\)을, <code>torch.nn.functional.normalize(x, dim=1)</code>이 \(\mathbf x/\max(\|\mathbf x\|, \epsilon)\)을 계산한다(PyTorch 2.5 문서 기준, 기본 \(\epsilon = 10^{-12}\)). 두 함수 모두 기본으로 <code>dim=1</code>을 따라 계산하므로, 배열의 모양에 맞게 <code>dim</code>을 지정해야 한다.</p>
+    <div class="callout warn"><strong>영벡터와 '코사인 거리'</strong><p>영벡터에는 방향이 없어서 코사인 유사도가 정의되지 않는다(0으로 나누게 된다). PyTorch 함수들이 분모를 \(\epsilon\) 이상으로 묶는 것은 이 때문이고, 그 결과 영벡터와의 코사인 유사도는 오류 대신 0이 된다. 패딩처럼 영벡터가 섞일 수 있는 곳에서는 0이 '직교'가 아니라 '정의되지 않음'일 수 있다. 또 \(1 - \cos\theta\)를 흔히 '코사인 거리'라 부르지만 삼각 부등식을 만족하지 않아서 노름에서 나온 거리가 아니다(<a class="ref" href="#prob-cosdist"></a>). 정규화한 벡터 사이의 L2 거리 \(\sqrt{2(1 - \cos\theta)}\)는 거리의 성질을 모두 만족한다.</p></div>
+
+    <h3 id="s6-temp">대조 학습은 왜 온도로 나누는가</h3>
+    <p>코사인 유사도가 \([-1, 1]\)에 갇혀 있다는 사실은 학습에도 영향을 준다. CLIP(Radford 등, 2021) 같은 대조 학습 모델은 이미지 하나의 임베딩과 문장 \(N\)개의 임베딩 사이의 코사인 유사도 \(c_1, \dots, c_N\)을 구한 뒤, 짝이 맞는 문장의 확률이 높아지도록 이 값들을 소프트맥스에 넣는다.</p>
+    <div class="box math" id="math-softmax"><div class="box-h">소프트맥스</div>
+      <p>점수 \(s_1, \dots, s_N\)을 확률로 바꾸는 <span class="term">소프트맥스</span> <span class="en">(softmax)</span>는 \(p_j = e^{s_j}\big/\sum_{k=1}^{N} e^{s_k}\)이다. 모든 \(p_j\)가 0보다 크고 합이 1이므로, 1.2절의 볼록 결합의 계수로 쓸 수 있다. 두 확률의 비는 \(p_i/p_j = e^{s_i - s_j}\)로 점수의 차이만으로 정해진다. 12장에서 이 함수의 기울기를, 17장에서 어텐션 속의 쓰임을 다룬다.</p>
+    </div>
+    <p>코사인 유사도를 그대로 점수로 쓰면 어떻게 될까? 코시-슈바르츠 부등식으로 \(c_i - c_j \le 1 - (-1) = 2\)이므로 두 후보의 확률 비는</p>
+    <div class="formula" id="eq-softmax-ratio">\[ \frac{p_i}{p_j} = e^{\,c_i - c_j} \le e^{2} \approx 7.39 \]</div>
+    <p>를 넘을 수 없다. 아무리 잘 학습해도 정답 문장이 가장 엉뚱한 문장보다 7.4배 넘게 높은 확률을 받을 수 없다는 뜻이다. 후보가 많으면 더 심각하다. 정답의 코사인 유사도가 1이고 나머지 \(N - 1\)개가 모두 \(-1\)인 가장 좋은 경우에도 정답의 확률은</p>
+    <div class="formula" id="eq-pbest">\[ \begin{aligned} p_{\text{정답}} &amp;= \frac{e^{1}}{e^{1} + (N - 1)\,e^{-1}} \\ &amp;= \frac{1}{1 + (N - 1)\,e^{-2}} \end{aligned} \]</div>
+    <p>에 그친다. \(N = 1000\)이면 약 0.0073이다.</p>
+    <p>그래서 점수를 작은 <span class="term">온도</span> <span class="en">(temperature)</span> \(\tau\)로 나눈 \(s_j = c_j/\tau\)를 쓴다. 점수의 범위가 \([-1/\tau, 1/\tau]\)로 넓어져 확률 비의 상한이 \(e^{2/\tau}\)가 되고, \(\tau = 0.07\)이면 약 \(2.6\times10^{12}\)이다. 좀 더 현실적인 경우로, 정답의 유사도가 1이고 나머지가 모두 0(직교)이라 하자. 정답의 확률은 \(1/\big(1 + (N - 1)e^{-1/\tau}\big)\)이고, \(N = 1000\)에서 \(\tau = 1\)이면 0.0027, \(\tau = 0.07\)이면 0.9994다. CLIP은 \(\tau\)를 학습하는 파라미터로 두고 0.07에 해당하는 값에서 출발하며, 학습이 불안정해지지 않도록 점수를 100배 넘게 키우지는 못하게 막는다(\(1/\tau \le 100\)). CLIP의 배치 크기 \(N = 32{,}768\)에서 위의 확률을 계산하면 \(\tau = 1\)일 때 0.00008, \(\tau = 0.07\)일 때 0.98이다. 대조 학습의 손실에 온도가 들어가는 이유가 이 장의 부등식 하나에서 나온다.</p>
+    <div class="callout tip"><strong>앞으로의 쓰임</strong><p>질의 여러 개와 문서 여러 개의 코사인 유사도를 모두 구하는 일은 정규화한 두 행렬의 곱 하나다(2장). 트랜스포머의 어텐션도 질의와 키의 내적으로 점수를 내는데, 벡터를 정규화하는 대신 내적을 \(\sqrt d\)로 나눈다. 그 이유는 17장에서 유도한다. 19장에서는 고차원에서 무작위로 고른 두 방향의 코사인 유사도가 0 근처에 표준편차 \(1/\sqrt d\) 정도로 몰린다는 것을 보인다. \(d = 768\)이면 약 0.036이므로, 그 공간에서 코사인 유사도 0.3은 우연이라 보기 어려운 값이다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>벡터는 숫자의 목록이자 화살표다. 덧셈과 스칼라배는 성분마다 계산하고, 그림으로는 이어 붙이기와 늘이기다. \(\mathbf y - \mathbf x\)는 점 \(\mathbf x\)에서 점 \(\mathbf y\)로 가는 화살표다.</li>
+      <li>선형 결합 \(\sum_j c_j\mathbf v_j\)가 선형대수의 기본 동작이다. 방향이 다른 두 벡터는 평면을 채우고, 계수를 찾는 일은 연립 방정식이다. 계수가 0 이상이고 합이 1이면 가중 평균(볼록 결합)이다.</li>
+      <li>내적 \(\mathbf x^\top\mathbf y = \sum_i x_iy_i\)는 대칭, 선형, 양의 정부호다. 길이는 \(\|\mathbf x\| = \sqrt{\mathbf x^\top\mathbf x}\)이고, \(\|\mathbf x + \mathbf y\|^2 = \|\mathbf x\|^2 + 2\,\mathbf x^\top\mathbf y + \|\mathbf y\|^2\)으로 펼친다.</li>
+      <li>\(\mathbf x^\top\mathbf y = \|\mathbf x\|\,\|\mathbf y\|\cos\theta\)는 평면에서는 정리이고 \(n\)차원에서는 각의 정의다. 내적의 부호는 두 벡터가 같은 쪽을 향하는지 알려 주고, \(\mathbf w^\top\mathbf x = b\)는 \(\mathbf w\)에 수직이고 원점에서 \(|b|/\|\mathbf w\|\)만큼 떨어진 초평면이다.</li>
+      <li>노름은 양의 정부호, 동차성, 삼각 부등식을 만족한다. L1, L2, L∞의 단위 공은 마름모, 원판, 정사각형이고 \(\|\mathbf x\|_\infty \le \|\mathbf x\|_2 \le \|\mathbf x\|_1 \le \sqrt n\,\|\mathbf x\|_2\)이다. 크기가 가장 작은 해를 고를 때 L1은 성분을 0으로 만드는 해를, L∞는 성분의 크기를 고르게 맞추는 해를 고른다.</li>
+      <li>코시-슈바르츠 부등식 \(|\mathbf x^\top\mathbf y| \le \|\mathbf x\|\,\|\mathbf y\|\)는 '그림자는 원래 길이보다 길 수 없다'는 뜻이고, 등호는 두 벡터가 한 직선 위에 있을 때 성립한다. 여기서 \(n\)차원의 각과 삼각 부등식이 나온다.</li>
+      <li>크기 \(\varepsilon\) 이하의 \(\boldsymbol\delta\)로 \(\mathbf w^\top\boldsymbol\delta\)를 가장 크게 만드는 답은 L2에서 \(\mathbf w\) 방향, L∞에서 \(\varepsilon\operatorname{sign}(\mathbf w)\), L1에서 가장 큰 성분 하나다. 최댓값은 차례로 \(\varepsilon\|\mathbf w\|_2\), \(\varepsilon\|\mathbf w\|_1\), \(\varepsilon\|\mathbf w\|_\infty\)이다. FGSM은 L∞의 답이다.</li>
+      <li>정규화한 벡터에서는 \(\|\hat{\mathbf q} - \hat{\mathbf d}\|^2 = 2(1 - \cos\theta)\)이므로 내적, 코사인 유사도, 거리의 순위가 같다. 코사인 유사도는 \([-1, 1]\)에 갇혀 있어서, 대조 학습은 점수를 온도 \(\tau\)로 나눠 쓴다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \(\mathbf x = (1, 2)\)와 \(\mathbf y = (3, -1)\) 사이의 각은?</p><div class="opts">
+        <button class="opt" data-correct>90°보다 작다</button>
+        <button class="opt">정확히 90°다</button>
+        <button class="opt">90°보다 크다</button>
+        <button class="opt">길이를 알아야 정할 수 있다</button>
+      </div><div class="quiz-exp">내적이 \(3 - 2 = 1 &gt; 0\)이다. 길이는 언제나 양수이므로 \(\cos\theta\)의 부호는 내적의 부호와 같다. 각이 정확히 얼마인지는 길이까지 알아야 하지만, 90°보다 작은지는 부호만으로 안다.</div></div>
+      <div class="quiz-q"><p>2. 다음 중 노름이 <b>아닌</b> 것은?</p><div class="opts">
+        <button class="opt">\(\|\mathbf x\|_1\)</button>
+        <button class="opt">\(3\|\mathbf x\|_\infty\)</button>
+        <button class="opt" data-correct>0이 아닌 성분의 개수</button>
+        <button class="opt">\(\|\mathbf x\|_2\)</button>
+      </div><div class="quiz-exp">0이 아닌 성분의 개수는 벡터에 2를 곱해도 그대로여서 동차성 \(\|2\mathbf x\| = 2\|\mathbf x\|\)이 깨진다. 노름에 양수를 곱한 \(3\|\mathbf x\|_\infty\)는 세 성질을 모두 지키므로 여전히 노름이다.</div></div>
+      <div class="quiz-q"><p>3. 모든 \(\mathbf x\in\mathbb R^n\)에서 성립하는 것은?</p><div class="opts">
+        <button class="opt">\(\|\mathbf x\|_1 \le \|\mathbf x\|_2\)</button>
+        <button class="opt" data-correct>\(\|\mathbf x\|_\infty \le \|\mathbf x\|_2 \le \|\mathbf x\|_1\)</button>
+        <button class="opt">\(\|\mathbf x\|_2 \le \|\mathbf x\|_\infty\)</button>
+        <button class="opt">세 노름의 대소는 벡터마다 다르다</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-norm-chain"></a>의 결과다. 예를 들어 \((3, -4)\)에서 \(4 \le 5 \le 7\)이다. 그림 1-4에서 L1의 단위 공이 L2의 단위 공 안에, 그것이 다시 L∞의 단위 공 안에 들어가는 것과 같은 이야기다.</div></div>
+      <div class="quiz-q"><p>4. 코시-슈바르츠 부등식 \(|\mathbf x^\top\mathbf y| \le \|\mathbf x\|\,\|\mathbf y\|\)에서 등호가 성립하는 것은 언제인가?</p><div class="opts">
+        <button class="opt">두 벡터가 직교할 때</button>
+        <button class="opt" data-correct>한 벡터가 다른 벡터의 스칼라배일 때</button>
+        <button class="opt">두 벡터의 길이가 같을 때</button>
+        <button class="opt">두 벡터가 모두 단위 벡터일 때</button>
+      </div><div class="quiz-exp">증명에서 등호는 \(\mathbf x - t_*\mathbf y = \mathbf 0\)일 때만 성립했다. 두 벡터가 한 직선 위에 있어 \(\cos\theta = \pm 1\)인 경우다. 영벡터가 아닌 두 벡터가 직교하면 왼쪽은 0이고 오른쪽은 양수여서 오히려 차이가 가장 크다.</div></div>
+      <div class="quiz-q"><p>5. 단위 벡터 \(\mathbf u, \mathbf v\)의 내적이 0.5일 때 \(\|\mathbf u - \mathbf v\|\)는?</p><div class="opts">
+        <button class="opt">0.5</button>
+        <button class="opt" data-correct>1</button>
+        <button class="opt">\(\sqrt 2\)</button>
+        <button class="opt">\(\sqrt{1.5}\)</button>
+      </div><div class="quiz-exp">식 <a class="ref" href="#eq-unit-dist"></a>으로 \(\|\mathbf u - \mathbf v\|^2 = 2 - 2(0.5) = 1\)이다. 60°를 이루는 두 단위 벡터와 그 차는 한 변이 1인 정삼각형을 이룬다.</div></div>
+      <div class="quiz-q"><p>6. 길이가 제각각인 임베딩을 정규화하지 않고 내적으로 검색하면 어떻게 되는가?</p><div class="opts">
+        <button class="opt">코사인 유사도로 검색한 것과 순위가 같다</button>
+        <button class="opt" data-correct>방향이 비슷하면서 길이가 긴 문서가 유리하다</button>
+        <button class="opt">L2 거리로 검색한 것과 순위가 같다</button>
+        <button class="opt">길이가 짧은 문서가 유리하다</button>
+      </div><div class="quiz-exp">내적은 \(\|\mathbf q\|\,\|\mathbf d\|\cos\theta\)이고, 질의 하나를 두고 비교하면 \(\|\mathbf q\|\)는 같으므로 순위는 \(\|\mathbf d\|\cos\theta\)로 정해진다. <a class="ref" href="#ex-search"></a>에서 방향이 26.6° 어긋난 긴 \(\mathbf d_2\)가 내적 1등을 했다. 세 기준의 순위가 같아지는 것은 모든 벡터를 정규화했을 때다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+
+    <div class="prob" id="prob-basic" data-level="1"><p>\(\mathbf x = (2, -1, 2)\), \(\mathbf y = (1, 2, 2)\)에 대해 \(\mathbf x^\top\mathbf y\), \(\|\mathbf x\|\), \(\|\mathbf y\|\), 두 벡터 사이의 각, \(\|\mathbf x - \mathbf y\|\)를 구하고, 코사인 법칙 <a class="ref" href="#eq-cosine-law"></a>가 성립하는지 확인하라. 두 벡터의 L1 노름과 L∞ 노름도 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(\mathbf x^\top\mathbf y = 2 - 2 + 4 = 4\)이고 \(\|\mathbf x\| = \|\mathbf y\| = \sqrt{4 + 1 + 4} = 3\)이다. \(\cos\theta = 4/9\)이므로 \(\theta \approx 63.6°\)이다.</p>
+        <p>\(\mathbf x - \mathbf y = (1, -3, 0)\)이므로 \(\|\mathbf x - \mathbf y\|^2 = 10\)이다. 코사인 법칙의 오른쪽은 \(9 + 9 - 2\cdot 3\cdot 3\cdot\tfrac49 = 18 - 8 = 10\)으로 같다.</p>
+        <p>\(\|\mathbf x\|_1 = \|\mathbf y\|_1 = 5\), \(\|\mathbf x\|_\infty = \|\mathbf y\|_\infty = 2\)이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-lincomb" data-level="1"><p>(가) \((7, 4)\)를 \((1, 2)\)와 \((3, 1)\)의 선형 결합으로 나타내라. (나) \((1, 2)\)와 \((2, 4)\)의 선형 결합으로는 \((7, 4)\)를 만들 수 없음을 보여라. (다) (나)의 두 벡터로 무수히 많은 방법으로 만들 수 있는 벡터를 하나 들고, 그 방법을 세 가지 적어라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(c_1(1, 2) + c_2(3, 1) = (7, 4)\)에서 \(c_1 + 3c_2 = 7\), \(2c_1 + c_2 = 4\)이다. 둘째 식의 \(c_2 = 4 - 2c_1\)을 첫 식에 넣으면 \(c_1 + 12 - 6c_1 = 7\), 곧 \(c_1 = 1\), \(c_2 = 2\)다. 확인: \((1, 2) + 2(3, 1) = (7, 4)\).</p>
+        <p>(나) \(c_1(1, 2) + c_2(2, 4) = (c_1 + 2c_2)(1, 2)\)이므로 둘째 성분은 언제나 첫 성분의 두 배다. \((7, 4)\)는 그렇지 않다.</p>
+        <p>(다) 직선 위의 점, 예를 들어 \((3, 6) = 3(1, 2)\)는 \(c_1 + 2c_2 = 3\)인 모든 계수로 만들어진다. \((c_1, c_2) = (3, 0), (1, 1), (-1, 2)\) 등이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-orth" data-level="1"><p>(가) \(\mathbb R^2\)에서 \((3, 4)\)에 수직인 단위 벡터를 모두 구하라. (나) \(\mathbb R^3\)에서 \((1, 1, 0)\)과 \((0, 1, 1)\)에 모두 수직인 벡터를 모두 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \((a, b)\)가 수직이려면 \(3a + 4b = 0\)이므로 \((a, b) = t(4, -3)\)이다. 길이가 1이려면 \(|t|\cdot 5 = 1\)이므로 답은 \(\pm(4, -3)/5 = \pm(0.8, -0.6)\), 두 개다.</p>
+        <p>(나) \((a, b, c)\)에 대해 \(a + b = 0\), \(b + c = 0\)이므로 \(a = -b\), \(c = -b\)이다. 답은 \(t(1, -1, 1)\) (\(t\)는 임의의 실수)이고, 원점을 지나는 직선 하나를 이룬다. 확인: \((1, -1, 1)^\top(1, 1, 0) = 0\), \((1, -1, 1)^\top(0, 1, 1) = 0\).</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-broadcast" data-level="1"><p>(NumPy) 다음 코드는 무엇을 출력하는가? 올바른 평균 제곱 오차는 얼마이고, 코드를 어떻게 고쳐야 하는가?</p>
+<pre><code>pred = np.array([[1.0], [2.0], [3.0], [4.0]])   # 모양 (4, 1)
+y    = np.array([1.0, 2.0, 3.0, 4.0])           # 모양 (4,)
+print(((pred - y)**2).mean())</code></pre>
+      <details class="sol"><summary>풀이</summary>
+        <p><code>pred - y</code>는 브로드캐스팅으로 모양이 <code>(4, 4)</code>가 되고, \((i, j)\) 성분이 \(i - j\)인 배열이 된다(\(i, j = 1, \dots, 4\)). 제곱의 합은 \(2(3\cdot 1^2 + 2\cdot 2^2 + 1\cdot 3^2) = 40\)이므로 출력은 \(40/16 = 2.5\)이다.</p>
+        <p>예측이 정답과 똑같으므로 올바른 값은 0이다. <code>pred.reshape(-1)</code>로 모양을 <code>(4,)</code>로 맞추거나 <code>y[:, None]</code>으로 <code>(4, 1)</code>로 맞추면 0이 나온다. 손실을 계산하기 전에 두 배열의 <code>shape</code>을 확인하는 습관이 이런 버그를 막는다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-parallelogram" data-level="2"><p>(가) L2 노름에 대해 평행사변형 법칙 \(\|\mathbf x + \mathbf y\|^2 + \|\mathbf x - \mathbf y\|^2 = 2\|\mathbf x\|^2 + 2\|\mathbf y\|^2\)과, 노름만으로 내적을 되찾는 식 \(\mathbf x^\top\mathbf y = \tfrac14\big(\|\mathbf x + \mathbf y\|^2 - \|\mathbf x - \mathbf y\|^2\big)\)을 보여라. (나) L1 노름은 \(\mathbf e_1, \mathbf e_2\)에서 평행사변형 법칙을 만족하지 않음을 보이고, 이로부터 L1 노름이 어떤 내적의 \(\sqrt{\langle\mathbf x, \mathbf x\rangle}\)로도 쓰일 수 없음을 설명하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) 식 <a class="ref" href="#eq-expand"></a>과 그 뺄셈 꼴을 더하면 가운데 항이 지워져 평행사변형 법칙이 되고, 빼면 \(4\,\mathbf x^\top\mathbf y\)가 남는다.</p>
+        <p>(나) \(\|\mathbf e_1 + \mathbf e_2\|_1 = \|\mathbf e_1 - \mathbf e_2\|_1 = 2\)이므로 왼쪽은 \(4 + 4 = 8\)이고, 오른쪽은 \(2 + 2 = 4\)다. (가)의 계산은 내적의 대칭과 선형성만 썼으므로, 어떤 내적에서 나온 노름이든 평행사변형 법칙을 만족해야 한다. L1 노름은 그렇지 않으므로 어떤 내적에서도 나오지 않는다. L∞ 노름도 \(\|\mathbf e_1 \pm \mathbf e_2\|_\infty = 1\)이어서 왼쪽이 2, 오른쪽이 4로 같은 결론이다. 세 노름 가운데 '각도'를 주는 것은 L2뿐이다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-margin" data-level="2"><p>점 \(\mathbf x_0\)에서 초평면 \(\mathbf w^\top\mathbf x + b = 0\)까지의 거리가 \(|\mathbf w^\top\mathbf x_0 + b|/\|\mathbf w\|\)임을 보여라. 식 <a class="ref" href="#eq-plane-dist"></a>의 유도를 \(\mathbf x_0\)을 원점으로 옮겨 다시 쓰면 된다. \(\mathbf w = (3, 4)\), \(b = -10\), \(\mathbf x_0 = (4, 3)\)일 때 거리와 초평면에서 \(\mathbf x_0\)에 가장 가까운 점을 구하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>초평면 위의 점을 \(\mathbf x = \mathbf x_0 + \boldsymbol\delta\)로 쓰면 조건은 \(\mathbf w^\top\boldsymbol\delta = -(\mathbf w^\top\mathbf x_0 + b)\)이다. 이것은 \(\boldsymbol\delta\)에 대한 초평면 \(\mathbf w^\top\boldsymbol\delta = b'\) (\(b' = -(\mathbf w^\top\mathbf x_0 + b)\))이므로, 식 <a class="ref" href="#eq-plane-dist"></a>에 따라 가장 짧은 \(\boldsymbol\delta\)의 길이는 \(|b'|/\|\mathbf w\| = |\mathbf w^\top\mathbf x_0 + b|/\|\mathbf w\|\)이고, 그때 \(\boldsymbol\delta = (b'/\|\mathbf w\|^2)\,\mathbf w\)이다.</p>
+        <p>수치: \(\mathbf w^\top\mathbf x_0 + b = 12 + 12 - 10 = 14\), \(\|\mathbf w\| = 5\)이므로 거리는 \(14/5 = 2.8\)이다. 가장 가까운 점은 \(\mathbf x_0 - (14/25)\,\mathbf w = (4 - 1.68,\ 3 - 2.24) = (2.32, 0.76)\)이고, \(3(2.32) + 4(0.76) = 10\)으로 초평면 위에 있다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-pinf" data-level="2"><p>\(p \ge 1\)일 때 \(\|\mathbf x\|_\infty \le \|\mathbf x\|_p \le n^{1/p}\,\|\mathbf x\|_\infty\)임을 보이고, 이로부터 \(p \to \infty\)일 때 \(\|\mathbf x\|_p \to \|\mathbf x\|_\infty\)임을 보여라. \(\mathbf x = (3, -4)\), \(p = 10\)에서 두 경계를 계산해 본문의 값 4.02와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>\(m = \|\mathbf x\|_\infty\)라 하자. 합 \(\sum_i |x_i|^p\)에는 \(m^p\)인 항이 적어도 하나 있으므로 \(m^p\) 이상이고, 각 항이 \(m^p\) 이하이므로 \(n\,m^p\) 이하이다. 양변을 \(1/p\) 제곱하면 \(m \le \|\mathbf x\|_p \le n^{1/p} m\)이다. \(n^{1/p} = e^{(\ln n)/p}\)는 \(p \to \infty\)일 때 1로 가므로, 두 경계 사이에 낀 \(\|\mathbf x\|_p\)도 \(m\)으로 간다.</p>
+        <p>\(\mathbf x = (3, -4)\), \(p = 10\)이면 경계는 \(4\)와 \(2^{0.1}\cdot 4 \approx 4.287\)이고, 실제 값 \(\|\mathbf x\|_{10} \approx 4.022\)는 그 사이에 있다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-steepest" data-level="2"><p>\(\mathbf w = (2, -5, 1)\), \(\varepsilon = 0.1\)일 때, \(\|\boldsymbol\delta\|_2 \le \varepsilon\), \(\|\boldsymbol\delta\|_\infty \le \varepsilon\), \(\|\boldsymbol\delta\|_1 \le \varepsilon\) 각각의 조건에서 \(\mathbf w^\top\boldsymbol\delta\)를 가장 크게 만드는 \(\boldsymbol\delta\)와 그 최댓값을 구하라. 세 최댓값의 크기 순서가 <a class="ref" href="#thm-norm-chain"></a>와 어떻게 이어지는지 설명하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>L2: \(\boldsymbol\delta = 0.1\,(2, -5, 1)/\sqrt{30}\), 최댓값 \(0.1\sqrt{30} \approx 0.548\). L∞: \(\boldsymbol\delta = (0.1, -0.1, 0.1)\), 최댓값 \(0.1(2 + 5 + 1) = 0.8\). L1: 가장 큰 성분이 \(w_2 = -5\)이므로 \(\boldsymbol\delta = (0, -0.1, 0)\), 최댓값 \(0.5\).</p>
+        <p>최댓값은 차례로 \(\varepsilon\|\mathbf w\|_2\), \(\varepsilon\|\mathbf w\|_1\), \(\varepsilon\|\mathbf w\|_\infty\)이므로 크기 순서 \(0.8 \ge 0.548 \ge 0.5\)는 \(\|\mathbf w\|_1 \ge \|\mathbf w\|_2 \ge \|\mathbf w\|_\infty\)와 같다. 제약의 단위 공이 클수록(L∞의 정사각형이 가장 크다) 내적을 더 크게 만들 수 있다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-cosdist" data-level="2"><p>평면에서 \(x_1\)축과 0°, 60°, 120°를 이루는 단위 벡터 \(\mathbf a, \mathbf b, \mathbf c\)를 생각하자. (가) \(d(\mathbf u, \mathbf v) = 1 - \cos(\mathbf u, \mathbf v)\)가 삼각 부등식 \(d(\mathbf a, \mathbf c) \le d(\mathbf a, \mathbf b) + d(\mathbf b, \mathbf c)\)를 어김을 보여라. (나) 단위 벡터에서 \(\sqrt{2\,d(\mathbf u, \mathbf v)}\)는 삼각 부등식을 만족함을 보이고, 같은 세 벡터로 확인하라.</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>(가) \(d(\mathbf a, \mathbf c) = 1 - \cos 120° = 1.5\)인데 \(d(\mathbf a, \mathbf b) + d(\mathbf b, \mathbf c) = 0.5 + 0.5 = 1\)이다.</p>
+        <p>(나) 식 <a class="ref" href="#eq-unit-dist"></a>에 따라 단위 벡터에서 \(\sqrt{2\,d(\mathbf u, \mathbf v)} = \|\mathbf u - \mathbf v\|\)이다. L2 노름의 삼각 부등식을 \((\mathbf a - \mathbf b) + (\mathbf b - \mathbf c) = \mathbf a - \mathbf c\)에 쓰면 \(\|\mathbf a - \mathbf c\| \le \|\mathbf a - \mathbf b\| + \|\mathbf b - \mathbf c\|\)이다. 수치로는 \(\sqrt3 \approx 1.73 \le 1 + 1\)이다. \(d\)는 거리를 제곱한 꼴(의 절반)이어서, 먼 두 점 사이의 값을 지나치게 키운다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-search" data-level="2"><p>(NumPy) 아래 코드는 길이가 제각각인 64차원 '문서' 1000개와 질의 하나를 만든다. 내적, 코사인 유사도, L2 거리 각각으로 상위 5개 문서를 뽑아 비교하라. 다음으로 모든 벡터를 정규화한 뒤 내적과 거리로 다시 뽑고, 식 <a class="ref" href="#eq-unit-dist"></a>을 수치로 확인하라. 내적으로 뽑은 문서들의 길이는 평균과 비교해 어떤가?</p>
+<pre><code>rng = np.random.default_rng(0)
+D = rng.standard_normal((1000, 64)) * rng.uniform(0.5, 2.0, size=(1000, 1))
+q = rng.standard_normal(64)</code></pre>
+      <details class="sol"><summary>풀이</summary>
+<pre><code>top = lambda s: np.argsort(-s)[:5]                  # 점수가 큰 순서로 5개
+nrm = lambda v: v / np.linalg.norm(v, axis=-1, keepdims=True)
+print(top(D @ q))                                   # [924  52 922 796 728]
+print(top(nrm(D) @ nrm(q)))                         # [290 874 924 812 795]
+print(top(-np.linalg.norm(D - q, axis=1)))          # [ 93 577 874 280 252]
+Dn, qn = nrm(D), nrm(q)
+print(top(Dn @ qn), top(-np.linalg.norm(Dn - qn, axis=1)))   # 둘 다 [290 874 924 812 795]
+print(np.allclose(np.linalg.norm(Dn - qn, axis=1)**2, 2 - 2 * Dn @ qn))   # True
+print(np.linalg.norm(D[top(D @ q)], axis=1).round(1))       # [13.4 15.4 16.2 14.7 16. ]
+print(np.linalg.norm(D, axis=1).mean().round(1))            # 10.0</code></pre>
+        <p>정규화하기 전에는 세 기준의 상위 5개가 서로 다르고, 정규화한 뒤에는 내적과 거리가 코사인 유사도와 같은 목록을 낸다. 내적으로 뽑힌 문서의 길이는 13–16으로 평균 약 10보다 길다. 내적이 긴 벡터를 선호한다는 <a class="ref" href="#ex-search"></a>의 관찰이 큰 데이터에서도 그대로 나타난다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-lagrange" data-level="3"><p>라그랑주 항등식</p>
+      <div class="formula">\[ \begin{aligned} &amp;\Big(\sum_i x_i^2\Big)\Big(\sum_i y_i^2\Big) - \Big(\sum_i x_iy_i\Big)^2 \\ &amp;\qquad = \sum_{i&lt;j} (x_iy_j - x_jy_i)^2 \end{aligned} \]</div>
+      <p>을 증명하고, 이것으로 코시-슈바르츠 부등식과 등호 조건을 다시 얻어라. \(n = 2\)일 때 오른쪽은 무엇의 제곱인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>왼쪽을 이중합으로 쓰면 \(\sum_i\sum_j x_i^2y_j^2 - \sum_i\sum_j x_iy_ix_jy_j\)이다. \(i = j\)인 항은 \(x_i^2y_i^2 - x_i^2y_i^2 = 0\)으로 지워진다. \(i \ne j\)인 항은 \((i, j)\)와 \((j, i)\)를 짝지으면 \(x_i^2y_j^2 + x_j^2y_i^2 - 2x_iy_ix_jy_j = (x_iy_j - x_jy_i)^2\)이므로, \(i &lt; j\)인 쌍에 대한 합이 오른쪽이 된다.</p>
+        <p>오른쪽은 제곱의 합이므로 0 이상이고, 이것이 \((\mathbf x^\top\mathbf y)^2 \le \|\mathbf x\|^2\|\mathbf y\|^2\)이다. 등호는 모든 \(i, j\)에서 \(x_iy_j = x_jy_i\)일 때 성립한다. \(\mathbf y \ne \mathbf 0\)이면 \(y_k \ne 0\)인 \(k\)를 골라 \(x_i = (x_k/y_k)\,y_i\)를 얻으므로 \(\mathbf x\)는 \(\mathbf y\)의 스칼라배다.</p>
+        <p>\(n = 2\)이면 오른쪽은 \((x_1y_2 - x_2y_1)^2\)이고, \(x_1y_2 - x_2y_1\)은 두 벡터가 만드는 평행사변형의 (부호 있는) 넓이다. 7장에서 이것을 행렬식으로 다시 만난다.</p>
+      </details>
+    </div>
+
+    <div class="prob" id="prob-temp" data-level="3"><p>대조 학습에서 후보가 \(N = 1000\)개이고, 정답의 코사인 유사도가 0.5, 나머지 999개는 모두 0이라 하자. 점수를 \(c_j/\tau\)로 쓸 때 정답의 소프트맥스 확률이 0.9 이상이 되는 \(\tau\)의 범위를 구하라. \(\tau = 0.07\)이면 확률은 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary>
+        <p>정답의 확률은 \(e^{0.5/\tau}/\big(e^{0.5/\tau} + 999\,e^{0}\big) = 1/\big(1 + 999\,e^{-0.5/\tau}\big)\)이다. 이것이 0.9 이상이려면 \(999\,e^{-0.5/\tau} \le 1/9\), 곧 \(e^{0.5/\tau} \ge 8991\)이어야 하므로 \(0.5/\tau \ge \ln 8991 \approx 9.10\), 곧 \(\tau \le 0.0549\)이다.</p>
+        <p>\(\tau = 0.07\)이면 \(1/\big(1 + 999\,e^{-7.14}\big) \approx 0.56\)이다. 같은 온도라도 정답과 오답의 유사도 차이가 작으면 확신이 떨어진다. 학습은 이 차이를 키우는 쪽으로 임베딩을 움직인다.</p>
+      </details>
+    </div>
   </section>
 </main>
 </body>
