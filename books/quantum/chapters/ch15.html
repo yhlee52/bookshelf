@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>15 수소 원자 · QuantumBook</title>
-<meta name="description" content="수소 원자의 두 입자 운동을 환산 질량으로 분리하고, 쿨롱 지름 방정식에서 에너지 준위와 오비탈을 유도한다.">
+<meta name="description" content="수소 원자의 두 입자 운동을 환산 질량으로 분리하고, 쿨롱 지름 방정식에서 에너지 준위와 오비탈을 유도한다. 헬만–파인만 정리로 지름 기댓값을 구하고, 룽게–렌츠 벡터로 서로 다른 l의 축퇴를 설명한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -28,14 +28,15 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">15</span></div>
     <h1 data-fill="chapter-title">수소 원자</h1>
-    <p class="lead">수소 원자는 전자 하나와 양성자 하나로 이루어졌지만, 두 입자가 모두 움직인다. 두 운동을 분리하면 상대 운동은 <a href="ch14.html">14장</a>의 중심 퍼텐셜 문제가 되고, 경계 조건에서 정수 양자수와 이산 에너지가 나온다. 이 장에서는 그 과정을 끝까지 따라가며 오비탈이 확률 분포라는 뜻까지 살핀다.</p>
+    <p class="lead">수소 원자는 전자 하나와 양성자 하나로 이루어졌지만, 두 입자가 모두 움직인다. 두 운동을 분리하면 상대 운동은 <a href="ch14.html">14장</a>의 중심 퍼텐셜 문제가 되고, 경계 조건에서 정수 양자수와 이산 에너지가 나온다. 이 장에서는 그 과정을 끝까지 따라가며 오비탈의 모양과 지름 기댓값을 계산하고, 서로 다른 \(l\)의 준위가 겹치는 이유를 숨은 대칭에서 찾는다.</p>
     <ul class="objectives">
       <li>전자·양성자의 운동을 질량중심과 상대 운동으로 분리하고 환산 질량을 계산할 수 있다.</li>
       <li>쿨롱 지름 방정식의 경계 조건에서 주양자수와 라게르 다항식이 나오는 과정을 유도할 수 있다.</li>
-      <li>수소 원자의 에너지 준위, 전이 에너지, 궤도 축퇴도를 계산할 수 있다.</li>
-      <li>1s·2s·2p 오비탈의 마디와 확률 분포를 식으로 설명할 수 있다.</li>
+      <li>수소 원자와 수소꼴 이온의 에너지 준위, 전이 에너지, 궤도 축퇴도를 계산할 수 있다.</li>
+      <li>1s·2s·2p 오비탈의 마디와 확률 분포, 복소 오비탈의 확률 흐름을 식으로 설명할 수 있다.</li>
+      <li>헬만–파인만 정리로 지름 기댓값을 구하고, 룽게–렌츠 벡터로 서로 다른 \(l\)의 축퇴를 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch03.html">3장</a> (위치·운동량 표현), <a href="ch06.html">6장</a> (정상 상태), <a href="ch12.html">12장</a> (두 입자), <a href="ch14.html#thm-radial-equation">14장</a> (구면 조화 함수와 지름 방정식)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch03.html">3장</a> (위치·운동량 표현), <a href="ch06.html">6장</a> (정상 상태), <a href="ch10.html#thm-heisenberg-equation">10장</a> (하이젠베르크 운동 방정식), <a href="ch12.html">12장</a> (두 입자), <a href="ch13.html#thm-symmetry-degeneracy">13장</a> (대칭과 축퇴), <a href="ch14.html#thm-radial-equation">14장</a> (구면 조화 함수와 지름 방정식)</p>
   </header>
 
   <section id="s1">
@@ -52,11 +53,16 @@
       \end{gathered} \]</div>
       <p>\(\boldsymbol r\)은 양성자에서 전자로 향하는 상대 위치다. \(\mu^{-1}=m_e^{-1}+m_p^{-1}\)이므로 \(\mu&lt;m_e\). 양성자를 매우 무겁게 보내는 극한에서 \(\mu\to m_e\)가 된다.</p>
     </div>
-    <p>각 입자의 \([\hat r_{a,i},\hat p_{b,j}]=i\hbar\delta_{ab}\delta_{ij}\)를 이용하면 \([\hat R_i,\hat P_j]=[\hat r_i,\hat p_j]=i\hbar\delta_{ij}\), \([\hat R_i,\hat p_j]=[\hat r_i,\hat P_j]=0\)이다. 즉 새 좌표와 운동량도 서로 독립된 두 정준 쌍이다. 식 <a class="ref" href="#eq-relative-coordinates"></a>을 뒤집으면</p>
+    <p>각 입자의 \([\hat r_{a,i},\hat p_{b,j}]=i\hbar\delta_{ab}\delta_{ij}\)를 이용하면 \([\hat R_i,\hat P_j]=[\hat r_i,\hat p_j]=i\hbar\delta_{ij}\), \([\hat R_i,\hat p_j]=[\hat r_i,\hat P_j]=0\)이다. <a href="ch12.html#eq-cm-commutators">12장의 1차원 계산</a>을 성분마다 되풀이한 것이다. 즉 새 좌표와 운동량도 서로 독립된 두 정준 쌍이다. 식 <a class="ref" href="#eq-relative-coordinates"></a>을 뒤집으면</p>
     <div class="formula" id="eq-momentum-inverse">\[ \hat{\boldsymbol p}_e=\frac{m_e}{M}\hat{\boldsymbol P}+\hat{\boldsymbol p},
       \qquad
       \hat{\boldsymbol p}_p=\frac{m_p}{M}\hat{\boldsymbol P}-\hat{\boldsymbol p}. \]</div>
-    <p>원래 운동에너지에 대입해 섞인 항을 확인하자. \(\hat{\boldsymbol P}\cdot\hat{\boldsymbol p}\)의 계수는 \(1/M-1/M=0\), \(\hat{\boldsymbol p}^{\,2}\)의 계수는 \((1/m_e+1/m_p)/2=1/(2\mu)\)다. 따라서</p>
+    <p>원래 운동에너지에 대입하자. \(\hat{\boldsymbol P}\)와 \(\hat{\boldsymbol p}\)의 성분은 서로 교환하므로 \(\hat{\boldsymbol P}\cdot\hat{\boldsymbol p}=\hat{\boldsymbol p}\cdot\hat{\boldsymbol P}\)이고</p>
+    <div class="formula" id="eq-kinetic-split">\[ \begin{aligned}
+      \frac{\hat{\boldsymbol p}_e^{\,2}}{2m_e}&amp;=\frac{m_e}{2M^2}\hat{\boldsymbol P}^{\,2}+\frac1M\hat{\boldsymbol P}\cdot\hat{\boldsymbol p}+\frac{\hat{\boldsymbol p}^{\,2}}{2m_e},\\
+      \frac{\hat{\boldsymbol p}_p^{\,2}}{2m_p}&amp;=\frac{m_p}{2M^2}\hat{\boldsymbol P}^{\,2}-\frac1M\hat{\boldsymbol P}\cdot\hat{\boldsymbol p}+\frac{\hat{\boldsymbol p}^{\,2}}{2m_p}.
+      \end{aligned} \]</div>
+    <p>두 줄을 더하면 섞인 항 \(\hat{\boldsymbol P}\cdot\hat{\boldsymbol p}\)는 지워진다. \(\hat{\boldsymbol P}^{\,2}\)의 계수는 \((m_e+m_p)/(2M^2)=1/(2M)\), \(\hat{\boldsymbol p}^{\,2}\)의 계수는 \((1/m_e+1/m_p)/2=1/(2\mu)\)다. 따라서</p>
     <div class="box thm" id="thm-hydrogen-separation"><div class="box-h">수소 원자 해밀토니안의 분리</div>
       <div class="formula" id="eq-hydrogen-hamiltonian">\[ \begin{aligned}
       \hat H
@@ -91,24 +97,38 @@
     <p>이 치환을 실제로 미분해 보자. \(A=(l+1)/\rho-1/2\)라 놓으면 \(u'= \rho^{l+1}e^{-\rho/2}(F'+AF)\), \(u''=\rho^{l+1}e^{-\rho/2}[F''+2AF'+(A^2+A')F]\)다. \(A^2+A'=l(l+1)/\rho^2-(l+1)/\rho+1/4\)를 식 <a class="ref" href="#eq-coulomb-dimensionless"></a>에 넣으면 \(1/\rho^2\)항과 상수항이 사라져</p>
     <div class="formula" id="eq-laguerre-ode">\[ \rho F''+(2l+2-\rho)F'+(\lambda-l-1)F=0. \]</div>
     <p>\(F(\rho)=\sum_{k=0}^{\infty}c_k\rho^k\)를 넣어 같은 차수의 계수를 맞추면</p>
-    <div class="formula" id="eq-laguerre-recurrence">\[ (k+1)(k+2l+2)c_{k+1}+(\lambda-l-1-k)c_k=0,
-      \qquad
-      c_{k+1}=\frac{k+l+1-\lambda}{(k+1)(k+2l+2)}c_k. \]</div>
-    <p>급수가 끝나지 않으면 원점에서 정칙인 해의 먼 거리 거동에 \(e^{+\rho/2}\) 성분이 생겨 정규화할 수 없다. \(k=n_r\)에서 분자가 0이 되면 급수가 멈춘다. 따라서 \(\lambda=n_r+l+1\equiv n\), \(n_r=0,1,2,\ldots\)이다. \(n\)이 <span class="term">주양자수</span> <span class="en">(principal quantum number)</span>, \(n_r\)이 지름 마디 수다.</p>
+    <div class="formula" id="eq-laguerre-recurrence">\[ \begin{gathered}
+      (k+1)(k+2l+2)c_{k+1}+(\lambda-l-1-k)c_k=0,\\
+      c_{k+1}=\frac{k+l+1-\lambda}{(k+1)(k+2l+2)}c_k.
+      \end{gathered} \]</div>
+    <p>급수가 끝나지 않으면 어떻게 될까? \(k\)가 크면 식 <a class="ref" href="#eq-laguerre-recurrence"></a>의 계수비는 \(c_{k+1}/c_k\approx1/k\)로, 지수함수 \(e^\rho=\sum_k\rho^k/k!\)의 계수비 \(1/(k+1)\)과 같아진다. 그래서 끝나지 않는 급수는 \(e^\rho\)에 가깝게 자라고, \(u=\rho^{l+1}e^{-\rho/2}F\)는 \(e^{+\rho/2}\)처럼 커져 정규화할 수 없다. 아래 증명에서 이것을 부등식으로 확인한다.</p>
+    <details class="proof"><summary>끝나지 않는 급수는 \(e^{(1-\epsilon)\rho}\)만큼 자란다</summary>
+      <p>\(0&lt;\epsilon&lt;1/2\)인 \(\epsilon\)을 하나 고르자. 계수비를 \(\frac{c_{k+1}}{c_k}=\frac1{k+1}\cdot\frac{k+l+1-\lambda}{k+2l+2}\)로 쓰면 둘째 인수는 \(k\to\infty\)에서 1로 간다. 따라서 충분히 큰 \(K\)부터는 둘째 인수가 \(1-\epsilon\)보다 크다. 급수가 끝나지 않으므로 \(c_K\ne0\)이고, 전체 부호를 바꿔 \(c_K&gt;0\)으로 둘 수 있다. 그러면 \(k\ge K\)에서 \(c_{k+1}\ge c_k(1-\epsilon)/(k+1)\)을 되풀이해</p>
+      <div class="formula">\[ \begin{gathered}
+        c_k\ \ge\ C\,\frac{(1-\epsilon)^k}{k!}\quad(k\ge K),\\
+        C=c_K\frac{K!}{(1-\epsilon)^K}&gt;0.
+        \end{gathered} \]</div>
+      <p>\(\rho&gt;0\)에서 \(k\ge K\)인 항을 더하면 \(\sum_{k\ge K}c_k\rho^k\ge C\bigl[e^{(1-\epsilon)\rho}-\sum_{k&lt;K}((1-\epsilon)\rho)^k/k!\bigr]\)이다. 따라서 \(F(\rho)\ge Ce^{(1-\epsilon)\rho}-P(\rho)\)이고, \(P\)는 \(K-1\)차 이하의 다항식이다. 이것을 \(u\)에 넣으면 \(u\ge C\rho^{l+1}e^{(1/2-\epsilon)\rho}-\rho^{l+1}e^{-\rho/2}P(\rho)\)다. 첫 항이 지수적으로 커지므로 \(\int u^2d\rho\)가 발산한다.</p>
+    </details>
+    <p>급수가 끝나려면 어떤 \(k=n_r\)에서 분자가 0이어야 한다. 따라서 \(\lambda=n_r+l+1\equiv n\), \(n_r=0,1,2,\ldots\)이다. \(n\)이 <span class="term">주양자수</span> <span class="en">(principal quantum number)</span>, \(n_r\)이 지름 마디 수다. 이 유도는 \(l\)이 정수라는 사실을 쓰지 않았다는 점을 기억해 두자. <a href="#s5">15.5절</a>에서 이 점을 이용한다.</p>
     <div class="box math" id="math-laguerre"><div class="box-h">일반화 라게르 다항식</div>
       <p>식 <a class="ref" href="#eq-laguerre-ode"></a>에서 \(k=n_r\), \(\alpha=2l+1\)로 두면 \(F\)는 \(L_k^\alpha(\rho)\)에 비례한다. 이 책의 관례는 다음과 같다.</p>
-      <div class="formula" id="eq-laguerre-definition">\[ L_k^\alpha(\rho)=\frac{e^\rho\rho^{-\alpha}}{k!}
-      \frac{d^k}{d\rho^k}\left(e^{-\rho}\rho^{k+\alpha}\right),
-      \qquad L_0^\alpha=1,\quad L_1^\alpha=\alpha+1-\rho. \]</div>
+      <div class="formula" id="eq-laguerre-definition">\[ \begin{gathered}
+      L_k^\alpha(\rho)=\frac{e^\rho\rho^{-\alpha}}{k!}
+      \frac{d^k}{d\rho^k}\left(e^{-\rho}\rho^{k+\alpha}\right),\\
+      L_0^\alpha=1,\qquad L_1^\alpha=\alpha+1-\rho.
+      \end{gathered} \]</div>
       <p>예를 들어 \(n=2,l=0\)이면 \(k=1,\alpha=1\)이라서 \(L_1^1=2-\rho\)다. 일부 자료에서는 다항식에 상수 배수나 부호를 달리 붙이므로, 파동함수를 비교할 때 이 정의를 먼저 확인한다.</p>
     </div>
     <p>\(a_\mu=\hbar^2/(\mu\kappa)\), \(\rho=2r/(na_\mu)\)를 쓰고 \(\int_0^\infty |R|^2r^2dr=1\)로 정규화한 결과는 다음과 같다. 정규화 계수는 \(\int_0^\infty e^{-\rho}\rho^{\alpha+1}[L_k^\alpha(\rho)]^2d\rho=(2k+\alpha+1)(k+\alpha)!/k!\)에 \(k=n-l-1,\alpha=2l+1\)을 넣어 얻는다.</p>
     <div class="box thm" id="thm-hydrogen-radial"><div class="box-h">정규화된 수소 지름 함수</div>
-      <div class="formula" id="eq-hydrogen-radial">\[ R_{nl}(r)=
+      <div class="formula" id="eq-hydrogen-radial">\[ \begin{aligned}
+      R_{nl}(r)&amp;=
       \left(\frac{2}{na_\mu}\right)^{3/2}
-      \sqrt{\frac{(n-l-1)!}{2n(n+l)!}}\,
-      e^{-\rho/2}\rho^l L_{n-l-1}^{2l+1}(\rho),
-      \qquad \rho=\frac{2r}{na_\mu}. \]</div>
+      \sqrt{\frac{(n-l-1)!}{2n(n+l)!}}\\
+      &amp;\quad\times e^{-\rho/2}\rho^l L_{n-l-1}^{2l+1}(\rho),
+      \qquad \rho=\frac{2r}{na_\mu}.
+      \end{aligned} \]</div>
       <p>\(n=1,2,\ldots\), \(l=0,\ldots,n-1\)이다. \(u=rR\)는 원점에서 \(r^{l+1}\)처럼 시작하고 무한대에서 지수적으로 줄어든다. 다항식의 차수 \(n-l-1\)이 양의 반지름에서 만나는 지름 마디 수다.</p>
     </div>
     <div class="box ex" id="ex-low-radial"><div class="box-h">1s, 2s, 2p 지름 함수</div>
@@ -128,29 +148,49 @@
     <h2>에너지 준위와 축퇴</h2>
     <p>앞 절의 종료 조건은 \(\lambda=n=1/(qa_\mu)\)였다. \(q=1/(na_\mu)\)를 \(q^2=-2\mu E/\hbar^2\)에 넣으면 에너지는 \(n\) 하나로 정해진다.</p>
     <div class="box thm" id="thm-hydrogen-spectrum"><div class="box-h">비상대론적 쿨롱 모형의 속박 준위</div>
-      <div class="formula" id="eq-hydrogen-spectrum">\[ E_n=-\frac{\mu\kappa^2}{2\hbar^2n^2}
-      =-\frac{\kappa}{2a_\mu n^2},\qquad
-      n=1,2,\ldots,\quad l=0,\ldots,n-1,\quad m=-l,\ldots,l. \]</div>
+      <div class="formula" id="eq-hydrogen-spectrum">\[ \begin{gathered}
+      E_n=-\frac{\mu\kappa^2}{2\hbar^2n^2}
+      =-\frac{\kappa}{2a_\mu n^2},\\
+      n=1,2,\ldots,\quad l=0,\ldots,n-1,\quad m=-l,\ldots,l.
+      \end{gathered} \]</div>
       <p>에너지의 영점은 전자와 양성자가 무한히 멀리 떨어져 상대 운동이 멈춘 상태다. \(E_n&lt;0\)이므로 속박 상태이며 \(n\to\infty\)에서 0에 가까워진다. 핵의 스핀, 전자의 스핀, 상대론적 효과와 복사 보정은 이 모형에서 제외했다.</p>
     </div>
-    <p>왜 \(l\)이 달라도 같은 에너지일까? 지름 방정식에는 원심 항 \(l(l+1)\)이 들어가지만, 정상적으로 끝나는 급수의 조건은 \(n=n_r+l+1\)이다. \(n\)을 고정하고 \(l\)을 늘리면 지름 마디 수 \(n_r\)가 줄어들어 같은 에너지에 도달한다. 이 추가 축퇴는 일반적인 중심 퍼텐셜에는 없고 \(1/r\) 퍼텐셜의 특별한 성질이다.</p>
+    <p>왜 \(l\)이 달라도 같은 에너지일까? 지름 방정식에는 원심 항 \(l(l+1)\)이 들어가지만, 정상적으로 끝나는 급수의 조건은 \(n=n_r+l+1\)이다. \(n\)을 고정하고 \(l\)을 늘리면 지름 마디 수 \(n_r\)가 줄어들어 같은 에너지에 도달한다. 이런 추가 축퇴는 일반적인 중심 퍼텐셜에는 없고 \(1/r\) 퍼텐셜에서만 나타난다. 흔히 <span class="term">우연 축퇴</span> <span class="en">(accidental degeneracy)</span>라 부르지만 우연이 아니다. 회전 대칭보다 큰 숨은 대칭이 있으며, <a href="#s6">15.6절</a>에서 그 보존량을 찾는다.</p>
     <div class="formula" id="eq-hydrogen-degeneracy">\[ g_n^{\mathrm{orb}}=\sum_{l=0}^{n-1}(2l+1)
       =2\frac{n(n-1)}2+n=n^2. \]</div>
     <div class="box ex" id="ex-n-two-states"><div class="box-h">\(n=2\)의 네 궤도 상태</div>
-      <p>\(l=0\)에는 \(m=0\)인 2s 상태 하나가 있다. \(l=1\)에는 \(m=-1,0,1\)인 2p 상태 셋이 있다. 네 상태 모두 식 <a class="ref" href="#eq-hydrogen-spectrum"></a>에서 \(E_2=E_1/4\)다. 회전 대칭은 세 2p 상태의 동등함을 보장하지만, 2s와 2p의 동등함까지 보장하는 것은 쿨롱 퍼텐셜의 특별한 구조다.</p>
+      <p>\(l=0\)에는 \(m=0\)인 2s 상태 하나가 있다. \(l=1\)에는 \(m=-1,0,1\)인 2p 상태 셋이 있다. 네 상태 모두 식 <a class="ref" href="#eq-hydrogen-spectrum"></a>에서 \(E_2=E_1/4\)다. 회전 대칭은 세 2p 상태의 동등함을 보장하지만, 2s와 2p의 동등함까지 보장하지는 못한다. 그것은 15.6절의 룽게–렌츠 벡터가 맡는다.</p>
     </div>
     <h3 id="s3-scales">실제 수소의 길이와 에너지 눈금</h3>
     <p>핵을 무한히 무겁게 보낸 보어 반지름을 \(a_0=4\pi\epsilon_0\hbar^2/(m_e e^2)\)라 쓰면 \(a_\mu=a_0(m_e/\mu)=a_0(1+m_e/m_p)\)다. <a href="https://physics.nist.gov/cuu/pdf/wall_2022.pdf">NIST 2022 CODATA</a>의 \(a_0=5.291\,772\,105\,44\times10^{-11}\ \mathrm m\), \(m_e/m_p=5.446\,170\,214\,889\times10^{-4}\), \(R_\infty hc=13.605\,693\,122\,990\ \mathrm{eV}\)를 쓰면, 이 모형의 수소에 대해</p>
-    <div class="formula" id="eq-hydrogen-numbers">\[ a_\mu\simeq 5.295\times10^{-11}\ \mathrm m,\qquad
-      E_1=-\frac{\mu}{m_e}R_\infty hc\simeq-13.5983\ \mathrm{eV}. \]</div>
+    <div class="formula" id="eq-hydrogen-numbers">\[ \begin{gathered}
+      a_\mu\simeq 5.295\times10^{-11}\ \mathrm m,\\
+      E_1=-\frac{\mu}{m_e}R_\infty hc\simeq-13.5983\ \mathrm{eV}.
+      \end{gathered} \]</div>
     <p>여기서 \(R_\infty hc\)는 무한히 무거운 핵에 대한 에너지 눈금이고 \(\mu/m_e\)가 유한 양성자 질량의 보정이다. 표시한 근삿값은 이 단순한 비상대론적 쿨롱 모형의 결과다. 실제 원자의 정밀 분광에는 이 장에서 생략한 효과가 들어간다.</p>
-    <p>높은 준위 \(n_i\)에서 낮은 준위 \(n_f\)로 허용된 한 광자 전이가 일어나면, 두 준위의 <em>에너지 차이</em>는 방출되는 광자의 에너지와 같다.</p>
+    <p>높은 준위 \(n_i\)에서 낮은 준위 \(n_f\)로 허용된 한 광자 전이가 일어나면, 두 준위의 <em>에너지 차이</em>는 방출되는 광자의 에너지와 같다. <a href="ch05.html#s2-lines">5장의 뤼드베리 공식</a>과 같은 꼴이며, 이제 그 상수가 \(\mu\kappa^2/(2\hbar^2)\)로 정해진다.</p>
     <div class="formula" id="eq-photon-energy">\[ h\nu=E_{n_i}-E_{n_f}
       =\frac{\mu\kappa^2}{2\hbar^2}
         \left(\frac1{n_f^2}-\frac1{n_i^2}\right),
       \qquad n_i&gt;n_f. \]</div>
     <div class="box ex" id="ex-lyman-alpha"><div class="box-h">2p에서 1s로</div>
-      <p>식 <a class="ref" href="#eq-photon-energy"></a>에 \(n_i=2,n_f=1\)을 넣으면 \(h\nu=(3/4)|E_1|\simeq10.1987\ \mathrm{eV}\)다. 광자 에너지는 준위의 절댓값 하나가 아니라 두 준위의 차이다. 2s와 2p가 같은 에너지를 가져도 허용 전이의 조건은 다르며, 전이의 세기는 광자와의 상호작용을 넣어야 알 수 있다.</p>
+      <p>식 <a class="ref" href="#eq-photon-energy"></a>에 \(n_i=2,n_f=1\)을 넣으면 \(h\nu=(3/4)|E_1|\simeq10.1987\ \mathrm{eV}\), 파장은 \(hc/h\nu\simeq121.57\ \mathrm{nm}\)의 자외선이다. 광자 에너지는 준위의 절댓값 하나가 아니라 두 준위의 차이다.</p>
+      <p>2s도 2p와 같은 에너지지만, 2s에서 1s로는 광자 하나를 내며 내려갈 수 없다. 한 광자 전이는 \(l\)을 한 칸 바꾸어야 한다는 <a href="ch20.html#thm-electric-dipole-rules">선택 규칙</a> 때문이다. 그래서 2p의 수명은 약 1.6 ns이지만, 2s는 광자 두 개를 내는 느린 과정으로 약 0.12 s를 산다. 그림 15-1이 이 관계를 보여 준다.</p>
+    </div>
+    <figure class="diagram" id="fig-levels">
+      <div class="fig-narrow"><!--fig:15-1--><svg viewBox="0 0 440 312" role="img" aria-label="수소 원자의 에너지 준위를 궤도 양자수 l별 열로 나눈 그림. 같은 n의 준위는 l이 달라도 같은 높이에 있고, 2p에서 1s로의 라이먼 알파 전이와 n=3에서 n=2로의 발머 알파 전이 세 갈래가 l을 한 칸씩 바꾸는 화살표로 표시되어 있다"><defs><marker id="f151-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f151-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f151-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="140" y="24" class="t-math dim" text-anchor="middle"><tspan font-style="italic">l</tspan> = 0</text><text x="140" y="40" class="t-dim" text-anchor="middle">s</text><text x="214" y="24" class="t-math dim" text-anchor="middle"><tspan font-style="italic">l</tspan> = 1</text><text x="214" y="40" class="t-dim" text-anchor="middle">p</text><text x="288" y="24" class="t-math dim" text-anchor="middle"><tspan font-style="italic">l</tspan> = 2</text><text x="288" y="40" class="t-dim" text-anchor="middle">d</text><text x="362" y="24" class="t-math dim" text-anchor="middle"><tspan font-style="italic">l</tspan> = 3</text><text x="362" y="40" class="t-dim" text-anchor="middle">f</text><line x1="115" y1="46" x2="387" y2="46" class="s-faint" stroke-dasharray="3 4"/><text x="107" y="50" class="t-math dim" text-anchor="end"><tspan font-style="italic">n</tspan> = ∞</text><text x="436" y="50" class="t-math dim" text-anchor="end">0</text><line x1="115" y1="286" x2="165" y2="286" class="s-line" stroke-width="2.4"/><text x="107" y="290" class="t-math dim" text-anchor="end"><tspan font-style="italic">n</tspan> = 1</text><text x="436" y="290" class="t-math dim" text-anchor="end">−13.60</text><line x1="115" y1="106" x2="165" y2="106" class="s-line" stroke-width="2.4"/><line x1="189" y1="106" x2="239" y2="106" class="s-line" stroke-width="2.4"/><text x="107" y="110" class="t-math dim" text-anchor="end"><tspan font-style="italic">n</tspan> = 2</text><text x="436" y="110" class="t-math dim" text-anchor="end">−3.40</text><line x1="115" y1="72.7" x2="165" y2="72.7" class="s-line" stroke-width="2.4"/><line x1="189" y1="72.7" x2="239" y2="72.7" class="s-line" stroke-width="2.4"/><line x1="263" y1="72.7" x2="313" y2="72.7" class="s-line" stroke-width="2.4"/><text x="107" y="76.7" class="t-math dim" text-anchor="end"><tspan font-style="italic">n</tspan> = 3</text><text x="436" y="76.7" class="t-math dim" text-anchor="end">−1.51</text><line x1="115" y1="61" x2="165" y2="61" class="s-line" stroke-width="1.2"/><line x1="189" y1="61" x2="239" y2="61" class="s-line" stroke-width="1.2"/><line x1="263" y1="61" x2="313" y2="61" class="s-line" stroke-width="1.2"/><line x1="337" y1="61" x2="387" y2="61" class="s-line" stroke-width="1.2"/><line x1="115" y1="55.6" x2="165" y2="55.6" class="s-line" stroke-width="1.2"/><line x1="189" y1="55.6" x2="239" y2="55.6" class="s-line" stroke-width="1.2"/><line x1="263" y1="55.6" x2="313" y2="55.6" class="s-line" stroke-width="1.2"/><line x1="337" y1="55.6" x2="387" y2="55.6" class="s-line" stroke-width="1.2"/><line x1="115" y1="52.7" x2="165" y2="52.7" class="s-line" stroke-width="1.2"/><line x1="189" y1="52.7" x2="239" y2="52.7" class="s-line" stroke-width="1.2"/><line x1="263" y1="52.7" x2="313" y2="52.7" class="s-line" stroke-width="1.2"/><line x1="337" y1="52.7" x2="387" y2="52.7" class="s-line" stroke-width="1.2"/><text x="436" y="308" class="t-dim" text-anchor="end">eV</text><line x1="208" y1="109" x2="148" y2="282" class="s-acc" stroke-width="1.8" marker-end="url(#f151-acc)"/><text x="191" y="200" class="t-acc" text-anchor="start">라이먼 α</text><line x1="150" y1="75.7" x2="202" y2="102" class="s-acc2" stroke-width="1.8" marker-end="url(#f151-acc2)"/><line x1="204" y1="75.7" x2="152" y2="102" class="s-acc2" stroke-width="1.8" marker-end="url(#f151-acc2)"/><line x1="276" y1="75.7" x2="224" y2="102" class="s-acc2" stroke-width="1.8" marker-end="url(#f151-acc2)"/><text x="290" y="124" class="t-acc" style="fill:var(--accent-2)" text-anchor="middle">발머 α</text><line x1="128" y1="110" x2="128" y2="280" class="s-faint" stroke-dasharray="4 4"/><text x="122" y="226" class="t-dim" text-anchor="end">한 광자로는</text><text x="122" y="242" class="t-dim" text-anchor="end">불가</text></svg><!--/fig:15-1--></div>
+      <figcaption><b>그림 15-1.</b> 식 <a class="ref" href="#eq-hydrogen-spectrum"></a>의 준위를 궤도 양자수 \(l\)별 열로 나누어 눈금대로 그렸다(\(n=4,5,6\)은 가는 선). 같은 \(n\)의 준위는 \(l\)이 달라도 같은 높이에 있다. 한 광자 전이는 \(l\)을 한 칸씩 바꾸므로 화살표는 이웃한 열 사이를 잇고, 2s에서 1s로는 한 광자로 내려갈 수 없다.</figcaption>
+    </figure>
+    <h3 id="s3-hydrogenic">수소꼴 이온</h3>
+    <p>핵의 전하가 \(Ze\)이고 전자가 하나뿐인 이온(He<sup>+</sup>, Li<sup>2+</sup>, …)을 <span class="term">수소꼴 이온</span> <span class="en">(hydrogen-like ion)</span>이라 한다. 퍼텐셜이 \(-Z\kappa/r\)이므로 이 장의 식에서 \(\kappa\)를 \(Z\kappa\)로 바꾸면 된다. 환산 질량은 그 이온의 핵 질량으로 계산한다.</p>
+    <div class="formula" id="eq-hydrogenic">\[ \begin{gathered}
+      a_Z=\frac{\hbar^2}{\mu Z\kappa}=\frac{a_\mu}{Z},\\
+      E_n=-\frac{Z^2\mu\kappa^2}{2\hbar^2n^2}=-Z^2\,\frac{\mu}{m_e}\,\frac{R_\infty hc}{n^2}.
+      \end{gathered} \]</div>
+    <p>길이는 \(1/Z\)로 줄고 에너지는 \(Z^2\)배가 된다. 파동함수는 식 <a class="ref" href="#eq-hydrogen-radial"></a>에서 \(a_\mu\)를 \(a_Z\)로 바꾼 것이다. <a href="ch18.html">18장</a>의 헬륨 변분 계산은 이 \(Z=2\) 파동함수에서 출발한다.</p>
+    <div class="box ex" id="ex-helium-ion"><div class="box-h">He<sup>+</sup>와 피커링 계열</div>
+      <p>헬륨-4 핵의 질량은 \(m_\alpha/m_e=7294.30\)이므로 \(\mu/m_e=1/(1+m_e/m_\alpha)=0.999863\)이다. 식 <a class="ref" href="#eq-hydrogenic"></a>에 \(Z=2\)를 넣으면 \(E_1=-4\times0.999863\times13.6057\ \mathrm{eV}=-54.415\ \mathrm{eV}\)다. \(n=2\to1\) 전이의 광자는 \(40.81\ \mathrm{eV}\), 파장 \(30.38\ \mathrm{nm}\)의 극자외선이다. 태양 관측 위성은 이 선으로 태양 대기를 찍는다.</p>
+      <p>He<sup>+</sup>의 \(n\to4\) 전이는 \(Z^2(1/4^2-1/n^2)=1/2^2-1/(n/2)^2\)에 비례한다. \(n\)이 짝수이면 수소의 발머 계열(\(n/2\to2\))과 같은 꼴이다. 예를 들어 He<sup>+</sup>의 \(6\to4\) 선은 656.20 nm로 수소의 H\(\alpha\)(\(3\to2\), 656.47 nm)와 0.04% 다르다. 이 차이가 환산 질량에서 온다. \(n\)이 홀수인 선(\(7\to4\)의 541.3 nm 등)은 발머 선 사이에 끼어 있다. 피커링 계열이라 불린 이 선들은 수소의 것으로 여겨졌는데, 1913년 보어가 He<sup>+</sup>의 선임을 밝히고 수소 선과의 작은 어긋남을 환산 질량으로 설명했다. 파장은 모두 진공 파장이다.</p>
     </div>
   </section>
 
@@ -159,10 +199,12 @@
     <p><span class="term">오비탈</span> <span class="en">(orbital)</span>은 전자가 따르는 고전적인 궤도가 아니라 상대 좌표 \(\boldsymbol r\)에 대한 정상 상태 파동함수 \(\psi_{nlm}=R_{nl}Y_l^m\)다. 원자 전체의 위치는 별도의 질량중심 파동함수 \(\Phi_{\mathrm{CM}}\)가 기술한다. 양성자에 대한 전자의 상대 위치 확률밀도는 \(|\psi_{nlm}|^2\)이며, 공간 적분에는 \(d^3r=r^2dr\,d\Omega\)가 들어간다.</p>
     <div class="box ex" id="ex-one-s-orbital"><div class="box-h">1s: 구형이지만 정해진 반지름은 없다</div>
       <p><a href="ch14.html#eq-low-spherical-harmonics">\(Y_0^0=1/\sqrt{4\pi}\)</a>와 식 <a class="ref" href="#eq-low-radial"></a>을 곱하면 \(a=a_\mu\)에 대해</p>
-      <div class="formula" id="eq-one-s-density">\[ \psi_{100}(\boldsymbol r)=\frac{e^{-r/a}}{\sqrt{\pi a^3}},\qquad
-      |\psi_{100}|^2=\frac{e^{-2r/a}}{\pi a^3},\qquad
+      <div class="formula" id="eq-one-s-density">\[ \begin{gathered}
+      \psi_{100}(\boldsymbol r)=\frac{e^{-r/a}}{\sqrt{\pi a^3}},\qquad
+      |\psi_{100}|^2=\frac{e^{-2r/a}}{\pi a^3},\\
       p_{1s}(r)=r^2\!\int d\Omega\,|\psi_{100}|^2
-      =\frac{4r^2}{a^3}e^{-2r/a}. \]</div>
+      =\frac{4r^2}{a^3}e^{-2r/a}.
+      \end{gathered} \]</div>
       <p>\(|\psi_{100}|^2\)는 원점에서 가장 크다. 그러나 반지름 \(r\)의 얇은 껍질에 있을 확률 \(p_{1s}(r)dr\)은 껍질의 부피 때문에 \(r=0\)에서 0이다. \(\frac{d}{dr}\log p_{1s}=2/r-2/a=0\)으로부터 가장 가능성 큰 <em>반지름</em>은 \(r=a\)다.</p>
     </div>
     <div class="box ex" id="ex-two-s-two-p"><div class="box-h">2s의 구형 마디와 2p의 평면 마디</div>
@@ -171,24 +213,11 @@
       \psi_{200}&amp;=\frac{(2-r/a)e^{-r/(2a)}}{4\sqrt{2\pi a^3}},\\
       \psi_{210}&amp;=\frac{(r/a)\cos\theta\,e^{-r/(2a)}}{4\sqrt{2\pi a^3}}.
       \end{aligned} \]</div>
-      <p>2s는 \(r=2a\)인 구면에서 0이 된다. 그 안과 밖에서 파동함수의 부호가 다르지만, 관측 확률은 양쪽 모두 양수다. 2p의 \(m=0\) 상태는 \(z=r\cos\theta\)에 비례하므로 \(z=0\) 평면에서 0이며 위아래 엽의 부호가 반대다. \(\psi_{210}\)에는 양의 반지름에서 지름 마디가 없다.</p>
+      <p>2s는 \(r=2a\)인 구면에서 0이 된다. 그 안과 밖에서 파동함수의 부호가 다르지만, 관측 확률은 양쪽 모두 양수다. 2p의 \(m=0\) 상태는 \(z=r\cos\theta\)에 비례하므로 \(z=0\) 평면에서 0이며 위아래 엽의 부호가 반대다. \(\psi_{210}\)에는 양의 반지름에서 지름 마디가 없다. 그림 15-2는 세 상태의 지름 확률밀도를 비교한다.</p>
     </div>
-    <figure class="diagram">
-      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="수소 원자의 1s 2s 2p 반지름별 확률밀도를 정확한 방사 함수로 계산한 곡선">
-
-        <line x1="45" y1="220" x2="392" y2="220" class="s-line"/><line x1="45" y1="220" x2="45" y2="42" class="s-line"/>
-        <line x1="101" y1="50" x2="101" y2="220" class="s-grid" stroke-dasharray="4 4"/>
-        <line x1="157" y1="50" x2="157" y2="220" class="s-grid" stroke-dasharray="4 4"/>
-        <polyline points="45.0,220.0 52.0,177.5 59.0,117.0 66.0,79.4 73.0,68.4 80.0,76.4 87.0,94.5 94.0,116.4 101.0,137.9 108.0,157.0 115.0,172.8 122.0,185.4 129.0,195.0 136.0,202.2 143.0,207.5 150.0,211.3 157.0,214.0 164.0,215.9 171.0,217.2 178.0,218.1 185.0,218.7 192.0,219.1 199.0,219.4 206.0,219.6 213.0,219.8 220.0,219.8 227.0,219.9 234.0,219.9 241.0,220.0 248.0,220.0 255.0,220.0 262.0,220.0 269.0,220.0 276.0,220.0 283.0,220.0 290.0,220.0 297.0,220.0 304.0,220.0 311.0,220.0 318.0,220.0 325.0,220.0 332.0,220.0 339.0,220.0 346.0,220.0 353.0,220.0 360.0,220.0 367.0,220.0 374.0,220.0 381.0,220.0" class="s-acc" stroke-width="2.5"/>
-        <polyline points="45.0,220.0 52.0,214.8 59.0,208.1 66.0,205.5 73.0,207.1 80.0,211.2 87.0,215.6 94.0,218.8 101.0,220.0 108.0,218.8 115.0,215.5 122.0,210.5 129.0,204.3 136.0,197.6 143.0,190.9 150.0,184.6 157.0,179.0 164.0,174.3 171.0,170.8 178.0,168.3 185.0,166.9 192.0,166.5 199.0,167.0 206.0,168.2 213.0,170.0 220.0,172.3 227.0,175.0 234.0,177.9 241.0,180.9 248.0,184.0 255.0,187.1 262.0,190.1 269.0,192.9 276.0,195.7 283.0,198.3 290.0,200.7 297.0,202.9 304.0,204.9 311.0,206.7 318.0,208.4 325.0,209.8 332.0,211.2 339.0,212.3 346.0,213.4 353.0,214.3 360.0,215.1 367.0,215.8 374.0,216.4 381.0,216.9" class="s-acc2" stroke-width="2.5"/>
-        <polyline points="45.0,220.0 52.0,220.0 59.0,219.6 66.0,218.3 73.0,215.7 80.0,211.8 87.0,206.8 94.0,201.0 101.0,194.7 108.0,188.5 115.0,182.6 122.0,177.3 129.0,173.0 136.0,169.5 143.0,167.1 150.0,165.7 157.0,165.3 164.0,165.7 171.0,166.9 178.0,168.6 185.0,170.9 192.0,173.5 199.0,176.4 206.0,179.4 213.0,182.5 220.0,185.6 227.0,188.7 234.0,191.6 241.0,194.5 248.0,197.1 255.0,199.6 262.0,201.9 269.0,204.0 276.0,205.9 283.0,207.6 290.0,209.2 297.0,210.6 304.0,211.8 311.0,212.9 318.0,213.9 325.0,214.7 332.0,215.4 339.0,216.1 346.0,216.7 353.0,217.1 360.0,217.6 367.0,217.9 374.0,218.2 381.0,218.5" class="s-line" stroke-width="2.5"/>
-        <text x="10" y="44" class="t-dim">a p(r)</text><text x="393" y="224" class="t-dim">r/a</text>
-        <text x="42" y="242" class="t-dim">0</text><text x="96" y="242" class="t-dim">2</text><text x="152" y="242" class="t-dim">4</text><text x="376" y="242" class="t-dim">12</text>
-        <text x="240" y="51" class="t-acc">1s</text><text x="290" y="51" class="t">2s</text><text x="340" y="51" class="t">2p</text>
-        <line x1="227" y1="47" x2="237" y2="47" class="s-acc"/><line x1="277" y1="47" x2="287" y2="47" class="s-acc2"/><line x1="327" y1="47" x2="337" y2="47" class="s-line"/>
-        <text x="133" y="207" class="t-dim">2s 마디</text>
-      </svg></div>
-      <figcaption><b>그림 15-1.</b> 정확한 방사 함수로 계산한 반지름 확률밀도 a·p(r). 1s는 r=a에서 최대이고 2s는 r=2a에서 0이 된다. 2p는 r=4a에서 최대다.</figcaption>
+    <figure class="diagram" id="fig-radial-density">
+      <div class="fig-narrow"><!--fig:15-2--><svg viewBox="0 0 440 280" role="img" aria-label="수소 원자의 1s 2s 2p 지름 확률밀도. 1s는 r=a에서 최대이고, 2s는 r=2a에서 0이 된 뒤 바깥에 더 큰 봉우리가 있으며, 2p는 r=4a에서 최대다"><defs><marker id="f152-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f152-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f152-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="52" y1="232" x2="428" y2="232" class="s-line" stroke-width="1.2" marker-end="url(#f152-dim)"/><line x1="52" y1="232" x2="52" y2="38" class="s-line" stroke-width="1.2" marker-end="url(#f152-dim)"/><line x1="52" y1="232" x2="52" y2="236" class="s-line" stroke-width="1.2"/><text x="52" y="252" class="t-math dim" text-anchor="middle">0</text><line x1="103.4" y1="232" x2="103.4" y2="236" class="s-line" stroke-width="1.2"/><text x="103.4" y="252" class="t-math dim" text-anchor="middle">2</text><line x1="154.9" y1="232" x2="154.9" y2="236" class="s-line" stroke-width="1.2"/><text x="154.9" y="252" class="t-math dim" text-anchor="middle">4</text><line x1="206.3" y1="232" x2="206.3" y2="236" class="s-line" stroke-width="1.2"/><text x="206.3" y="252" class="t-math dim" text-anchor="middle">6</text><line x1="257.7" y1="232" x2="257.7" y2="236" class="s-line" stroke-width="1.2"/><text x="257.7" y="252" class="t-math dim" text-anchor="middle">8</text><line x1="309.1" y1="232" x2="309.1" y2="236" class="s-line" stroke-width="1.2"/><text x="309.1" y="252" class="t-math dim" text-anchor="middle">10</text><line x1="360.6" y1="232" x2="360.6" y2="236" class="s-line" stroke-width="1.2"/><text x="360.6" y="252" class="t-math dim" text-anchor="middle">12</text><line x1="412" y1="232" x2="412" y2="236" class="s-line" stroke-width="1.2"/><text x="412" y="252" class="t-math dim" text-anchor="middle">14</text><line x1="48" y1="172" x2="52" y2="172" class="s-line" stroke-width="1.2"/><text x="44" y="177" class="t-math dim" text-anchor="end">0.2</text><line x1="52" y1="172" x2="412" y2="172" class="s-grid" stroke-dasharray="2 4"/><line x1="48" y1="112" x2="52" y2="112" class="s-line" stroke-width="1.2"/><text x="44" y="117" class="t-math dim" text-anchor="end">0.4</text><line x1="52" y1="112" x2="412" y2="112" class="s-grid" stroke-dasharray="2 4"/><text x="436" y="222" class="t-math dim" text-anchor="end"><tspan font-style="italic">r</tspan>/<tspan font-style="italic">a</tspan></text><text x="60" y="48" class="t-math dim" text-anchor="start"><tspan font-style="italic">a</tspan> <tspan font-style="italic">p</tspan>(<tspan font-style="italic">r</tspan>)</text><path d="M52 232 L57.9 232 L61.3 231.9 L64.1 231.6 L66.7 231.3 L69 230.8 L71.3 230.1 L73.3 229.4 L75.4 228.5 L77.5 227.5 L79.5 226.4 L81.6 225.1 L83.9 223.4 L86.2 221.7 L88.8 219.5 L91.6 216.9 L94.7 214 L98.5 210 L107.8 200.4 L111.7 196.4 L115 193.1 L118.1 190.3 L120.9 187.8 L123.5 185.7 L126.1 183.7 L128.6 181.9 L131.2 180.3 L133.5 179 L135.8 177.8 L138.1 176.8 L140.5 175.9 L142.8 175.1 L145.3 174.4 L147.9 173.9 L150.5 173.6 L153.1 173.4 L155.6 173.4 L158.5 173.5 L161.3 173.8 L164.1 174.3 L167.2 174.9 L170.3 175.7 L173.6 176.8 L177.2 178 L181.1 179.6 L185.5 181.5 L190.6 183.9 L197.3 187.2 L214.3 196 L221.7 199.7 L228.1 202.8 L234.3 205.7 L240.2 208.2 L245.9 210.5 L251.5 212.7 L257.2 214.7 L262.9 216.5 L268.8 218.2 L274.7 219.8 L280.9 221.3 L287.3 222.7 L294 224 L300.9 225.1 L308.1 226.2 L315.8 227.2 L324.3 228 L333.3 228.8 L343.3 229.5 L354.7 230.1 L367.5 230.7 L382.7 231.1 L401.2 231.5 L412 231.6" class="s-line" fill="none" stroke-dasharray="7 5" stroke-width="2"/><path d="M52 232 L52.5 231.9 L53.3 231.7 L54.1 231.2 L54.8 230.5 L55.9 229.5 L57.1 228 L60.5 223.8 L62 222 L63.3 220.6 L64.6 219.4 L65.6 218.6 L66.7 217.9 L67.7 217.4 L68.7 216.9 L69.7 216.6 L70.8 216.5 L72.1 216.4 L73.3 216.6 L74.6 216.9 L75.9 217.3 L77.5 218.1 L79.3 219.1 L81.3 220.5 L88 225.5 L90.3 227.1 L92.4 228.4 L94.2 229.5 L96 230.3 L97.8 231 L99.3 231.5 L100.9 231.8 L102.4 232 L103.9 232 L105.5 231.9 L107 231.6 L108.6 231.2 L110.1 230.6 L111.9 229.8 L113.7 228.9 L115.5 227.7 L117.3 226.4 L119.4 224.8 L121.4 223 L123.7 220.8 L126.3 218.2 L129.4 214.9 L134.5 209.2 L140.2 202.8 L143.8 198.8 L146.9 195.6 L149.7 192.8 L152.3 190.3 L154.9 188 L157.4 185.9 L159.7 184.2 L162.1 182.6 L164.4 181.1 L166.7 179.8 L169 178.7 L171.3 177.7 L173.6 176.8 L175.9 176.1 L178.3 175.6 L180.8 175.1 L183.4 174.8 L186 174.7 L188.5 174.8 L191.4 175 L194.2 175.3 L197 175.8 L200.1 176.6 L203.5 177.5 L207.1 178.7 L210.9 180.2 L215.3 182 L220.2 184.2 L226.3 187.2 L245.1 196.8 L252.6 200.6 L259 203.6 L264.9 206.3 L270.8 208.8 L276.5 211.1 L282.1 213.2 L287.8 215.1 L293.5 216.9 L299.4 218.6 L305.3 220.2 L311.5 221.6 L317.9 223 L324.6 224.2 L331.5 225.4 L339 226.4 L346.9 227.4 L355.4 228.2 L364.7 229 L375 229.7 L386.5 230.3 L399.9 230.8 L412 231.1" class="s-acc2" fill="none" stroke-width="2.4"/><path d="M52 232 L52.3 231.9 L52.5 231.5 L52.8 231 L53 230.2 L53.3 229.3 L53.5 228.2 L53.8 226.9 L54.1 225.5 L54.3 223.9 L54.6 222.2 L54.8 220.3 L55.1 218.4 L55.3 216.4 L55.6 214.2 L55.9 212 L56.4 207.3 L56.9 202.4 L57.4 197.2 L57.9 191.9 L58.7 183.8 L60.5 164.5 L61.3 156.3 L62 148.3 L62.5 143.2 L63.1 138.1 L63.6 133.2 L64.1 128.5 L64.6 123.9 L65.1 119.5 L65.6 115.2 L66.1 111.2 L66.7 107.3 L67.2 103.6 L67.7 100.2 L68.2 96.9 L68.7 93.8 L69.2 90.9 L69.7 88.3 L70.3 85.8 L70.8 83.5 L71.3 81.4 L71.8 79.5 L72.3 77.7 L72.8 76.2 L73.3 74.8 L73.9 73.6 L74.4 72.6 L74.9 71.7 L75.4 71 L75.9 70.4 L76.4 70 L76.9 69.7 L77.5 69.6 L78 69.6 L78.5 69.7 L79 70 L79.5 70.4 L80 70.8 L80.8 71.8 L81.6 72.9 L82.3 74.2 L83.1 75.8 L83.9 77.5 L84.7 79.4 L85.4 81.4 L86.2 83.5 L87.2 86.6 L88.3 89.8 L89.3 93.2 L90.6 97.6 L92.1 103 L94.2 110.6 L98 124.8 L100.1 132.3 L101.9 138.7 L103.4 144.1 L105 149.3 L106.5 154.3 L107.8 158.3 L109.1 162.2 L110.4 166 L111.7 169.6 L112.9 173.1 L114.2 176.4 L115.5 179.6 L116.8 182.7 L118.1 185.6 L119.4 188.3 L120.7 191 L122.2 194 L123.7 196.8 L125.3 199.4 L126.8 201.8 L128.4 204.1 L129.9 206.3 L131.5 208.3 L133.3 210.4 L135.1 212.4 L136.9 214.2 L138.7 215.9 L140.7 217.6 L142.8 219.2 L144.8 220.6 L147.1 222 L149.5 223.2 L152 224.4 L154.6 225.5 L157.4 226.5 L160.5 227.4 L163.9 228.2 L167.5 229 L171.6 229.6 L176.2 230.2 L181.6 230.7 L188 231.1 L196 231.5 L206.8 231.7 L223.8 231.9 L285.7 232 L412 232" class="s-acc" fill="none" stroke-width="2.4"/><circle cx="103.4" cy="232" r="4" class="s-acc2" stroke-width="2" style="fill:var(--bg-elev)"/><line x1="262" y1="62" x2="284" y2="62" class="s-acc" stroke-width="2.4"/><text x="290" y="67" class="t-acc" text-anchor="start">1s</text><line x1="316" y1="62" x2="338" y2="62" class="s-acc2" stroke-width="2.4"/><text x="344" y="67" class="t" text-anchor="start">2s</text><line x1="370" y1="62" x2="392" y2="62" class="s-line" stroke-dasharray="7 5" stroke-width="2"/><text x="398" y="67" class="t" text-anchor="start">2p</text></svg><!--/fig:15-2--></div>
+      <figcaption><b>그림 15-2.</b> 식 <a class="ref" href="#eq-hydrogen-radial"></a>의 지름 함수로 계산한 확률밀도 \(p(r)=r^2|R_{nl}(r)|^2\). 1s는 \(r=a\)에서 최대다. 2s는 \(r=2a\)의 마디(빈 점) 안쪽에 작은 봉우리(\(r=(3-\sqrt5)a\))가, 바깥에 큰 봉우리(\(r=(3+\sqrt5)a\))가 있다. 2p는 \(r=4a\)에서 최대다.</figcaption>
     </figure>
     <h3 id="s4-real-p">방향을 가리키는 실수 2p 오비탈</h3>
     <p>\(m=+1,-1\)의 구면 조화 함수는 \(e^{\pm i\phi}\)를 포함하므로 각각의 확률밀도는 \(z\)축 둘레로 대칭이다. 두 상태는 같은 에너지이므로 선형 결합도 정상 상태다. <a href="ch14.html#eq-low-spherical-harmonics">14장의 위상 관례</a>에서 다음 결합을 택하면 실수의 방향성 오비탈이 된다.</p>
@@ -201,19 +230,156 @@
       \end{aligned} \]</div>
     <p>이 세 함수에 같은 \(R_{21}(r)\)를 곱하면 각각 \(x,y,z\)에 비례하는 2p 파동함수가 된다. 예를 들어 \(p_x\)의 마디는 \(x=0\) 평면이다. 한쪽 엽을 ‘양’, 다른 쪽을 ‘음’으로 표시하는 것은 전하의 부호가 아니라 <em>파동함수의 상대 위상</em>을 나타낸다.</p>
     <div class="callout warn"><strong>마디와 확률 0을 구별해서 읽기</strong><p>오비탈의 표면 그림은 대개 일정한 \(|\psi|^2\) 값을 연결한 등밀도면이다. 전자가 그 표면에만 있다는 뜻이 아니다. 2s의 구면 마디와 2p의 평면 마디처럼 \(\psi=0\)인 곳에서는 확률밀도도 0이며, 부호가 바뀌는 위치는 파동함수에서 확인한다.</p></div>
-    <p><a href="ch13.html#s4">13장의 패리티</a>를 쓰면 \(s\) 상태는 짝함수, \(p\) 상태는 홀함수다. 일반적으로 \(\psi_{nlm}(-\boldsymbol r)=(-1)^l\psi_{nlm}(\boldsymbol r)\)이다. 스핀과 자기장에 따른 세부 구조는 뒤의 <a href="ch16.html">16장</a>과 <a href="ch19.html">19장</a>에서 다룬다.</p>
+    <p><a href="ch13.html#s4">13장의 패리티</a>를 쓰면 \(s\) 상태는 짝함수, \(p\) 상태는 홀함수다. 일반적으로 \(\psi_{nlm}(-\boldsymbol r)=(-1)^l\psi_{nlm}(\boldsymbol r)\)이다.</p>
+    <h3 id="s4-current">복소 오비탈의 확률 흐름과 자기 모멘트</h3>
+    <p>실수 오비탈과 \(e^{\pm i\phi}\)를 가진 복소 오비탈은 같은 에너지지만 한 가지가 다르다. <a href="ch07.html#def-current">7장의 확률 흐름</a>을 3차원으로 쓰면 \(\boldsymbol j=(\hbar/\mu)\operatorname{Im}(\psi^*\boldsymbol\nabla\psi)\)다. \(\psi_{nlm}=R_{nl}(r)\Theta_{lm}(\theta)e^{im\phi}\)에서 \(R_{nl}\)과 \(\Theta_{lm}\)은 실수이므로, \(\partial_r\)과 \(\partial_\theta\) 성분에서는 \(\psi^*\partial\psi\)가 실수라 허수부가 0이다. 구면 좌표의 기울기에서 \(\phi\) 성분 \((r\sin\theta)^{-1}\partial_\phi\)만 남아</p>
+    <div class="formula" id="eq-orbital-current">\[ \boldsymbol j_{nlm}=\frac{\hbar m}{\mu\,r\sin\theta}\,|\psi_{nlm}|^2\,\boldsymbol e_\phi. \]</div>
+    <p>\(m&gt;0\)이면 확률이 \(+z\)에서 볼 때 시계 반대 방향으로 \(z\)축 둘레를 돈다. \(\boldsymbol r\times\boldsymbol e_\phi\)의 \(z\) 성분은 \(r\sin\theta\)이므로 \(\int\mu(\boldsymbol r\times\boldsymbol j)_zd^3r=\hbar m\int|\psi|^2d^3r=m\hbar\)가 되어, 흐름이 나르는 각운동량은 \(L_z\)의 고유값이다. 반대로 실수 2p<sub>x</sub>, 2p<sub>y</sub>에서는 \(\psi^*\boldsymbol\nabla\psi\)가 실수라 흐름이 0이다. 실수 고유함수에는 흐름이 없다는 <a href="ch13.html#thm-time-reversal-real">13장의 정리</a>와 같은 내용이다. 축퇴가 있으면 흐름이 있는 결합과 없는 결합을 모두 고를 수 있다.</p>
+    <p>전자의 전하는 \(-e\)이므로 이 흐름은 전류 밀도 \(\boldsymbol J=-e\boldsymbol j\)를 만든다. 여기서는 양성자의 운동이 만드는 작은 전류를 무시하고 \(\mu\approx m_e\)로 둔다. 전류 분포의 자기 모멘트 \(\boldsymbol{\mathcal M}=\frac12\int\boldsymbol r\times\boldsymbol J\,d^3r\)에 식 <a class="ref" href="#eq-orbital-current"></a>을 넣으면</p>
+    <div class="formula" id="eq-orbital-moment">\[ \begin{gathered}
+      \mathcal M_z=-\frac e2\cdot\frac{\hbar m}{m_e}=-m\mu_{\mathrm B},\\
+      \mu_{\mathrm B}=\frac{e\hbar}{2m_e}\simeq5.788\times10^{-5}\ \mathrm{eV/T}.
+      \end{gathered} \]</div>
+    <p>자기 모멘트와 각운동량의 비 \(\mathcal M_z/L_z=-e/(2m_e)\)는 고전적인 고리 전류의 값과 같다. \(z\) 방향 자기장 \(B\)에서 에너지는 \(-\mathcal M_zB=m\mu_{\mathrm B}B\)만큼 옮겨, 세 2p 상태가 \(\mu_{\mathrm B}B\) 간격으로 갈라진다. \(B=1\ \mathrm T\)이면 간격은 \(5.79\times10^{-5}\ \mathrm{eV}\), 주파수로 14.0 GHz다. 스핀의 자기 모멘트는 같은 각운동량에 대해 이 값의 약 2배이며(<a href="ch16.html#def-electron-moment">16장</a>), 둘을 함께 넣은 제이만 효과는 <a href="ch19.html#s5">19장</a>에서 다룬다.</p>
+  </section>
+
+  <section id="s5">
+    <h2>지름 기댓값</h2>
+    <p><a href="ch19.html#s4">19장의 미세 구조</a>를 계산하려면 \(\langle r^{-1}\rangle\), \(\langle r^{-2}\rangle\), \(\langle r^{-3}\rangle\)과 원점의 확률밀도가 필요하다. 식 <a class="ref" href="#eq-hydrogen-radial"></a>의 라게르 다항식을 \(n,l\)마다 적분할 수도 있지만, 에너지 공식과 지름 방정식만으로 일반식을 얻는 방법이 있다. 이 절에서 \(a=a_\mu\)이고, 기댓값은 \(\langle f\rangle=\int_0^\infty f(r)|R_{nl}|^2r^2dr=\int_0^\infty f(r)u^2dr\)이다. 각도 부분은 따로 정규화되어 있으므로 이것이 3차원 기댓값이다.</p>
+    <div class="box thm" id="thm-hellmann-feynman"><div class="box-h">헬만–파인만 정리</div>
+      <p>해밀토니안 \(\hat H(\lambda)\)가 매개변수 \(\lambda\)에 매끄럽게 의존하고, \(|\psi(\lambda)\rangle\)이 고유값 \(E(\lambda)\)의 정규화된 비축퇴 고유상태라 하자. 그러면</p>
+      <div class="formula" id="eq-hellmann-feynman">\[ \frac{dE}{d\lambda}=\Bigl\langle\psi(\lambda)\Bigr|\frac{\partial\hat H}{\partial\lambda}\Bigl|\psi(\lambda)\Bigr\rangle. \]</div>
+    </div>
+    <p>\(E=\langle\psi|\hat H|\psi\rangle\)를 미분하면 세 항이 나온다. \(\hat H\)가 에르미트이므로 \(\langle\psi|\hat H=E\langle\psi|\)이고</p>
+    <div class="formula">\[ \begin{aligned}
+      \frac{dE}{d\lambda}&amp;=\langle\partial_\lambda\psi|\hat H|\psi\rangle+\langle\psi|\partial_\lambda\hat H|\psi\rangle+\langle\psi|\hat H|\partial_\lambda\psi\rangle\\
+      &amp;=E\,\frac{d}{d\lambda}\langle\psi|\psi\rangle+\langle\psi|\partial_\lambda\hat H|\psi\rangle.
+      \end{aligned} \]</div>
+    <p>정규화 \(\langle\psi|\psi\rangle=1\)이 모든 \(\lambda\)에서 성립하므로 첫 항은 0이다. 비축퇴 조건은 \(|\psi(\lambda)\rangle\)을 \(\lambda\)에 대해 매끄럽게 고를 수 있게 해 준다.</p>
+    <p>이 정리를 지름 문제에 쓰자. 고정된 \(l\)에서 \(u\)는 반직선 위의 1차원 문제</p>
+    <div class="formula" id="eq-radial-hamiltonian">\[ \hat H_l=-\frac{\hbar^2}{2\mu}\frac{d^2}{dr^2}+\frac{l(l+1)\hbar^2}{2\mu r^2}-\frac\kappa r,\qquad u(0)=0 \]</div>
+    <p>의 고유함수다. \(u(0)=0\)인 두 해의 론스키안은 원점에서 0이므로, <a href="ch07.html#thm-nondegenerate">7장</a>과 같은 논증으로 그 준위는 비축퇴다. 고유값은 \(E=-\mu\kappa^2/[2\hbar^2(n_r+l+1)^2]\)이다.</p>
+    <h3 id="s5-hf">\(\langle1/r\rangle\)과 \(\langle1/r^2\rangle\)</h3>
+    <p><b>\(\kappa\)로 미분하기.</b> \(\partial\hat H_l/\partial\kappa=-1/r\)이다. \(n\)은 \(\kappa\)와 무관한 정수이므로 \(dE_n/d\kappa=-\mu\kappa/(\hbar^2n^2)\)다. <a class="ref" href="#thm-hellmann-feynman"></a>에서 \(-\langle1/r\rangle=-\mu\kappa/(\hbar^2n^2)\), 곧</p>
+    <div class="formula" id="eq-inverse-r">\[ \Bigl\langle\frac1r\Bigr\rangle=\frac{1}{n^2a}. \]</div>
+    <p>퍼텐셜에너지의 평균은 \(\langle V\rangle=-\kappa/(n^2a)=2E_n\)이고 운동에너지의 평균은 \(\langle T\rangle=E_n-\langle V\rangle=-E_n\)이다. <a href="ch09.html#ex-virial">9장의 비리얼 정리</a> \(2\langle T\rangle=-\langle V\rangle\)와 맞는다. \(\langle1/r\rangle\)이 \(l\)과 무관하므로 같은 \(n\)의 상태들은 같은 거리 눈금 \(n^2a\)를 갖는다. \(n=50\)이면 \(n^2a_0\approx0.13\ \mu\mathrm m\)로, 이런 리드베리 원자는 작은 바이러스만큼 크다.</p>
+    <p><b>\(l\)로 미분하기.</b> 15.2절의 유도는 \(l\)이 정수라는 사실을 쓰지 않았다. 원점에서 \(u\sim\rho^{l+1}\)인 해를 고르고 급수를 끊는 과정은 \(l\ge0\)인 실수에서도 그대로다. 따라서 \(n_r\)을 고정하면 \(E=-\mu\kappa^2/[2\hbar^2(n_r+l+1)^2]\)는 \(l\)의 매끄러운 함수다. \(\partial\hat H_l/\partial l=(2l+1)\hbar^2/(2\mu r^2)\)와 \(\partial E/\partial l=\mu\kappa^2/(\hbar^2n^3)\)를 <a class="ref" href="#thm-hellmann-feynman"></a>에 넣으면</p>
+    <div class="formula" id="eq-inverse-r2">\[ \begin{gathered}
+      \frac{(2l+1)\hbar^2}{2\mu}\Bigl\langle\frac1{r^2}\Bigr\rangle=\frac{\mu\kappa^2}{\hbar^2n^3},\\
+      \Bigl\langle\frac1{r^2}\Bigr\rangle=\frac{1}{(l+\frac12)\,n^3a^2}.
+      \end{gathered} \]</div>
+    <p>\(\langle1/r\rangle\)과 달리 이 값은 \(l\)이 작을수록 크다. 원심 장벽이 낮은 상태일수록 핵 가까이에 더 오래 머문다는 뜻이다.</p>
+    <h3 id="s5-force">\(\langle1/r^3\rangle\)과 원점의 확률밀도</h3>
+    <p>남은 두 값은 지름 방정식 자체에서 얻는다. \(V_{\rm eff}=l(l+1)\hbar^2/(2\mu r^2)-\kappa/r\)로 두면 고유값 방정식은 \(u''=(2\mu/\hbar^2)(V_{\rm eff}-E)u\)다. 양변에 \(2u'\)을 곱하면 \((u'^2)'=(2\mu/\hbar^2)(V_{\rm eff}-E)(u^2)'\)이다. \(0\)에서 \(\infty\)까지 적분하고 오른쪽을 부분 적분하면</p>
+    <div class="formula" id="eq-radial-force-steps">\[ \Bigl[u'^2\Bigr]_0^\infty=\frac{2\mu}{\hbar^2}\Bigl\{\Bigl[(V_{\rm eff}-E)u^2\Bigr]_0^\infty-\int_0^\infty\frac{dV_{\rm eff}}{dr}u^2dr\Bigr\}. \]</div>
+    <p>무한대에서는 \(u\)와 \(u'\)이 지수적으로 0으로 간다. 원점에서는 \(u^2\sim r^{2l+2}\)이므로 \(V_{\rm eff}u^2\)는 \(l\ge1\)이면 \(r^{2l}\), \(l=0\)이면 \(r\)처럼 0으로 가고, 경계항이 사라진다. 왼쪽에는 \(-u'(0)^2\)만 남는다.</p>
+    <div class="box thm" id="thm-radial-force"><div class="box-h">지름 방향 힘의 평균</div>
+      <div class="formula" id="eq-radial-force">\[ \begin{gathered}
+        \Bigl\langle\frac{dV_{\rm eff}}{dr}\Bigr\rangle=\frac{\hbar^2}{2\mu}\,u'(0)^2,\\
+        \frac{dV_{\rm eff}}{dr}=\frac{\kappa}{r^2}-\frac{l(l+1)\hbar^2}{\mu r^3}.
+        \end{gathered} \]</div>
+      <p>정상 상태에서 지름 방향의 평균 힘 \(-\langle dV_{\rm eff}/dr\rangle\)은 원점의 기여를 빼면 0이다.</p>
+    </div>
+    <p><b>\(l\ge1\)인 경우.</b> \(u\sim r^{l+1}\)이므로 \(u'(0)=0\)이다. 식 <a class="ref" href="#eq-radial-force"></a>에서 \(\kappa\langle r^{-2}\rangle=(l(l+1)\hbar^2/\mu)\langle r^{-3}\rangle\)이고, 식 <a class="ref" href="#eq-inverse-r2"></a>를 넣으면</p>
+    <div class="formula" id="eq-inverse-r3">\[ \begin{aligned}
+      \Bigl\langle\frac1{r^3}\Bigr\rangle&amp;=\frac{1}{a\,l(l+1)}\Bigl\langle\frac1{r^2}\Bigr\rangle\\
+      &amp;=\frac{1}{l(l+\frac12)(l+1)\,n^3a^3}\qquad(l\ge1).
+      \end{aligned} \]</div>
+    <p><b>\(l=0\)인 경우.</b> 원심 항이 없고, \(u=rR\)이므로 \(u'(0)=R(0)\)이다. 식 <a class="ref" href="#eq-radial-force"></a>은 \(\kappa\langle r^{-2}\rangle=(\hbar^2/2\mu)R_{n0}(0)^2\)이 되어 \(R_{n0}(0)^2=(2/a)\langle r^{-2}\rangle=4/(n^3a^3)\)이다. \(Y_0^0=1/\sqrt{4\pi}\)를 곱하면</p>
+    <div class="formula" id="eq-origin-density">\[ |\psi_{n00}(0)|^2=\frac{1}{\pi n^3a^3}. \]</div>
+    <p>1s에서는 \(R_{10}(0)^2=4/a^3\), 2s에서는 \(R_{20}(0)^2=1/(2a^3)\)으로 식 <a class="ref" href="#eq-low-radial"></a>과 맞는다. \(l=0\)에서는 원점 근처의 \(\int dr/r\) 때문에 \(\langle r^{-3}\rangle\)이 발산하므로 식 <a class="ref" href="#eq-inverse-r3"></a>을 쓰지 않는다. \(l&gt;0\) 상태는 원점에서 파동함수가 0이다. 19장의 미세 구조 계산은 이 절의 네 식을 그대로 쓴다.</p>
+    <div class="box ex" id="ex-penetration"><div class="box-h">2s와 2p: 같은 에너지, 다른 침투</div>
+      <p>\(n=2\)의 두 상태를 앞의 식들로 비교하자. 마지막 열은 \(r&lt;a\)에 있을 확률이다.</p>
+      <table>
+        <thead><tr><th></th><th>\(\langle r\rangle\)</th><th>\(\langle1/r\rangle\)</th><th>\(\langle1/r^2\rangle\)</th><th>\(P(r&lt;a)\)</th></tr></thead>
+        <tbody>
+          <tr><td>2s</td><td>\(6a\)</td><td>\(1/(4a)\)</td><td>\(1/(4a^2)\)</td><td>0.034</td></tr>
+          <tr><td>2p</td><td>\(5a\)</td><td>\(1/(4a)\)</td><td>\(1/(12a^2)\)</td><td>0.0037</td></tr>
+        </tbody>
+      </table>
+      <p>\(\langle r\rangle\)과 \(P(r&lt;a)\)는 식 <a class="ref" href="#eq-low-radial"></a>을 직접 적분해 얻는다. 예를 들어 \(\langle r\rangle_{2p}=\frac{1}{24a^5}\int_0^\infty r^5e^{-r/a}dr=\frac{5!\,a^6}{24a^5}=5a\)다. 평균 거리는 2s가 더 멀다. 그러나 2s는 \(r=2a\)의 마디 안쪽에 작은 봉우리(그림 15-2)가 있어서, 핵 바로 근처에 있을 확률이 2p의 약 9배이고 \(\langle1/r^2\rangle\)도 3배다.</p>
+    </div>
+    <div class="callout tip"><strong>다전자 원자에서 2s가 2p보다 낮은 이유</strong><p>리튬처럼 전자가 여럿인 원자에서는 안쪽의 1s 전자들이 핵의 전하를 가린다. 핵 가까이 파고드는 2s 전자는 가려지지 않은 전하를 더 많이 느끼므로 2p보다 에너지가 낮아진다. 리튬에서 두 준위의 차이는 약 1.85 eV이며, 이것이 670.8 nm의 빨간 리튬 선이다. 수소에서는 퍼텐셜이 정확히 \(1/r\)이라 침투 정도가 달라도 에너지가 같다.</p></div>
+  </section>
+
+  <section id="s6">
+    <h2>숨은 대칭: 룽게–렌츠 벡터</h2>
+    <p>15.3절에서 2s와 2p가 같은 에너지인 것은 회전 대칭만으로 설명되지 않는다고 했다. <a href="ch13.html#thm-symmetry-degeneracy">13장의 정리</a>는 축퇴가 있으면 서로 교환하지 않는 보존량을 찾아보라고 말한다. 회전의 생성자 \(\hat{\boldsymbol L}\)은 \(l\)을 바꾸지 못하므로, \(\hat H\)와 교환하면서 \(l\)을 바꾸는 연산자가 따로 있어야 한다. <a href="ch04.html#s5-hamilton">4장</a>에서 예고한 대로, 실마리는 고전 케플러 문제에 있다.</p>
+    <h3 id="s6-classical">고전 궤도가 닫히는 이유</h3>
+    <p>질량 \(\mu\)인 입자가 \(V=-\kappa/r\)에서 움직이면 \(\dot{\boldsymbol p}=-\kappa\boldsymbol r/r^3\)이고 \(\boldsymbol L=\boldsymbol r\times\boldsymbol p=\mu\boldsymbol r\times\dot{\boldsymbol r}\)은 일정하다. \(\boldsymbol p\times\boldsymbol L\)을 시간으로 미분하고 \(\boldsymbol a\times(\boldsymbol b\times\boldsymbol c)=\boldsymbol b(\boldsymbol a\cdot\boldsymbol c)-\boldsymbol c(\boldsymbol a\cdot\boldsymbol b)\)를 쓰면</p>
+    <div class="formula" id="eq-lrl-classical-derivation">\[ \begin{aligned}
+      \frac{d}{dt}(\boldsymbol p\times\boldsymbol L)&amp;=-\frac{\mu\kappa}{r^3}\,\boldsymbol r\times(\boldsymbol r\times\dot{\boldsymbol r})\\
+      &amp;=-\frac{\mu\kappa}{r^3}\bigl[\boldsymbol r(\boldsymbol r\cdot\dot{\boldsymbol r})-r^2\dot{\boldsymbol r}\bigr]\\
+      &amp;=\mu\kappa\Bigl(\frac{\dot{\boldsymbol r}}{r}-\frac{\boldsymbol r\,\dot r}{r^2}\Bigr)=\mu\kappa\,\frac{d}{dt}\frac{\boldsymbol r}{r}.
+      \end{aligned} \]</div>
+    <p>셋째 줄에서는 \(\frac{d}{dt}r^2=2\boldsymbol r\cdot\dot{\boldsymbol r}\)에서 나오는 \(\boldsymbol r\cdot\dot{\boldsymbol r}=r\dot r\)를 썼다. 따라서 다음 벡터가 보존된다.</p>
+    <div class="box def" id="def-lrl"><div class="box-h">라플라스–룽게–렌츠 벡터</div>
+      <div class="formula" id="eq-lrl-classical">\[ \boldsymbol A=\boldsymbol p\times\boldsymbol L-\mu\kappa\,\frac{\boldsymbol r}{r},\qquad \frac{d\boldsymbol A}{dt}=0. \]</div>
+      <p>\(\boldsymbol L\cdot(\boldsymbol p\times\boldsymbol L)=0\), \(\boldsymbol L\cdot\boldsymbol r=0\)이므로 \(\boldsymbol A\)는 \(\boldsymbol L\)에 수직이고 궤도면 안에 있다.</p>
+    </div>
+    <p>\(\boldsymbol A\)가 무엇을 가리키는지 보자. \(\boldsymbol r\cdot(\boldsymbol p\times\boldsymbol L)=(\boldsymbol r\times\boldsymbol p)\cdot\boldsymbol L=L^2\)이므로 \(\boldsymbol r\cdot\boldsymbol A=L^2-\mu\kappa r\)이다. \(\boldsymbol A\)와 \(\boldsymbol r\) 사이의 각을 \(\theta\)라 하면 \(rA\cos\theta=L^2-\mu\kappa r\)이고, \(r\)에 대해 풀면</p>
+    <div class="formula" id="eq-orbit">\[ r=\frac{L^2/(\mu\kappa)}{1+e\cos\theta},\qquad e=\frac{A}{\mu\kappa}. \]</div>
+    <p>원점을 초점으로 하는 원뿔 곡선이다. \(e&lt;1\)이면 타원이고, \(r\)은 \(\theta=0\)에서 가장 작으므로 \(\boldsymbol A\)는 근일점을 가리킨다. \(\boldsymbol A\)가 보존되므로 근일점은 돌지 않고 궤도는 닫힌다(그림 15-3 (가)). 퍼텐셜이 조금만 달라져도 \(\boldsymbol A\)는 보존되지 않고, 근일점이 돌아 궤도가 닫히지 않는다(그림 15-3 (나)). 중심력 가운데 모든 속박 궤도가 닫히는 것은 \(1/r\)과 \(r^2\) 퍼텐셜뿐이고(베르트랑 정리), 3차원 등방 조화 진동자에서도 \(l\)이 다른 준위가 겹친다.</p>
+    <figure class="diagram" id="fig-kepler">
+      <div class="fig-row"><!--fig:15-3a--><svg viewBox="0 0 280 250" role="img" aria-label="쿨롱 퍼텐셜의 타원 궤도. 초점에 양성자가 있고, 룽게–렌츠 벡터 A는 초점에서 근일점을 가리키며 궤도가 닫혀 있다"><defs><marker id="f153a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f153a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f153a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><path d="M233.5 132 L233.4 128 L233 124 L232.3 120 L231.4 116.2 L230.2 112.3 L228.8 108.6 L227.2 104.9 L225.4 101.5 L223.4 98.1 L221.2 94.9 L218.9 91.8 L216.5 88.9 L213.8 86 L211 83.3 L208.1 80.7 L205.2 78.3 L202.2 76 L199.2 74 L196 72 L192.8 70.2 L189.5 68.4 L186.2 66.9 L183 65.5 L179.7 64.2 L176.2 62.9 L172.9 61.8 L169.4 60.9 L166.2 60 L162.8 59.3 L159.4 58.7 L156.2 58.2 L152.9 57.7 L149.5 57.4 L146.4 57.2 L143.3 57.1 L140.1 57 L136.9 57 L133.6 57.2 L130.7 57.3 L127.8 57.6 L124.8 58 L121.8 58.4 L118.8 58.9 L115.7 59.5 L112.6 60.2 L110 60.9 L107.4 61.6 L104.8 62.4 L102.2 63.3 L99.6 64.2 L97 65.3 L94.4 66.4 L91.8 67.6 L89.2 68.8 L86.6 70.2 L84.6 71.3 L82.6 72.5 L80.6 73.8 L78.7 75.1 L76.8 76.5 L74.9 77.9 L73 79.3 L71.2 80.9 L69.4 82.4 L67.6 84.1 L65.9 85.8 L64.3 87.5 L62.7 89.3 L61.2 91.1 L59.7 93 L58.3 94.9 L56.9 96.9 L55.6 98.9 L54.4 100.9 L53.3 103 L52.2 105.2 L51.2 107.3 L50.3 109.5 L49.5 111.7 L48.7 114 L48.1 116.3 L47.7 118 L47.3 119.7 L46.9 121.4 L46.6 123.2 L46.4 124.9 L46.2 126.7 L46.1 128.5 L46 130.2 L46 132 L46 133.8 L46.1 135.5 L46.2 137.3 L46.4 139.1 L46.6 140.8 L46.9 142.6 L47.3 144.3 L47.7 146 L48.2 148.3 L48.9 150.6 L49.7 152.8 L50.5 155 L51.5 157.2 L52.5 159.4 L53.6 161.5 L54.7 163.6 L55.9 165.6 L57.3 167.6 L58.6 169.6 L60.1 171.5 L61.5 173.4 L63.1 175.2 L64.7 177 L66.4 178.7 L68.1 180.3 L69.8 182 L71.6 183.5 L73.5 185 L75.3 186.5 L77.2 187.9 L79.2 189.2 L81.1 190.5 L83.1 191.8 L85.1 193 L87.2 194.1 L89.7 195.4 L92.3 196.7 L94.9 197.9 L97.5 198.9 L100.1 200 L102.7 200.9 L105.3 201.8 L107.9 202.6 L110.5 203.3 L113.1 203.9 L116.2 204.6 L119.3 205.2 L122.3 205.7 L125.3 206.1 L128.3 206.4 L131.2 206.7 L134.5 206.9 L137.8 207 L141.1 207 L144.2 206.9 L147.3 206.8 L150.8 206.5 L154.1 206.1 L157.4 205.7 L160.9 205.1 L164.3 204.4 L167.7 203.6 L171.2 202.7 L174.6 201.6 L177.8 200.5 L181.2 199.3 L184.5 197.9 L187.9 196.4 L191.1 194.8 L194.3 193 L197.6 191 L200.7 189 L203.8 186.8 L206.8 184.4 L209.8 181.8 L212.7 179.1 L215.4 176.3 L217.9 173.4 L220.3 170.3 L222.6 167.1 L224.7 163.8 L226.6 160.3 L228.3 156.6 L229.8 152.9 L231.1 149 L232.1 145.1 L232.8 141.1 L233.3 137.2 L233.5 133.2 L233.5 132 Z" class="s-acc" fill="none" stroke-width="2"/><circle cx="196" cy="132" r="5" class="f-acc2"/><line x1="196" y1="132" x2="244" y2="132" class="s-acc2" stroke-width="2" marker-end="url(#f153a-acc2)"/><text x="236" y="154" class="t-math acc2" text-anchor="start"><tspan font-weight="700" font-style="italic">A</tspan></text><text x="12" y="22" class="t-b" text-anchor="start">(가) 쿨롱 퍼텐셜</text><text x="12" y="44" class="t-math dim" text-anchor="start"><tspan font-style="italic">V</tspan> = −<tspan font-style="italic">κ</tspan>/<tspan font-style="italic">r</tspan></text><line x1="196" y1="132" x2="87.8" y2="69.6" class="s-line" stroke-width="1.4" stroke-dasharray="4 3"/><circle cx="87.8" cy="69.6" r="3.5" class="f-dim"/><line x1="87.8" y1="69.6" x2="56.1" y2="86.5" class="s-line" stroke-width="1.6" marker-end="url(#f153a-dim)"/><text x="50.1" y="100.5" class="t-math dim" text-anchor="end"><tspan font-weight="700" font-style="italic">p</tspan></text><text x="149.9" y="102.8" class="t-math dim" text-anchor="start"><tspan font-weight="700" font-style="italic">r</tspan></text><circle cx="166" cy="168" r="7" class="s-line" stroke-width="1.4" fill="none"/><circle cx="166" cy="168" r="1.8" class="f-dim"/><text x="154" y="173" class="t-math dim" text-anchor="end"><tspan font-weight="700" font-style="italic">L</tspan></text></svg><!--/fig:15-3a--><!--fig:15-3b--><svg viewBox="0 0 280 250" role="img" aria-label="쿨롱 퍼텐셜에 작은 역제곱 항을 더한 퍼텐셜의 궤도. 근일점이 한 바퀴마다 앞으로 돌아가서 장미꽃 모양을 그리고, 근일점을 가리키는 화살표 셋이 서로 다른 방향이다"><defs><marker id="f153b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f153b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f153b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><path d="M232.5 118 L232.4 114.3 L231.9 110.7 L231.2 107.1 L230.2 103.5 L229 100 L227.5 96.6 L225.8 93.3 L223.8 90.2 L221.7 87.3 L219.4 84.5 L217 81.9 L214.4 79.5 L211.6 77.1 L208.8 74.9 L205.8 72.9 L202.8 71.1 L199.8 69.5 L196.6 68 L193.4 66.7 L190.3 65.5 L187 64.5 L183.7 63.6 L180.4 62.8 L177.2 62.2 L173.8 61.7 L170.6 61.3 L167.3 61.1 L163.9 60.9 L160.8 60.9 L157.6 61 L154.2 61.2 L151.2 61.5 L148.1 61.9 L144.9 62.4 L141.7 63.1 L138.8 63.7 L135.9 64.5 L133 65.4 L130 66.3 L127.5 67.3 L124.9 68.3 L122.3 69.4 L119.7 70.6 L117.1 71.9 L114.6 73.3 L112 74.8 L109.9 76.1 L107.7 77.5 L105.6 78.9 L103.6 80.4 L101.5 82 L99.5 83.7 L97.5 85.5 L95.6 87.3 L93.7 89.2 L91.8 91.1 L90 93.2 L88.6 94.9 L87.3 96.6 L86 98.3 L84.7 100.1 L83.5 102 L82.3 103.9 L81.2 105.8 L80.2 107.7 L79.2 109.7 L78.2 111.8 L77.4 113.8 L76.6 115.9 L75.9 118 L75.2 120.1 L74.6 122.3 L74.1 124.5 L73.7 126.6 L73.3 128.8 L73 131.1 L72.8 133.3 L72.7 135.5 L72.7 137.7 L72.7 139.9 L72.9 142.2 L73.1 144.4 L73.4 146.6 L73.8 148.8 L74.3 150.9 L74.8 153.1 L75.5 155.2 L76.2 157.3 L77 159.4 L77.9 161.4 L78.8 163.4 L79.9 165.4 L81 167.3 L82.2 169.2 L83.4 171 L84.7 172.8 L86.1 174.6 L87.6 176.3 L89.1 177.9 L90.6 179.5 L92.3 181 L93.9 182.5 L95.6 183.9 L97.4 185.3 L99.2 186.6 L101.1 187.8 L102.9 189 L104.9 190.2 L106.8 191.2 L108.8 192.2 L110.8 193.2 L112.8 194.1 L114.8 194.9 L116.9 195.6 L119.4 196.5 L122 197.3 L124.6 198 L127.2 198.6 L129.8 199.2 L132.5 199.6 L135 200 L137.6 200.3 L140.2 200.5 L142.7 200.6 L145.3 200.7 L148.3 200.7 L151.2 200.6 L154.1 200.4 L157 200.1 L159.8 199.8 L162.6 199.3 L165.3 198.9 L168.4 198.2 L171.4 197.5 L174.3 196.6 L177.1 195.8 L179.9 194.8 L182.9 193.6 L185.9 192.4 L188.7 191.1 L191.7 189.6 L194.6 188 L197.4 186.4 L200.3 184.6 L203 182.7 L205.6 180.7 L208.3 178.6 L210.8 176.4 L213.4 174 L215.7 171.5 L218.1 168.9 L220.2 166.3 L222.4 163.5 L224.4 160.5 L226.2 157.6 L227.9 154.4 L229.4 151.2 L230.8 147.8 L232.1 144.3 L233.1 140.7 L233.9 137.2 L234.4 133.7 L234.8 130 L234.8 126.3 L234.7 122.6 L234.2 118.9 L233.5 115.3 L232.5 111.7 L231.3 108.2 L229.8 104.8 L228 101.5 L225.9 98.3 L223.6 95.3 L221.2 92.6 L218.5 90.1 L215.7 87.7 L212.6 85.6 L209.5 83.7 L206.2 82 L202.9 80.6 L199.5 79.4 L196.1 78.4 L192.5 77.6 L188.9 77 L185.3 76.7 L181.8 76.5 L178.3 76.5 L174.6 76.7 L171.1 77.1 L167.7 77.6 L164.4 78.2 L161 79 L157.8 79.9 L154.6 81 L151.5 82.2 L148.4 83.5 L145.5 84.8 L142.5 86.3 L139.5 88 L136.8 89.6 L134.1 91.4 L131.4 93.3 L128.9 95.1 L126.5 97.1 L124.1 99.2 L121.7 101.4 L119.5 103.4 L117.5 105.6 L115.4 107.8 L113.4 110.2 L111.7 112.3 L110 114.5 L108.4 116.8 L106.8 119.2 L105.2 121.6 L103.8 124.2 L102.3 126.8 L101.2 129 L100.1 131.3 L99.1 133.6 L98.1 136 L97.2 138.5 L96.3 140.9 L95.5 143.5 L94.8 146 L94.2 148.6 L93.6 151.3 L93.1 153.9 L92.8 156.1 L92.5 158.3 L92.3 160.5 L92.2 162.7 L92.1 164.9 L92.1 167.1 L92.2 169.3 L92.3 171.5 L92.5 173.7 L92.7 175.9 L93.1 178.1 L93.5 180.3 L93.9 182.5 L94.5 184.7 L95.1 186.8 L95.8 188.9 L96.5 191 L97.4 193.1 L98.3 195.1 L99.3 197.1 L100.3 199.1 L101.5 201 L102.7 202.9 L103.9 204.7 L105.3 206.5 L106.7 208.2 L108.1 209.9 L109.7 211.5 L111.3 213 L112.9 214.5 L114.6 215.9 L116.4 217.3 L118.2 218.5 L120.1 219.8 L122 220.9 L123.9 222 L125.9 223 L127.9 223.9 L130 224.7 L132.1 225.5 L134.2 226.2 L136.3 226.8 L138.5 227.4 L140.7 227.8 L142.9 228.2 L145.1 228.6 L147.3 228.8 L149.5 229 L151.8 229.1 L154 229.1 L156.2 229.1 L158.4 229 L160.6 228.8 L162.8 228.6 L165 228.3 L167.2 228 L169.3 227.5 L172 227 L174.6 226.3 L177.2 225.5 L179.7 224.7 L182.2 223.8 L184.7 222.8 L187.1 221.8 L189.4 220.7 L191.7 219.5 L194 218.3 L196.2 217.1 L198.8 215.5 L201.2 213.9 L203.6 212.2 L205.9 210.5 L208.2 208.7 L210.3 206.9 L212.4 205.1 L214.6 203 L216.8 200.8 L218.9 198.5 L220.9 196.3 L222.7 194.1 L224.7 191.5 L226.6 188.9 L228.3 186.4 L230.1 183.5 L231.8 180.6 L233.3 177.8 L234.8 174.7 L236.2 171.7 L237.4 168.7 L238.6 165.4 L239.6 162.2 L240.5 158.9 L241.3 155.6 L241.9 152.1 L242.4 148.7 L242.7 145.3 L242.9 141.7 L242.9 138.2 L242.8 134.7 L242.4 131.1 L241.8 127.4 L241.1 123.8 L240.1 120.2 L238.9 116.8 L237.5 113.5 L235.9 110.2 L234.1 107 L232 103.9 L229.7 101 L227.2 98.3 L224.5 95.7 L221.7 93.4 L218.6 91.2 L215.3 89.3 L211.9 87.7 L208.4 86.4 L204.9 85.3 L201.3 84.5 L197.7 84 L193.9 83.7 L190.2 83.8 L186.6 84 L183 84.5 L179.5 85.3 L176.1 86.2 L172.6 87.4 L169.2 88.8 L166 90.3 L162.8 92 L159.9 93.8 L156.9 95.9 L154 98 L151.4 100.3 L148.9 102.5 L146.5 105 L144.2 107.4 L142 110 L139.9 112.6 L137.9 115.3 L136.2 118 L134.4 120.8 L132.7 123.8 L131.3 126.5 L129.9 129.5 L128.5 132.5 L127.4 135.4 L126.3 138.3 L125.3 141.3 L124.4 144.5 L123.7 147.3 L123 150.3 L122.4 153.3 L121.9 156.4 L121.6 159.1 L121.3 161.8 L121.1 164.6 L121 167.5 L120.9 170.3 L121 173.3 L121.1 176.2 L121.3 178.7 L121.6 181.3 L121.9 183.8 L122.3 186.4 L122.8 188.9 L123.3 191.5 L124 194 L124.7 196.6 L125.5 199.2 L126.4 201.7 L127.4 204.2 L128.2 206.2 L129.1 208.2 L130.1 210.2 L131.1 212.2 L132.2 214.1 L133.3 216 L134.5 217.8 L135.8 219.7 L137.1 221.5 L138.4 223.2 L139.9 224.9 L141.3 226.6 L142.9 228.2 L144.5 229.8 L146.1 231.3 L147.8 232.8 L149.5 234.2 L151.3 235.5 L153.2 236.7 L155.1 237.9 L157 239.1 L158.9 240.1 L160.9 241.1 L163 242 L165 242.8 L167.1 243.6 L169.2 244.2 L171.4 244.8 L173.6 245.3 L175.7 245.7 L177.9 246 L180.1 246.3 L182.4 246.4 L184.6 246.5 L186.8 246.5 L189 246.4 L191.2 246.2 L193.4 245.9 L195.6 245.6 L197.8 245.1 L200 244.6 L202.2 244.1 L204.3 243.4 L206.4 242.7 L208.5 241.9 L210.5 241 L212.5 240 L214.5 239 L216.5 238 L218.4 236.9 L220.3 235.7 L222.1 234.4 L223.9 233.2 L225.7 231.8 L227.4 230.4 L229.1 229 L230.7 227.5 L232.7 225.7 L234.5 223.7 L236.4 221.7 L238.1 219.7 L239.8 217.6 L241.4 215.5 L242.9 213.4 L244.3 211.2 L245.7 209 L247 206.8 L248.2 204.6 L249.6 202 L250.9 199.3 L252 196.6 L253.1 194 L254.1 191.3 L255 188.6 L255.8 186 L256.7 183 L257.4 180 L258 177 L258.5 174.1 L258.9 171.2 L259.3 168 L259.6 164.8 L259.7 161.7 L259.8 158.3 L259.7 155 L259.5 151.8 L259.2 148.4 L258.8 145 L258.3 141.8 L257.6 138.5 L256.8 135.2 L255.8 131.9 L254.8 128.7 L253.5 125.4 L252.2 122.2 L250.7 119.1 L249 115.9 L247.2 112.9 L245.2 110 L243 107.1 L240.7 104.3 L238.1 101.6 L235.4 99.1 L232.7 96.8 L229.7 94.6 L226.7 92.7 L223.4 90.9 L220 89.3 L216.5 88 L213 87 L209.4 86.2 L205.7 85.7 L201.9 85.5 L198.2 85.5 L197.8 85.6" class="s-acc" fill="none" stroke-width="2"/><circle cx="200" cy="118" r="5" class="f-acc2"/><line x1="200" y1="118" x2="240" y2="118" class="s-acc2" stroke-width="2" marker-end="url(#f153b-acc2)"/><line x1="200" y1="118" x2="234.2" y2="97.2" class="s-acc2" stroke-width="2" marker-end="url(#f153b-acc2)"/><line x1="200" y1="118" x2="218.4" y2="82.5" class="s-acc2" stroke-width="2" marker-end="url(#f153b-acc2)"/><text x="240" y="140" class="t-math acc2" text-anchor="start"><tspan font-weight="700" font-style="italic">A</tspan></text><text x="12" y="22" class="t-b" text-anchor="start">(나) 1/r² 항을 더하면</text><text x="12" y="44" class="t-math dim" text-anchor="start"><tspan font-style="italic">V</tspan> = −<tspan font-style="italic">κ</tspan>/<tspan font-style="italic">r</tspan> + <tspan font-style="italic">β</tspan>/<tspan font-style="italic">r</tspan><tspan baseline-shift="super" font-size="72%">2</tspan></text></svg><!--/fig:15-3b--></div>
+      <figcaption><b>그림 15-3.</b> 고전 궤도와 근일점을 가리키는 벡터 \(\boldsymbol A\). (가) 쿨롱 퍼텐셜에서는 궤도 식 <a class="ref" href="#eq-orbit"></a>의 타원(이심률 0.6)이 닫히고 \(\boldsymbol A\)는 변하지 않는다. (나) \(\beta/r^2\) 항을 더하면 궤도는 \(r=p/(1+e\cos\gamma\theta)\), \(\gamma=\sqrt{1+2\mu\beta/L^2}\)가 된다(<a class="ref" href="#prob-inverse-square"></a>). 그림은 \(\gamma=0.92\)로 세 바퀴를 그렸고, 근일점이 한 바퀴마다 \(2\pi(1/\gamma-1)\approx31^\circ\)씩 앞으로 돈다.</figcaption>
+    </figure>
+    <h3 id="s6-quantum">양자역학의 룽게–렌츠 벡터</h3>
+    <p>양자역학에서는 \(\hat{\boldsymbol p}\times\hat{\boldsymbol L}\)이 에르미트가 아니다. 성분으로 쓰면 \((\hat{\boldsymbol p}\times\hat{\boldsymbol L})_i^\dagger=\sum_{jk}\varepsilon_{ijk}\hat L_k\hat p_j=-(\hat{\boldsymbol L}\times\hat{\boldsymbol p})_i\)이기 때문이다. 그래서 두 순서를 평균한다.</p>
+    <div class="formula" id="eq-lrl-quantum">\[ \hat{\boldsymbol A}=\frac12\bigl(\hat{\boldsymbol p}\times\hat{\boldsymbol L}-\hat{\boldsymbol L}\times\hat{\boldsymbol p}\bigr)-\mu\kappa\,\frac{\hat{\boldsymbol r}}{r}. \]</div>
+    <p>\(\hat L_j=\sum\varepsilon_{jab}\hat x_a\hat p_b\)에 \([\hat x_a,\hat p_b]=i\hbar\delta_{ab}\)를 넣으면 \([\hat L_j,\hat x_k]=i\hbar\sum_m\varepsilon_{jkm}\hat x_m\), \([\hat L_j,\hat p_k]=i\hbar\sum_m\varepsilon_{jkm}\hat p_m\)이 바로 나온다. 둘째 식과 \(\sum_{jk}\varepsilon_{ijk}\varepsilon_{jkm}=2\delta_{im}\)에서 \(\hat{\boldsymbol L}\times\hat{\boldsymbol p}=-\hat{\boldsymbol p}\times\hat{\boldsymbol L}+2i\hbar\hat{\boldsymbol p}\)이다. 따라서 식 <a class="ref" href="#eq-lrl-quantum"></a>은 \(\hat{\boldsymbol A}=\hat{\boldsymbol p}\times\hat{\boldsymbol L}-i\hbar\hat{\boldsymbol p}-\mu\kappa\hat{\boldsymbol r}/r\)로도 쓸 수 있다.</p>
+    <div class="box thm" id="thm-lrl-conserved"><div class="box-h">룽게–렌츠 벡터의 보존</div>
+      <div class="formula" id="eq-lrl-conserved">\[ \bigl[\hat H_{\mathrm{rel}},\hat A_i\bigr]=0\quad(i=x,y,z),\qquad \hat H_{\mathrm{rel}}=\frac{\hat{\boldsymbol p}^{\,2}}{2\mu}-\frac\kappa r. \]</div>
+    </div>
+    <details class="proof"><summary>증명</summary>
+      <p>연산자 \(\hat X\)에 대해 \(D\hat X\equiv(i/\hbar)[\hat H_{\mathrm{rel}},\hat X]\)라 쓰자. <a href="ch10.html#thm-heisenberg-equation">10장의 하이젠베르크 방정식</a>에서 이것은 시간 미분이다. 또 <a href="ch02.html#eq-comm-product">곱의 교환자 규칙</a> 때문에 \(D(\hat X\hat Y)=(D\hat X)\hat Y+\hat X(D\hat Y)\)를 만족한다. 고전 유도를 이 \(D\)로 되풀이한다.</p>
+      <p><b>1단계.</b> \([f(\hat{\boldsymbol r}),\hat p_i]=i\hbar\,\partial_if\)이므로 \(D\hat{\boldsymbol p}=-\boldsymbol\nabla V=-\kappa\hat{\boldsymbol r}/r^3\)이다. 중심 퍼텐셜에서는 \(D\hat{\boldsymbol L}=0\)이다.</p>
+      <p><b>2단계.</b> 곱의 규칙과 1단계에서 \(D(\hat{\boldsymbol p}\times\hat{\boldsymbol L})=-\kappa r^{-3}(\hat{\boldsymbol r}\times\hat{\boldsymbol L})\), \(D(\hat{\boldsymbol L}\times\hat{\boldsymbol p})=-\kappa r^{-3}(\hat{\boldsymbol L}\times\hat{\boldsymbol r})\)다. 둘째 식에서는 \(\hat{\boldsymbol L}\)이 \(r\)만의 함수와 교환한다는 사실을 썼다. 성분 계산으로 \(\hat{\boldsymbol r}\times\hat{\boldsymbol L}=\hat{\boldsymbol r}(\hat{\boldsymbol r}\cdot\hat{\boldsymbol p})-r^2\hat{\boldsymbol p}\)이고, 위의 \([\hat L_j,\hat x_k]\)에서 \(\hat{\boldsymbol L}\times\hat{\boldsymbol r}=-\hat{\boldsymbol r}\times\hat{\boldsymbol L}+2i\hbar\hat{\boldsymbol r}\)이다. 따라서</p>
+      <div class="formula">\[ \begin{aligned}
+        D\Bigl[\tfrac12\bigl(\hat{\boldsymbol p}\times\hat{\boldsymbol L}-\hat{\boldsymbol L}\times\hat{\boldsymbol p}\bigr)\Bigr]&amp;=-\frac{\kappa}{r^3}\bigl(\hat{\boldsymbol r}\times\hat{\boldsymbol L}-i\hbar\hat{\boldsymbol r}\bigr)\\
+        &amp;=\frac{\kappa}{r^3}\bigl[r^2\hat{\boldsymbol p}-\hat{\boldsymbol r}(\hat{\boldsymbol r}\cdot\hat{\boldsymbol p})+i\hbar\hat{\boldsymbol r}\bigr].
+        \end{aligned} \]</div>
+      <p><b>3단계.</b> 퍼텐셜 항은 \(\hat x_i/r\)과 교환하므로 \(D(\hat x_i/r)=(i/2\mu\hbar)[\hat p^2,\hat x_i/r]\)이다. 함수 \(f(\boldsymbol r)\)에 대해 \(\hat p^2(f\psi)=-\hbar^2\nabla^2(f\psi)\)를 전개하면 \([\hat p^2,f]=-\hbar^2(\nabla^2f)-2i\hbar(\boldsymbol\nabla f)\cdot\hat{\boldsymbol p}\)다. \(f=x_i/r\)에서는 \(\partial_jf=\delta_{ij}/r-x_ix_j/r^3\), \(\nabla^2f=-2x_i/r^3\)이므로</p>
+      <div class="formula">\[ \begin{aligned}
+        D\Bigl(\frac{\hat x_i}{r}\Bigr)&amp;=\frac{i}{2\mu\hbar}\Bigl[\frac{2\hbar^2\hat x_i}{r^3}-2i\hbar\Bigl(\frac{\hat p_i}{r}-\frac{\hat x_i(\hat{\boldsymbol r}\cdot\hat{\boldsymbol p})}{r^3}\Bigr)\Bigr]\\
+        &amp;=\frac{1}{\mu r^3}\bigl[r^2\hat p_i-\hat x_i(\hat{\boldsymbol r}\cdot\hat{\boldsymbol p})+i\hbar\hat x_i\bigr].
+        \end{aligned} \]</div>
+      <p><b>4단계.</b> 2단계와 3단계를 비교하면 \(D[\frac12(\hat{\boldsymbol p}\times\hat{\boldsymbol L}-\hat{\boldsymbol L}\times\hat{\boldsymbol p})]=\mu\kappa\,D(\hat{\boldsymbol r}/r)\)이다. 따라서 \(D\hat{\boldsymbol A}=0\), 곧 \([\hat H_{\mathrm{rel}},\hat{\boldsymbol A}]=0\)이다. 고전 유도의 셋째 줄에 해당하는 식이 순서에서 생기는 \(i\hbar\) 항까지 포함해 정확히 맞아떨어진 것이다.</p>
+    </details>
+    <p>\(\hat{\boldsymbol A}\)는 \(\hat{\boldsymbol r},\hat{\boldsymbol p}\)처럼 \([\hat L_j,\hat A_k]=i\hbar\sum_m\varepsilon_{jkm}\hat A_m\)을 만족하는 벡터 연산자다(<a href="ch17.html">17장</a>). 그래서 \(\hat A_z\)는 \(\hat L_z\)와 교환해 \(m\)을 보존한다. 그러나 다음 예제가 보이듯 \(\hat L^2\)와는 교환하지 않고 \(l\)을 바꾼다. \(\hat L^2\)와 \(\hat A_z\)가 모두 \(\hat H_{\mathrm{rel}}\)과 교환하면서 서로 교환하지 않으므로, <a href="ch13.html#thm-symmetry-degeneracy">13장의 정리</a>에 따라 서로 다른 \(l\) 사이에 축퇴가 생긴다.</p>
+    <div class="box ex" id="ex-lrl-action"><div class="box-h">룽게–렌츠 벡터를 1s와 2s에 작용하기</div>
+      <p>\(l=0\) 상태 \(\psi(r)\)에서는 \(\hat{\boldsymbol L}\psi=0\)이므로 \((\hat{\boldsymbol p}\times\hat{\boldsymbol L})\psi=0\)이다. 남은 두 항에 \(\hat{\boldsymbol p}=-i\hbar\boldsymbol\nabla\), \(\boldsymbol\nabla\psi=(\boldsymbol r/r)\psi'\), \(\mu\kappa=\hbar^2/a\)를 넣으면</p>
+      <div class="formula" id="eq-lrl-s-states">\[ \hat{\boldsymbol A}\psi=-\hbar^2\boldsymbol\nabla\psi-\mu\kappa\frac{\boldsymbol r}{r}\psi=-\hbar^2\,\frac{\boldsymbol r}{r}\Bigl(\psi'+\frac{\psi}{a}\Bigr). \]</div>
+      <p>1s에서는 \(\psi_{100}'=-\psi_{100}/a\)이므로 \(\hat{\boldsymbol A}\psi_{100}=0\)이다. \(n=1\) 준위에는 \(l=0\) 상태밖에 없으니, \(l\)을 바꾸는 연산자가 보낼 곳이 없다. 2s에서는 \(\psi_{200}=N(2-r/a)e^{-r/(2a)}\), \(N=1/(4\sqrt{2\pi a^3})\)이고</p>
+      <div class="formula">\[ \begin{aligned}
+        \psi_{200}'&amp;=-\frac Na\Bigl(2-\frac r{2a}\Bigr)e^{-r/(2a)},\\
+        \frac{\psi_{200}}a&amp;=\frac Na\Bigl(2-\frac ra\Bigr)e^{-r/(2a)}.
+        \end{aligned} \]</div>
+      <p>두 식을 더하면 \(\psi_{200}'+\psi_{200}/a=-N(r/2a^2)e^{-r/(2a)}\)이므로 \(\hat A_z\psi_{200}=(\hbar^2/2a^2)Nz\,e^{-r/(2a)}\)이다. 식 <a class="ref" href="#eq-two-orbitals"></a>의 \(\psi_{210}=N(z/a)e^{-r/(2a)}\)과 비교하면</p>
+      <div class="formula" id="eq-lrl-two-s">\[ \hat A_z|200\rangle=\frac{\mu\kappa}{2}|210\rangle. \]</div>
+      <p>회전으로는 서로 옮길 수 없는 2s와 2p<sub>0</sub>가 \(\hat A_z\)로 이어진다. 같은 계산으로 \(\hat A_x|200\rangle\), \(\hat A_y|200\rangle\)은 실수 2p<sub>x</sub>, 2p<sub>y</sub>에 비례한다.</p>
+    </div>
+    <div class="callout deep"><strong>슈타르크 효과와 이심률</strong><p>\(n=2,m=0\)인 두 상태 \(\{|200\rangle,|210\rangle\}\)에서 \(\hat A_z\)는 행렬 \((\mu\kappa/2)\left(\begin{smallmatrix}0&amp;1\\1&amp;0\end{smallmatrix}\right)\)이다. \(\hat{\boldsymbol A}\)는 \(\boldsymbol r\to-\boldsymbol r\)에서 부호가 바뀌므로 대각 성분은 0이고, 비대각 성분은 식 <a class="ref" href="#eq-lrl-two-s"></a>과 에르미트 성질에서 나온다. 고유상태 \((|200\rangle\pm|210\rangle)/\sqrt2\)의 고유값 \(\pm\mu\kappa/2\)는 고전적으로 이심률 \(e=1/2\)인 궤도에 해당한다. 이 두 상태는 <a href="ch19.html#s3-linear">19장의 선형 슈타르크 효과</a>에서 전기장이 고르는 상태이기도 하다. 19장의 \(\langle2s|\hat z|2p_0\rangle=-3a\)와 비교하면, 이 두 상태 공간에서 \(\hat z=-(6a/\mu\kappa)\hat A_z\)다. 고전 타원 궤도에서 시간 평균한 위치는 긴반지름 \(a_{\rm s}\)와 이심률 벡터 \(\boldsymbol A/\mu\kappa\)로 \(-\frac32a_{\rm s}\boldsymbol A/\mu\kappa\)이고, \(n=2\)의 긴반지름은 \(E_2=-\kappa/(2a_{\rm s})\)에서 \(a_{\rm s}=4a\)다. 같은 비 \(-\frac32\cdot4a=-6a\)가 나온다.</p></div>
+    <div class="callout deep"><strong>파울리의 대수적 풀이</strong><p>파울리는 1926년 파동함수 없이 \(\hat{\boldsymbol L}\)과 \(\hat{\boldsymbol A}\)의 교환 관계만으로 수소 준위를 구했다. 위 증명과 같은 종류의 (더 긴) 계산으로 다음을 보일 수 있다.</p>
+      <div class="formula">\[ \begin{gathered}
+        \hat{\boldsymbol L}\cdot\hat{\boldsymbol A}=\hat{\boldsymbol A}\cdot\hat{\boldsymbol L}=0,\\
+        [\hat A_i,\hat A_j]=-2i\hbar\mu\hat H_{\mathrm{rel}}\sum_k\varepsilon_{ijk}\hat L_k,\\
+        \hat A^2=\mu^2\kappa^2+2\mu\hat H_{\mathrm{rel}}\bigl(\hat L^2+\hbar^2\bigr).
+        \end{gathered} \]</div>
+      <p>에너지가 \(E&lt;0\)인 고유공간에서 \(\hat{\boldsymbol K}=\hat{\boldsymbol A}/\sqrt{-2\mu E}\)로 두면 \([\hat K_i,\hat K_j]=i\hbar\sum_k\varepsilon_{ijk}\hat L_k\)이다. 그러면 \(\hat{\boldsymbol J}_\pm=(\hat{\boldsymbol L}\pm\hat{\boldsymbol K})/2\)는 서로 교환하는 두 각운동량이 된다. \(\hat{\boldsymbol L}\cdot\hat{\boldsymbol K}=0\)이라 \(\hat J_+^2=\hat J_-^2=(\hat L^2+\hat K^2)/4\)이고, 셋째 식에서 \(\hat L^2+\hat K^2=-\mu\kappa^2/(2E)-\hbar^2\)이다. 따라서 \(4j(j+1)\hbar^2=-\mu\kappa^2/(2E)-\hbar^2\), 곧 \(E=-\mu\kappa^2/[2\hbar^2(2j+1)^2]\)이다. \(n=2j+1\)로 두면 식 <a class="ref" href="#eq-hydrogen-spectrum"></a>이고, 상태 수는 \((2j+1)^2=n^2\)이다. \(\hat{\boldsymbol L}=\hat{\boldsymbol J}_++\hat{\boldsymbol J}_-\)의 합성 규칙(<a href="ch17.html">17장</a>)에서 \(l=0,1,\ldots,2j=n-1\)도 나온다. 두 각운동량으로 쪼개지는 이 대칭이 4차원 회전군 SO(4)다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
       <li>전자·양성자 해밀토니안은 자유 질량중심과 질량 \(\mu=m_em_p/(m_e+m_p)\)인 상대 운동으로 분리된다.</li>
-      <li>SI 단위의 상대 퍼텐셜은 \(-e^2/(4\pi\epsilon_0r)\)이며 자연스러운 길이는 \(a_\mu=4\pi\epsilon_0\hbar^2/(\mu e^2)\)다.</li>
-      <li>정칙성과 정규화 조건을 함께 적용하면 \(n=n_r+l+1\)이 정수로 제한된다.</li>
-      <li>비상대론적 쿨롱 모형의 내부 에너지는 \(E_n=-\mu\kappa^2/(2\hbar^2n^2)\)다.</li>
-      <li>스핀을 세지 않은 한 \(n\) 준위의 궤도 상태 수는 \(\sum_l(2l+1)=n^2\)다.</li>
-      <li>1s의 공간 확률밀도는 원점에서 최대지만, 지름 확률밀도 \(p_{1s}(r)\)의 최대는 \(r=a_\mu\)다.</li>
-      <li>2s에는 \(r=2a_\mu\)의 구형 마디가 있고 실수 2p 오비탈에는 방향에 수직인 평면 마디가 있다.</li>
+      <li>원점의 정칙성과 무한대의 정규화를 함께 요구하면 급수가 끝나야 하고, \(n=n_r+l+1\)이 양의 정수로 제한된다.</li>
+      <li>비상대론적 쿨롱 모형의 내부 에너지는 \(E_n=-\mu\kappa^2/(2\hbar^2n^2)\)이고, 핵 전하가 \(Ze\)인 수소꼴 이온에서는 \(\kappa\)를 \(Z\kappa\)로 바꾼다.</li>
+      <li>스핀을 세지 않은 한 \(n\) 준위의 궤도 상태 수는 \(\sum_l(2l+1)=n^2\)이고, 한 광자 전이는 \(l\)을 한 칸 바꾼다.</li>
+      <li>1s의 지름 확률밀도는 \(r=a_\mu\)에서 최대다. 2s에는 \(r=2a_\mu\)의 구형 마디가, 실수 2p 오비탈에는 평면 마디가 있다.</li>
+      <li>복소 오비탈 \(e^{im\phi}\)에는 \(z\)축 둘레로 도는 확률 흐름이 있어 자기 모멘트 \(-m\mu_{\mathrm B}\)를 만들고, 실수 오비탈에는 흐름이 없다.</li>
+      <li>헬만–파인만 정리와 지름 방정식에서 \(\langle1/r\rangle=1/(n^2a)\), \(\langle1/r^2\rangle=1/[(l+\frac12)n^3a^2]\), \(\langle1/r^3\rangle\), \(|\psi_{n00}(0)|^2=1/(\pi n^3a^3)\)이 나온다.</li>
+      <li>룽게–렌츠 벡터 \(\hat{\boldsymbol A}\)는 \(\hat H\)와 교환하지만 \(\hat L^2\)와는 교환하지 않는다. 이것이 서로 다른 \(l\)의 축퇴와 닫힌 고전 궤도의 공통 원인이다.</li>
     </ol>
   </section>
 
@@ -227,18 +393,18 @@
       <div class="quiz-q"><p>2. \(n=3,l=1\) 속박 상태의 지름 마디 수 \(n_r\)는?</p><div class="opts">
         <button class="opt">0개</button><button class="opt" data-correct>1개</button><button class="opt">2개</button>
       </div><div class="quiz-exp">종료 조건 \(n=n_r+l+1\)에서 \(n_r=3-1-1=1\)이다.</div></div>
-      <div class="quiz-q"><p>3. 이 장의 쿨롱 모형에서 \(E_2\)는 \(E_1\)의 몇 배인가?</p><div class="opts">
-        <button class="opt">2배</button><button class="opt" data-correct>\(1/4\)배</button><button class="opt">4배</button>
-      </div><div class="quiz-exp">\(E_n=E_1/n^2\)이며 두 에너지는 모두 음수다.</div></div>
+      <div class="quiz-q"><p>3. 2s와 2p 상태에서 \(\langle1/r\rangle\)을 비교하면?</p><div class="opts">
+        <button class="opt">2s가 더 크다</button><button class="opt" data-correct>같다</button><button class="opt">2p가 더 크다</button>
+      </div><div class="quiz-exp">헬만–파인만 정리에서 \(\langle1/r\rangle=1/(n^2a)\)로 \(l\)과 무관하다. \(l\)에 따라 달라지는 것은 \(\langle1/r^2\rangle\) 같은 값이다.</div></div>
       <div class="quiz-q"><p>4. 스핀을 세지 않을 때 \(n=3\) 준위의 궤도 상태 수는?</p><div class="opts">
         <button class="opt">3개</button><button class="opt">6개</button><button class="opt" data-correct>9개</button>
       </div><div class="quiz-exp">\(l=0,1,2\)의 \(m\) 개수 \(1+3+5=9=3^2\)다.</div></div>
       <div class="quiz-q"><p>5. 1s 상태의 지름 확률밀도 \(p_{1s}(r)\)가 가장 큰 반지름은?</p><div class="opts">
         <button class="opt">\(r=0\)</button><button class="opt" data-correct>\(r=a_\mu\)</button><button class="opt">\(r=2a_\mu\)</button>
       </div><div class="quiz-exp">\(p_{1s}(r)=4r^2e^{-2r/a_\mu}/a_\mu^3\)을 미분하면 \(r=a_\mu\)에서 최대다.</div></div>
-      <div class="quiz-q"><p>6. 실수 2p<sub>z</sub> 오비탈의 파동함수가 0인 평면은?</p><div class="opts">
-        <button class="opt">\(x=0\)</button><button class="opt">\(y=0\)</button><button class="opt" data-correct>\(z=0\)</button>
-      </div><div class="quiz-exp">\(\psi_{210}\propto r\cos\theta=z\)이므로 \(z=0\) 평면이 마디다.</div></div>
+      <div class="quiz-q"><p>6. 쿨롱 퍼텐셜에 작은 \(\beta/r^2\) 항을 더하면 어떤 축퇴가 깨지는가?</p><div class="opts">
+        <button class="opt">같은 \(l\)의 서로 다른 \(m\)</button><button class="opt" data-correct>같은 \(n\)의 서로 다른 \(l\)</button><button class="opt">둘 다</button>
+      </div><div class="quiz-exp">\(\beta/r^2\)도 중심 퍼텐셜이라 회전 대칭과 \(m\) 축퇴는 남는다. 룽게–렌츠 벡터가 더 이상 보존되지 않아 서로 다른 \(l\)의 준위가 갈라진다(<a class="ref" href="#prob-inverse-square"></a>).</div></div>
     </div>
   </section>
 
@@ -252,18 +418,24 @@
       <details class="sol"><summary>풀이</summary><p>\(\lambda=n_r+l+1=1\)이므로 \(k=0\)에서 \(c_1=(1-\lambda)c_0/2=0\)이다. 뒤의 계수도 모두 0이라서 \(F=c_0\), \(u\propto\rho e^{-\rho/2}\)다. \(q=1/a_\mu\)이므로 \(E_1=-\hbar^2q^2/(2\mu)=-\mu\kappa^2/(2\hbar^2)\)다.</p></details></div>
     <div class="prob" id="prob-two-s-radial-check" data-level="3"><p>\(x=r/a_\mu\), \(u(x)\propto x(2-x)e^{-x/2}\)를 \(l=0,n=2\)의 지름 방정식 \(u_{xx}+[-1/4+2/x]u=0\)에 직접 대입해 확인하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(f=x(2-x)\)라 두면 \(u_{xx}=e^{-x/2}(f''-f'+f/4)=e^{-x/2}[-4+(5/2)x-x^2/4]\)다. 한편 \((-1/4+2/x)u=e^{-x/2}[4-(5/2)x+x^2/4]\)라 두 항의 합은 0이다. \(x=2\)가 지름 마디다.</p></details></div>
-    <div class="prob" id="prob-three-p-count" data-level="1"><p>\(n=3,l=1\) 상태의 지름 마디 수, 허용되는 \(m\), 같은 \(n=3\) 준위의 전체 궤도 상태 수를 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(n_r=n-l-1=1\), \(m=-1,0,1\)이다. \(n=3\)에서는 \(l=0,1,2\)가 가능하며 각 \(m\) 상태 수는 \(1,3,5\)이므로 전체는 \(1+3+5=9\)개다.</p></details></div>
     <div class="prob" id="prob-one-s-normalization" data-level="2"><p>\(R_{10}=2a^{-3/2}e^{-r/a}\)가 \(\int_0^\infty r^2|R_{10}|^2dr=1\)을 만족함을 적분으로 확인하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(\int_0^\infty r^2e^{-\beta r}dr=2/\beta^3\)를 \(\beta=2/a\)에 적용하면 적분은 \(a^3/4\)다. 따라서 \(\int_0^\infty r^2|R_{10}|^2dr=(4/a^3)(a^3/4)=1\)이다. 각도 함수 \(Y_0^0\)도 별도로 정규화되어 있다.</p></details></div>
     <div class="prob" id="prob-one-s-inside-a" data-level="2"><p>1s 상태에서 상대 거리 \(r\)가 \(a=a_\mu\)보다 작을 확률을 구하라. \(a\)가 확률의 경계인지도 설명하라.</p>
-      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-one-s-density"></a>를 적분한다. \(y=2r/a\)로 바꾸면 \(P(r&lt;a)=\frac12\int_0^2y^2e^{-y}dy=1-5e^{-2}\approx0.3233\)이다. \(a\)는 지름 확률밀도가 최대인 곳이지만, 그 안에 있을 확률은 약 32%이며 전자가 그 밖에도 분포한다.</p></details></div>
-    <div class="prob" id="prob-real-p-x" data-level="2"><p>식 <a class="ref" href="#eq-real-p-orbitals"></a>을 이용해 실수 2p<sub>x</sub>의 파동함수가 \(x=0\)에서 0임을 보이고, \(x\)의 부호를 바꾸면 파동함수와 확률밀도가 각각 어떻게 되는지 말하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-one-s-density"></a>을 적분한다. \(y=2r/a\)로 바꾸면 \(P(r&lt;a)=\frac12\int_0^2y^2e^{-y}dy=1-5e^{-2}\approx0.3233\)이다. \(a\)는 지름 확률밀도가 최대인 곳이지만, 그 안에 있을 확률은 약 32%이며 전자가 그 밖에도 분포한다.</p></details></div>
+    <div class="prob" id="prob-real-p-x" data-level="2"><p>식 <a class="ref" href="#eq-real-p-orbitals"></a>를 이용해 실수 2p<sub>x</sub>의 파동함수가 \(x=0\)에서 0임을 보이고, \(x\)의 부호를 바꾸면 파동함수와 확률밀도가 각각 어떻게 되는지 말하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(\psi_{2p_x}=R_{21}(r)Y_{p_x}\propto R_{21}(r)x/r\)다. \(x=0\)이 마디 평면이다. \(x\to-x\)이면 같은 \(r\)에서 파동함수의 부호는 바뀌고 확률밀도 \(|\psi_{2p_x}|^2\)는 그대로다.</p></details></div>
     <div class="prob" id="prob-three-to-two" data-level="2"><p>이 장의 모형에서 허용되는 \(n_i=3\)에서 \(n_f=2\)로의 한 광자 전이에 대해 광자 에너지를 \(|E_1|\)로 표현하고, \(|E_1|=13.5983\ \mathrm{eV}\)로 계산하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(h\nu=|E_1|(1/2^2-1/3^2)=5|E_1|/36\)이다. 주어진 값을 넣으면 \(h\nu\approx1.88865\ \mathrm{eV}\)다. \(E_3\)와 \(E_2\) 자체는 음수지만 방출 광자의 에너지는 양수다.</p></details></div>
     <div class="prob" id="prob-parity-selection" data-level="2"><p>패리티만으로 \(\langle1s|\hat z|2s\rangle\)와 \(\langle1s|\hat z|2p_z\rangle\) 가운데 어느 행렬원소가 반드시 0인지 판정하라.</p>
       <details class="sol"><summary>풀이</summary><p>1s와 2s는 짝함수이고 \(\hat z\)는 홀 연산자다. 따라서 \(\langle1s|\hat z|2s\rangle\)의 적분 함수는 홀함수라 0이다. 2p<sub>z</sub>는 홀함수이므로 \(\langle1s|\hat z|2p_z\rangle\)의 적분 함수는 짝함수다. 패리티만으로는 0이라고 결론낼 수 없다. <a href="ch13.html#s4">13장의 선택 규칙</a>을 적용한 것이다.</p></details></div>
+    <div class="prob" id="prob-two-p-moments" data-level="2"><p>식 <a class="ref" href="#eq-low-radial"></a>의 \(R_{21}\)을 직접 적분해 2p 상태의 \(\langle1/r^2\rangle\)과 \(\langle1/r^3\rangle\)을 구하고, 식 <a class="ref" href="#eq-inverse-r2"></a>, <a class="ref" href="#eq-inverse-r3"></a>과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(r^2R_{21}^2=\frac{1}{24a^5}r^4e^{-r/a}\)이고 \(\int_0^\infty r^ke^{-r/a}dr=k!\,a^{k+1}\)이다. \(\langle1/r^2\rangle=\frac{1}{24a^5}\int_0^\infty r^2e^{-r/a}dr=\frac{2a^3}{24a^5}=\frac{1}{12a^2}\), \(\langle1/r^3\rangle=\frac{1}{24a^5}\int_0^\infty re^{-r/a}dr=\frac{1}{24a^3}\)이다. 일반식에 \(n=2,l=1\)을 넣으면 \(1/(\frac32\cdot8a^2)=1/(12a^2)\), \(1/(1\cdot\frac32\cdot2\cdot8a^3)=1/(24a^3)\)으로 같다.</p></details></div>
+    <div class="prob" id="prob-lrl-square" data-level="2"><p>파울리의 식 \(\hat A^2=\mu^2\kappa^2+2\mu\hat H_{\mathrm{rel}}(\hat L^2+\hbar^2)\)을 <a class="ref" href="#ex-lrl-action"></a>의 결과로 1s와 2s에서 확인하라. 2s에서는 \(\hat A_x|200\rangle\), \(\hat A_y|200\rangle\)도 \(\hat A_z|200\rangle\)과 같은 크기라는 사실을 쓴다.</p>
+      <details class="sol"><summary>풀이</summary><p>각 \(\hat A_i\)가 에르미트이므로 \(\langle\psi|\hat A^2|\psi\rangle=\sum_i\|\hat A_i\psi\|^2\)이다. 1s에서는 \(\hat{\boldsymbol A}\psi_{100}=0\)이라 왼쪽이 0이고, 오른쪽은 \(l=0\), \(E_1=-\mu\kappa^2/(2\hbar^2)\)에서 \(\mu^2\kappa^2+2\mu E_1\hbar^2=\mu^2\kappa^2-\mu^2\kappa^2=0\)이다. 2s에서는 \(\hat A_i|200\rangle=(\mu\kappa/2)|2p_i\rangle\)이고 세 실수 2p 상태가 정규 직교하므로 왼쪽은 \(3(\mu\kappa/2)^2=\frac34\mu^2\kappa^2\)이다. 오른쪽은 \(E_2=E_1/4\)에서 \(\mu^2\kappa^2(1-\frac14)=\frac34\mu^2\kappa^2\)이다.</p></details></div>
+    <div class="prob" id="prob-inverse-square" data-level="3"><p>퍼텐셜 \(V=-\kappa/r+\beta/r^2\)를 생각하자. (가) 지름 방정식에서 \(l(l+1)\)을 \(l'(l'+1)=l(l+1)+2\mu\beta/\hbar^2\)로 바꾸면 쿨롱 문제와 같아짐을 보이고, 준위가 \(E=-\mu\kappa^2/[2\hbar^2(n_r+l'+1)^2]\)임을 설명하라. (나) 같은 \(n=n_r+l+1\)에서 서로 다른 \(l\)의 준위가 갈라짐을 보이고, \(\beta\)의 1차까지 에너지 변화가 \(\beta\langle1/r^2\rangle\)임을 식 <a class="ref" href="#eq-inverse-r2"></a>로 확인하라. (다) 고전 궤도가 \(r=p/(1+e\cos\gamma\theta)\), \(\gamma=\sqrt{1+2\mu\beta/L^2}\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(\beta/r^2\) 항은 원심 항과 같은 꼴이라 \(-[l(l+1)+2\mu\beta/\hbar^2]/r^2=-l'(l'+1)/r^2\)로 합쳐진다. \(l'\ge0\)인 근을 고르면 15.2절의 유도가 실수 \(l'\)에서 그대로 성립하므로 \(E=-\mu\kappa^2/[2\hbar^2(n_r+l'+1)^2]\)이다.</p>
+        <p>(나) \((l'+\frac12)^2=(l+\frac12)^2+2\mu\beta/\hbar^2\)에서 \(l'\approx l+\mu\beta/[\hbar^2(l+\frac12)]\)이다. 이동량이 \(l\)마다 다르므로 같은 \(n\)의 준위가 갈라진다. 1차 변화는 \(\Delta E\approx(\partial E/\partial l)(l'-l)=\frac{\mu\kappa^2}{\hbar^2n^3}\cdot\frac{\mu\beta}{\hbar^2(l+\frac12)}=\frac{\beta}{(l+\frac12)n^3a^2}=\beta\langle1/r^2\rangle\)으로, <a href="ch19.html#s1">19장</a>의 1차 섭동 결과와 같다.</p>
+        <p>(다) \(w=1/r\)로 두자. \(L=\mu r^2\dot\theta\)가 일정하므로 \(\dot r=-(L/\mu)\,dw/d\theta\), \(\ddot r=-(L^2w^2/\mu^2)\,d^2w/d\theta^2\)이다. 지름 방향 운동 방정식 \(\mu(\ddot r-r\dot\theta^2)=-\kappa w^2+2\beta w^3\)에 넣으면 \(d^2w/d\theta^2+w=\mu\kappa/L^2-(2\mu\beta/L^2)w\), 곧 \(d^2w/d\theta^2+\gamma^2w=\mu\kappa/L^2\)이다. 해는 \(w=(\mu\kappa/\gamma^2L^2)(1+e\cos\gamma\theta)\)이므로 \(p=\gamma^2L^2/(\mu\kappa)\)다. 근일점은 \(\gamma\theta=2\pi k\)에 있어 한 바퀴마다 \(2\pi(1/\gamma-1)\)씩 돈다(그림 15-3 (나)).</p></details></div>
   </section>
 </main>
 </body>
