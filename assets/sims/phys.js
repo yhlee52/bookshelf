@@ -2,7 +2,7 @@
    물리 실험 모음 (field: "phys")
    projectile · incline · atwood · banked-curve · loop · collision · rolling · damped-spring · pendulum
    oscillator · coupled · orbit · lagrange · coriolis · waves · double-slit · efield · random-walk
-   heat · ising · double-pendulum · lorenz3d · qm-packet
+   heat · ising · double-pendulum · lorenz3d · qm-packet · qm-spin
    ========================================================================== */
 (function () {
   "use strict";
@@ -2741,6 +2741,138 @@
       S.button("처음부터", () => restart());
       setup();
       const lp = S.loop(() => { if (done) return; for (let k = 0; k < 4; k++) step(); readout(); cv.redraw(); });
+      readout();
+    },
+  });
+  /* ======================================================================
+     24. 스핀 1/2의 블로흐 구 (세차 운동, 자기 공명)
+     ====================================================================== */
+  // 스핀 1/2의 순수 상태는 블로흐 벡터 n = ⟨σ⟩로 정해진다. H = (ħ/2) ω·σ이면 dn/dt = ω × n이고,
+  // ω가 일정하면 n은 ω 둘레로 각 |ω|t만큼 돈다(로드리게스 공식). 그래서 수치 적분 없이 정확하다.
+  // 자기 공명은 회전 좌표계의 ω_eff = (Ω₁, 0, Δ)가 일정하므로 같은 공식으로 풀고, 실험실 좌표계는 z축 둘레로 ωt를 더 돌린다.
+  // 페이지에서 <div data-sim="qm-spin" data-preset="precess|rabi"></div>로 처음 상황을 고른다.
+  Lab.register({
+    id: "qm-spin", field: "phys", thumb: "orbit",
+    title: "블로흐 구 — 스핀의 세차 운동과 자기 공명",
+    desc: "스핀 1/2의 상태를 블로흐 구 위의 점으로 그리고, 정자기장 속 세차 운동과 회전 구동장의 라비 진동을 실험실 좌표계와 회전 좌표계에서 보여 줍니다.",
+    tags: ["양자역학", "스핀", "블로흐 구", "자기 공명"],
+    note: "해볼 것: '세차 운동'에서 자기장을 기울이면 스핀은 자기장 방향을 축으로 원뿔을 그리고, z축 위 확률은 1 − sin²θ_B까지 내려갔다 돌아옵니다. '자기 공명'에서 Δ = 0이면 실험실 좌표계의 스핀은 빠르게 돌며 북극에서 남극까지 나선을 그립니다. '회전 좌표계로 보기'를 켜면 같은 운동이 x축 둘레의 느린 회전이 됩니다. Δ를 키우면 회전축이 z축 쪽으로 기울어 남극에 닿지 못합니다. 블로흐 벡터를 로드리게스 공식으로 돌린 정확한 해이며, 시간 단위는 세차 운동에서 1/|ω|, 자기 공명에서 1/Ω₁입니다.",
+    mount(S) {
+      const pre = S.el.dataset.preset === "rabi" ? "rabi" : "precess";
+      const st = { mode: pre, tilt: 40, det: 0, w0: 8, rot: false, speed: 1 };
+      let t = 0;
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+      // 로드리게스: m을 단위벡터 n 둘레로 각 a만큼 오른손 방향으로 돌린다
+      const rod = (n, a, m) => { const c = Math.cos(a), s = Math.sin(a), nm = dot(n, m), x = crs(n, m); return [0, 1, 2].map((i) => c * m[i] + s * x[i] + (1 - c) * nm * n[i]); };
+      const fieldDir = () => { const a = (st.tilt * Math.PI) / 180; return [Math.sin(a), 0, Math.cos(a)]; };
+      const omega = () => Math.hypot(st.det, 1);
+      const kAxis = () => { const O = omega(); return [1 / O, 0, st.det / O]; };
+      // 시각 tt의 블로흐 벡터 (처음 상태는 +z)
+      function bloch(tt) {
+        if (st.mode === "precess") return rod(fieldDir(), tt, [0, 0, 1]);
+        const nr = rod(kAxis(), omega() * tt, [0, 0, 1]);
+        if (st.rot) return nr;
+        const w = st.w0 - st.det, c = Math.cos(w * tt), s = Math.sin(w * tt);
+        return [c * nr[0] - s * nr[1], s * nr[0] + c * nr[1], nr[2]];
+      }
+      const prob = (n) => (st.mode === "precess" ? (1 + n[2]) / 2 : (1 - n[2]) / 2);
+      // 정사영: 방위각 25°, 고도 20°에서 본다
+      const AZ = (25 * Math.PI) / 180, EL = (20 * Math.PI) / 180;
+      const CAM = [Math.cos(EL) * Math.cos(AZ), Math.cos(EL) * Math.sin(AZ), Math.sin(EL)];
+      const RT = [-Math.sin(AZ), Math.cos(AZ), 0], UPV = [-Math.sin(EL) * Math.cos(AZ), -Math.sin(EL) * Math.sin(AZ), Math.cos(EL)];
+      const cv = S.canvas({ aspect: 0.72, minHeight: 260, maxHeight: 400 }, (ctx, w, h) => {
+        const P = VZ.palette();
+        const R = Math.min(w * 0.34, h * 0.38), cx = w / 2, cy = h / 2 + 8;
+        const pr = (p) => [cx + R * dot(p, RT), cy - R * dot(p, UPV)];
+        // 앞쪽(보는 쪽)은 진하게, 뒤쪽은 흐리게 그리는 3차원 꺾은선
+        const poly = (pts, color, width, backAlpha, dash) => {
+          for (let i = 1; i < pts.length; i++) {
+            const front = dot(pts[i], CAM) + dot(pts[i - 1], CAM) >= 0;
+            const a = pr(pts[i - 1]), b = pr(pts[i]);
+            ctx.strokeStyle = front ? color : VZ.alpha(color, backAlpha);
+            ctx.lineWidth = width; ctx.setLineDash(!front && dash ? dash : []);
+            ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+          }
+          ctx.setLineDash([]);
+        };
+        const arrow3 = (v, len, color, width, label) => {
+          const o = pr([0, 0, 0]), e = pr(v.map((x) => x * len));
+          ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+          VZ.arrow(ctx, o[0], o[1], e[0], e[1], 9);
+          // 화살표가 왼쪽을 향하면 글자를 끝점 왼쪽 위에 둔다(x축 이름과 겹치지 않게)
+          if (label) { const left = e[0] < cx - 4; ctx.font = VZ.font(12, false, "600"); ctx.textAlign = left ? "right" : "left"; ctx.textBaseline = "middle"; ctx.fillText(label, e[0] + (left ? -8 : 6), e[1] - (left ? 14 : 6)); }
+        };
+        // 구, 적도, 좌표축
+        ctx.strokeStyle = VZ.alpha(P.dim, 0.75); ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+        const eq = Array.from({ length: 121 }, (_, i) => { const a = (Math.PI * 2 * i) / 120; return [Math.cos(a), Math.sin(a), 0]; });
+        poly(eq, VZ.alpha(P.dim, 0.75), 1.1, 0.35, [3, 4]);
+        [[[1, 0, 0], "x"], [[0, 1, 0], "y"], [[0, 0, 1], "z"]].forEach(([ax, name]) => {
+          poly([ax.map((x) => -x), [0, 0, 0], ax.map((x) => 1.22 * x)], P.dim, 1, 0.45, [3, 3]);
+          const q = pr(ax.map((x) => 1.34 * x));
+          ctx.fillStyle = P.dim; ctx.font = "italic " + VZ.font(13, false); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(name, q[0], q[1]);
+        });
+        // 자기장 화살표
+        if (st.mode === "precess") arrow3(fieldDir(), 1.25, P.accent2, 2, "B");
+        else if (st.rot) arrow3(kAxis(), 1.25, P.accent2, 2, "유효 축 k");
+        else {
+          arrow3([0, 0, 1], 1.25, P.dim, 1.6, "B₀");
+          const wt = (st.w0 - st.det) * t;
+          arrow3([Math.cos(wt), Math.sin(wt), 0], 0.7, P.accent2, 2, "B₁");
+        }
+        // 지나온 자취 (최근 한 주기)
+        const per = st.mode === "precess" ? Math.PI * 2 : (Math.PI * 2) / omega();
+        const t0 = Math.max(0, t - per), N = st.mode === "rabi" && !st.rot ? 600 : 240;
+        const trail = Array.from({ length: N + 1 }, (_, i) => bloch(t0 + ((t - t0) * i) / N));
+        poly(trail, VZ.alpha(P.accent, 0.7), 1.6, 0.3);
+        // 스핀 화살표
+        const n = bloch(t);
+        arrow3(n, 1, P.accent, 2.6, "");
+        const tip = pr(n);
+        ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(tip[0], tip[1], 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(11, false); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(st.mode === "precess" ? "실험실 좌표계" : st.rot ? "회전 좌표계 (ω로 함께 돎)" : "실험실 좌표계", 10, 10);
+      });
+      const TW = 4 * Math.PI;
+      const ch = S.canvas({ aspect: 0.3, minHeight: 150, maxHeight: 200 }, (ctx) => {
+        const P = VZ.palette();
+        const a = Math.max(0, t - TW), data = [];
+        for (let i = 0; i <= 300; i++) { const tt = a + ((t - a) * i) / 300; data.push([tt, prob(bloch(tt))]); }
+        const hl = st.mode === "precess" ? [{ y: 1 - Math.sin((st.tilt * Math.PI) / 180) ** 2, color: P.accent2, label: "1 − sin²θ_B" }] : [{ y: 1 / omega() ** 2, color: P.accent2, label: "Ω₁²/(Δ²+Ω₁²)" }];
+        VZ.chart(ctx, null, {
+          x: [a, a + TW], y: [0, 1], yFmt: (v) => v.toFixed(1),
+          xLabel: st.mode === "precess" ? "회전각 |ω|t (rad)" : "시간 Ω₁t", hlines: hl,
+          series: [{ data, color: P.accent, width: 2 }],
+        });
+      });
+      const set = S.stats([{ k: "t", label: "시간" }, { k: "p", label: "확률" }, { k: "n", label: "블로흐 벡터 n" }]);
+      function readout() {
+        const n = bloch(t);
+        set("t", st.mode === "precess" ? (t / (2 * Math.PI)).toFixed(2) + " 바퀴" : "Ω₁t = " + (t / Math.PI).toFixed(2) + "π");
+        set("p", prob(n).toFixed(3) + (st.mode === "precess" ? " <small>(S_z = +ħ/2)</small>" : " <small>(S_z = −ħ/2)</small>"));
+        set("n", "(" + n.map((x) => x.toFixed(2)).join(", ") + ")");
+      }
+      const redraw = () => { cv.redraw(); ch.redraw(); readout(); };
+      const restart = () => { t = 0; redraw(); };
+      const wrap = (get) => get.el.closest(".ctrl");
+      S.seg({ label: "상황", options: [["precess", "세차 운동"], ["rabi", "자기 공명"]], value: st.mode, onChange: (v) => { st.mode = v; vis(); restart(); } });
+      const cTilt = S.range({ label: "자기장 기울기 θ_B", min: 0, max: 90, step: 1, value: st.tilt, fmt: (v) => v + "°", onInput: (v) => { st.tilt = v; restart(); } });
+      const cDet = S.range({ label: "비공명 Δ/Ω₁", min: -3, max: 3, step: 0.05, value: st.det, fmt: (v) => v.toFixed(2), onInput: (v) => { st.det = v; restart(); } });
+      const cW0 = S.range({ label: "준위 간격 ω₀/Ω₁", min: 3, max: 16, step: 1, value: st.w0, fmt: (v) => String(v), onInput: (v) => { st.w0 = v; redraw(); } });
+      S.check({ label: "회전 좌표계로 보기", value: st.rot, onChange: (v) => { st.rot = v; redraw(); } });
+      const cRot = S.controls.lastElementChild;
+      S.range({ label: "재생 속도", min: 0.25, max: 3, step: 0.25, value: st.speed, fmt: (v) => v + "×", onInput: (v) => { st.speed = v; } });
+      function vis() {
+        const r = st.mode === "rabi";
+        wrap(cTilt).style.display = r ? "none" : "";
+        [wrap(cDet), wrap(cW0), cRot].forEach((el) => (el.style.display = r ? "" : "none"));
+      }
+      const playBtn = S.button("멈춤", () => { playBtn.textContent = lp.toggle() ? "멈춤" : "재생"; }, { primary: true });
+      S.button("처음부터", () => restart());
+      vis();
+      const lp = S.loop((dt) => { t += dt * st.speed; redraw(); });
       readout();
     },
   });
