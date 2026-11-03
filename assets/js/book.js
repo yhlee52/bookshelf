@@ -208,6 +208,8 @@
         throwOnError: false,
       });
       fitDisplays();
+      // KaTeX 글꼴이 늦게 도착하면 식의 폭이 바뀐다. 글꼴을 다 받은 뒤 한 번 더 맞춘다
+      if (document.fonts) document.fonts.ready.then(fitDisplays);
       let raf = 0;
       addEventListener("resize", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fitDisplays); });
       document.addEventListener("toggle", fitDisplays, true);
