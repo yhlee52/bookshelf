@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>01 확률과 조건부 확률 · StatBook</title>
-<meta name="description" content="표본 공간과 사건 · 확률의 공리 · 조건부 확률과 곱셈 규칙 · 전확률 공식과 베이즈 정리 · 사건의 독립 · 머신러닝에서: 분류기의 출력과 기저율">
+<meta name="description" content="사건을 집합으로 나타내는 법에서 출발해 조건부 확률, 전확률 공식, 베이즈 정리와 독립을 유도하고 분류기의 양성 출력에 기저율이 미치는 영향을 계산한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -20,70 +20,176 @@
 <script defer src="../../../assets/sims/dl.js"></script>
 <script defer src="../../../assets/sims/ts.js"></script>
 <script defer src="../../../assets/sims/phys.js"></script>
+<script defer src="../../../assets/sims/math.js"></script>
 <script defer src="../../../assets/js/widgets.js"></script>
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="statistics" data-field="math" data-chapter="ch01">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/statistics/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">01</span></div>
     <h1 data-fill="chapter-title">확률과 조건부 확률</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">검사가 양성이라고 알려 왔다. 검사 정확도가 높다면 실제로 해당 상태일 확률도 높을까? 답을 얻으려면 먼저 가능한 결과를 사건으로 묶고, 관찰한 정보가 확률을 어떻게 바꾸는지 계산해야 한다. 이 장은 그 규칙을 처음부터 세워 분류기의 양성 출력까지 적용한다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>표본 공간과 사건을 집합으로 나타내고 합집합·교집합·여사건의 확률을 계산할 수 있다.</li>
+      <li>조건부 확률의 정의에서 곱셈 규칙과 전확률 공식을 유도할 수 있다.</li>
+      <li>베이즈 정리로 관찰 뒤의 확률을 계산하고 기저율의 영향을 설명할 수 있다.</li>
+      <li>독립과 배반을 구별하고 분류기의 민감도·특이도와 양성 예측도를 구별할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b>분수와 집합의 기본 연산. 확률과 통계의 선수 지식은 필요하지 않다.</p>
   </header>
 
   <section id="s1">
     <h2>표본 공간과 사건</h2>
-    <p class="slot" data-slot="1.1절">아직 쓰지 않은 절입니다.</p>
+    <p>주사위를 한 번 던져 나온 수를 기록한다고 하자. 던지기 전에는 어느 수가 나올지 모르지만 가능한 결과의 목록은 쓸 수 있다. 이를 <span class="term">표본 공간</span> <span class="en">(sample space)</span>이라 한다. 주사위의 표본 공간은 \(\Omega=\{1,2,3,4,5,6\}\)이다. 실험을 실제로 하면 이 여섯 결과 가운데 하나가 관측된다.</p>
+    <div class="box def" id="def-event"><div class="box-h">표본 공간과 사건</div>
+      <p>가능한 결과 전체의 집합을 \(\Omega\)라고 한다. 그 부분집합 \(A\subseteq\Omega\)를 <span class="term">사건</span> <span class="en">(event)</span>이라 한다. 관측한 결과가 \(A\)에 속하면 사건 \(A\)가 일어났다고 말한다.</p>
+    </div>
+    <p>예를 들어 \(A=\{2,4,6\}\)은 짝수가 나오는 사건이고 \(B=\{5,6\}\)은 5 이상이 나오는 사건이다. 두 조건을 <em>모두</em> 만족하는 \(A\cap B=\{6\}\)은 교집합, <em>적어도 하나</em>를 만족하는 \(A\cup B=\{2,4,5,6\}\)은 합집합이다. \(A^c=\Omega\setminus A=\{1,3,5\}\)는 \(A\)가 일어나지 않는 <span class="term">여사건</span> <span class="en">(complement)</span>이다.</p>
+    <div class="box ex" id="ex-sample-space"><div class="box-h">두 번 던진 동전의 결과를 적기</div>
+      <p>앞면을 H, 뒷면을 T로 쓰면 \(\Omega=\{HH,HT,TH,TT\}\)이다. 순서를 기록하므로 \(HT\)와 \(TH\)는 다른 결과다. \(A=\{HH,HT\}\)를 첫째 동전이 앞면인 사건, \(B=\{HT,TH\}\)를 앞면이 정확히 한 번 나온 사건이라 하면 \(A\cap B=\{HT\}\)이다. 앞면 횟수만 기록한다면 표본 공간은 \(\{0,1,2\}\)로 바뀌지만, 이 세 결과가 같은 확률이라는 뜻은 아니다. 한 번 나온 경우에 해당하는 원래 결과가 둘이기 때문이다.</p>
+    </div>
+    <p>확률은 가능한 결과의 <b>개수</b>만으로 정해지지 않는다. 잘 균형 잡힌 주사위처럼 개별 결과가 같은 확률이라고 <em>가정할 때에만</em> \(P(A)=|A|/|\Omega|\)라는 계산이 가능하다. 데이터의 클래스 빈도나 분류기의 점수는 일반적으로 그런 균등한 경우가 아니다.</p>
   </section>
 
   <section id="s2">
     <h2>확률의 공리</h2>
-    <p class="slot" data-slot="1.2절">아직 쓰지 않은 절입니다.</p>
+    <p>사건에 숫자를 붙이는 규칙을 정해 보자. 이 숫자가 확률이 되려면 음수가 될 수 없고, 무언가 가능한 결과는 반드시 일어나야 한다. 서로 동시에 일어날 수 없는 사건끼리는 확률을 더할 수 있어야 한다. 이 세 조건에서 우리가 쓰는 계산법이 나온다.</p>
+    <div class="box def" id="def-probability-axioms"><div class="box-h">확률의 세 공리</div>
+      <p>각 사건 \(A\)에 숫자 \(P(A)\)를 대응시키는 확률 \(P\)는 다음을 만족한다.</p>
+      <ol>
+        <li><b>음이 아님:</b> 모든 사건에 대해 \(P(A)\geq0\).</li>
+        <li><b>전체:</b> \(P(\Omega)=1\).</li>
+        <li><b>가산 가법성:</b> 서로 겹치지 않는 사건 \(A_1,A_2,\ldots\)에 대해 \(P(\bigcup_i A_i)=\sum_i P(A_i)\).</li>
+      </ol>
+      <p>유한한 표본 공간에서는 마지막 조건을 서로 겹치지 않는 유한 개 사건의 합으로 읽으면 된다.</p>
+    </div>
+    <div class="callout deep"><strong>이 장의 사건 범위</strong><p>여기서는 결과를 하나씩 나열할 수 있는 유한한 표본 공간에서 시작한다. 연속적인 값을 다룰 때는 어떤 부분집합을 사건으로 허용할지 더 조심스럽게 정해야 하지만, 이 책에서는 그 측도론적 구성까지 다루지 않는다.</p></div>
+    <p>\(\Omega\)는 \(A\)와 \(A^c\)로 겹치지 않게 나뉜다. 따라서 \(1=P(\Omega)=P(A)+P(A^c)\)이며, 여사건 공식이 나온다.</p>
+    <div class="formula" id="eq-complement">\[P(A^c)=1-P(A)\]</div>
+    <p>또 \(\Omega=\Omega\cup\varnothing\)은 겹치지 않는 합이므로 \(1=1+P(\varnothing)\), 따라서 \(P(\varnothing)=0\)이다. 사건 \(A\)가 \(B\)에 포함되면 \(B=A\cup(B\setminus A)\)라는 겹치지 않는 분해를 쓸 수 있다. 그러므로 \(P(B)=P(A)+P(B\setminus A)\geq P(A)\). 특히 모든 확률은 0과 1 사이다.</p>
+    <p>겹치는 사건의 확률을 그냥 더하면 교집합을 두 번 센다. \(A\cup B\)를 \(A\)와 \(B\setminus A\)로 나누고 \(B=(B\setminus A)\cup(A\cap B)\)를 대입하면 다음 식을 얻는다.</p>
+    <div class="formula" id="eq-union">\[P(A\cup B)=P(A)+P(B)-P(A\cap B)\]</div>
+    <div class="box ex" id="ex-union"><div class="box-h">주사위에서 '짝수 또는 5 이상'</div>
+      <p>공정한 주사위라면 \(P(A)=3/6\), \(P(B)=2/6\), \(P(A\cap B)=1/6\)이다. 식 <a class="ref" href="#eq-union"></a>에 넣으면 \(P(A\cup B)=3/6+2/6-1/6=4/6\). 앞 절에서 직접 나열한 \(\{2,4,5,6\}\)과 맞는다.</p>
+    </div>
+    <div class="callout warn"><strong>서로 겹치지 않을 때만 그냥 더한다</strong><p>\(P(A\cup B)=P(A)+P(B)\)는 \(A\cap B=\varnothing\)일 때의 특수한 경우다. 사건의 독립과 '겹치지 않음'은 다르며, 1.5절에서 구별한다.</p></div>
   </section>
 
   <section id="s3">
     <h2>조건부 확률과 곱셈 규칙</h2>
-    <p class="slot" data-slot="1.3절">아직 쓰지 않은 절입니다.</p>
+    <p>주사위를 던진 뒤 '짝수가 나왔다'는 말만 들었다고 하자. 이제 가능한 결과는 \(A=\{2,4,6\}\)으로 좁혀진다. 그 안에서 5 이상인 결과는 6 하나이므로, 공정한 주사위에서 답은 \(1/3\)이다. 원래의 \(P(B)=1/3\)과 우연히 같지만, 계산의 대상은 전체가 아니라 <b>새로 알려진 조건 \(A\) 안</b>이다.</p>
+    <div class="box def" id="def-conditional"><div class="box-h">조건부 확률</div>
+      <p>\(P(B)>0\)일 때, \(B\)가 일어났다는 정보를 받은 뒤 \(A\)가 일어날 확률을</p>
+      <div class="formula" id="eq-conditional">\[P(A\mid B)=\frac{P(A\cap B)}{P(B)}\]</div>
+      <p>로 정의한다. \(P(B)=0\)이면 이 비율로 \(P(A\mid B)\)를 정의할 수 없다.</p>
+    </div>
+    <p>예를 들어 \(P(B\mid A)=P(A\cap B)/P(A)=(1/6)/(3/6)=1/3\)이다. 반대로 \(P(A\mid B)=(1/6)/(2/6)=1/2\). 조건의 방향을 바꾸면 분모가 바뀐다.</p>
+    <p>식 <a class="ref" href="#eq-conditional"></a>의 양변에 \(P(B)\)를 곱하면, 두 사건이 함께 일어날 확률을 먼저 \(B\)가 일어날 확률과 \(B\) 안에서 \(A\)가 일어날 확률로 나눌 수 있다.</p>
+    <div class="formula" id="eq-multiplication">\[P(A\cap B)=P(B)P(A\mid B)=P(A)P(B\mid A)\]</div>
+    <div class="box ex" id="ex-without-replacement"><div class="box-h">되돌려 넣지 않고 공 두 개 뽑기</div>
+      <p>상자에 빨간 공 3개와 파란 공 2개가 있다. \(R_1\): 첫 공이 빨강, \(R_2\): 둘째 공이 빨강이라 하자. \(P(R_1)=3/5\)이고, 첫 공이 빨강인 경우 남은 4개 중 빨강은 2개이므로 \(P(R_2\mid R_1)=2/4\). 식 <a class="ref" href="#eq-multiplication"></a>로 \(P(R_1\cap R_2)=(3/5)(2/4)=3/10\)이다. 두 번째 확률에도 \(3/5\)를 곱하면 뽑고 난 뒤의 상자 변화를 놓친다.</p>
+    </div>
+    <p>세 사건도 한 번 더 같은 규칙을 적용하면 \(P(A\cap B\cap C)=P(A)P(B\mid A)P(C\mid A\cap B)\)이다. 이처럼 순서대로 조건을 붙여 곱하는 법은 이후 여러 확률 변수의 결합 분포를 쓸 때 다시 등장한다.</p>
   </section>
 
   <section id="s4">
     <h2>전확률 공식과 베이즈 정리</h2>
-    <p class="slot" data-slot="1.4절">아직 쓰지 않은 절입니다.</p>
+    <p>어떤 검사의 양성 결과를 \(+\), 실제 해당 상태를 \(D\)라고 하자. 양성은 실제 해당자에서도 나오고 비해당자에서도 나온다. 양성 결과 전체를 이 두 갈래로 나누면, 양성의 확률을 계산할 수 있다.</p>
+    <p>일반화하면, 사건 \(B_1,\ldots,B_k\)가 서로 겹치지 않고 전체 \(\Omega\)를 빠짐없이 나누는 것을 <span class="term">분할</span> <span class="en">(partition)</span>이라 한다. \(A\) 역시 \((A\cap B_1)\cup\cdots\cup(A\cap B_k)\)로 겹치지 않게 나뉜다. 가법성을 쓴 다음 식 <a class="ref" href="#eq-multiplication"></a>을 각 항에 적용하면 다음과 같다.</p>
+    <div class="formula" id="eq-total-probability">\[P(A)=\sum_{i=1}^{k}P(A\cap B_i)=\sum_{i=1}^{k}P(B_i)P(A\mid B_i)\]</div>
+    <p>이것이 <span class="term">전확률 공식</span> <span class="en">(law of total probability)</span>이다. 조건부 확률을 거꾸로 알고 싶다면 식 <a class="ref" href="#eq-conditional"></a>의 분자에 곱셈 규칙을, 분모에 전확률 공식을 넣는다.</p>
+    <div class="formula" id="eq-bayes">\[P(B_j\mid A)=\frac{P(A\mid B_j)P(B_j)}{\sum_{i=1}^{k}P(A\mid B_i)P(B_i)},\qquad P(A)>0\]</div>
+    <p>이것이 <span class="term">베이즈 정리</span> <span class="en">(Bayes' theorem)</span>다. \(P(B_j)\)는 \(A\)를 보기 전의 확률인 <span class="term">사전 확률</span> <span class="en">(prior probability)</span>, \(P(B_j\mid A)\)는 본 뒤의 <span class="term">사후 확률</span> <span class="en">(posterior probability)</span>이다. 여기서는 모두 <em>사건의 확률</em>이다. 모수에 분포를 두고 추론하는 10장의 베이즈 추론과는 구분하자.</p>
+    <div class="box ex" id="ex-base-rate"><div class="box-h">정확한 검사인데 양성의 의미는?</div>
+      <p>1만 명 가운데 실제 해당자가 1%라고 하자. 검사는 해당자 중 90%를 양성으로 잡고(<span class="term">민감도</span> <span class="en">(sensitivity)</span> 90%), 비해당자 중 95%를 음성으로 걸러 낸다(<span class="term">특이도</span> <span class="en">(specificity)</span> 95%). 따라서 비해당자의 양성 확률은 \(1-0.95=0.05\)다.</p>
+      <p>1만 명을 이 비율대로 나눈 <b>기대 인원</b>을 세면 해당자는 100명, 그중 진양성은 90명이다. 비해당자는 9,900명, 그중 위양성은 495명이다. 양성 585명 가운데 실제 해당자는 90명이므로 \(90/585\approx15.4\%\)다. 이 수는 실험에서 반드시 정확히 관측되는 인원이 아니라 주어진 확률에서 계산한 기대 인원이다.</p>
+      <div class="formula" id="eq-test-ppv">\[\begin{aligned}
+      P(D\mid +)
+      &=\frac{P(+\mid D)P(D)}{P(+\mid D)P(D)+P(+\mid D^c)P(D^c)}\\
+      &=\frac{0.90\cdot0.01}{0.90\cdot0.01+0.05\cdot0.99}
+      =\frac{0.009}{0.0585}\approx0.1538.
+      \end{aligned}\]</div>
+    </div>
+    <p>흔히 \(P(+\mid D)=90\%\)를 \(P(D\mid +)=90\%\)로 뒤집어 읽는다. 앞의 값은 실제 해당자 <em>중에서</em> 양성이 나오는 비율이고, 뒤의 값은 양성이 나온 사람 <em>중에서</em> 실제 해당자인 비율이다. 분모에 비해당자의 위양성이 함께 들어간다는 차이가 결정적이다.</p>
+    <div class="callout tip"><strong>기저율을 먼저 보자</strong><p>검사 전에 해당 상태가 얼마나 흔한지 나타내는 \(P(D)\)가 <span class="term">기저율</span> <span class="en">(base rate)</span>이다. 위의 분수에서 \(P(D)\)만 바꿔도 양성 결과의 의미가 달라진다. 아래 실험의 세 값을 움직이며 양성 영역에서 진양성이 차지하는 몫을 확인해 보자.</p></div>
+    <div data-sim="bayes-base-rate"></div>
   </section>
 
   <section id="s5">
     <h2>사건의 독립</h2>
-    <p class="slot" data-slot="1.5절">아직 쓰지 않은 절입니다.</p>
+    <p>두 번 던진 동전의 첫 결과를 알아도 공정하고 서로 영향을 주지 않는 던지기라면 둘째 결과의 확률은 바뀌지 않는다. 이때 두 사건이 독립이라고 한다. '서로 영향이 없다'는 직관을 조건부 확률로 정확히 적어 보자.</p>
+    <div class="box def" id="def-independence"><div class="box-h">두 사건의 독립</div>
+      <p>사건 \(A,B\)가 <span class="term">독립</span> <span class="en">(independent)</span>이라는 것은</p>
+      <div class="formula" id="eq-independence">\[P(A\cap B)=P(A)P(B)\]</div>
+      <p>라는 뜻이다. \(P(B)>0\)이면 이는 \(P(A\mid B)=P(A)\)와 같다. \(P(A)>0\)이면 \(P(B\mid A)=P(B)\)와도 같다. 곱으로 쓰는 정의는 확률이 0인 사건에도 적용된다.</p>
+    </div>
+    <div class="box ex" id="ex-independent-coins"><div class="box-h">두 동전과 두 사건</div>
+      <p>서로 독립인 공정한 동전 두 개에서 \(A=\{HH,HT\}\)를 첫째 동전이 앞면인 사건, \(B=\{HH,TH\}\)를 둘째 동전이 앞면인 사건이라 하자. \(P(A)=P(B)=1/2\)이고 \(P(A\cap B)=P(\{HH\})=1/4=(1/2)(1/2)\). 첫째 결과를 알아도 둘째 앞면 확률은 여전히 \(1/2\)이다.</p>
+    </div>
+    <p>반면 <span class="term">배반</span> <span class="en">(mutually exclusive)</span>은 \(A\cap B=\varnothing\), 곧 두 사건이 함께 일어날 수 없다는 뜻이다. 두 사건의 확률이 모두 양수라면 배반일 때 \(P(A\cap B)=0\)이지만 \(P(A)P(B)>0\)이므로 독립일 수 없다. 공정한 주사위에서 '1이 나옴'과 '2가 나옴'은 배반이지만 독립이 아니다. 1이 나왔음을 알면 2일 확률은 0이 된다.</p>
+    <div class="callout warn"><strong>배반과 독립은 다른 말</strong><p>배반은 <em>함께 일어날 수 없음</em>, 독립은 <em>하나를 알아도 다른 하나의 확률이 바뀌지 않음</em>이다. 양의 확률을 가진 배반 사건을 독립이라고 쓰면 이후 계산이 모두 틀어진다.</p></div>
+    <p>독립 여부는 우리가 세운 상황의 가정이기도 하다. 공을 뽑고 되돌려 넣지 않으면 첫 결과에 따라 다음 공의 비율이 달라져 독립이 아니다. 되돌려 넣고 충분히 섞는다면 독립이라는 모형을 세울 수 있다. 실제 데이터의 표본도 무조건 독립이라고 단정해서는 안 된다.</p>
   </section>
 
   <section id="s6">
     <h2>머신러닝에서: 분류기의 출력과 기저율</h2>
-    <p class="slot" data-slot="1.6절">아직 쓰지 않은 절입니다.</p>
+    <p>불량 여부를 가리는 이진 분류기를 생각하자. 실제 불량 사건을 \(D\), 분류기가 양성이라고 <em>판정한 사건</em>을 \(+\)로 둔다. 검증 데이터에서 민감도 \(P(+\mid D)\)와 특이도 \(P(-\mid D^c)\)를 측정할 수 있다. 하지만 사용자가 양성 판정을 받고 알고 싶은 것은 반대 방향의 \(P(D\mid +)\)다.</p>
+    <p>식 <a class="ref" href="#eq-test-ppv"></a>를 일반화해 불량의 기저율 \(\pi=P(D)\), 민감도 \(s=P(+\mid D)\), 위양성률 \(f=P(+\mid D^c)\)라고 쓰자. 그러면</p>
+    <div class="formula" id="eq-classifier-ppv">\[P(D\mid +)=\frac{s\pi}{s\pi+f(1-\pi)}.\]</div>
+    <p>\(s=0.90\), \(f=0.05\)가 그대로인 분류기를 불량률 1%인 생산 라인에서 쓰면 양성 중 실제 불량 비율은 약 15.4%다. 불량률 10%인 다른 라인에서 <b>같은 조건부 성능이 유지된다면</b> 그 비율은 \(0.90\cdot0.10/(0.90\cdot0.10+0.05\cdot0.90)=2/3\)으로 바뀐다. 민감도와 특이도만으로 배포 환경의 양성 예측도를 말할 수 없는 이유다.</p>
+    <p>이 변화를 비율로도 볼 수 있다. \(P(D\mid +)\)를 \(P(D^c\mid +)\)로 나누면, 공통 분모 \(P(+)\)가 지워진다.</p>
+    <div class="formula" id="eq-posterior-odds">\[\frac{P(D\mid +)}{P(D^c\mid +)}
+      =\frac{P(+\mid D)}{P(+\mid D^c)}\,
+       \frac{P(D)}{P(D^c)}
+      =\frac{s}{f}\frac{\pi}{1-\pi}.\]</div>
+    <p>즉 관찰 뒤의 승산은 관찰 전 승산에 양성이 두 집단에서 얼마나 다르게 나오는지의 비율을 곱한 것이다. 위 예에서 \(s/f=18\)로 고정되어도 기저율 1%의 사전 승산은 \(1/99\), 10%에서는 \(1/9\)다. 그래서 같은 양성 판정 뒤의 확률도 달라진다.</p>
+    <div class="callout ml"><strong>출력 점수와 조건부 확률은 구별한다</strong><p>분류기가 한 사례에 내놓는 '0.9' 같은 <em>점수</em>를 이 장의 \(P(+\mid D)=0.9\)와 혼동하지 말자. 전자는 개별 사례의 출력이고, 후자는 실제 불량 사례 집단에서 양성으로 판정되는 비율이다. 또한 출력 점수가 곧바로 참인 \(P(D\mid\text{입력})\)인 것도 아니다. 그런 해석이 믿을 만한지는 18장의 <a href="ch18.html">확률 보정</a>에서 평가한다. 여기서 유도한 식은 <b>양성이라는 이진 판정</b>에 대한 조건부 확률이다.</p></div>
+    <p>새 라인에서 \(\pi\)만 달라지고 \(P(+\mid D)\), \(P(+\mid D^c)\)는 유지된다는 가정이 깨지면 식 <a class="ref" href="#eq-classifier-ppv"></a>에 이전 라인의 \(s,f\)를 그대로 넣을 수 없다. 센서나 공정 조건까지 달라질 수 있으므로 배포 환경에서 성능을 다시 확인해야 한다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>사건은 가능한 결과 전체 \(\Omega\)의 부분집합이다. 확률은 결과의 개수를 세는 것과 같지 않으며, 균등한 경우에만 개수의 비로 계산한다.</li>
+      <li>확률의 세 공리에서 여사건 공식과 \(P(A\cup B)=P(A)+P(B)-P(A\cap B)\)가 나온다.</li>
+      <li>조건부 확률 \(P(A\mid B)\)는 \(B\)가 일어난 경우를 분모로 삼는다. 조건을 뒤집으면 일반적으로 값이 바뀐다.</li>
+      <li>곱셈 규칙은 함께 일어날 확률을 순서가 있는 조건부 확률의 곱으로 쓴다.</li>
+      <li>전확률 공식은 가능한 경우로 나눠 더하고, 베이즈 정리는 관찰 전 확률을 관찰 뒤 확률로 바꾼다.</li>
+      <li>독립은 교집합 확률이 확률의 곱인 것이고, 배반은 교집합이 빈 것이다. 양의 확률을 가진 배반 사건은 독립이 아니다.</li>
+      <li>분류기의 양성 예측도는 민감도·위양성률뿐 아니라 실제 배포 환경의 기저율에도 달려 있다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. \(P(A)=0.4\), \(P(B)=0.3\), \(P(A\cap B)=0.1\)이다. \(P(A\cup B)\)는?</p><div class="opts"><button class="opt">0.5</button><button class="opt" data-correct>0.6</button><button class="opt">0.7</button></div><div class="quiz-exp">교집합을 두 번 세지 않도록 빼면 \(0.4+0.3-0.1=0.6\)이다.</div></div>
+      <div class="quiz-q"><p>2. 어떤 검사의 민감도가 \(0.9\)다. 이 정보만으로 양성 판정자의 실제 해당 확률을 알 수 있는가?</p><div class="opts"><button class="opt">알 수 있다. 0.9다.</button><button class="opt" data-correct>알 수 없다. 기저율과 위양성률도 필요하다.</button><button class="opt">알 수 있다. 0.1이다.</button></div><div class="quiz-exp">\(P(+\mid D)\)와 \(P(D\mid +)\)는 다르다. 후자의 분모에는 비해당자의 위양성이 들어간다.</div></div>
+      <div class="quiz-q"><p>3. \(P(A)>0\), \(P(B)>0\)이고 \(A\cap B=\varnothing\)이다. 두 사건의 관계는?</p><div class="opts"><button class="opt">독립이면서 배반이다.</button><button class="opt" data-correct>배반이며 독립이 아니다.</button><button class="opt">독립이지만 배반이 아니다.</button></div><div class="quiz-exp">교집합 확률은 0인데 \(P(A)P(B)>0\)이므로 독립 조건을 만족하지 않는다.</div></div>
+      <div class="quiz-q"><p>4. \(B_1,B_2\)가 전체를 분할하고 \(P(B_1)=0.2\), \(P(A\mid B_1)=0.8\), \(P(A\mid B_2)=0.1\)이다. \(P(A)\)는?</p><div class="opts"><button class="opt">0.16</button><button class="opt" data-correct>0.24</button><button class="opt">0.72</button></div><div class="quiz-exp">전확률 공식으로 \(0.2\cdot0.8+0.8\cdot0.1=0.24\)다.</div></div>
+      <div class="quiz-q"><p>5. \(P(A\mid B)=P(A)\)라고 쓸 수 있는 조건은? 단, \(P(B)>0\).</p><div class="opts"><button class="opt">\(A,B\)가 배반이다.</button><button class="opt" data-correct>\(A,B\)가 독립이다.</button><button class="opt">\(A\subseteq B\)이다.</button></div><div class="quiz-exp">조건부 확률의 정의를 곱하면 \(P(A\cap B)=P(A)P(B)\)와 동치다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-events" data-level="1"><p>공정한 주사위에서 \(A=\{1,2,3\}\), \(B=\{3,4,5\}\)이다. \(A\cap B\), \(A\cup B\), \(A^c\)를 쓰고 \(P(A\cup B)\)를 구하라.</p><details class="sol"><summary>풀이</summary><p>\(A\cap B=\{3\}\), \(A\cup B=\{1,2,3,4,5\}\), \(A^c=\{4,5,6\}\)이다. 따라서 \(P(A\cup B)=5/6\). 덧셈 공식으로도 \(3/6+3/6-1/6=5/6\)이다.</p></details></div>
+    <div class="prob" id="prob-two-conditions" data-level="1"><p>공정한 동전을 두 번 던진다. '적어도 한 번 앞면'을 \(A\), '둘째가 앞면'을 \(B\)라고 할 때 \(P(B\mid A)\)와 \(P(A\mid B)\)를 각각 구하라.</p><details class="sol"><summary>풀이</summary><p>\(\Omega=\{HH,HT,TH,TT\}\), \(A=\{HH,HT,TH\}\), \(B=\{HH,TH\}\)이다. \(P(B\mid A)=(2/4)/(3/4)=2/3\), \(P(A\mid B)=(2/4)/(2/4)=1\)이다.</p></details></div>
+    <div class="prob" id="prob-balls" data-level="2"><p>빨간 공 3개와 파란 공 2개에서 공 두 개를 되돌려 넣지 않고 뽑는다. 서로 다른 색이 나올 확률을 순서를 나눠 계산하라.</p><details class="sol"><summary>풀이</summary><p>빨강 다음 파랑은 \((3/5)(2/4)=3/10\), 파랑 다음 빨강은 \((2/5)(3/4)=3/10\)이다. 두 사건은 배반이므로 합은 \(3/5\)다.</p></details></div>
+    <div class="prob" id="prob-total" data-level="2"><p>두 공장 \(F_1,F_2\)가 전체 생산량의 70%, 30%를 맡고 각각 불량률이 1%, 4%다. 무작위 제품이 불량일 확률과, 불량이 확인된 제품이 \(F_2\)에서 왔을 확률을 구하라.</p><details class="sol"><summary>풀이</summary><p>불량 사건 \(D\)에 대해 \(P(D)=0.7\cdot0.01+0.3\cdot0.04=0.019\)다. 따라서 \(P(F_2\mid D)=0.3\cdot0.04/0.019=12/19\approx0.6316\)이다.</p></details></div>
+    <div class="prob" id="prob-ppv" data-level="2"><p>실제 양성 비율 2%, 민감도 80%, 특이도 90%인 검사에서 양성 예측도 \(P(D\mid +)\)를 구하라. 1만 명을 비율대로 나눈 기대 인원으로도 확인하라.</p><details class="sol"><summary>풀이</summary><p>위양성률은 10%다. \(P(D\mid +)=0.8\cdot0.02/(0.8\cdot0.02+0.1\cdot0.98)=0.016/0.114=8/57\approx0.1404\). 1만 명 가운데 해당자 200명의 진양성 160명, 비해당자 9,800명의 위양성 980명이므로 \(160/(160+980)=8/57\)이다.</p></details></div>
+    <div class="prob" id="prob-independent" data-level="2"><p>\(P(A)=0.4\), \(P(B)=0.5\), \(P(A\cap B)=0.2\)다. \(A,B\)는 독립인가? \(A\)와 \(B^c\)도 독립인지 확률을 계산해 확인하라.</p><details class="sol"><summary>풀이</summary><p>\(0.2=0.4\cdot0.5\)이므로 독립이다. \(P(A\cap B^c)=P(A)-P(A\cap B)=0.2\), \(P(A)P(B^c)=0.4(1-0.5)=0.2\)이므로 \(A,B^c\)도 독립이다.</p></details></div>
+    <div class="prob" id="prob-mutually-exclusive" data-level="1"><p>확률이 각각 \(1/6\)인 주사위 사건 '1이 나옴', '2가 나옴'은 배반이다. 두 사건이 독립인지 정의를 사용해 판정하라.</p><details class="sol"><summary>풀이</summary><p>함께 일어날 수 없어 \(P(A\cap B)=0\)이다. 하지만 \(P(A)P(B)=1/36\)이므로 독립이 아니다.</p></details></div>
+    <div class="prob" id="prob-base-rate-shift" data-level="3"><p>어느 분류기의 민감도 \(s=0.8\), 위양성률 \(f=0.1\)이 두 환경에서 유지된다고 가정하자. 기저율이 1%에서 5%로 바뀌면 양성 예측도는 각각 얼마인가? '양성 예측도도 그대로다'라는 주장에 답하라.</p><details class="sol"><summary>풀이</summary><p>1%에서는 \(0.008/(0.008+0.099)=8/107\approx7.48\%\), 5%에서는 \(0.04/(0.04+0.095)=8/27\approx29.63\%\)다. 조건부 성능이 같아도 기저율이 바뀌면 양성 집단의 구성 비율이 달라진다.</p></details></div>
+    <div class="prob" id="prob-simulate" data-level="2"><p>짧은 파이썬 실험: 시드를 고정하고 기저율 1%, 민감도 90%, 특이도 95%인 100만 명을 독립 표집하라. 양성 예측도의 관측값을 계산해 이론값 \(0.009/0.0585\)와 비교하라. 표집을 다시 하면 두 수가 정확히 같아야 하는가?</p><details class="sol"><summary>풀이</summary><pre><code>import numpy as np
+rng = np.random.default_rng(7)
+d = rng.random(1_000_000) &lt; 0.01
+positive = rng.random(d.size) &lt; np.where(d, 0.90, 0.05)
+observed = d[positive].mean()
+theory = 0.90 * 0.01 / (0.90 * 0.01 + 0.05 * 0.99)
+print(observed, theory)</code></pre><p>두 값은 대체로 0.154 근처지만 표집의 우연한 변동 때문에 정확히 같을 필요는 없다. 표본 수를 늘리면 관측 비율의 흔들림이 대체로 줄어든다. 그 이유는 6장에서 다룬다.</p></details></div>
   </section>
 </main>
 </body>
