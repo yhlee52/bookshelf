@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentBook · LLM에서 자율 에이전트까지</title>
+<meta name="description" content="언어모델의 예측과 추론에서 VLM·검색·도구 사용으로, 다시 skill·workflow·harness와 장기 실행 루프로 나아가는 에이전트 설계의 이론과 실습.">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../../assets/css/base.css">
+<link rel="stylesheet" href="../../assets/css/book.css">
+<script defer src="../../data/site.js"></script>
+<script defer src="../../data/books.js"></script>
+<script defer src="../../assets/js/viz.js"></script>
+<script defer src="../../assets/js/core.js"></script>
+<script defer src="../../assets/js/lab.js"></script>
+<script defer src="../../assets/sims/dl.js"></script>
+<script defer src="../../assets/sims/ts.js"></script>
+<script defer src="../../assets/sims/phys.js"></script>
+<script defer src="../../assets/sims/math.js"></script>
+<script defer src="../../assets/js/heroes.js"></script>
+<script defer src="../../assets/js/book.js"></script>
+</head>
+<body data-root="../../" data-book="llm-agents" data-field="dl" data-page="book-home">
+<section class="home-hero">
+  <div class="inner">
+    <div>
+      <div class="eyebrow" data-fill="book-en">From LLMs to Autonomous Agents</div>
+      <h1>다음 토큰에서<br><span class="grad">장기 실행 루프까지</span></h1>
+      <p data-fill="book-desc">언어모델의 예측과 추론에서 VLM·검색·도구 사용으로, 다시 skill·workflow·harness와 장기 실행 루프로 나아가는 에이전트 설계의 이론과 실습.</p>
+      <div class="cta">
+        <a class="btn primary big" href="#chapters">28장 목차 살펴보기 →</a>
+        <a class="btn ghost big" href="#story">책의 이야기</a>
+      </div>
+      <div class="hero-badges"><span><b data-fill="part-count">7</b>부 <b data-fill="chapter-count">28</b>장</span><span>현재 모든 장은 빈 슬롯</span><span>이론 → 설계 → 검증</span><span data-fill="book-status">집필 중</span></div>
+    </div>
+    <div class="hero-stage" data-hero="network"><span class="hint">이 장면은 책 표지용 기존 시각화입니다. 계획된 실험은 아직 구현되지 않았습니다.</span></div>
+  </div>
+</section>
+<section class="home-section" id="story">
+  <h2>이 책의 이야기</h2>
+  <p class="sub">모델의 능력과 모델 주위의 실행 시스템을 구분하며 한 단계씩 쌓습니다. 아래는 집필 전 기획이며 장의 세부 구성은 자료와 실험을 검증하면서 다듬습니다.</p>
+  <div class="flow">
+    <div><b>1부</b>1부에서 다음 토큰을 예측하는 LLM의 원리와 대화 모델까지의 변화를 봅니다.</div>
+    <div><b>2부</b>2부에서는 RLM(Reasoning Language Model)이 어려운 문제에 더 많은 계산과 검증을 쓰는 이유를 살핍니다.</div>
+    <div><b>3부</b>3부의 VLM·검색·긴 문맥 처리는 서로 다른 입력과 외부 정보의 확장입니다. 에이전트를 만드는 데 모두 필요한 선행 단계는 아닙니다.</div>
+    <div><b>4부</b>4부에서 모델에 도구와 상태를 붙여 행동·관찰 루프를 만듭니다.</div>
+    <div><b>5–6부</b>5–6부에서는 skill, hook, workflow, subagent와 인간의 결정 지점을 조합합니다.</div>
+    <div><b>마지막</b>7부에서 harness와 장기 실행 루프를 설계하고, 실행 기록과 최종 산출물로 효과를 평가합니다.</div>
+  </div>
+  <div class="callout tip"><strong>RLM의 뜻</strong><p>이 책의 RLM은 <em>Reasoning Language Model</em>(추론형 언어모델)입니다. <em>Recursive Language Models</em>와 구분합니다. VLM과 RLM은 에이전트의 필수 선행 단계가 아니라 서로 다른 능력 확장입니다.</p></div>
+</section>
+<section class="home-section" id="chapters">
+  <h2>전체 목차</h2>
+  <p class="sub">각 카드의 설명은 장에 들어갈 절 제목입니다. 현재 28장은 모두 빈 슬롯이며, 본문·퀴즈·실험은 아직 작성하거나 등록하지 않았습니다.</p>
+  <div class="ch-grid" data-chapter-grid></div>
+</section>
+<section class="home-section">
+  <h2>실습을 연결하는 방식</h2>
+  <p class="sub">앞부분은 작은 개념 실험으로 모델의 작동을 분리해서 보고, 뒷부분은 별도의 Claude Code 연구실 작업 공간에서 <a href="https://github.com/yhlee52/ai_sci_cowork">ai_sci_cowork</a>의 실제 구성요소를 관찰하고 비교할 계획입니다.</p>
+  <div class="paths">
+    <div class="path"><h3>1–3부 · 모델의 능력</h3><p>토큰·어텐션·추론·이미지·검색의 동작을 작은 문제로 확인합니다. 모델 내부를 직접 관찰할 수 없는 곳은 관측 가능한 입출력만 비교합니다.</p></div>
+    <div class="path"><h3>4–7부 · 시스템 설계</h3><p>agent, skill, hook, workflow, harness를 한 번에 모두 켜지 않고 구성요소별로 비교합니다. 같은 과제·예산·평가 기준을 사용합니다.</p></div>
+    <div class="path"><h3>결과 읽기</h3><p>에이전트의 완료 보고와 실제 산출물을 구분하고, 성공률과 비용, 실패 유형을 함께 기록할 예정입니다.</p></div>
+  </div>
+  <div class="callout"><strong>집필 범위</strong><p>이 책은 모델의 거대한 사전학습을 재현하거나 내부 비공개 추론을 관찰하는 책이 아닙니다. 수학적 배경은 기존 <a href="../linear-algebra/index.html">선형대수</a>와 <a href="../statistics/index.html">통계</a> 책으로 연결하고, 에이전트를 설계·검증하는 데 필요한 원리를 다룹니다.</p></div>
+</section>
+</body>
+</html>
