@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>16 스핀 · QuantumBook</title>
-<meta name="description" content="스핀 1/2와 파울리 행렬에서 출발해 슈테른–게를라흐 측정, 전자 스핀의 세차와 자기 공명을 유도한다.">
+<meta name="description" content="사다리 연산자에서 파울리 행렬을 유도하고, 블로흐 구, 파울리 해밀토니안의 g = 2, 슈테른–게를라흐 장치의 스핀–위치 얽힘, 스핀 회전의 4π 주기, 자기 공명과 스핀 메아리를 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -29,106 +29,220 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">16</span></div>
     <h1 data-fill="chapter-title">스핀</h1>
-    <p class="lead">수소 원자의 오비탈은 전자의 공간 운동을 설명하지만, 전자에는 위치 파동함수만으로 표현할 수 없는 두 상태가 더 있다. 자기장 속에서 이 두 상태는 서로 다른 에너지를 갖고, 방향을 바꾼 측정 장치에서는 새로운 확률을 만든다. 스핀을 두 성분의 상태로 기술하면 측정, 세차 운동, 자기 공명을 같은 행렬로 계산할 수 있다.</p>
+    <p class="lead">수소 원자의 오비탈은 전자의 공간 운동을 설명하지만, 전자에는 위치 파동함수만으로 표현할 수 없는 두 상태가 더 있다. 두 상태의 모든 중첩은 구 위의 한 점으로 그릴 수 있고, 자기장은 그 점을 구 위에서 돌린다. 스핀을 두 성분의 상태로 기술하면 측정, 세차 운동, 자기 공명을 같은 \(2\times2\) 행렬의 회전으로 계산할 수 있다.</p>
     <ul class="objectives">
-      <li>파울리 행렬로 스핀 성분의 고유값·교환 관계를 계산할 수 있다.</li>
-      <li>서로 다른 축의 슈테른–게를라흐 측정 확률과 측정 뒤 상태를 구할 수 있다.</li>
-      <li>전자 자기 모멘트의 부호를 포함해 정자기장 속 세차 운동을 유도할 수 있다.</li>
-      <li>회전 자기장의 공명 조건과 전이 확률, \(\pi\) 펄스 시간을 계산할 수 있다.</li>
+      <li>사다리 연산자에서 파울리 행렬을 유도하고, 파울리 곱 공식으로 스핀 연산을 계산할 수 있다.</li>
+      <li>임의 방향의 스핀 상태를 블로흐 구의 점으로 나타내고 두 방향 사이의 측정 확률을 구할 수 있다.</li>
+      <li>파울리 해밀토니안에서 전자 스핀의 \(g_s=2\)와 제이만 항을 유도하고, 슈테른–게를라흐 장치가 스핀과 위치를 얽는 과정을 설명할 수 있다.</li>
+      <li>스핀 회전 연산자를 계산하고, 정자기장 속 세차 운동과 \(2\pi\) 회전의 부호를 회전으로 해석할 수 있다.</li>
+      <li>회전 좌표계에서 자기 공명의 전이 확률, \(\pi\) 펄스, 스핀 메아리를 계산할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch02.html">2장</a> (행렬과 고유값), <a href="ch06.html">6장</a> (측정·시간 변화), <a href="ch12.html">12장</a> (텐서곱), <a href="ch14.html#thm-angular-spectrum">14장</a> (각운동량 대수), <a href="ch15.html">15장</a> (궤도와 스핀의 구별)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html#ex-exp-pauli">2장</a> (행렬의 지수 함수), <a href="ch04.html#eq-em-hamiltonian">4장</a> (자기장 속 해밀토니안), <a href="ch05.html#s5-setup">5장</a> (슈테른–게를라흐 실험), <a href="ch10.html#s3-spin">10장</a> (두 준위계의 시간 변화), <a href="ch12.html#def-tensor-product">12장</a> (텐서곱), <a href="ch14.html#thm-angular-spectrum">14장</a> (각운동량 대수)</p>
   </header>
 
   <section id="s1">
     <h2>스핀 1/2와 파울리 행렬</h2>
-    <p>고전적인 각운동량은 \(\boldsymbol r\times\boldsymbol p\)에서 나온다. 전자의 <span class="term">스핀</span> <span class="en">(spin)</span>은 이 궤도 운동과 별개의 고유한 각운동량이다. 전자를 작은 공이 실제로 자전하는 그림은 스핀의 양자 상태를 정의하지 못한다. <a href="ch14.html#thm-angular-spectrum">14장의 추상 각운동량 대수</a>에서 \(j=1/2\)인 가장 작은 비자명한 다중항이 스핀 1/2의 수학적 모형이다.</p>
+    <p>고전적인 각운동량은 \(\boldsymbol r\times\boldsymbol p\)에서 나온다. 전자의 <span class="term">스핀</span> <span class="en">(spin)</span>은 이 궤도 운동과 별개의 고유한 각운동량이다. 전자를 작은 공이 실제로 자전하는 그림은 스핀의 양자 상태를 정의하지 못한다. <a href="ch14.html#thm-angular-spectrum">14장의 추상 각운동량 대수</a>에서 \(j=1/2\)인 가장 작은 비자명한 다중항이 스핀 1/2의 수학적 모형이다. <a href="ch05.html#s5-vectors">5장</a>에서 슈테른–게를라흐 실험으로 만난 두 상태가 이 다중항이다.</p>
     <div class="box def" id="def-spin-basis"><div class="box-h">스핀 공간과 \(z\)축 기저</div>
-      <div class="formula" id="eq-spin-basis">\[ |\uparrow_z\rangle=\begin{pmatrix}1\\0\end{pmatrix},\qquad
-      |\downarrow_z\rangle=\begin{pmatrix}0\\1\end{pmatrix},\qquad
+      <div class="formula" id="eq-spin-basis">\[ \begin{gathered}
+      |\uparrow_z\rangle=\begin{pmatrix}1\\0\end{pmatrix},\qquad
+      |\downarrow_z\rangle=\begin{pmatrix}0\\1\end{pmatrix},\\
       |\chi\rangle=\alpha|\uparrow_z\rangle+\beta|\downarrow_z\rangle,\qquad
-      |\alpha|^2+|\beta|^2=1. \]</div>
-      <p>두 상태는 \(\hat S_z\)의 고유상태이며 측정값은 각각 \(+\hbar/2\), \(-\hbar/2\)이다. 공간 파동함수와 함께 쓸 때 한 전자의 전체 상태는 공간 상태와 이 2차원 내부 공간의 텐서곱에 속한다.</p>
+      |\alpha|^2+|\beta|^2=1.
+      \end{gathered} \]</div>
+      <p>두 상태는 \(\hat S_z\)의 고유상태이며 측정값은 각각 \(+\hbar/2\), \(-\hbar/2\)이다. 5·6·10장에서 \(|z{\pm}\rangle\)로 쓴 상태와 같다. 공간 파동함수와 함께 쓸 때 한 전자의 전체 상태는 공간 상태와 이 2차원 내부 공간의 텐서곱에 속한다(<a href="#s3">16.3절</a>).</p>
     </div>
+    <h3 id="s1-ladder">사다리 연산자에서 행렬로</h3>
+    <p>스핀 연산자의 행렬은 14장의 사다리 계수 \(\hat J_\pm|j,m\rangle=\hbar\sqrt{j(j+1)-m(m\pm1)}\,|j,m\pm1\rangle\)에서 바로 나온다. \(j=1/2\)에서 \(m=-1/2\)를 올리면 근호 안이 \(\tfrac34+\tfrac14=1\)이고, \(m=+1/2\)를 올리면 \(\tfrac34-\tfrac34=0\)이다. 내리는 쪽도 같다. 따라서 \(\hat S_+|\downarrow_z\rangle=\hbar|\uparrow_z\rangle\), \(\hat S_-|\uparrow_z\rangle=\hbar|\downarrow_z\rangle\)이고 나머지는 0이다. 행렬의 \((i,j)\) 원소를 \(\langle i|\hat S|j\rangle\), 기저 순서를 \((\uparrow,\downarrow)\)로 두면</p>
+    <div class="formula" id="eq-spin-ladders">\[ \begin{gathered}
+      \hat S_+=\hbar\begin{pmatrix}0&amp;1\\0&amp;0\end{pmatrix},\qquad
+      \hat S_-=\hbar\begin{pmatrix}0&amp;0\\1&amp;0\end{pmatrix},\\
+      \hat S_x=\frac{\hat S_++\hat S_-}{2}=\frac\hbar2\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix},\\
+      \hat S_y=\frac{\hat S_+-\hat S_-}{2i}=\frac\hbar2\begin{pmatrix}0&amp;-i\\i&amp;0\end{pmatrix}.
+      \end{gathered} \]</div>
+    <p>\(\hat S_z\)는 고유값 \(\pm\hbar/2\)를 대각에 둔 \(\frac\hbar2\operatorname{diag}(1,-1)\)이다. 세 행렬에서 \(\hbar/2\)를 뺀 부분에 이름을 붙인다.</p>
     <div class="box def" id="def-pauli-matrices"><div class="box-h">파울리 행렬과 스핀 연산자</div>
-      <div class="formula" id="eq-pauli-matrices">\[ \sigma_x=\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix},\qquad
-      \sigma_y=\begin{pmatrix}0&amp;-i\\i&amp;0\end{pmatrix},\qquad
+      <div class="formula" id="eq-pauli-matrices">\[ \begin{gathered}
+      \sigma_x=\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix},\qquad
+      \sigma_y=\begin{pmatrix}0&amp;-i\\i&amp;0\end{pmatrix},\\
       \sigma_z=\begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix},\qquad
-      \hat S_i=\frac{\hbar}{2}\sigma_i. \]</div>
-      <p>각 \(\sigma_i\)는 에르미트이고 \(\sigma_i^2=I\)다. 예를 들어 \(\sigma_x\sigma_y=i\sigma_z\), \(\sigma_y\sigma_x=-i\sigma_z\)이므로 \([\hat S_x,\hat S_y]=i\hbar\hat S_z\). 순환하는 다른 성분에도 같은 관계가 성립한다.</p>
+      \hat S_i=\frac{\hbar}{2}\sigma_i.
+      \end{gathered} \]</div>
+      <p>각 \(\sigma_i\)는 에르미트이고 \(\sigma_i^2=I\)다. 세 성분을 모은 \(\boldsymbol\sigma=(\sigma_x,\sigma_y,\sigma_z)\)를 쓰면 \(\hat{\boldsymbol S}=\frac\hbar2\boldsymbol\sigma\)다.</p>
     </div>
-    <div class="formula" id="eq-spin-magnitude">\[ \hat S^2=\hat S_x^2+\hat S_y^2+\hat S_z^2
-      =\frac{\hbar^2}{4}(I+I+I)=\frac{3\hbar^2}{4}I
-      =\hbar^2s(s+1)I,\qquad s=\tfrac12. \]</div>
+    <p>스핀 계산은 거의 모두 파울리 행렬의 곱으로 끝난다. 그 곱을 한 번에 정리해 두자.</p>
+    <div class="box thm" id="thm-pauli-product"><div class="box-h">파울리 행렬의 곱</div>
+      <div class="formula" id="eq-pauli-product">\[ \begin{gathered}
+      \sigma_i\sigma_j=\delta_{ij}I+i\sum_k\epsilon_{ijk}\sigma_k,\\
+      (\boldsymbol a\cdot\boldsymbol\sigma)(\boldsymbol b\cdot\boldsymbol\sigma)
+      =(\boldsymbol a\cdot\boldsymbol b)\,I+i(\boldsymbol a\times\boldsymbol b)\cdot\boldsymbol\sigma.
+      \end{gathered} \]</div>
+      <p>\(\epsilon_{ijk}\)는 \((i,j,k)\)가 \((x,y,z)\)의 짝순열이면 \(+1\), 홀순열이면 \(-1\), 두 첨자가 같으면 0인 레비-치비타 기호다. 둘째 식의 \(\boldsymbol a,\boldsymbol b\)는 숫자 벡터여도 되고, \(\boldsymbol\sigma\)와 교환하는 연산자(위치나 운동량)여도 된다. 연산자일 때는 \(\boldsymbol a\cdot\boldsymbol b\)와 \(\boldsymbol a\times\boldsymbol b\)의 모든 항에서 \(\boldsymbol a\)의 성분을 \(\boldsymbol b\)의 성분 왼쪽에 둔다.</p>
+    </div>
+    <p>첫 식은 아홉 개의 곱을 확인하면 된다. \(i=j\)이면 \(\sigma_i^2=I\)다. 행렬을 곱하면</p>
+    <div class="formula">\[ \begin{aligned}\sigma_x\sigma_y&amp;=\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}\begin{pmatrix}0&amp;-i\\i&amp;0\end{pmatrix}\\&amp;=\begin{pmatrix}i&amp;0\\0&amp;-i\end{pmatrix}=i\sigma_z\end{aligned} \]</div>
+    <p>이고, 같은 계산으로 \(\sigma_y\sigma_z=i\sigma_x\), \(\sigma_z\sigma_x=i\sigma_y\)다. 순서를 바꾼 곱은 수반을 취해 얻는다. 에르미트 행렬의 곱에서는 \((\sigma_x\sigma_y)^\dagger=\sigma_y\sigma_x\)이므로 \(\sigma_y\sigma_x=(i\sigma_z)^\dagger=-i\sigma_z\)다. 둘째 식은 첫 식에 \(a_ib_j\)를 곱해 모두 더한 것이다.</p>
+    <div class="formula">\[ \begin{aligned}(\boldsymbol a\cdot\boldsymbol\sigma)(\boldsymbol b\cdot\boldsymbol\sigma)&amp;=\sum_{i,j}a_ib_j\sigma_i\sigma_j\\
+      &amp;=\sum_i a_ib_i\,I+i\sum_k\Bigl(\sum_{i,j}\epsilon_{ijk}a_ib_j\Bigr)\sigma_k\end{aligned} \]</div>
+    <p>괄호 안이 \((\boldsymbol a\times\boldsymbol b)_k\)다. 두 결과를 바로 쓸 수 있다. \(\boldsymbol a=\boldsymbol b\)를 넣으면 \((\boldsymbol a\cdot\boldsymbol\sigma)^2=|\boldsymbol a|^2I\)다. 첫 식에서 \(\sigma_i\sigma_j\)와 \(\sigma_j\sigma_i\)를 빼면 \([\sigma_i,\sigma_j]=2i\sum_k\epsilon_{ijk}\sigma_k\)이고, 여기에 \((\hbar/2)^2\)을 곱하면 \([\hat S_x,\hat S_y]=i\hbar\hat S_z\)와 그 순환인 14장의 각운동량 교환 관계가 확인된다. 세 성분의 제곱을 더하면</p>
+    <div class="formula" id="eq-spin-magnitude">\[ \begin{aligned}\hat S^2&amp;=\hat S_x^2+\hat S_y^2+\hat S_z^2
+      =\frac{\hbar^2}{4}(I+I+I)\\
+      &amp;=\frac{3\hbar^2}{4}I=\hbar^2s(s+1)I,\qquad s=\tfrac12.\end{aligned} \]</div>
     <p>\(\hat S_z\)의 가능한 값이 \(\pm\hbar/2\)인 반면, \(\sqrt{\langle\hat S^2\rangle}=\sqrt3\,\hbar/2\)다. 세 성분을 동시에 확정할 수 없으므로 두 수를 고전적 화살표의 길이와 투영으로 그대로 읽지 않는다.</p>
+    <p>대각합도 정리해 두자. \(\operatorname{Tr}\sigma_i=0\)이고, 식 <a class="ref" href="#eq-pauli-product"></a>의 대각합에서 \(\operatorname{Tr}(\sigma_i\sigma_j)=2\delta_{ij}\)다. 그래서 \(I\)와 세 파울리 행렬은 <a href="ch01.html#ex-pauli">1장 예제</a>의 \(2\times2\) 복소 행렬 공간의 기저가 되고, 어떤 행렬이든</p>
+    <div class="formula" id="eq-pauli-expansion">\[ M=a_0I+\boldsymbol a\cdot\boldsymbol\sigma,\qquad
+      a_0=\tfrac12\operatorname{Tr}M,\qquad a_i=\tfrac12\operatorname{Tr}(M\sigma_i) \]</div>
+    <p>로 쓸 수 있다. \(M\)이 에르미트이면 네 계수가 모두 실수다. 다음 절의 블로흐 구와 <a href="ch22.html#def-density-operator">22장의 밀도 연산자</a>가 이 전개를 쓴다.</p>
     <h3 id="s1-other-axes">다른 방향의 고유상태</h3>
-    <p>\(\hat S_x=(\hbar/2)\sigma_x\)를 대각화하면 \(|\uparrow_x\rangle=(|\uparrow_z\rangle+|\downarrow_z\rangle)/\sqrt2\), \(|\downarrow_x\rangle=(|\uparrow_z\rangle-|\downarrow_z\rangle)/\sqrt2\)다. \(y\)축에서는 \(|\uparrow_y\rangle=(|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2\)다. 예를 들어 \(\sigma_y(1,i)^{\mathsf T}=(1,i)^{\mathsf T}\)로 마지막 부호를 확인할 수 있다.</p>
-    <div class="box thm" id="thm-spin-direction"><div class="box-h">임의 축의 스핀 측정</div>
-      <p>단위벡터 \(\boldsymbol n=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)\)에 대해 \(\hat S_{\boldsymbol n}=\frac{\hbar}{2}\boldsymbol n\cdot\boldsymbol\sigma\)다. 파울리 행렬의 곱을 쓰면 \((\boldsymbol n\cdot\boldsymbol\sigma)^2=I\)이므로 고유값은 \(\pm\hbar/2\)다.</p>
-      <div class="formula" id="eq-spin-direction">\[ |\uparrow_{\boldsymbol n}\rangle
+    <p>단위벡터 \(\boldsymbol n=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)\) 방향의 스핀 성분은 \(\hat S_{\boldsymbol n}=\boldsymbol n\cdot\hat{\boldsymbol S}=\frac\hbar2\boldsymbol n\cdot\boldsymbol\sigma\)다. 식 <a class="ref" href="#eq-pauli-product"></a>에서 \((\boldsymbol n\cdot\boldsymbol\sigma)^2=I\)이므로 고유값은 \(\pm1\)뿐이고, 어느 방향으로 재든 측정값은 \(\pm\hbar/2\)다. 행렬로 쓰면</p>
+    <div class="formula" id="eq-n-sigma">\[ \boldsymbol n\cdot\boldsymbol\sigma=\begin{pmatrix}\cos\theta&amp;e^{-i\phi}\sin\theta\\ e^{i\phi}\sin\theta&amp;-\cos\theta\end{pmatrix}. \]</div>
+    <p>이 행렬을 스피너 \((\cos\frac\theta2,\ e^{i\phi}\sin\frac\theta2)^{\mathsf T}\)에 작용하자. 첫 성분은 \(\cos\theta\cos\frac\theta2+\sin\theta\sin\frac\theta2=\cos(\theta-\frac\theta2)=\cos\frac\theta2\)이고, 둘째 성분은 \(e^{i\phi}(\sin\theta\cos\frac\theta2-\cos\theta\sin\frac\theta2)=e^{i\phi}\sin(\theta-\frac\theta2)=e^{i\phi}\sin\frac\theta2\)다. 두 줄 모두 코사인과 사인의 차 공식이다. 따라서 이 스피너는 고유값 \(+1\)의 고유벡터다. 같은 계산으로 \((\sin\frac\theta2,\ -e^{i\phi}\cos\frac\theta2)^{\mathsf T}\)는 고유값 \(-1\)의 고유벡터다.</p>
+    <div class="box thm" id="thm-spin-direction"><div class="box-h">임의 축의 스핀 고유상태</div>
+      <div class="formula" id="eq-spin-direction">\[ \begin{gathered}
+        |\uparrow_{\boldsymbol n}\rangle
         =\cos\frac\theta2|\uparrow_z\rangle
-        +e^{i\phi}\sin\frac\theta2|\downarrow_z\rangle,\qquad
-      P(S_z=+\hbar/2\mid\uparrow_{\boldsymbol n})=\cos^2\frac\theta2. \]</div>
-      <p>첫 식에 \(\boldsymbol n\cdot\boldsymbol\sigma\)를 작용시키면 같은 스피너가 나온다. 두 번째 식은 \(z\)축 위 결과의 확률이며, 양자역학의 내적 규칙을 적용한 것이다.</p>
+        +e^{i\phi}\sin\frac\theta2|\downarrow_z\rangle,\\
+        |\downarrow_{\boldsymbol n}\rangle
+        =\sin\frac\theta2|\uparrow_z\rangle
+        -e^{i\phi}\cos\frac\theta2|\downarrow_z\rangle.
+        \end{gathered} \]</div>
+      <p>두 상태는 정규직교하며 각각 \(\hat S_{\boldsymbol n}\)의 \(+\hbar/2\), \(-\hbar/2\) 고유상태다. 전체 위상은 마음대로 고를 수 있다.</p>
     </div>
+    <p>\(\theta=\pi/2\)에서 \(\phi=0\)이면 \(|\uparrow_x\rangle=(|\uparrow_z\rangle+|\downarrow_z\rangle)/\sqrt2\), \(|\downarrow_x\rangle=(|\uparrow_z\rangle-|\downarrow_z\rangle)/\sqrt2\)이고, \(\phi=\pi/2\)이면 \(|\uparrow_y\rangle=(|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2\)다. 5장에서 실험 결과에 맞추어 찾았던 벡터들이다. <a href="ch05.html#prob-spin-direction">5장 연습문제</a>에서 받아들였던 일반 방향의 스피너가 식 <a class="ref" href="#eq-spin-direction"></a>의 첫 식이다.</p>
     <div class="box ex" id="ex-spin-superposition"><div class="box-h">복소 계수의 의미</div>
-      <p>\(|\chi\rangle=(|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2\)라면 \(z\)축 측정 확률은 각각 \(1/2\)이다. 하지만 이 상태는 \(|\uparrow_y\rangle\)이므로 \(y\)축 위 결과는 확률 1이다. 계수의 상대 위상 \(i\)는 다른 축의 측정에서 드러난다.</p>
+      <p>\(|\chi\rangle=(|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2\)라면 \(z\)축 측정 확률은 각각 \(1/2\)이다. 하지만 이 상태는 \(|\uparrow_y\rangle\)이므로 \(y\)축 위 결과는 확률 1이다. 계수의 상대 위상 \(i\)는 다른 축의 측정에서 드러난다. 상대 위상을 \(-1\)로 바꾸면 \(|\downarrow_x\rangle\)가 되어 이번에는 \(x\)축 아래 결과가 확률 1이다.</p>
     </div>
   </section>
 
   <section id="s2">
-    <h2>슈테른-게를라흐 다시 보기</h2>
-    <p>비균일 자기장에 자기 모멘트를 가진 입자 빔을 보내면 서로 다른 스핀 성분이 다른 힘을 받아 갈라진다. 슈테른–게를라흐 장치의 핵심은 <em>갈라진 빔 중 하나를 고른 뒤 다음 장치에 넣는 것</em>이다. 앞 장에서 익힌 측정 후 상태 변화가 실제로 어떤 확률을 만드는지 보자.</p>
-    <div class="box def" id="def-electron-moment"><div class="box-h">전자 스핀 자기 모멘트의 부호</div>
-      <div class="formula" id="eq-electron-moment">\[ \boldsymbol{\hat\mu}_s
-      =-g_s\frac{e}{2m_e}\hat{\boldsymbol S}
-      =-g_s\frac{\mu_B}{\hbar}\hat{\boldsymbol S},\qquad
-      \mu_B=\frac{e\hbar}{2m_e}&gt;0,\qquad g_s&gt;0. \]</div>
-      <p>여기서 \(e&gt;0\)는 <em>기본 전하의 크기</em>이고 전자의 실제 전하는 \(-e\)다. \(g_s\)는 양수로 정의한 전자 스핀 \(g\)값이다. 따라서 전자의 자기 모멘트는 스핀과 반대 방향이다. <a href="https://physics.nist.gov/cuu/pdf/all.pdf">NIST 2022 CODATA의 부호 있는 전자 \(g\)값</a>은 음수이며, 이 책의 \(g_s\)는 그 절댓값으로 약 \(2.0023\)이다. SI 단위에서 \(\mu_B\)의 단위는 \(\mathrm{J\,T^{-1}}\)이다.</p>
+    <h2>블로흐 구</h2>
+    <p>스피너는 복소수 두 개, 곧 실수 네 개로 정해진다. 정규화 조건이 하나를 없애고, 측정 결과에 영향을 주지 않는 전체 위상이 또 하나를 없앤다. 그래서 스핀 1/2의 물리적 상태는 실수 두 개로 정해진다. 그 두 수가 식 <a class="ref" href="#eq-spin-direction"></a>의 \(\theta,\phi\)이고, 두 각은 구 위의 한 점을 가리킨다.</p>
+    <div class="box thm" id="thm-bloch"><div class="box-h">스핀 1/2 상태와 구 위의 점</div>
+      <p>정규화된 스피너 \(\alpha|\uparrow_z\rangle+\beta|\downarrow_z\rangle\)는 전체 위상을 빼면 하나의 단위벡터 \(\boldsymbol n\)에 대한 \(|\uparrow_{\boldsymbol n}\rangle\)이다. 그 \(\boldsymbol n\)은 스핀 평균의 방향이다.</p>
+      <div class="formula" id="eq-bloch-vector">\[ \langle\boldsymbol\sigma\rangle=\boldsymbol n,\qquad
+        \langle\hat{\boldsymbol S}\rangle=\frac\hbar2\boldsymbol n. \]</div>
+      <p>\(\boldsymbol n\)을 <span class="term">블로흐 벡터</span> <span class="en">(Bloch vector)</span>, 단위구를 <span class="term">블로흐 구</span> <span class="en">(Bloch sphere)</span>라 한다.</p>
     </div>
+    <p>\(\alpha=|\alpha|e^{ia}\), \(\beta=|\beta|e^{ib}\)로 쓰자. \(|\alpha|^2+|\beta|^2=1\)이므로 \(|\alpha|=\cos\frac\theta2\), \(|\beta|=\sin\frac\theta2\)인 \(\theta\in[0,\pi]\)가 하나 있다. 전체 위상 \(e^{ia}\)를 묶어 내면 \(\alpha|\uparrow_z\rangle+\beta|\downarrow_z\rangle=e^{ia}\bigl[\cos\frac\theta2|\uparrow_z\rangle+e^{i(b-a)}\sin\frac\theta2|\downarrow_z\rangle\bigr]\)이므로 \(\phi=b-a\)다. 극점(\(\theta=0,\pi\))에서는 \(\phi\)가 무엇이든 같은 상태다. 평균은 행렬 곱으로 계산한다.</p>
+    <div class="formula" id="eq-sigma-averages">\[ \begin{aligned}
+      \langle\sigma_x\rangle&amp;=\alpha^*\beta+\beta^*\alpha=2\operatorname{Re}(\alpha^*\beta)=\sin\theta\cos\phi,\\
+      \langle\sigma_y\rangle&amp;=-i\alpha^*\beta+i\beta^*\alpha=2\operatorname{Im}(\alpha^*\beta)=\sin\theta\sin\phi,\\
+      \langle\sigma_z\rangle&amp;=|\alpha|^2-|\beta|^2=\cos\theta.
+      \end{aligned} \]</div>
+    <p>마지막 등호들에는 \(\alpha=\cos\frac\theta2\), \(\beta=e^{i\phi}\sin\frac\theta2\)를 넣었다. \(\alpha^*\beta=\frac12\sin\theta\,e^{i\phi}\)이고 \(\cos^2\frac\theta2-\sin^2\frac\theta2=\cos\theta\)다. 세 성분이 정확히 \(\boldsymbol n\)이다.</p>
+    <figure class="diagram" id="fig-bloch">
+      <div class="fig-narrow"><!--fig:16-1--><svg viewBox="0 0 440 310" role="img" aria-label="블로흐 구. 북극은 z축 위 상태, 남극은 z축 아래 상태이고, 적도 위에 x축과 y축의 위아래 상태가 놓인다. 극각 세타와 방위각 파이로 정한 단위벡터 n이 일반 스핀 상태를 나타내며, 서로 직교하는 두 상태는 구의 정반대 점에 있다"><defs><marker id="f161-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f161-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f161-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><circle cx="182" cy="158" r="112" class="s-line" stroke-width="1.3"/><path d="M134.7 192.7 L140 193.5 L145.5 194.2 L151.1 194.8 L156.8 195.3 L162.6 195.7 L168.4 196 L174.2 196.2 L180 196.3 L185.9 196.3 L191.8 196.2 L197.6 195.9 L203.4 195.6 L209.1 195.2 L214.7 194.6 L220.3 194 L225.8 193.3 L231.1 192.4 L236.3 191.5 L241.4 190.5 L246.2 189.4 L251 188.2 L255.5 186.9 L259.8 185.6 L263.9 184.1 L267.8 182.6 L271.4 181.1 L274.9 179.4 L278 177.7 L280.9 176 L283.5 174.2 L285.8 172.3 L287.9 170.5 L289.7 168.6 L291.1 166.6 L292.3 164.7 L293.2 162.7 L293.7 160.7 L294 158.7 L294 157.7" class="s-line" stroke-width="1.1"/><path d="M294 157.7 L293.8 155.7 L293.3 153.7 L292.5 151.7 L291.3 149.7 L289.9 147.8 L288.2 145.8 L286.2 144 L283.9 142.1 L281.3 140.3 L278.5 138.6 L275.4 136.9 L272 135.2 L268.4 133.6 L264.6 132.1 L260.5 130.7 L256.2 129.3 L251.7 128 L247 126.8 L242.2 125.7 L237.2 124.7 L232 123.7 L226.7 122.9 L221.2 122.1 L215.7 121.5 L210 120.9 L204.3 120.5 L198.6 120.1 L192.7 119.9 L186.9 119.7 L181 119.7 L175.2 119.8 L169.3 119.9 L163.5 120.2 L157.8 120.6 L152.1 121.1 L146.5 121.7 L141 122.4 L135.6 123.1 L130.3 124 L125.2 125 L120.2 126.1 L115.4 127.2 L110.8 128.4 L106.3 129.8 L102.1 131.2 L98.1 132.6 L94.3 134.2 L90.8 135.8 L87.5 137.4 L84.5 139.1 L81.8 140.9 L79.3 142.7 L77.1 144.6 L75.2 146.5 L73.6 148.4 L72.2 150.4 L71.2 152.3 L70.5 154.3 L70.1 156.3 L70 158.3" class="s-faint" stroke-dasharray="3 4"/><path d="M70 158.3 L70.2 160.3 L70.7 162.3 L71.5 164.3 L72.7 166.3 L74.1 168.2 L75.8 170.2 L77.8 172 L80.1 173.9 L82.7 175.7 L85.5 177.4 L88.6 179.1 L92 180.8 L95.6 182.4 L99.4 183.9 L103.5 185.3 L107.8 186.7 L112.3 188 L117 189.2 L121.8 190.3 L126.8 191.3 L132 192.3 L134.7 192.7" class="s-line" stroke-width="1.1"/><line x1="229.3" y1="123.3" x2="182" y2="158" class="s-faint" stroke-dasharray="3 3"/><line x1="182" y1="158" x2="121.4" y2="202.4" class="s-line" stroke-width="1.1" marker-end="url(#f161-dim)"/><text x="109.3" y="217" class="t-math dim" text-anchor="middle"><tspan font-style="italic">x</tspan></text><line x1="80.5" y1="141.8" x2="182" y2="158" class="s-faint" stroke-dasharray="3 3"/><line x1="182" y1="158" x2="311.9" y2="178.7" class="s-line" stroke-width="1.1" marker-end="url(#f161-dim)"/><text x="329.1" y="185.8" class="t-math dim" text-anchor="middle"><tspan font-style="italic">y</tspan></text><line x1="182" y1="263.2" x2="182" y2="158" class="s-faint" stroke-dasharray="3 3"/><line x1="182" y1="158" x2="182" y2="23.3" class="s-line" stroke-width="1.1" marker-end="url(#f161-dim)"/><text x="182" y="7.6" class="t-math dim" text-anchor="middle"><tspan font-style="italic">z</tspan></text><line x1="230.1" y1="118.5" x2="230.1" y2="183.3" class="s-faint" stroke-dasharray="4 3"/><line x1="182" y1="158" x2="230.1" y2="183.3" class="s-faint" stroke-dasharray="4 3"/><path d="M182 120.1 L184.5 121.7 L186.9 123.7 L189.3 126.1 L191.6 129 L193.8 132.3 L195.8 135.8 L197.7 139.7 L199.3 143.8" class="s-acc2" stroke-width="1.4"/><path d="M162.1 172.6 L166.5 173.2 L171.1 173.7 L175.8 173.9 L180.5 174.1 L185.3 174 L190 173.9 L194.6 173.5 L199.2 173 L203.5 172.3 L207.6 171.5" class="s-acc2" stroke-width="1.4"/><text x="198.4" y="116.7" class="t-math acc2" text-anchor="start"><tspan font-style="italic">θ</tspan></text><text x="184.4" y="194.4" class="t-math acc2" text-anchor="middle"><tspan font-style="italic">φ</tspan></text><line x1="182" y1="158" x2="230.1" y2="118.5" class="s-acc" stroke-width="2.6" marker-end="url(#f161-acc)"/><text x="238.1" y="112.5" class="t-math acc"><tspan font-weight="700" font-style="italic">n</tspan></text><text x="252.1" y="112.5" class="t-math acc">: |↑<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">n</tspan></tspan>⟩</text><circle cx="182" cy="52.8" r="4" class="f-acc"/><text x="192" y="46.8" class="t-math" text-anchor="start">|↑<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>⟩</text><circle cx="182" cy="263.2" r="4" class="f-acc"/><text x="192" y="279.2" class="t-math" text-anchor="start">|↓<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>⟩</text><circle cx="134.7" cy="192.7" r="4" class="f-acc"/><text x="122.7" y="184.7" class="t-math" text-anchor="end">|↑<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">x</tspan></tspan>⟩</text><circle cx="283.5" cy="174.2" r="4" class="f-acc"/><text x="289.5" y="194.2" class="t-math" text-anchor="start">|↑<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">y</tspan></tspan>⟩</text><text x="318" y="250" class="t-dim">정반대 점 = 직교하는 상태</text><text x="318" y="268" class="t-dim">θ: z축에서 잰 각</text><text x="318" y="286" class="t-dim">φ: x축에서 잰 방위각</text></svg><!--/fig:16-1--></div>
+      <figcaption><b>그림 16-1.</b> 블로흐 구. 식 <a class="ref" href="#eq-spin-direction"></a>의 스피너 \(|\uparrow_{\boldsymbol n}\rangle\)를 극각 \(\theta\), 방위각 \(\phi\)인 단위벡터 \(\boldsymbol n\)의 끝점으로 나타낸다. \(z\)축의 두 상태는 북극과 남극, \(x\)·\(y\)축의 상태는 적도에 놓인다. 서로 직교하는 두 상태는 구의 정반대 점이다.</figcaption>
+    </figure>
+    <h3 id="s2-probability">두 방향 사이의 확률</h3>
+    <p>\(|\uparrow_{\boldsymbol n}\rangle\) 상태를 \(\boldsymbol m\)축 장치로 측정하자. 사영 연산자를 파울리 행렬로 쓰면 계산이 한 줄로 끝난다. \((I+\boldsymbol m\cdot\boldsymbol\sigma)/2\)는 \(\boldsymbol m\cdot\boldsymbol\sigma\)의 고유값 \(\pm1\)을 \((1\pm1)/2\)로 바꾸므로, \(|\uparrow_{\boldsymbol m}\rangle\)에는 1을, \(|\downarrow_{\boldsymbol m}\rangle\)에는 0을 곱한다. 이것이 \(|\uparrow_{\boldsymbol m}\rangle\langle\uparrow_{\boldsymbol m}|\)의 작용이다.</p>
+    <div class="formula" id="eq-spin-projector">\[ \begin{gathered}
+      |\uparrow_{\boldsymbol m}\rangle\langle\uparrow_{\boldsymbol m}|=\frac{I+\boldsymbol m\cdot\boldsymbol\sigma}{2},\\
+      P(+\boldsymbol m\mid\uparrow_{\boldsymbol n})
+      =\frac{1+\boldsymbol m\cdot\langle\boldsymbol\sigma\rangle}{2}
+      =\frac{1+\boldsymbol m\cdot\boldsymbol n}{2}=\cos^2\frac{\Theta}{2}.
+      \end{gathered} \]</div>
+    <p>\(\Theta\)는 두 방향 사이의 각이고, 마지막 등호는 \(1+\cos\Theta=2\cos^2(\Theta/2)\)다. \(\boldsymbol m=\boldsymbol e_z\)이면 \(\cos^2(\theta/2)\)로, 식 <a class="ref" href="#eq-spin-direction"></a>의 \(|\uparrow_z\rangle\) 계수를 제곱한 값과 같다. \(\boldsymbol m=-\boldsymbol n\)이면 확률이 0이다. 블로흐 구의 정반대 점이 서로 직교하는 상태다.</p>
+    <div class="callout warn"><strong>구 위의 각은 상태 사이 각의 두 배다</strong><p>\(|\uparrow_z\rangle\)와 \(|\downarrow_z\rangle\)는 상태 공간에서 직교하지만 블로흐 구에서는 180° 떨어져 있다. 식 <a class="ref" href="#eq-spin-direction"></a>에 반각 \(\theta/2\)가 나오는 까닭이다. 또 \(\boldsymbol n\)은 <em>평균</em> 스핀의 방향일 뿐 스핀이 그 방향의 화살표라는 뜻은 아니다. 평균 벡터의 크기는 \(\hbar/2\)지만 식 <a class="ref" href="#eq-spin-magnitude"></a>의 \(\sqrt{\langle\hat S^2\rangle}\)는 \(\sqrt3\hbar/2\)다.</p></div>
+    <div class="box ex" id="ex-tilted-sg"><div class="box-h">기울어진 장치와 블로흐 벡터</div>
+      <p>(가) \(|\uparrow_z\rangle\)를 \(z\)축에서 \(60^\circ\) 기울어진 \(\boldsymbol m\)축 장치에 넣자. \(\boldsymbol m\cdot\boldsymbol n=\cos60^\circ=1/2\)이므로 \(+\boldsymbol m\) 갈래의 확률은 \((1+\frac12)/2=3/4\)이고 나머지 갈래는 \(1/4\)이다.</p>
+      <p>(나) \(|\chi\rangle=\frac{\sqrt3}{2}|\uparrow_z\rangle+\frac12|\downarrow_z\rangle\)에서는 \(\alpha^*\beta=\sqrt3/4\)이므로 식 <a class="ref" href="#eq-sigma-averages"></a>에서 \(\boldsymbol n=(\frac{\sqrt3}2,0,\frac12)\), 곧 \(\theta=60^\circ\), \(\phi=0\)이다. 이 상태를 \(x\)축 장치로 재면 \(P(+x)=(1+\frac{\sqrt3}2)/2=(2+\sqrt3)/4\approx0.933\)이다. 내적으로 직접 계산해도 \(|\langle\uparrow_x|\chi\rangle|^2=\bigl|(\frac{\sqrt3}2+\frac12)/\sqrt2\bigr|^2=(4+2\sqrt3)/8\)로 같다.</p>
+    </div>
+    <div class="callout deep"><strong>구의 안쪽과 구 위의 경로</strong><p>편극되지 않은 빔처럼 순수 상태가 아닌 경우는 <a href="ch22.html#def-density-operator">22장의 밀도 연산자</a>로 다룬다. 식 <a class="ref" href="#eq-pauli-expansion"></a>에 따라 \(\hat\rho=(I+\boldsymbol r\cdot\boldsymbol\sigma)/2\), \(|\boldsymbol r|\le1\)로 쓸 수 있고, 순수 상태는 구의 표면, 섞인 상태는 구의 안쪽 점이다. 또 <a href="ch20.html#ex-spin-berry">20장</a>에서는 자기장 방향이 구 위에서 닫힌 경로를 천천히 돌 때 스핀이 그 경로가 둘러싼 입체각의 절반만큼 기하학적 위상을 얻는다는 것을 본다.</p></div>
+  </section>
+
+  <section id="s3">
+    <h2>공간 운동과 스핀</h2>
+    <p>지금까지는 스핀만 따로 다뤘다. 실제 전자는 위치와 스핀을 함께 가지므로 상태 공간은 <a href="ch12.html#def-tensor-product">12장의 텐서곱</a>, 곧 공간 상태의 공간과 \(\mathbb C^2\)의 텐서곱이다.</p>
+    <div class="box def" id="def-spinor-wavefunction"><div class="box-h">스피너 파동함수</div>
+      <div class="formula" id="eq-spinor-wavefunction">\[ \begin{aligned}
+        |\Psi\rangle&amp;=\int d^3r\,\bigl[\psi_\uparrow(\boldsymbol r)\,|\boldsymbol r\rangle\otimes|\uparrow_z\rangle\\
+        &amp;\qquad\quad+\psi_\downarrow(\boldsymbol r)\,|\boldsymbol r\rangle\otimes|\downarrow_z\rangle\bigr],\\
+        \Psi(\boldsymbol r)&amp;=\begin{pmatrix}\psi_\uparrow(\boldsymbol r)\\\psi_\downarrow(\boldsymbol r)\end{pmatrix},\\
+        \int\bigl(|\psi_\uparrow|^2+|\psi_\downarrow|^2\bigr)d^3r&amp;=1.
+        \end{aligned} \]</div>
+      <p>\(|\psi_\uparrow(\boldsymbol r)|^2d^3r\)는 전자를 \(\boldsymbol r\) 근처에서 \(S_z=+\hbar/2\)로 발견할 확률이다. 위치만 재면 확률밀도는 \(|\psi_\uparrow|^2+|\psi_\downarrow|^2\)이다.</p>
+    </div>
+    <p>스핀 연산자는 두 성분을 섞는 \(2\times2\) 행렬로 작용하고, 위치·운동량 연산자는 각 성분에 따로 작용한다. 그래서 \([\hat S_i,\hat x_j]=[\hat S_i,\hat p_j]=0\)이다. \(\psi_\uparrow=a\varphi(\boldsymbol r)\), \(\psi_\downarrow=b\varphi(\boldsymbol r)\)처럼 두 성분의 공간 모양이 같으면 상태는 곱 \(\varphi\otimes(a|\uparrow_z\rangle+b|\downarrow_z\rangle)\)이고, 위치를 재도 스핀에 대해 알게 되는 것이 없다. 두 성분의 모양이 다르면 <a href="ch12.html#prob-not-product">12장에서 본 곱이 아닌 상태</a>, 곧 스핀과 위치가 얽힌 상태다. 16.4절의 슈테른–게를라흐 장치가 그런 상태를 만든다.</p>
+    <h3 id="s3-pauli">파울리 해밀토니안과 \(g_s=2\)</h3>
+    <p><a href="ch04.html#eq-em-hamiltonian">4장의 전자기 해밀토니안</a>에 전자 전하 \(q=-e\)를 넣으면 운동 에너지 연산자는 \(\hat{\boldsymbol\pi}^2/2m_e\)이다. 여기서 \(\hat{\boldsymbol\pi}=\hat{\boldsymbol p}+e\boldsymbol A(\hat{\boldsymbol r})\)는 운동학적 운동량이고 \(e&gt;0\)는 기본 전하의 크기다. 이 해밀토니안에는 스핀이 없다. 그런데 자기장이 없을 때 식 <a class="ref" href="#eq-pauli-product"></a>에 \(\boldsymbol a=\boldsymbol b=\hat{\boldsymbol p}\)를 넣으면 운동량 성분끼리 교환하므로 \(\hat{\boldsymbol p}\times\hat{\boldsymbol p}=0\)이고 \((\boldsymbol\sigma\cdot\hat{\boldsymbol p})^2=\hat{\boldsymbol p}^2\)이다. 운동 에너지를 \((\boldsymbol\sigma\cdot\hat{\boldsymbol p})^2/2m_e\)로 써도 자유 전자에서는 아무것도 달라지지 않는다. 이 꼴에 \(\hat{\boldsymbol p}\to\hat{\boldsymbol\pi}\)를 넣으면 차이가 생긴다. \(\hat{\boldsymbol\pi}\)의 성분은 서로 교환하지 않기 때문이다.</p>
+    <div class="formula" id="eq-pi-commutator">\[ \begin{aligned}
+      [\hat\pi_i,\hat\pi_j]&amp;=e\bigl([\hat p_i,A_j]+[A_i,\hat p_j]\bigr)\\
+      &amp;=-i\hbar e\Bigl(\frac{\partial A_j}{\partial x_i}-\frac{\partial A_i}{\partial x_j}\Bigr)
+      =-i\hbar e\sum_k\epsilon_{ijk}B_k.
+      \end{aligned} \]</div>
+    <p>\([\hat p_i,f(\hat{\boldsymbol r})]=-i\hbar\,\partial f/\partial x_i\)를 썼고, 마지막 등호는 \(\boldsymbol B=\nabla\times\boldsymbol A\)의 성분이다. 그러면 \((\hat{\boldsymbol\pi}\times\hat{\boldsymbol\pi})_k=\sum_{i,j}\epsilon_{ijk}\hat\pi_i\hat\pi_j=\frac12\sum_{i,j}\epsilon_{ijk}[\hat\pi_i,\hat\pi_j]=-i\hbar eB_k\)다(\(\sum_{i,j}\epsilon_{ijk}\epsilon_{ijl}=2\delta_{kl}\)). 식 <a class="ref" href="#eq-pauli-product"></a>에 \(\boldsymbol a=\boldsymbol b=\hat{\boldsymbol\pi}\)를 넣으면</p>
+    <div class="formula" id="eq-pauli-hamiltonian">\[ \begin{aligned}
+      \frac{(\boldsymbol\sigma\cdot\hat{\boldsymbol\pi})^2}{2m_e}
+      &amp;=\frac{\hat{\boldsymbol\pi}^2}{2m_e}+\frac{i}{2m_e}\boldsymbol\sigma\cdot(-i\hbar e\boldsymbol B)\\
+      &amp;=\frac{\hat{\boldsymbol\pi}^2}{2m_e}+\frac{e\hbar}{2m_e}\boldsymbol\sigma\cdot\boldsymbol B
+      =\frac{\hat{\boldsymbol\pi}^2}{2m_e}+2\frac{\mu_B}{\hbar}\hat{\boldsymbol S}\cdot\boldsymbol B.
+      \end{aligned} \]</div>
+    <p>\(\mu_B=e\hbar/2m_e\)는 보어 마그네톤이다. \(\hat H=(\boldsymbol\sigma\cdot\hat{\boldsymbol\pi})^2/2m_e+V\)를 <span class="term">파울리 해밀토니안</span> <span class="en">(Pauli Hamiltonian)</span>이라 하고, 이것을 넣은 슈뢰딩거 방정식을 파울리 방정식이라 한다. 마지막 항은 스핀이 자기장과 만드는 에너지다. 스핀 자기 모멘트를 다음처럼 정의하면 그 에너지 \(-\hat{\boldsymbol\mu}_s\cdot\boldsymbol B\)와 같은 꼴이고, 계수를 비교하면 \(g_s=2\)다.</p>
+    <div class="box def" id="def-electron-moment"><div class="box-h">전자 스핀 자기 모멘트의 부호</div>
+      <div class="formula" id="eq-electron-moment">\[ \begin{gathered}\boldsymbol{\hat\mu}_s
+      =-g_s\frac{e}{2m_e}\hat{\boldsymbol S}
+      =-g_s\frac{\mu_B}{\hbar}\hat{\boldsymbol S},\\
+      \mu_B=\frac{e\hbar}{2m_e}&gt;0,\qquad g_s&gt;0.\end{gathered} \]</div>
+      <p>여기서 \(e&gt;0\)는 <em>기본 전하의 크기</em>이고 전자의 실제 전하는 \(-e\)다. \(g_s\)는 양수로 정의한 전자 스핀 \(g\)값이다. 따라서 전자의 자기 모멘트는 스핀과 반대 방향이다. <a href="https://physics.nist.gov/cuu/pdf/all.pdf">NIST 2022 CODATA의 부호 있는 전자 \(g\)값</a>은 음수이며, 이 책의 \(g_s\)는 그 절댓값으로 \(2.00231930436\)이다. SI 단위에서 \(\mu_B\)의 단위는 \(\mathrm{J\,T^{-1}}\)이다.</p>
+    </div>
+    <div class="callout deep"><strong>\(g_s\)가 정확히 2가 아닌 까닭</strong><p>운동 에너지를 \((\boldsymbol\sigma\cdot\hat{\boldsymbol p})^2/2m_e\)로 쓰는 선택은 임의로 보이지만, 상대론적인 디랙 방정식의 비상대론적 극한이 바로 이 꼴을 준다. 디랙 이론의 \(g_s=2\)에 양자전기역학의 복사 보정이 더해져 \(g_s=2(1+a_e)\)가 되고, 1948년 슈윙거가 구한 선도 보정은 \(a_e=\alpha/(2\pi)\approx0.001161\)이다. 측정값 \(a_e=1.15965218\times10^{-3}\)과 양자전기역학 계산은 열 자리 넘게 일치한다. 이 책에서는 필요한 곳에서 \(g_s\approx2\)를 쓴다.</p></div>
+    <h3 id="s3-zeeman">균일한 자기장: 제이만 항</h3>
+    <p>균일한 \(\boldsymbol B\)에서는 \(\boldsymbol A=\frac12\boldsymbol B\times\boldsymbol r\)로 고를 수 있다. 직접 계산하면 \(\nabla\times\boldsymbol A=\boldsymbol B\), \(\nabla\cdot\boldsymbol A=0\)이다. \(\hat{\boldsymbol\pi}^2\)를 펼치자.</p>
+    <div class="formula" id="eq-pi-square">\[ \begin{gathered}
+      \hat{\boldsymbol\pi}^2=\hat{\boldsymbol p}^2+e(\hat{\boldsymbol p}\cdot\boldsymbol A+\boldsymbol A\cdot\hat{\boldsymbol p})+e^2\boldsymbol A^2,\\
+      \hat{\boldsymbol p}\cdot\boldsymbol A=\boldsymbol A\cdot\hat{\boldsymbol p}-i\hbar\,\nabla\cdot\boldsymbol A=\boldsymbol A\cdot\hat{\boldsymbol p}.
+      \end{gathered} \]</div>
+    <p>가운데 항은 \(\boldsymbol A\cdot\hat{\boldsymbol p}=\frac12(\boldsymbol B\times\hat{\boldsymbol r})\cdot\hat{\boldsymbol p}=\frac12\boldsymbol B\cdot(\hat{\boldsymbol r}\times\hat{\boldsymbol p})=\frac12\boldsymbol B\cdot\hat{\boldsymbol L}\)이다. 성분으로 쓰면 두 식 모두 \(\sum\epsilon_{ijk}B_j\hat x_k\hat p_i\)이므로, \(\hat x_k\)를 \(\hat p_i\)의 왼쪽에 둔 채 삼중곱을 순환할 수 있다. \(V(\hat{\boldsymbol r})\)를 더해 모두 모으면</p>
+    <div class="formula" id="eq-pauli-zeeman">\[ \hat H=\frac{\hat{\boldsymbol p}^2}{2m_e}+V(\hat{\boldsymbol r})
+      +\frac{\mu_B}{\hbar}\bigl(\hat{\boldsymbol L}+2\hat{\boldsymbol S}\bigr)\cdot\boldsymbol B
+      +\frac{e^2}{8m_e}\bigl|\boldsymbol B\times\hat{\boldsymbol r}\bigr|^2. \]</div>
+    <p>셋째 항이 궤도와 스핀의 <span class="term">제이만 항</span>이다. 궤도 부분 \((\mu_B/\hbar)\hat{\boldsymbol L}\cdot\boldsymbol B\)는 <a href="ch15.html#s4-current">15장</a>에서 확률 흐름으로 구한 궤도 자기 모멘트 \(-m\mu_B\)의 에너지와 같다. 같은 각운동량당 스핀의 자기 모멘트는 궤도의 두 배다. <a href="ch19.html#def-zeeman-hamiltonian">19장</a>은 이 항으로 수소 준위의 제이만 분열을 계산한다. 마지막 항은 \(B\)에 대해 2차인 <span class="term">반자성 항</span>이다.</p>
+    <div class="box ex" id="ex-diamagnetic"><div class="box-h">반자성 항은 얼마나 작은가</div>
+      <p>\(\boldsymbol B=B\boldsymbol e_z\)이면 \(|\boldsymbol B\times\boldsymbol r|^2=B^2(x^2+y^2)\)이다. 수소 1s는 구대칭이므로 \(\langle x^2+y^2\rangle=\frac23\langle r^2\rangle\)이고, 15장의 \(R_{10}\)으로 적분하면 \(\langle r^2\rangle=3a^2\)이다. 따라서 1s의 반자성 에너지는 \(e^2B^2\cdot2a^2/(8m_e)=e^2B^2a^2/(4m_e)\)다. \(B=1\ \mathrm T\)에서 이 값은 \(1.23\times10^{-10}\ \mathrm{eV}\)로, 같은 장의 스핀 항 \(\mu_BB=5.79\times10^{-5}\ \mathrm{eV}\)의 \(2\times10^{-6}\)배에 불과하다. 원자 준위의 제이만 분열을 계산할 때 이 항을 빼는 까닭이다.</p>
+    </div>
+  </section>
+
+  <section id="s4">
+    <h2>슈테른–게를라흐 장치: 스핀과 위치의 얽힘</h2>
+    <p>5장에서는 슈테른–게를라흐 실험의 결과를, <a href="ch06.html#ex-sg-postulates">6장</a>에서는 그 결과를 공준으로 읽는 법을 보았다. 이 절에서는 앞 절의 스피너 파동함수로 장치 안에서 실제로 일어나는 일을 따라간다.</p>
     <p>빔이 지나가는 좁은 영역에서 자기장의 \(z\)성분이 \(B_z(z)\)이고 다른 성분의 영향을 작게 볼 수 있다고 하자. \(\hat H_{\rm int}=-\boldsymbol{\hat\mu}_s\cdot\boldsymbol B\)와 \(\boldsymbol F=-\boldsymbol\nabla H_{\rm int}\)를 쓰면</p>
     <div class="formula" id="eq-sg-force">\[ \hat H_{\rm int}\simeq
       g_s\frac{\mu_B}{\hbar}B_z(z)\hat S_z,\qquad
       \hat F_z\simeq-g_s\frac{\mu_B}{\hbar}
         \frac{dB_z}{dz}\hat S_z. \]</div>
     <p>\(dB_z/dz&gt;0\)이면 \(|\uparrow_z\rangle\)에는 음의 \(z\)방향 힘, \(|\downarrow_z\rangle\)에는 양의 \(z\)방향 힘이 작용한다. 각 상태에 대한 힘의 크기는 \(g_s\mu_B|B'_z|/2\)다. 실제 자기장은 \(\nabla\cdot\boldsymbol B=0\)을 만족해야 하므로 \(B_z\)만 위치에 따라 변하는 장은 정확한 전역 해가 아니다. 식 <a class="ref" href="#eq-sg-force"></a>은 빔 근처에서 우세한 성분을 쓰는 국소 근사다.</p>
-    <div class="callout tip"><strong>실험의 입자와 교과서 모형</strong><p>원래의 슈테른–게를라흐 실험은 은 원자 빔을 사용했다. 여기서는 측정의 두 결과를 설명하기 위해 전자 스핀 1/2의 자기 모멘트만 남긴 모형을 쓴다. 자유 전자 빔에는 전하 때문에 로런츠 힘도 작용하므로 은 원자 장치를 그대로 자유 전자 장치로 읽으면 안 된다.</p></div>
-    <h3 id="s2-sequential">측정 축을 바꾸면</h3>
-    <p>처음 빔에서 \(S_z=+\hbar/2\)인 갈래를 골랐다고 하자. 그 상태는 \(|\uparrow_z\rangle=(|\uparrow_x\rangle+|\downarrow_x\rangle)/\sqrt2\)다. 따라서 다음 \(x\)축 장치는 두 결과를 각각 확률 \(1/2\)로 낸다.</p>
-    <div class="formula" id="eq-sg-sequence">\[ \begin{aligned}
-      |\uparrow_z\rangle &amp;\xrightarrow{\ S_x\ }
-      \begin{cases}|\uparrow_x\rangle&amp;(1/2),\\|\downarrow_x\rangle&amp;(1/2),\end{cases}\\
-      |\uparrow_x\rangle &amp;\xrightarrow{\ S_z\ }
-      \begin{cases}|\uparrow_z\rangle&amp;(1/2),\\|\downarrow_z\rangle&amp;(1/2).\end{cases}
-      \end{aligned} \]</div>
-    <figure class="diagram">
-      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="z축 위 스핀을 x축으로 측정하고 한 갈래를 골라 다시 z축으로 측정하는 분기">
-
-        <text x="28" y="33" class="t-b">첫 z 측정</text><text x="176" y="33" class="t-b">x 측정</text><text x="320" y="33" class="t-b">다시 z 측정</text>
-        <rect x="25" y="106" width="93" height="45" rx="8" class="f-acc-soft"/><text x="42" y="134" class="t">↑z 선택</text>
-        <path d="M118 128 L168 77 M118 128 L168 181" class="s-line"/>
-        <rect x="168" y="55" width="98" height="45" rx="8" class="f-elev"/><text x="187" y="83" class="t">↑x  1/2</text>
-        <rect x="168" y="158" width="98" height="45" rx="8" class="f-elev"/><text x="187" y="186" class="t">↓x  1/2</text>
-        <path d="M266 77 L311 55 M266 77 L311 106" class="s-acc"/>
-        <rect x="311" y="34" width="103" height="40" rx="8" class="f-acc-soft"/><text x="328" y="59" class="t">↑z  1/2</text>
-        <rect x="311" y="91" width="103" height="40" rx="8" class="f-acc-soft"/><text x="328" y="116" class="t">↓z  1/2</text>
-        <text x="275" y="177" class="t-dim">아래 갈래는 버림</text>
-      </svg></div>
-      <figcaption><b>그림 16-1.</b> 첫 z 측정의 ↑ 갈래를 고른 뒤 x 측정의 ↑ 갈래만 통과시킨 경우다. 마지막 두 확률 1/2은 선택된 ↑x 갈래를 조건으로 한 확률이다.</figcaption>
+    <div class="callout tip"><strong>실험의 입자와 교과서 모형</strong><p>원래의 슈테른–게를라흐 실험은 은 원자 빔을 사용했고, 은 원자의 자기 모멘트는 바깥 전자 하나의 스핀에서 온다. 여기서는 측정의 두 결과를 설명하기 위해 전자 스핀 1/2의 자기 모멘트만 남긴 모형을 쓴다. 은 원자가 실제로 얼마나 휘는지는 <a href="ch05.html#ex-sg-numbers">5장 예제</a>에서 계산했다. 자유 전자 빔에는 전하 때문에 로런츠 힘도 작용하므로 은 원자 장치를 그대로 자유 전자 장치로 읽으면 안 된다.</p></div>
+    <h3 id="s4-entangle">갈라진 빔은 얽힌 상태다</h3>
+    <p>자석에 들어가는 상태가 \(\varphi(\boldsymbol r)\otimes(\alpha|\uparrow_z\rangle+\beta|\downarrow_z\rangle)\)라 하자. 자석 안에서 기울기 \(G=dB_z/dz\)가 일정하면 해밀토니안의 스핀 부분 \(g_s\mu_B(B_0+Gz)\hat S_z/\hbar\)는 \(\hat S_z\)와 교환한다. 그래서 \(\hat S_z\)의 두 고유 성분은 스핀이 바뀌지 않은 채 각자의 선형 퍼텐셜 \(\pm\frac12g_s\mu_BGz\) 속에서 따로 움직인다. 하이젠베르크 운동 방정식으로 쓰면 \(d\hat p_z/dt=-g_s\mu_BG\hat S_z/\hbar\)이고 \(\hat S_z\)는 일정하다. 자석을 지나는 시간 \(\tau\) 동안 두 성분은 반대 방향의 운동량</p>
+    <div class="formula" id="eq-sg-kick">\[ \pm\Delta p,\qquad \Delta p=\frac{g_s\mu_BG\tau}{2} \]</div>
+    <p>를 얻는다. \(|\downarrow_z\rangle\) 성분이 \(+\Delta p\), \(|\uparrow_z\rangle\) 성분이 \(-\Delta p\)다. 자석을 나온 상태는</p>
+    <div class="formula" id="eq-sg-entangled">\[ |\Psi\rangle=\alpha\,|\varphi_-\rangle\otimes|\uparrow_z\rangle+\beta\,|\varphi_+\rangle\otimes|\downarrow_z\rangle \]</div>
+    <p>이다. \(\varphi_\pm\)는 처음 파속이 운동량 \(\pm\Delta p\)를 받아 위아래로 갈라져 가는 공간 상태다(그림 16-2). 두 성분의 공간 모양이 달라졌으므로 앞 절의 의미에서 얽힌 상태다.</p>
+    <figure class="diagram" id="fig-sg-split">
+      <div class="fig-narrow"><!--fig:16-2--><svg viewBox="0 0 440 250" role="img" aria-label="슈테른 게를라흐 자석을 지나며 스핀 중첩 상태의 파속이 둘로 갈라진다. 위로 가는 파속은 z축 아래 스핀, 아래로 가는 파속은 z축 위 스핀과 짝을 이루며, 화면에서 위치를 읽으면 스핀의 z성분을 잰 것이 된다"><defs><marker id="f162-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f162-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f162-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><path d="M150 46 L262 46 L262 82 L212.0 106 L200.0 106 L150 82 Z" class="f-surface"/><path d="M150 218 L262 218 L262 166 L228.0 166 L228.0 180 L184.0 180 L184.0 166 L150 166 Z" class="f-surface"/><text x="206.0" y="38" class="t-dim" text-anchor="middle">자석</text><text x="206.0" y="238" class="t-math dim" text-anchor="middle"><tspan font-style="italic">dB</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>/<tspan font-style="italic">dz</tspan> = <tspan font-style="italic">G</tspan> &gt; 0</text><line x1="24" y1="196" x2="24" y2="150" class="s-line" stroke-width="1.2" marker-end="url(#f162-dim)"/><text x="24" y="142" class="t-math dim" text-anchor="middle"><tspan font-style="italic">z</tspan></text><path d="M40 132 L150 132 L156 131.9 L162 131.7 L168 131.4 L174 130.9 L180 130.3 L186 129.5 L192 128.6 L198 127.6 L204 126.5 L210 125.2 L216 123.7 L222 122.2 L228 120.4 L234 118.6 L240 116.6 L246 114.5 L252 112.2 L258 109.8 L412 44.3" class="s-acc2" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M40 132 L150 132 L156 132.1 L162 132.3 L168 132.6 L174 133.1 L180 133.7 L186 134.5 L192 135.4 L198 136.4 L204 137.5 L210 138.8 L216 140.3 L222 141.8 L228 143.6 L234 145.4 L240 147.4 L246 149.5 L252 151.8 L258 154.2 L412 219.7" class="s-acc" stroke-width="1.6" stroke-dasharray="5 4"/><path d="M70 99 L69.9 107 L69.6 111 L69.1 113.5 L68.1 116 L66.8 118 L65.1 120 L62.4 122.5 L58.1 126 L56 128 L54.8 129.5 L54.1 131 L54 132.5 L54.5 134 L55.5 135.5 L57.5 137.5 L63 142 L65.1 144 L66.8 146 L68.1 148 L69.1 150.5 L69.6 153.5 L70 159.5 L70.3 154 L70.8 151 L71.7 148.5 L72.8 146.5 L74.4 144.5 L76.4 142.5 L81.9 138 L84 136 L85.2 134.5 L85.9 133 L86 131.5 L85.5 130 L84.5 128.5 L82.5 126.5 L77 122 L74.9 120 L73.2 118 L71.9 116 L70.9 113.5 L70.4 110.5 L70 104.5 L70 99 Z" class="f-acc-soft"/><text x="70" y="88" class="t-math" text-anchor="middle">(α|↑<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>⟩ + β|↓<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>⟩)</text><text x="70" y="186" class="t-math" text-anchor="middle">⊗ <tspan font-style="italic">φ</tspan></text><path d="M370 29.2 L369.9 37.2 L369.6 41.2 L369.1 43.7 L368.1 46.2 L366.8 48.2 L365.1 50.2 L362.4 52.7 L358.1 56.2 L356 58.2 L354.8 59.7 L354.1 61.2 L354 62.7 L354.5 64.2 L355.5 65.7 L357.5 67.7 L363 72.2 L365.1 74.2 L366.8 76.2 L368.1 78.2 L369.1 80.7 L369.6 83.7 L370 89.7 L370.3 84.2 L370.8 81.2 L371.7 78.7 L372.8 76.7 L374.4 74.7 L376.4 72.7 L381.9 68.2 L384 66.2 L385.2 64.7 L385.9 63.2 L386 61.7 L385.5 60.2 L384.5 58.7 L382.5 56.7 L377 52.2 L374.9 50.2 L373.2 48.2 L371.9 46.2 L370.9 43.7 L370.4 40.7 L370 34.7 L370 29.2 Z" class="f-acc2-soft"/><path d="M370 168.8 L369.9 176.8 L369.6 180.8 L369.1 183.3 L368.1 185.8 L366.8 187.8 L365.1 189.8 L362.4 192.3 L358.1 195.8 L356 197.8 L354.8 199.3 L354.1 200.8 L354 202.3 L354.5 203.8 L355.5 205.3 L357.5 207.3 L363 211.8 L365.1 213.8 L366.8 215.8 L368.1 217.8 L369.1 220.3 L369.6 223.3 L370 229.3 L370.3 223.8 L370.8 220.8 L371.7 218.3 L372.8 216.3 L374.4 214.3 L376.4 212.3 L381.9 207.8 L384 205.8 L385.2 204.3 L385.9 202.8 L386 201.3 L385.5 199.8 L384.5 198.3 L382.5 196.3 L377 191.8 L374.9 189.8 L373.2 187.8 L371.9 185.8 L370.9 183.3 L370.4 180.3 L370 174.3 L370 168.8 Z" class="f-acc-soft"/><text x="352" y="54.2" class="t-math acc2" text-anchor="end">β|↓<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>⟩ ⊗ <tspan font-style="italic">φ</tspan><tspan baseline-shift="sub" font-size="72%">+</tspan></text><text x="352" y="221.8" class="t-math acc" text-anchor="end">α|↑<tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">z</tspan></tspan>⟩ ⊗ <tspan font-style="italic">φ</tspan><tspan baseline-shift="sub" font-size="72%">−</tspan></text><line x1="418" y1="40" x2="418" y2="224" class="s-line" stroke-width="3"/><text x="410" y="136" class="t-dim" text-anchor="end">화면</text></svg><!--/fig:16-2--></div>
+      <figcaption><b>그림 16-2.</b> 자석 안에서 두 스핀 성분은 반대 방향의 운동량 \(\pm\Delta p\)를 받는다. 점선은 자석 안에서 포물선, 밖에서 직선인 파속 중심의 경로다. 자석을 나온 상태 <a class="ref" href="#eq-sg-entangled"></a>에서 위쪽 파속은 \(|\downarrow_z\rangle\), 아래쪽 파속은 \(|\uparrow_z\rangle\)와 짝을 이루므로, 화면에서 위치를 읽으면 \(S_z\)를 잰 것이 된다.</figcaption>
     </figure>
-    <p>첫 \(x\)축 장치에서 위 갈래만 통과시킨 뒤 다시 \(z\)축으로 측정하면 원래 \(z\)축 결과가 확률 1로 돌아오지 않는다. \(x\)축 결과를 확정하는 동안 \(z\)축 결과는 더 이상 확정되지 않았기 때문이다. 반대로 \(z\)축 위 갈래를 곧바로 두 번째 \(z\)축 장치에 넣으면 다시 위 갈래만 나온다.</p>
-    <div class="box ex" id="ex-tilted-sg"><div class="box-h">60° 기울어진 장치</div>
-      <p>\(|\uparrow_z\rangle\)를 \(z\)축에서 \(\theta=60^\circ\) 기울어진 \(\boldsymbol n\)축 장치에 넣자. 식 <a class="ref" href="#eq-spin-direction"></a>의 내적에서 \(|\langle\uparrow_{\boldsymbol n}|\uparrow_z\rangle|^2=\cos^2(30^\circ)=3/4\)다. \(+\boldsymbol n\) 갈래가 선택될 확률은 \(3/4\), 나머지는 \(1/4\)이다.</p>
-    </div>
+    <p>두 파속이 겹치지 않을 만큼 멀어진 뒤 화면 위쪽에서 원자를 발견하면 스핀은 \(|\downarrow_z\rangle\), 아래쪽이면 \(|\uparrow_z\rangle\)다. 위쪽에서 발견할 확률은 \(\int|\beta\varphi_+|^2d^3r=|\beta|^2\)으로, \(S_z\) 측정에 대한 보른 규칙과 같다. 슈테른–게를라흐 장치는 스핀을 직접 재지 않는다. 스핀을 위치와 얽은 뒤 위치를 잰다.</p>
+    <h3 id="s4-coherence">결맞음은 어디로 가는가</h3>
+    <p>화면에 닿기 전, 식 <a class="ref" href="#eq-sg-entangled"></a>에서 스핀의 가로 성분 평균을 계산해 보자. 식 <a class="ref" href="#eq-pauli-matrices"></a>에서 \(\sigma_x+i\sigma_y=2|\uparrow_z\rangle\langle\downarrow_z|\)이므로 \(\alpha\) 항과 \(\beta\) 항이 엇갈려 만나는 항만 남는다.</p>
+    <div class="formula" id="eq-sg-coherence">\[ \langle\sigma_x\rangle+i\langle\sigma_y\rangle=2\alpha^*\beta\,\langle\varphi_-|\varphi_+\rangle. \]</div>
+    <p>자석에 들어가기 전에는 \(\langle\varphi_-|\varphi_+\rangle=1\)이라 식 <a class="ref" href="#eq-sigma-averages"></a>과 같다. 파속이 갈라질수록 겹침이 작아지고 블로흐 벡터의 가로 성분이 줄어든다. 자석을 나온 뒤에는 두 파속이 같은 자유 해밀토니안으로 움직이므로 겹침이 더 바뀌지 않는다. <a href="ch06.html#ex-gauss-prob">6장</a>의 가우스 파속 \(\varphi(z)=(\pi\sigma^2)^{-1/4}e^{-z^2/2\sigma^2}\)에서 자석 안의 위치 이동을 무시하고 운동량 차이만 넣으면</p>
+    <div class="formula" id="eq-sg-overlap">\[ \langle\varphi_-|\varphi_+\rangle=\int\frac{e^{-z^2/\sigma^2}}{\sqrt\pi\,\sigma}\,e^{2i\Delta p\,z/\hbar}\,dz=e^{-\Delta p^2\sigma^2/\hbar^2}. \]</div>
+    <p>가우스 함수의 푸리에 변환을 썼다. 위치가 벌어지는 효과까지 넣으면 겹침은 더 작아진다. 5장 예제의 은 원자는 \(\Delta p\approx\mu_BG\tau=9.3\times10^{-25}\ \mathrm{kg\,m/s}\)를 받는다. 파속 폭을 \(\sigma=1\ \mathrm{nm}\)로 작게 잡아도 \(\Delta p\sigma/\hbar\approx8.8\)이라 겹침은 \(e^{-77}\approx10^{-34}\)이다. 자석을 나오는 순간 가로 성분은 사실상 0이다. 스핀만 보면 위·아래가 \(|\alpha|^2,|\beta|^2\)의 비율로 섞인 상태, 블로흐 구의 안쪽 점처럼 보인다. <a href="ch22.html#eq-partial-trace">22장의 부분 대각합</a>이 이 과정을 정확히 표현한다.</p>
+    <div class="callout deep"><strong>갈라진 빔을 다시 합치면</strong><p>자석 뒤에 기울기가 반대인 자석을 정확히 이어 두 파속의 운동량과 위치 차이를 모두 되돌리면 겹침이 다시 1이 되어 원래 스핀 상태가 돌아온다. 얽힘만으로는 측정이 끝나지 않는다. 위치에 남은 정보를 되돌릴 수 없게 될 때, 예컨대 화면이 원자의 위치를 기록할 때 측정이 끝난다. 다만 식 <a class="ref" href="#eq-sg-overlap"></a>에서 보듯 운동량 차이를 \(\hbar/\sigma\)보다 훨씬 정밀하게 되돌려야 하므로, 보통의 자석으로는 사실상 불가능하다.</p></div>
   </section>
 
-  <section id="s3">
-    <h2>자기장 속 세차 운동</h2>
+  <section id="s5">
+    <h2>세차 운동과 스핀 회전</h2>
     <p>균일한 정자기장 \(\boldsymbol B=B_0\boldsymbol e_z\)를 걸면 스핀에 따른 에너지가 갈라진다. 여기서 \(\boldsymbol e_z\)는 \(+z\)축 단위벡터, \(B_0&gt;0\)이고 자유 전자의 스핀만 고려한다. 식 <a class="ref" href="#eq-electron-moment"></a>의 음의 자기 모멘트 때문에 \(S_z=+\hbar/2\)인 상태가 <em>높은</em> 에너지다.</p>
     <div class="box def" id="def-larmor-frequency"><div class="box-h">이 장의 라머 각주파수</div>
-      <div class="formula" id="eq-static-spin-h">\[ \hat H_0=-\boldsymbol{\hat\mu}_s\cdot\boldsymbol B
-      =\omega_0\hat S_z=\frac{\hbar\omega_0}{2}\sigma_z,\qquad
+      <div class="formula" id="eq-static-spin-h">\[ \begin{gathered}
+      \hat H_0=-\boldsymbol{\hat\mu}_s\cdot\boldsymbol B
+      =\omega_0\hat S_z=\frac{\hbar\omega_0}{2}\sigma_z,\\
       \omega_0=\frac{g_s\mu_B B_0}{\hbar}&gt;0,\qquad
-      E_\uparrow-E_\downarrow=\hbar\omega_0. \]</div>
+      E_\uparrow-E_\downarrow=\hbar\omega_0.
+      \end{gathered} \]</div>
       <p>\(\omega_0\)는 각주파수이며 단위는 \(\mathrm{rad\,s^{-1}}\)다. 보통 주파수는 \(\nu_0=\omega_0/(2\pi)\)다. \(g_s\)를 양수로 둔 덕분에 에너지와 회전 방향의 부호가 식에 분명히 드러난다.</p>
     </div>
     <p>해밀토니안이 대각 행렬이므로 각 고유상태는 시간에 따라 위상만 얻는다. 처음 상태 \(|\chi(0)\rangle=\alpha|\uparrow_z\rangle+\beta|\downarrow_z\rangle\)는</p>
@@ -138,27 +252,54 @@
       |\chi(t)\rangle&amp;=\alpha e^{-i\omega_0t/2}|\uparrow_z\rangle
                     +\beta e^{+i\omega_0t/2}|\downarrow_z\rangle .
       \end{aligned} \]</div>
-    <p>\(|\alpha|^2,|\beta|^2\)는 일정하지만 두 성분의 <em>상대 위상</em>은 \(\omega_0t\)만큼 바뀐다. 따라서 \(z\)축을 측정한 확률은 일정하고, 가로 방향 스핀의 평균은 시간에 따라 돈다.</p>
-    <div class="box ex" id="ex-spin-precession"><div class="box-h">처음에 \(+x\)를 향한 스핀</div>
-      <p>\(|\chi(0)\rangle=|\uparrow_x\rangle=(|\uparrow_z\rangle+|\downarrow_z\rangle)/\sqrt2\)를 식 <a class="ref" href="#eq-spin-time-evolution"></a>에 넣는다. 파울리 행렬로 평균을 계산하면</p>
-      <div class="formula" id="eq-precession-expectation">\[ \langle\hat S_x\rangle_t=\frac{\hbar}{2}\cos\omega_0t,\qquad
-      \langle\hat S_y\rangle_t=\frac{\hbar}{2}\sin\omega_0t,\qquad
-      \langle\hat S_z\rangle_t=0. \]</div>
-      <p>\(t=\pi/(2\omega_0)\)에서는 전체 위상을 빼고 \(|\chi\rangle=(|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2=|\uparrow_y\rangle\)다. \(x\)축 위 결과의 확률은 \(\cos^2(\omega_0t/2)\)로 진동한다.</p>
-    </div>
-    <p>같은 운동을 연산자의 방정식으로도 확인할 수 있다. \([\hat S_z,\hat S_x]=i\hbar\hat S_y\)와 \([\hat S_z,\hat S_y]=-i\hbar\hat S_x\)를 <a href="ch10.html#eq-heis-equation">하이젠베르크 운동 방정식</a>에 넣으면</p>
-    <div class="formula" id="eq-spin-heisenberg">\[ \frac{d\hat S_x}{dt}=-\omega_0\hat S_y,\qquad
+    <p>\(|\alpha|^2,|\beta|^2\)는 일정하지만 두 성분의 <em>상대 위상</em>은 \(\omega_0t\)만큼 늘어난다. 블로흐 구에서는 \(\theta\)가 그대로이고 \(\phi\)가 \(\phi+\omega_0t\)로 바뀐다. 블로흐 벡터가 \(z\)축 둘레를 각속도 \(\omega_0\)로 도는 것이다. 처음 \(+x\)를 향한 스핀이면 \(\langle\hat S_x\rangle=\frac\hbar2\cos\omega_0t\), \(\langle\hat S_y\rangle=\frac\hbar2\sin\omega_0t\)로, <a href="ch10.html#eq-spin-expect">10장</a>에서 계산한 그대로다. 같은 운동을 연산자의 방정식으로도 확인할 수 있다. \([\hat S_z,\hat S_x]=i\hbar\hat S_y\)와 \([\hat S_z,\hat S_y]=-i\hbar\hat S_x\)를 <a href="ch10.html#eq-heis-equation">하이젠베르크 운동 방정식</a>에 넣으면</p>
+    <div class="formula" id="eq-spin-heisenberg">\[ \begin{gathered}
+      \frac{d\hat S_x}{dt}=-\omega_0\hat S_y,\qquad
       \frac{d\hat S_y}{dt}=+\omega_0\hat S_x,\qquad
-      \frac{d\hat S_z}{dt}=0,\qquad
+      \frac{d\hat S_z}{dt}=0,\\
       \frac{d\langle\hat{\boldsymbol S}\rangle}{dt}
-        =\omega_0\boldsymbol e_z\times\langle\hat{\boldsymbol S}\rangle . \]</div>
+        =\omega_0\boldsymbol e_z\times\langle\hat{\boldsymbol S}\rangle .
+      \end{gathered} \]</div>
     <p>이는 \(+z\)에서 바라보면 \(+x\)에서 \(+y\)로 도는 <span class="term">라머 세차 운동</span> <span class="en">(Larmor precession)</span>이다. 자기 모멘트가 스핀과 반대라서 방향을 혼동하기 쉽다. 식 <a class="ref" href="#eq-spin-heisenberg"></a>의 부호를 기준으로 확인한다.</p>
     <div class="box ex" id="ex-one-tesla"><div class="box-h">1 T에서 자유 전자의 진동수 눈금</div>
       <p><a href="https://physics.nist.gov/cuu/pdf/all.pdf">NIST 2022 CODATA의 전자 자기회전비 크기</a> \(\omega_0/B_0\simeq1.76086\times10^{11}\ \mathrm{rad\,s^{-1}T^{-1}}\)를 쓰면 \(B_0=1\ \mathrm T\)에서 \(\nu_0=\omega_0/(2\pi)\simeq28.0\ \mathrm{GHz}\)다. 이는 자유 전자의 스핀만 쓴 값이며, 원자 안의 결합과 다른 자기 모멘트는 별도로 고려해야 한다.</p>
     </div>
+    <h3 id="s5-rotation">세차 운동은 회전이다</h3>
+    <p>\(\hat U_0(t)=e^{-i\omega_0t\sigma_z/2}\)는 <a href="ch02.html#prob-spinor">2장 연습문제</a>에서 계산한 행렬이다. 그곳에서 예고했듯 이것은 스핀의 회전이다. 14장에서 \(\hat L_z\)가 평면 회전 \(e^{-i\alpha\hat L_z/\hbar}\)을 만드는 생성자였듯, 스핀을 단위벡터 \(\boldsymbol n\) 축 둘레로 각 \(\alpha\)만큼 돌리는 연산자는 \(e^{-i\alpha\boldsymbol n\cdot\hat{\boldsymbol S}/\hbar}\)이다.</p>
+    <div class="box thm" id="thm-spin-rotation"><div class="box-h">스핀 1/2의 회전 연산자</div>
+      <div class="formula" id="eq-spin-rotation">\[ \hat R_{\boldsymbol n}(\alpha)=e^{-i\alpha\,\boldsymbol n\cdot\boldsymbol\sigma/2}
+        =\cos\frac\alpha2\,I-i\sin\frac\alpha2\,\boldsymbol n\cdot\boldsymbol\sigma. \]</div>
+      <p>이 연산자는 블로흐 벡터를 \(\boldsymbol n\)축 둘레로 오른손 방향의 각 \(\alpha\)만큼 돌린다. 곧 같은 회전을 나타내는 \(3\times3\) 회전 행렬을 \(R_{\boldsymbol n}(\alpha)\)라 하면</p>
+      <div class="formula" id="eq-spin-rotation-vector">\[ \begin{gathered}
+        \hat R_{\boldsymbol n}(\alpha)\,(\boldsymbol m\cdot\boldsymbol\sigma)\,\hat R_{\boldsymbol n}(\alpha)^\dagger
+        =(R_{\boldsymbol n}(\alpha)\boldsymbol m)\cdot\boldsymbol\sigma,\\
+        \hat R_{\boldsymbol n}(\alpha)|\uparrow_{\boldsymbol m}\rangle\propto|\uparrow_{R\boldsymbol m}\rangle.
+        \end{gathered} \]</div>
+    </div>
+    <p>첫 식은 <a href="ch02.html#ex-exp-pauli">2장 예제</a>와 같은 급수 계산이다. \((\boldsymbol n\cdot\boldsymbol\sigma)^2=I\)이므로 짝수 차수 항은 \(I\)에, 홀수 차수 항은 \(\boldsymbol n\cdot\boldsymbol\sigma\)에 비례하고, 두 묶음이 각각 \(\cos(\alpha/2)\), \(\sin(\alpha/2)\)의 급수가 된다. 둘째 식을 보이기 위해 \(c=\cos\frac\alpha2\), \(s=\sin\frac\alpha2\), \(N=\boldsymbol n\cdot\boldsymbol\sigma\), \(M=\boldsymbol m\cdot\boldsymbol\sigma\)로 쓰자. 식 <a class="ref" href="#eq-pauli-product"></a>에서 \(NM-MN=2i(\boldsymbol n\times\boldsymbol m)\cdot\boldsymbol\sigma\)다. 또 \(MN=(\boldsymbol n\cdot\boldsymbol m)I-i(\boldsymbol n\times\boldsymbol m)\cdot\boldsymbol\sigma\)에 왼쪽에서 \(N\)을 한 번 더 곱하고 같은 공식을 쓰면 \(NMN=[2(\boldsymbol n\cdot\boldsymbol m)\boldsymbol n-\boldsymbol m]\cdot\boldsymbol\sigma\)다(\(\boldsymbol n\times(\boldsymbol n\times\boldsymbol m)=(\boldsymbol n\cdot\boldsymbol m)\boldsymbol n-\boldsymbol m\)). 그러면</p>
+    <div class="formula" id="eq-rotation-derivation">\[ \begin{aligned}
+      \hat R M\hat R^\dagger&amp;=(c-isN)M(c+isN)\\
+      &amp;=c^2M-ics\,(NM-MN)+s^2NMN\\
+      &amp;=\bigl[(c^2-s^2)\boldsymbol m+2cs\,\boldsymbol n\times\boldsymbol m\\
+      &amp;\qquad+2s^2(\boldsymbol n\cdot\boldsymbol m)\boldsymbol n\bigr]\cdot\boldsymbol\sigma\\
+      &amp;=\bigl[\cos\alpha\,\boldsymbol m+\sin\alpha\,\boldsymbol n\times\boldsymbol m\\
+      &amp;\qquad+(1-\cos\alpha)(\boldsymbol n\cdot\boldsymbol m)\boldsymbol n\bigr]\cdot\boldsymbol\sigma.
+      \end{aligned} \]</div>
+    <p>대괄호 안은 벡터 \(\boldsymbol m\)을 \(\boldsymbol n\)축 둘레로 \(\alpha\)만큼 돌린 결과를 주는 로드리게스 공식이다. \(\boldsymbol n\)에 평행한 부분은 그대로 두고, 수직인 부분만 \(\boldsymbol n\) 둘레로 \(\alpha\)만큼 돌린다. 둘째 주장은 첫 식에서 나온다. \((R\boldsymbol m)\cdot\boldsymbol\sigma\,\hat R|\uparrow_{\boldsymbol m}\rangle=\hat RM\hat R^\dagger\hat R|\uparrow_{\boldsymbol m}\rangle=\hat RM|\uparrow_{\boldsymbol m}\rangle=\hat R|\uparrow_{\boldsymbol m}\rangle\)이므로 \(\hat R|\uparrow_{\boldsymbol m}\rangle\)은 \((R\boldsymbol m)\cdot\boldsymbol\sigma\)의 \(+1\) 고유상태, 곧 전체 위상을 빼면 \(|\uparrow_{R\boldsymbol m}\rangle\)이다.</p>
+    <p>식 <a class="ref" href="#eq-spin-time-evolution"></a>의 \(\hat U_0(t)\)는 \(\hat R_z(\omega_0t)\)이므로 블로흐 벡터를 \(z\)축 둘레로 \(\omega_0t\)만큼 돌린다. 자기장의 방향이 아무렇게나 놓여도 마찬가지다. \(\hat H=(g_s\mu_B/\hbar)\hat{\boldsymbol S}\cdot\boldsymbol B=\frac\hbar2\boldsymbol\omega\cdot\boldsymbol\sigma\), \(\boldsymbol\omega=g_s\mu_B\boldsymbol B/\hbar\)로 쓰면 \(\hat U(t)=\hat R_{\hat{\boldsymbol\omega}}(|\boldsymbol\omega|t)\)이고, 스핀은 자기장 방향을 축으로 세차한다. 아래 실험에서 자기장을 기울여 확인해 보자. 처음 \(+z\)를 향한 스핀이 \(\boldsymbol B\) 둘레로 원뿔을 그린다.</p>
+    <div data-sim="qm-spin" data-preset="precess" id="sim-spin-precess"></div>
+    <h3 id="s5-4pi">한 바퀴 돌리면 부호가 바뀐다</h3>
+    <p>식 <a class="ref" href="#eq-spin-rotation"></a>에 \(\alpha=2\pi\)를 넣으면 \(\cos\pi=-1\), \(\sin\pi=0\)이므로 \(\hat R_{\boldsymbol n}(2\pi)=-I\)다. 한 바퀴 돌리면 블로흐 벡터와 모든 기댓값은 제자리로 오지만 스피너는 부호가 바뀐다. 처음 스피너로 돌아오려면 \(\alpha=4\pi\)가 필요하다. 궤도 각운동량에서는 14장의 단일값 조건 때문에 \(m\)이 정수여서 \(e^{-2\pi i\hat L_z/\hbar}=1\)이었다. 반정수 각운동량에서만 생기는 성질이다.</p>
+    <p>전체 부호는 그 자체로는 관측되지 않는다. 그러나 빔을 둘로 나눠 한쪽만 회전시킨 뒤 다시 합치면 두 경로의 상대 부호가 간섭무늬에 나타난다. 처음 스핀 상태가 \(\chi\)이고 두 경로의 진폭이 \(\frac12\chi\)와 \(\frac12\hat R_z(\alpha)\chi\)로 합쳐진다면, 출구의 세기는</p>
+    <div class="formula" id="eq-neutron-interference">\[ \begin{aligned}
+      I(\alpha)\propto\Bigl\|\tfrac12\chi+\tfrac12\hat R_z(\alpha)\chi\Bigr\|^2
+      &amp;=\frac12\Bigl[1+\operatorname{Re}\langle\chi|\hat R_z(\alpha)|\chi\rangle\Bigr]\\
+      &amp;=\frac12\Bigl(1+\cos\frac\alpha2\Bigr).
+      \end{aligned} \]</div>
+    <p>\(\langle\chi|\hat R_z(\alpha)|\chi\rangle=\cos\frac\alpha2-i\sin\frac\alpha2\langle\chi|\sigma_z|\chi\rangle\)에서 \(\langle\chi|\sigma_z|\chi\rangle\)가 실수라 둘째 항은 허수 부분에만 들어간다. 결과는 스핀 상태와 무관하며 주기가 \(4\pi\)다. 1975년 두 연구진이 중성자 간섭계의 한 경로에 자기장을 걸어 세차각 \(\alpha\)를 바꾸면서 이 \(4\pi\) 주기를 확인했다.</p>
   </section>
 
-  <section id="s4">
+  <section id="s6">
     <h2>자기 공명</h2>
     <p>정자기장은 두 스핀 준위의 간격 \(\hbar\omega_0\)를 만든다. 이제 가로 방향의 자기장을 그 간격에 맞는 주파수로 돌리면 위아래 상태 사이의 전이를 제어할 수 있다. 먼저 계산이 정확히 풀리는 <em>원형으로 회전하는 자기장</em>을 쓴다.</p>
     <div class="box def" id="def-rotating-field"><div class="box-h">원형 구동장과 회전 좌표계</div>
@@ -167,47 +308,67 @@
         B_1(\cos\omega t\,\boldsymbol e_x+\sin\omega t\,\boldsymbol e_y),\\
       \hat H(t)=\frac{\hbar}{2}\left[
         \omega_0\sigma_z+\Omega_1(\sigma_x\cos\omega t+\sigma_y\sin\omega t)
-      \right],\qquad
+      \right],\\
       \Omega_1=\frac{g_s\mu_B B_1}{\hbar}.
       \end{gathered} \]</div>
       <p>\(\boldsymbol e_i\)는 좌표축의 단위벡터다. \(\omega&gt;0\)인 이 장은 스핀이 자유롭게 세차하는 방향으로 회전한다. \(\Omega_1\)은 <em>원형 구동장 전체 진폭</em> \(B_1\)에 대응한다.</p>
     </div>
-    <p>회전하는 기저로 바꾸자. \(\hat V(t)=e^{-i\omega t\sigma_z/2}\), \(|\chi_{\rm rot}\rangle=\hat V^\dagger|\chi\rangle\)로 두면 슈뢰딩거 방정식은 \(i\hbar\,d|\chi_{\rm rot}\rangle/dt=\hat H_{\rm rot}|\chi_{\rm rot}\rangle\)이 된다. \(\hat V^\dagger(\sigma_x\cos\omega t+\sigma_y\sin\omega t)\hat V=\sigma_x\)이고 \(-i\hbar\hat V^\dagger\dot{\hat V}=-\hbar\omega\sigma_z/2\)이므로</p>
-    <div class="formula" id="eq-rotating-frame">\[ \hat H_{\rm rot}
-      =\hat V^\dagger\hat H\hat V-i\hbar\hat V^\dagger\dot{\hat V}
-      =\frac{\hbar}{2}(\Delta\sigma_z+\Omega_1\sigma_x),\qquad
-      \Delta=\omega_0-\omega. \]</div>
-    <p>\(\Delta\)를 <span class="term">비공명</span> <span class="en">(detuning)</span>이라 한다. 원형 구동장에는 식 <a class="ref" href="#eq-rotating-frame"></a>이 정확하다. \((\Delta\sigma_z+\Omega_1\sigma_x)^2=(\Delta^2+\Omega_1^2)I\)이므로 지수함수를 짝수·홀수 항으로 나누면</p>
-    <div class="formula" id="eq-rabi-propagator">\[ \hat U_{\rm rot}(t)=
+    <p>구동장과 함께 도는 기저로 바꾸자. \(\hat V(t)=\hat R_z(\omega t)=e^{-i\omega t\sigma_z/2}\), \(|\chi_{\rm rot}\rangle=\hat V^\dagger|\chi\rangle\)로 두면 슈뢰딩거 방정식은 \(i\hbar\,d|\chi_{\rm rot}\rangle/dt=\hat H_{\rm rot}|\chi_{\rm rot}\rangle\)이 된다(<a href="ch10.html#thm-moving-generator">10장의 움직이는 좌표계</a>). 식 <a class="ref" href="#eq-spin-rotation-vector"></a>에서 \(\hat V^\dagger=\hat R_z(-\omega t)\)는 방향 \((\cos\omega t,\sin\omega t,0)\)을 \(x\)축으로 되돌리므로 \(\hat V^\dagger(\sigma_x\cos\omega t+\sigma_y\sin\omega t)\hat V=\sigma_x\)다. 또 \(\dot{\hat V}=-\frac{i\omega}{2}\sigma_z\hat V\)이므로 \(-i\hbar\hat V^\dagger\dot{\hat V}=-\hbar\omega\sigma_z/2\)다. 따라서</p>
+    <div class="formula" id="eq-rotating-frame">\[ \begin{aligned}\hat H_{\rm rot}
+      &amp;=\hat V^\dagger\hat H\hat V-i\hbar\hat V^\dagger\dot{\hat V}\\
+      &amp;=\frac{\hbar}{2}(\Delta\sigma_z+\Omega_1\sigma_x),\qquad
+      \Delta=\omega_0-\omega.\end{aligned} \]</div>
+    <p>\(\Delta\)를 <span class="term">비공명</span> <span class="en">(detuning)</span>이라 한다. 원형 구동장에서는 식 <a class="ref" href="#eq-rotating-frame"></a>이 근사 없이 정확하다. \(\Omega=\sqrt{\Delta^2+\Omega_1^2}\), \(\boldsymbol k=(\Omega_1,0,\Delta)/\Omega\)로 쓰면 \(\hat H_{\rm rot}=\frac{\hbar\Omega}{2}\boldsymbol k\cdot\boldsymbol\sigma\)이므로, 시간 변화는 <a class="ref" href="#thm-spin-rotation"></a>의 회전이다.</p>
+    <div class="formula" id="eq-rabi-propagator">\[ \hat U_{\rm rot}(t)=\hat R_{\boldsymbol k}(\Omega t)=
       I\cos\frac{\Omega t}{2}
       -i\frac{\Delta\sigma_z+\Omega_1\sigma_x}{\Omega}
-        \sin\frac{\Omega t}{2},\qquad
-      \Omega=\sqrt{\Delta^2+\Omega_1^2}. \]</div>
-    <p>처음에 \(|\uparrow_z\rangle\)였다면 아래 상태의 진폭은 회전 좌표계에서 \(-i(\Omega_1/\Omega)\sin(\Omega t/2)\)다. \(\hat V\)는 \(z\)축 기저의 각 성분에 위상만 곱하므로 실제 측정 확률도 같다.</p>
+        \sin\frac{\Omega t}{2}. \]</div>
+    <p>\(\boldsymbol k\)는 회전 좌표계에서 스핀이 느끼는 유효 자기장의 방향이다. 회전 좌표계의 블로흐 벡터는 이 고정된 축 둘레를 각속도 \(\Omega\)로 돈다. 공명(\(\Delta=0\))이면 \(\boldsymbol k=\boldsymbol e_x\)라 블로흐 벡터가 \(+z\)에서 출발해 \(y\)–\(z\) 평면의 대원을 따라 \(-z\)까지 간다. \(\Delta\ne0\)이면 \(\boldsymbol k\)가 \(z\)축 쪽으로 기울어 원뿔이 좁아지고 \(-z\)에 닿지 못한다. 처음 \(\boldsymbol n=\boldsymbol e_z\)에 식 <a class="ref" href="#eq-rotation-derivation"></a>의 로드리게스 공식을 쓰면 \(n_z(t)=\cos\Omega t+(1-\cos\Omega t)k_z^2\)이고, 아래 상태의 확률은 \((1-n_z)/2=(1-\cos\Omega t)(1-k_z^2)/2\)다. \(\hat V\)는 \(z\)축 기저의 각 성분에 위상만 곱하므로 실험실에서 잰 확률도 같다.</p>
     <div class="box thm" id="thm-rabi-probability"><div class="box-h">스핀 1/2의 자기 공명 확률</div>
       <div class="formula" id="eq-rabi-probability">\[ P_{\uparrow\to\downarrow}(t)
       =\frac{\Omega_1^2}{\Delta^2+\Omega_1^2}
        \sin^2\!\left(\frac{t}{2}\sqrt{\Delta^2+\Omega_1^2}\right).
       \]</div>
-      <p>공명 \(\omega=\omega_0\)에서는 \(P_{\uparrow\to\downarrow}=\sin^2(\Omega_1t/2)\)이므로 \(t_\pi=\pi/\Omega_1\) 동안 구동하면 상태가 완전히 뒤집힌다. \(\Delta\ne0\)이면 전이 확률의 최대값은 \(\Omega_1^2/(\Delta^2+\Omega_1^2)\)로 1보다 작다.</p>
+      <p>공명 \(\omega=\omega_0\)에서는 \(P_{\uparrow\to\downarrow}=\sin^2(\Omega_1t/2)\)이므로 \(t_\pi=\pi/\Omega_1\) 동안 구동하면 상태가 완전히 뒤집힌다. \(\Delta\ne0\)이면 전이 확률의 최댓값은 \(\Omega_1^2/(\Delta^2+\Omega_1^2)\)로 1보다 작다.</p>
     </div>
-    <div class="box ex" id="ex-pi-pulse"><div class="box-h">공명 \(\pi\) 펄스 시간</div>
-      <p>원형 구동장의 세기를 \(\Omega_1=2\pi\times1.0\ \mathrm{MHz}\)가 되게 고르고 \(\omega=\omega_0\)로 맞추자. \(t_\pi=\pi/\Omega_1=0.50\ \mu\mathrm s\)다. 절반 시간 \(0.25\ \mu\mathrm s\)에는 \(P_{\uparrow\to\downarrow}=\sin^2(\pi/4)=1/2\)다. 이 수치는 입력으로 정한 구동 세기에서 나온 예제다.</p>
+    <figure class="diagram" id="fig-rabi">
+      <div class="fig-row"><!--fig:16-3a--><svg viewBox="0 0 280 256" role="img" aria-label="회전 좌표계의 블로흐 구. 공명이면 스핀이 x축 둘레로 돌아 북극에서 남극까지 대원을 그리고, 비공명이 라비 진동수와 같으면 유효 축이 45도 기울어져 북극을 지나는 작은 원을 그린다"><defs><marker id="f163a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f163a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f163a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="10" y="18" class="t-b">(가) 회전 좌표계</text><circle cx="140" cy="124" r="80" class="s-line" stroke-width="1.3"/><path d="M106.2 148.8 L112 149.6 L117.9 150.3 L124.1 150.8 L130.3 151.2 L136.5 151.3 L142.8 151.3 L149.1 151.2 L155.3 150.9 L161.4 150.4 L167.4 149.7 L173.2 148.9 L178.8 147.9 L184.2 146.8 L189.3 145.6 L194 144.2 L198.5 142.7 L202.6 141 L206.3 139.3 L209.6 137.5 L212.5 135.6 L214.9 133.6 L216.9 131.5 L218.4 129.5 L219.4 127.3 L219.9 125.2 L220 123.8" class="s-line" stroke-width="1.1"/><path d="M220 123.8 L219.7 121.6 L218.9 119.5 L217.6 117.4 L215.9 115.3 L213.6 113.3 L211 111.4 L207.8 109.5 L204.3 107.7 L200.4 106 L196.1 104.5 L191.4 103 L186.5 101.7 L181.2 100.5 L175.7 99.5 L170 98.6 L164.1 97.9 L158 97.3 L151.8 96.9 L145.6 96.7 L139.3 96.6 L133 96.7 L126.8 97 L120.6 97.5 L114.6 98.1 L108.7 98.8 L103.1 99.7 L97.6 100.8 L92.4 102 L87.5 103.3 L82.9 104.8 L78.7 106.4 L74.9 108.1 L71.4 109.9 L68.4 111.8 L65.8 113.8 L63.7 115.8 L62.1 117.8 L60.9 120 L60.2 122.1 L60 124.2" class="s-faint" stroke-dasharray="3 4"/><path d="M60 124.2 L60.3 126.4 L61.1 128.5 L62.4 130.6 L64.1 132.7 L66.4 134.7 L69 136.6 L72.2 138.5 L75.7 140.3 L79.6 142 L83.9 143.5 L88.6 145 L93.5 146.3 L98.8 147.5 L104.3 148.5 L106.2 148.8" class="s-line" stroke-width="1.1"/><line x1="173.8" y1="99.2" x2="140" y2="124" class="s-faint" stroke-dasharray="3 3"/><line x1="140" y1="124" x2="96" y2="156.2" class="s-line" stroke-width="1.1" marker-end="url(#f163a-dim)"/><text x="85.7" y="169.5" class="t-math dim" text-anchor="middle"><tspan font-style="italic">x</tspan></text><line x1="67.5" y1="112.4" x2="140" y2="124" class="s-faint" stroke-dasharray="3 3"/><line x1="140" y1="124" x2="234.3" y2="139" class="s-line" stroke-width="1.1" marker-end="url(#f163a-dim)"/><text x="247.7" y="145.5" class="t-math dim" text-anchor="middle"><tspan font-style="italic">y</tspan></text><line x1="140" y1="199.2" x2="140" y2="124" class="s-faint" stroke-dasharray="3 3"/><line x1="140" y1="124" x2="140" y2="26.3" class="s-line" stroke-width="1.1" marker-end="url(#f163a-dim)"/><text x="140" y="14.5" class="t-math dim" text-anchor="middle"><tspan font-style="italic">z</tspan></text><path d="M140 48.8 L136.2 48.3 L132.4 48 L128.7 47.9 L124.9 48.1 L121.2 48.4 L117.6 48.9 L114 49.7 L110.5 50.6 L107.1 51.8 L103.7 53.1 L100.5 54.7 L97.4 56.4 L94.4 58.3 L91.5 60.4" class="s-acc" stroke-width="2.2"/><path d="M91.5 60.4 L88.7 62.7 L86.1 65.1 L83.7 67.7 L81.3 70.5 L79.2 73.4 L77.2 76.4 L75.4 79.6 L73.8 82.9 L72.3 86.3 L71 89.8 L70 93.4 L69.1 97.1 L68.4 100.8 L67.9 104.6 L67.6 108.5 L67.5 112.4 L67.6 116.4 L67.9 120.4 L68.4 124.3 L69.1 128.3 L70 132.3 L71 136.2 L72.3 140.1 L73.8 144 L75.4 147.8 L77.2 151.6 L79.2 155.2 L81.3 158.8 L83.7 162.3 L86.1 165.7 L88.7 169 L91.5 172.1 L94.4 175.1 L97.4 178 L100.5 180.7 L103.7 183.3 L107.1 185.7 L110.5 188 L114 190 L117.6 191.9 L121.2 193.6 L124.9 195.1 L128.7 196.4 L132.4 197.6 L136.2 198.5 L140 199.2 L143.8 199.7 L147.6 200 L151.3 200.1 L155.1 199.9 L158.8 199.6 L162.4 199.1 L166 198.3 L169.5 197.4 L172.9 196.2 L176.3 194.9 L179.5 193.3 L182.6 191.6 L185.6 189.7 L188.5 187.6" class="s-acc" stroke-width="1.4" stroke-dasharray="4 4"/><path d="M188.5 187.6 L191.3 185.3 L193.9 182.9 L196.3 180.3 L198.7 177.5 L200.8 174.6 L202.8 171.6 L204.6 168.4 L206.2 165.1 L207.7 161.7 L209 158.2 L210 154.6 L210.9 150.9 L211.6 147.2 L212.1 143.4 L212.4 139.5 L212.5 135.6 L212.4 131.6 L212.1 127.6 L211.6 123.7 L210.9 119.7 L210 115.7 L209 111.8 L207.7 107.9 L206.2 104 L204.6 100.2 L202.8 96.4 L200.8 92.8 L198.7 89.2 L196.3 85.7 L193.9 82.3 L191.3 79 L188.5 75.9 L185.6 72.9 L182.6 70 L179.5 67.3 L176.3 64.7 L172.9 62.3 L169.5 60 L166 58 L162.4 56.1 L158.8 54.4 L155.1 52.9 L151.3 51.6 L147.6 50.4 L143.8 49.5 L140 48.8" class="s-acc" stroke-width="2.2"/><path d="M140 48.8 L137.3 48.5 L134.5 48.2 L131.8 48.2 L129 48.2 L126.2 48.4 L123.3 48.7 L120.5 49.2 L117.7 49.8 L114.9 50.6 L112.1 51.4 L109.3 52.4 L106.6 53.6 L104 54.8 L101.4 56.2 L98.8 57.7 L96.3 59.3 L93.9 61 L91.6 62.8 L89.3 64.7 L87.1 66.7 L85.1 68.8 L83.1 71 L81.3 73.3 L79.6 75.6 L77.9 78 L76.5 80.4 L75.1 82.9 L73.9 85.5 L72.8 88 L71.8 90.6 L71 93.3 L70.3 95.9 L69.8 98.6 L69.4 101.2 L69.2 103.9 L69.1 106.5 L69.2 109.1 L69.4 111.7 L69.7 114.2 L70.2 116.7 L70.9 119.2 L71.7 121.6 L72.6 123.9 L73.7 126.2 L74.9 128.4 L76.2 130.5 L77.7 132.5 L79.3 134.4 L81 136.3 L82.8 138 L84.8 139.6 L86.8 141.2 L88.9 142.5 L91.2 143.8 L93.5 145 L95.9 146 L98.4 146.9 L100.9 147.7 L103.5 148.3 L106.2 148.8 L108.9 149.2 L111.6 149.4 L114.4 149.5 L117.2 149.4 L120 149.2 L122.9 148.9 L125.7 148.4 L128.5 147.8 L131.3 147.1 L134.1 146.2 L136.8 145.2 L139.6 144.1 L142.2 142.8 L144.8 141.4 L147.4 139.9 L149.9 138.3 L152.3 136.6 L154.6 134.8 L156.9 132.9 L159 130.9 L161.1 128.8 L163.1 126.6 L164.9 124.4 L166.6 122 L168.2 119.6 L169.7 117.2 L171.1 114.7 L172.3 112.2 L173.4 109.6 L174.4 107 L175.2 104.4 L175.8 101.7 L176.4 99.1 L176.8 96.4 L177 93.8 L177.1 91.1 L177 88.5 L176.8 85.9 L176.5 83.4 L175.9 80.9 L175.3 78.4 L174.5 76 L173.6 73.7 L172.5 71.4 L171.3 69.2 L170 67.1 L168.5 65.1 L166.9 63.2 L165.2 61.3 L163.4 59.6 L161.4 58 L159.4 56.5 L157.3 55.1 L155 53.8 L152.7 52.6 L150.3 51.6 L147.8 50.7 L145.3 50 L142.7 49.3 L140 48.8" class="s-acc2" stroke-width="2.2"/><line x1="140" y1="124" x2="108.4" y2="77" class="s-acc2" stroke-width="1.6" marker-end="url(#f163a-acc2)"/><text x="100.4" y="81" class="t-math acc2" text-anchor="end"><tspan font-weight="700" font-style="italic">k</tspan></text><circle cx="140" cy="48.8" r="4" class="f-acc"/><circle cx="140" cy="199.2" r="3.4" class="f-acc"/><line x1="46" y1="235" x2="64" y2="235" class="s-acc" stroke-width="2.2"/><text x="69" y="240" class="t-math acc">Δ = 0</text><line x1="150" y1="235" x2="168" y2="235" class="s-acc2" stroke-width="2.2"/><text x="173" y="240" class="t-math acc2">Δ = Ω<tspan baseline-shift="sub" font-size="72%">1</tspan></text></svg><!--/fig:16-3a--><!--fig:16-3b--><svg viewBox="0 0 280 256" role="img" aria-label="아래 상태로 넘어갈 확률을 라비 진동수 곱하기 시간의 함수로 그렸다. 공명이면 0과 1 사이를 진동하고, 비공명이 라비 진동수와 같으면 최대 0.5, 두 배이면 최대 0.2에 그친다"><defs><marker id="f163b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f163b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f163b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="10" y="18" class="t-b">(나) 전이 확률</text><line x1="44" y1="196" x2="244" y2="196" class="s-line" stroke-width="1.2" marker-end="url(#f163b-dim)"/><line x1="44" y1="196" x2="44" y2="34" class="s-line" stroke-width="1.2" marker-end="url(#f163b-dim)"/><line x1="44" y1="196" x2="44" y2="200" class="s-line" stroke-width="1.2"/><text x="44" y="214" class="t-math dim" text-anchor="middle">0</text><line x1="92" y1="196" x2="92" y2="200" class="s-line" stroke-width="1.2"/><text x="92" y="214" class="t-math dim" text-anchor="middle">π</text><line x1="140" y1="196" x2="140" y2="200" class="s-line" stroke-width="1.2"/><text x="140" y="214" class="t-math dim" text-anchor="middle">2π</text><line x1="188" y1="196" x2="188" y2="200" class="s-line" stroke-width="1.2"/><text x="188" y="214" class="t-math dim" text-anchor="middle">3π</text><line x1="236" y1="196" x2="236" y2="200" class="s-line" stroke-width="1.2"/><text x="236" y="214" class="t-math dim" text-anchor="middle">4π</text><text x="276" y="188" class="t-math dim" text-anchor="end">Ω<tspan baseline-shift="sub" font-size="72%">1</tspan><tspan font-style="italic">t</tspan></text><line x1="40" y1="121" x2="236" y2="121" class="s-grid" stroke-dasharray="3 4"/><text x="36" y="126" class="t-math dim" text-anchor="end">0.5</text><line x1="40" y1="46" x2="236" y2="46" class="s-grid" stroke-dasharray="3 4"/><text x="36" y="51" class="t-math dim" text-anchor="end">1</text><text x="36" y="201" class="t-math dim" text-anchor="end">0</text><path d="M44 196 L45.6 195.6 L47.2 194.4 L48.8 192.3 L50.4 189.5 L52 186 L53.6 181.7 L55.2 176.7 L57.1 170 L59 162.5 L61.3 152.9 L64.2 139.7 L71.2 105.4 L73.8 93.4 L76 83.5 L77.9 75.7 L79.8 68.5 L81.8 62.2 L83.4 57.7 L85 53.8 L86.6 50.7 L88.2 48.4 L89.8 46.8 L91.4 46.1 L93 46.1 L94.6 47.1 L96.2 48.8 L97.8 51.3 L99.4 54.5 L101 58.5 L102.6 63.2 L104.5 69.7 L106.4 76.9 L108.6 86.3 L111.2 97.8 L115.7 119.4 L119.5 138.1 L122.1 150.1 L124.3 159.9 L126.2 167.6 L128.2 174.6 L129.8 179.8 L131.4 184.3 L133 188.2 L134.6 191.3 L136.2 193.6 L137.8 195.2 L139.4 195.9 L141 195.9 L142.6 194.9 L144.2 193.2 L145.8 190.7 L147.4 187.5 L149 183.5 L150.6 178.8 L152.5 172.3 L154.4 165.1 L156.6 155.7 L159.2 144.2 L163.7 122.6 L167.5 103.9 L170.1 91.9 L172.3 82.1 L174.2 74.4 L176.2 67.4 L177.8 62.2 L179.4 57.7 L181 53.8 L182.6 50.7 L184.2 48.4 L185.8 46.8 L187.4 46.1 L189 46.1 L190.6 47.1 L192.2 48.8 L193.8 51.3 L195.4 54.5 L197 58.5 L198.6 63.2 L200.5 69.7 L202.4 76.9 L204.6 86.3 L207.2 97.8 L211.7 119.4 L215.5 138.1 L218.1 150.1 L220.3 159.9 L222.2 167.6 L224.2 174.6 L225.8 179.8 L227.4 184.3 L229 188.2 L230.6 191.3 L232.2 193.6 L233.8 195.2 L235.4 195.9 L236 196" class="s-acc" stroke-width="2.2"/><path d="M44 196 L45.6 195.6 L47.2 194.4 L48.8 192.4 L50.4 189.6 L52 186.2 L53.9 181.3 L56.2 174.7 L59 165.2 L63.8 148.7 L66.4 140.4 L68.3 134.9 L70.2 130.1 L71.8 126.8 L73.4 124.2 L75 122.3 L76.6 121.3 L78.2 121 L79.8 121.6 L81.4 122.9 L83 125.1 L84.6 128 L86.6 132.3 L88.5 137.5 L90.7 144.3 L97.8 168.3 L100.3 176.5 L102.2 182 L104.2 186.8 L105.8 190.1 L107.4 192.8 L109 194.6 L110.6 195.7 L112.2 196 L113.8 195.4 L115.4 194.1 L117 191.9 L118.6 189.1 L120.5 184.7 L122.4 179.6 L124.6 172.8 L131.7 148.8 L134.2 140.6 L136.2 135 L138.1 130.2 L139.7 126.9 L141.3 124.3 L142.9 122.4 L144.5 121.3 L146.1 121 L147.7 121.6 L149.3 122.9 L150.9 125 L152.5 127.9 L154.4 132.2 L156.3 137.3 L158.6 144.2 L165.6 168.1 L168.2 176.4 L170.1 181.9 L172 186.7 L173.6 190.1 L175.2 192.7 L176.8 194.6 L178.4 195.7 L180 196 L181.6 195.5 L183.2 194.1 L184.8 192 L186.4 189.1 L188.3 184.8 L190.2 179.7 L192.5 172.9 L196.6 158.8 L200.2 146.8 L202.4 139.7 L204.3 134.3 L206.2 129.6 L207.8 126.4 L209.4 123.9 L211 122.1 L212.6 121.2 L214.2 121 L215.8 121.7 L217.4 123.2 L219 125.5 L220.6 128.5 L222.6 132.9 L224.5 138.2 L226.7 145.1 L233.4 168 L236 176.2" class="s-acc2" stroke-width="2.2"/><path d="M44 196 L45.6 195.6 L47.2 194.4 L48.8 192.4 L50.7 189.3 L53.6 183.5 L57.1 175.9 L59.4 171.6 L61.3 168.7 L62.9 167.1 L64.5 166.2 L66.1 166.1 L67.7 166.8 L69.3 168.3 L71.2 171 L73.4 175.1 L78.6 186.1 L80.8 190.4 L82.7 193.2 L84.3 194.9 L85.9 195.8 L87.5 195.9 L89.1 195.2 L90.7 193.8 L92.6 191.1 L94.9 186.9 L100 176 L102.2 171.7 L104.2 168.8 L105.8 167.1 L107.4 166.2 L109 166.1 L110.6 166.7 L112.2 168.2 L114.1 170.9 L116.3 175 L121.4 186 L123.7 190.3 L125.6 193.2 L127.2 194.9 L128.8 195.8 L130.4 196 L132 195.3 L133.6 193.8 L135.5 191.1 L137.8 187.1 L142.9 176.1 L145.1 171.8 L147 168.9 L148.6 167.1 L150.2 166.2 L151.8 166 L153.4 166.7 L155 168.2 L157 170.8 L159.2 174.9 L164.3 185.9 L166.6 190.2 L168.5 193.1 L170.1 194.8 L171.7 195.8 L173.3 196 L174.9 195.3 L176.5 193.9 L178.4 191.2 L180.6 187.2 L185.8 176.2 L188 171.9 L189.9 168.9 L191.5 167.2 L193.1 166.2 L194.7 166 L196.3 166.7 L197.9 168.1 L199.8 170.7 L202.1 174.8 L207.2 185.8 L209.4 190.1 L211.4 193 L213 194.8 L214.6 195.8 L216.2 196 L217.8 195.3 L219.4 193.9 L221 191.8 L222.9 188.5 L229 175.6 L231.2 171.4 L233.1 168.6 L234.7 167 L236 166.2" class="s-line" stroke-width="1.6"/><line x1="4" y1="235" x2="22" y2="235" class="s-acc" stroke-width="2.2"/><text x="27" y="240" class="t-math acc">Δ = 0</text><line x1="86" y1="235" x2="104" y2="235" class="s-acc2" stroke-width="2.2"/><text x="109" y="240" class="t-math acc2">Δ = Ω<tspan baseline-shift="sub" font-size="72%">1</tspan></text><line x1="172" y1="235" x2="190" y2="235" class="s-line" stroke-width="2.2"/><text x="195" y="240" class="t-math dim">Δ = 2Ω<tspan baseline-shift="sub" font-size="72%">1</tspan></text></svg><!--/fig:16-3b--></div>
+      <figcaption><b>그림 16-3.</b> (가) 회전 좌표계에서 블로흐 벡터는 \(\boldsymbol k=(\Omega_1,0,\Delta)/\Omega\) 둘레를 돈다. 공명이면 \(\boldsymbol k\)가 \(x\)축이라 북극에서 남극까지 가고, \(\Delta=\Omega_1\)이면 \(\boldsymbol k\)가 45° 기울어 북극을 지나는 작은 원을 그린다. (나) <a class="ref" href="#thm-rabi-probability"></a>의 전이 확률. 비공명이 커질수록 진동이 빨라지고 최댓값 \(\Omega_1^2/(\Delta^2+\Omega_1^2)\)이 1, 0.5, 0.2로 낮아진다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-pi-pulse"><div class="box-h">공명 \(\pi\) 펄스와 선폭</div>
+      <p>원형 구동장의 세기를 \(\Omega_1=2\pi\times1.0\ \mathrm{MHz}\)가 되게 고르고 \(\omega=\omega_0\)로 맞추자. \(t_\pi=\pi/\Omega_1=0.50\ \mu\mathrm s\)다. 절반 시간 \(0.25\ \mu\mathrm s\)에는 \(P_{\uparrow\to\downarrow}=\sin^2(\pi/4)=1/2\)다. 이 펄스를 \(\pi/2\) 펄스라 한다.</p>
+      <p>펄스 길이를 \(t_\pi\)로 고정하고 구동 주파수를 훑으면 \(P(\Delta)=\frac{\Omega_1^2}{\Delta^2+\Omega_1^2}\sin^2\bigl(\frac\pi2\sqrt{1+\Delta^2/\Omega_1^2}\bigr)\)이다. 이 값은 \(\Delta=\pm0.80\,\Omega_1\)에서 절반이 되고 \(\Delta=\pm\sqrt3\,\Omega_1\)에서 처음 0이 된다. 공명선의 반치폭은 \(1.6\,\Omega_1\), 주파수로 \(1.6\ \mathrm{MHz}\)다. 선을 좁혀 \(\omega_0\)를 정밀하게 찾으려면 구동을 약하게 하고 펄스를 길게 해야 한다.</p>
     </div>
-    <div class="callout warn"><strong>직선 진동장과 원형 구동장의 진폭</strong><p>실험에서 \(B_1\cos\omega t\,\boldsymbol e_x\)처럼 한 축으로 진동시키면 같은 진폭 \(B_1\)의 반을 가진 두 반대 방향의 원형 성분으로 나뉜다. \(\Omega_1\ll\omega_0\)이고 공명 근처일 때 역회전 성분을 평균내는 근사에서는 식 <a class="ref" href="#eq-rabi-probability"></a>의 \(\Omega_1\) 자리에 \(g_s\mu_B B_1/(2\hbar)\)를 넣는다. 원형 구동장의 식을 직선 진동장에 그대로 대입하면 전이 속도가 두 배로 잘못 나온다.</p></div>
-    <p>이처럼 전자 스핀의 준위 간격에 맞춰 전이를 일으키는 과정을 <span class="term">전자 스핀 공명</span> <span class="en">(electron spin resonance)</span>이라 한다. 원리상 핵스핀에도 비슷한 공명이 있지만 자기 모멘트와 주파수 눈금은 다르다. 다음 <a href="ch17.html">17장</a>에서는 두 스핀의 상태를 합치는 방법을 배운다.</p>
+    <p>아래 실험에서 실험실 좌표계와 회전 좌표계의 운동을 비교해 보자. 실험실에서는 스핀이 \(\omega\)로 빠르게 돌면서 천천히 남극으로 내려가는 나선을 그린다. 회전 좌표계로 보면 같은 운동이 축 \(\boldsymbol k\) 둘레의 느린 회전이다.</p>
+    <div data-sim="qm-spin" data-preset="rabi" id="sim-spin-rabi"></div>
+    <div class="callout warn"><strong>직선 진동장과 원형 구동장의 진폭</strong><p>실험에서 \(B_1\cos\omega t\,\boldsymbol e_x\)처럼 한 축으로 진동시키면 같은 진폭 \(B_1\)의 반을 가진 두 반대 방향의 원형 성분으로 나뉜다. \(\Omega_1\ll\omega_0\)이고 공명 근처일 때 역회전 성분을 평균내는 근사(<a href="ch10.html#s4-spin">10장의 회전파 근사</a>)에서는 식 <a class="ref" href="#eq-rabi-probability"></a>의 \(\Omega_1\) 자리에 \(g_s\mu_B B_1/(2\hbar)\)를 넣는다. 원형 구동장의 식을 직선 진동장에 그대로 대입하면 전이 속도가 두 배로 잘못 나온다.</p></div>
+    <h3 id="s6-echo">스핀 메아리</h3>
+    <p>실제 시료에는 스핀이 아주 많고, 자기장이 장소마다 조금씩 달라 각 스핀의 비공명 \(\delta\)가 다르다. \(\pi/2\) 펄스로 모든 스핀을 \(+z\)에서 적도로 눕힌 뒤 기다리면, 회전 좌표계에서 각 스핀은 \(z\)축 둘레를 \(\delta t\)만큼 돌아 적도 위에 부채처럼 퍼진다. 그러면 평균 가로 성분이 사라진다. \(\delta\)가 표준편차 \(s\)인 가우스 분포를 따르면 평균의 크기는 \(e^{-s^2t^2/2}\)로 줄어든다(<a class="ref" href="#prob-echo-dephasing"></a>). 이 퍼짐은 되돌릴 수 있다. 시각 \(\tau\)에 \(x\)축 둘레의 \(\pi\) 펄스를 주고 다시 \(\tau\)만큼 기다리면, 비공명이 \(\delta\)인 스핀 하나의 시간 변화는</p>
+    <div class="formula" id="eq-spin-echo">\[ \begin{aligned}
+      &amp;\hat R_z(\delta\tau)\,\hat R_x(\pi)\,\hat R_z(\delta\tau)\\
+      &amp;\quad=\hat R_x(\pi)\,\bigl[\hat R_x(\pi)^\dagger\hat R_z(\delta\tau)\hat R_x(\pi)\bigr]\,\hat R_z(\delta\tau)\\
+      &amp;\quad=\hat R_x(\pi)\,\hat R_z(-\delta\tau)\,\hat R_z(\delta\tau)=\hat R_x(\pi).
+      \end{aligned} \]</div>
+    <p>가운데 괄호는 식 <a class="ref" href="#eq-spin-rotation-vector"></a>로 계산한다. \(\hat R_x(\pi)^\dagger=\hat R_x(-\pi)\)는 \(z\)축을 \(-z\)로 뒤집으므로 \(\hat R_x(\pi)^\dagger\sigma_z\hat R_x(\pi)=-\sigma_z\)이고, 지수 함수의 급수에 넣으면 \(\hat R_x(\pi)^\dagger e^{-i\delta\tau\sigma_z/2}\hat R_x(\pi)=e^{+i\delta\tau\sigma_z/2}\)다. 결과에 \(\delta\)가 남지 않는다. 모든 스핀이 자기의 \(\delta\)와 상관없이 시각 \(2\tau\)에 같은 방향으로 다시 모여, 사라졌던 신호가 메아리처럼 돌아온다(그림 16-4). 1950년 한(E. Hahn)이 발견한 <span class="term">스핀 메아리</span> <span class="en">(spin echo)</span>이며, 원자핵 스핀의 자기 공명(NMR)과 MRI에서 기본으로 쓰는 펄스 열이다.</p>
+    <figure class="diagram" id="fig-echo">
+      <div class="fig-narrow"><!--fig:16-4--><svg viewBox="0 0 440 258" role="img" aria-label="스핀 메아리. 시각 0의 2분의 파이 펄스 뒤 평균 가로 성분이 빠르게 0으로 줄었다가, 시각 타우에 파이 펄스를 주면 시각 2타우에 다시 1까지 솟아오른다"><defs><marker id="f164-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f164-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f164-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="52" y1="70" x2="426" y2="70" class="s-line" stroke-width="1.2"/><rect x="52" y="48" width="9" height="22" class="f-acc-soft"/><text x="56.5" y="40" class="t-math acc" text-anchor="middle">π/2</text><rect x="184.5" y="48" width="18" height="22" class="f-acc-soft"/><text x="193.5" y="40" class="t-math acc" text-anchor="middle">π</text><text x="426" y="62" class="t-dim" text-anchor="end">펄스</text><line x1="52" y1="214" x2="430" y2="214" class="s-line" stroke-width="1.2" marker-end="url(#f164-dim)"/><line x1="52" y1="214" x2="52" y2="88" class="s-line" stroke-width="1.2" marker-end="url(#f164-dim)"/><line x1="52" y1="214" x2="52" y2="218" class="s-line" stroke-width="1.2"/><text x="52" y="234" class="t-math dim" text-anchor="middle">0</text><line x1="193.5" y1="214" x2="193.5" y2="218" class="s-line" stroke-width="1.2"/><text x="193.5" y="234" class="t-math dim" text-anchor="middle"><tspan font-style="italic">τ</tspan></text><line x1="193.5" y1="72" x2="193.5" y2="214" class="s-grid" stroke-dasharray="3 4"/><line x1="335.1" y1="214" x2="335.1" y2="218" class="s-line" stroke-width="1.2"/><text x="335.1" y="234" class="t-math dim" text-anchor="middle"><tspan font-style="italic">2τ</tspan></text><line x1="335.1" y1="72" x2="335.1" y2="214" class="s-grid" stroke-dasharray="3 4"/><text x="428" y="206" class="t-math dim" text-anchor="end"><tspan font-style="italic">t</tspan></text><text x="44" y="109" class="t-math dim" text-anchor="end">1</text><text x="44" y="219" class="t-math dim" text-anchor="end">0</text><line x1="48" y1="104" x2="420" y2="104" class="s-grid" stroke-dasharray="3 4"/><path d="M52 104 L54.8 104.3 L57.5 105 L60.3 106.3 L63 108 L66.3 110.6 L69.5 113.8 L72.7 117.5 L76.4 122.3 L80.5 128.2 L86 136.8 L98.5 157.1 L104 165.8 L108.6 172.7 L113.2 179 L117.3 184.2 L121.5 188.8 L125.6 193 L129.7 196.7 L134.3 200.2 L138.9 203.1 L144 205.7 L149.1 207.8 L155 209.7 L161.5 211.2 L169.3 212.4 L179.4 213.2 L193.2 213.8 L206.1 213.3 L215.8 212.6 L223.6 211.5 L230 210.2 L236 208.5 L241.1 206.6 L246.1 204.2 L250.7 201.5 L255.3 198.3 L259.5 194.9 L263.6 190.9 L267.7 186.5 L271.9 181.6 L276.5 175.5 L281.1 168.9 L286.6 160.4 L300.4 137.8 L305.5 129.9 L309.6 123.8 L313.3 118.9 L316.5 115 L319.7 111.7 L322.9 108.8 L325.7 106.9 L328.5 105.5 L331.2 104.5 L334 104 L336.7 104.1 L339.5 104.7 L342.3 105.7 L345 107.3 L347.8 109.3 L351 112.2 L354.2 115.7 L357.9 120.2 L362 125.9 L366.6 132.9 L381.8 157.6 L387.3 166.3 L391.9 173.1 L396.5 179.3 L400.7 184.5 L404.8 189.1 L409 193.3 L413.1 196.9 L417.7 200.4 L420 201.9" class="s-acc" stroke-width="2.4"/><text x="103" y="145.8" class="t-dim">자유 감쇠</text><text x="351.1" y="96" class="t-acc">메아리</text><text x="58" y="96" class="t-dim">평균 가로 성분의 크기</text></svg><!--/fig:16-4--></div>
+      <figcaption><b>그림 16-4.</b> 비공명 \(\delta\)가 표준편차 \(s\)인 가우스 분포를 이루는 스핀들의 평균 가로 성분 \(|\langle\sigma_\perp\rangle|\)이다(\(s\tau=3.5\)). \(t&lt;\tau\)에서는 \(e^{-s^2t^2/2}\)로 사라지고, 시각 \(\tau\)의 \(\pi\) 펄스 뒤에는 \(e^{-s^2(t-2\tau)^2/2}\)를 따라 \(t=2\tau\)에 다시 1이 된다. 펄스의 길이는 무시했다.</figcaption>
+    </figure>
+    <p>메아리가 되돌리는 것은 시간에 따라 변하지 않는 비공명 차이뿐이다. 스핀 사이의 상호작용이나 요동하는 환경 때문에 두 \(\tau\) 구간의 \(\delta\)가 달라지면 그 위상은 되돌아오지 않는다. 그래서 메아리의 크기를 \(\tau\)의 함수로 재면 그런 비가역 과정의 시간 척도를 따로 잴 수 있다.</p>
+    <p>이처럼 전자 스핀의 준위 간격에 맞춰 전이를 일으키는 과정을 <span class="term">전자 스핀 공명</span> <span class="en">(electron spin resonance)</span>이라 한다. 원리상 핵스핀에도 같은 공명이 있지만 자기 모멘트와 주파수 눈금은 다르다. 다음 <a href="ch17.html">17장</a>에서는 두 스핀의 상태를 합치는 방법을 배운다.</p>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li>스핀 1/2의 내부 공간은 2차원이고 \(\hat S_i=(\hbar/2)\sigma_i\), \(\hat S^2=3\hbar^2 I/4\)다.</li>
-      <li>서로 다른 축의 스핀 성분은 교환하지 않으며, 상태의 상대 위상이 측정 축에 따른 확률을 바꾼다.</li>
-      <li>슈테른–게를라흐 장치의 비균일 자기장은 두 스핀 성분에 다른 힘을 주어 두 갈래로 분리한다.</li>
-      <li>전자의 자기 모멘트는 스핀과 반대 방향이므로 \(+z\) 자기장에서 \(S_z=+\hbar/2\)가 높은 에너지다.</li>
-      <li>정자기장에서는 \(\omega_0=g_s\mu_B B_0/\hbar\)로 가로 스핀의 평균이 세차한다.</li>
-      <li>원형 구동장의 회전 좌표계에서는 \(\hat H_{\rm rot}=\hbar(\Delta\sigma_z+\Omega_1\sigma_x)/2\)가 시간에 무관하다.</li>
-      <li>공명에서는 \(t_\pi=\pi/\Omega_1\)로 스핀을 완전히 뒤집을 수 있고, 비공명은 최대 전이 확률을 낮춘다.</li>
+      <li>14장의 사다리 계수에 \(j=1/2\)을 넣으면 \(\hat S_i=(\hbar/2)\sigma_i\)가 나오고, 파울리 곱 \(\sigma_i\sigma_j=\delta_{ij}I+i\sum_k\epsilon_{ijk}\sigma_k\)가 스핀 계산의 기본 공식이다.</li>
+      <li>모든 스핀 1/2 순수 상태는 블로흐 구의 한 점 \(\boldsymbol n=\langle\boldsymbol\sigma\rangle\)이고, 두 방향 사이의 측정 확률은 \((1+\boldsymbol m\cdot\boldsymbol n)/2\)다. 직교하는 상태는 구의 정반대 점이다.</li>
+      <li>전자의 상태는 두 성분 스피너 파동함수이고, 파울리 해밀토니안 \((\boldsymbol\sigma\cdot\hat{\boldsymbol\pi})^2/2m_e\)에서 \(g_s=2\)와 제이만 항 \((\mu_B/\hbar)(\hat{\boldsymbol L}+2\hat{\boldsymbol S})\cdot\boldsymbol B\)가 나온다.</li>
+      <li>전자의 자기 모멘트는 스핀과 반대 방향이므로 \(+z\) 자기장에서 \(S_z=+\hbar/2\)가 높은 에너지다. 측정값 \(g_s\approx2.0023\)과 2의 차이는 복사 보정이다.</li>
+      <li>슈테른–게를라흐 장치는 스핀을 위치와 얽은 뒤 위치를 잰다. 갈라진 파속의 겹침이 작아지면 스핀의 가로 결맞음이 사라진다.</li>
+      <li>\(\hat R_{\boldsymbol n}(\alpha)=\cos(\alpha/2)I-i\sin(\alpha/2)\boldsymbol n\cdot\boldsymbol\sigma\)는 블로흐 벡터를 \(\boldsymbol n\)축 둘레로 \(\alpha\)만큼 돌린다. 정자기장 속 세차 운동은 각속도 \(\omega_0=g_s\mu_BB_0/\hbar\)의 회전이고, \(2\pi\) 회전은 스피너의 부호를 바꾼다.</li>
+      <li>원형 구동장의 회전 좌표계에서 \(\hat H_{\rm rot}=\hbar(\Delta\sigma_z+\Omega_1\sigma_x)/2\)는 시간에 무관하다. 공명에서는 \(t_\pi=\pi/\Omega_1\)로 스핀을 완전히 뒤집을 수 있고, 비공명은 최대 전이 확률을 낮춘다.</li>
+      <li>\(\tau\)–\(\pi\)–\(\tau\) 펄스 열은 정적인 비공명에 의한 위상 퍼짐을 지워 시각 \(2\tau\)에 스핀 메아리를 만든다.</li>
     </ol>
   </section>
 
@@ -218,46 +379,53 @@
       <div class="quiz-q"><p>1. \(\sigma_y|\uparrow_z\rangle\)는?</p><div class="opts">
         <button class="opt">\(i|\uparrow_z\rangle\)</button><button class="opt" data-correct>\(i|\downarrow_z\rangle\)</button><button class="opt">\(-i|\downarrow_z\rangle\)</button>
       </div><div class="quiz-exp">\(\sigma_y(1,0)^{\mathsf T}=(0,i)^{\mathsf T}\)다.</div></div>
-      <div class="quiz-q"><p>2. 스핀 1/2 상태의 \(\hat S^2\) 고유값은?</p><div class="opts">
-        <button class="opt">\(\hbar^2/4\)</button><button class="opt" data-correct>\(3\hbar^2/4\)</button><button class="opt">\(\hbar^2\)</button>
-      </div><div class="quiz-exp">각 파울리 행렬의 제곱이 \(I\)라서 세 성분의 제곱을 합하면 \(3\hbar^2I/4\)다.</div></div>
-      <div class="quiz-q"><p>3. \(|\uparrow_z\rangle\)를 \(x\)축 장치에서 측정할 때 \(S_x=+\hbar/2\) 확률은?</p><div class="opts">
-        <button class="opt">0</button><button class="opt" data-correct>\(1/2\)</button><button class="opt">1</button>
-      </div><div class="quiz-exp">\(|\langle\uparrow_x|\uparrow_z\rangle|^2=1/2\)다.</div></div>
+      <div class="quiz-q"><p>2. \(\sigma_x\sigma_y\sigma_z\)는?</p><div class="opts">
+        <button class="opt">\(I\)</button><button class="opt" data-correct>\(iI\)</button><button class="opt">\(-iI\)</button>
+      </div><div class="quiz-exp">파울리 곱 공식에서 \(\sigma_x\sigma_y=i\sigma_z\)이고 \(\sigma_z^2=I\)이므로 \(iI\)다.</div></div>
+      <div class="quiz-q"><p>3. \(|\uparrow_y\rangle\)와 직교하는 상태의 블로흐 벡터는?</p><div class="opts">
+        <button class="opt">\(+\boldsymbol e_x\)</button><button class="opt" data-correct>\(-\boldsymbol e_y\)</button><button class="opt">\(-\boldsymbol e_z\)</button>
+      </div><div class="quiz-exp">직교하는 상태는 블로흐 구의 정반대 점이다. 구 위에서 90° 떨어진 \(+x\) 상태와의 겹침 확률은 \((1+0)/2=1/2\)이라 직교하지 않는다.</div></div>
       <div class="quiz-q"><p>4. \(+z\) 자기장 속 자유 전자에서 스핀 에너지가 더 높은 상태는?</p><div class="opts">
         <button class="opt" data-correct>\(|\uparrow_z\rangle\)</button><button class="opt">\(|\downarrow_z\rangle\)</button><button class="opt">항상 같다</button>
       </div><div class="quiz-exp">전자 자기 모멘트가 스핀과 반대이므로 \(\hat H_0=+\omega_0\hat S_z\)다.</div></div>
-      <div class="quiz-q"><p>5. \(|\uparrow_x\rangle\)가 정자기장에서 \(t=\pi/(2\omega_0)\) 뒤에 향하는 평균 스핀 방향은?</p><div class="opts">
-        <button class="opt">\(-x\)</button><button class="opt" data-correct>\(+y\)</button><button class="opt">\(-z\)</button>
-      </div><div class="quiz-exp">\(\langle S_x\rangle=(\hbar/2)\cos\omega_0t\), \(\langle S_y\rangle=(\hbar/2)\sin\omega_0t\)다.</div></div>
-      <div class="quiz-q"><p>6. 원형 구동장에서 \(\omega=\omega_0\)일 때 위 상태를 완전히 아래 상태로 뒤집는 첫 시간은?</p><div class="opts">
-        <button class="opt">\(\pi/(2\Omega_1)\)</button><button class="opt" data-correct>\(\pi/\Omega_1\)</button><button class="opt">\(2\pi/\Omega_1\)</button>
-      </div><div class="quiz-exp">공명 확률 \(\sin^2(\Omega_1t/2)\)가 처음 1이 되는 때는 \(t=\pi/\Omega_1\)다.</div></div>
+      <div class="quiz-q"><p>5. 스핀 1/2를 \(z\)축 둘레로 \(2\pi\) 돌리는 \(\hat R_z(2\pi)\)는?</p><div class="opts">
+        <button class="opt">\(I\)</button><button class="opt" data-correct>\(-I\)</button><button class="opt">\(\sigma_z\)</button>
+      </div><div class="quiz-exp">\(\cos\pi\,I-i\sin\pi\,\sigma_z=-I\)다. 블로흐 벡터는 제자리지만 스피너의 부호가 바뀐다.</div></div>
+      <div class="quiz-q"><p>6. \(\tau\)–\(\pi\)–\(\tau\) 스핀 메아리가 되돌리지 <em>못하는</em> 위상 퍼짐은?</p><div class="opts">
+        <button class="opt">장소마다 다르지만 시간에 일정한 자기장</button><button class="opt" data-correct>시간에 따라 무작위로 요동하는 자기장</button><button class="opt">모든 스핀에 공통인 비공명</button>
+      </div><div class="quiz-exp">식 <a class="ref" href="#eq-spin-echo"></a>의 상쇄는 두 \(\tau\) 구간의 \(\delta\)가 같을 때만 일어난다. 요동하는 장은 두 구간의 \(\delta\)가 달라 위상이 남는다.</div></div>
     </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <div class="prob" id="prob-pauli-commutator" data-level="1"><p>식 <a class="ref" href="#eq-pauli-matrices"></a>의 행렬을 곱해 \(\sigma_x\sigma_y=i\sigma_z\)와 \([\hat S_x,\hat S_y]=i\hbar\hat S_z\)를 직접 확인하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\sigma_x\sigma_y=\begin{pmatrix}i&amp;0\\0&amp;-i\end{pmatrix}=i\sigma_z\), \(\sigma_y\sigma_x=-i\sigma_z\)다. 따라서 \([\hat S_x,\hat S_y]=(\hbar^2/4)[\sigma_x,\sigma_y]=(\hbar^2/4)2i\sigma_z=i\hbar\hat S_z\)다.</p></details></div>
+    <div class="prob" id="prob-pauli-commutator" data-level="1"><p>식 <a class="ref" href="#eq-pauli-matrices"></a>의 행렬을 곱해 \(\sigma_y\sigma_z=i\sigma_x\)와 \([\hat S_y,\hat S_z]=i\hbar\hat S_x\)를 직접 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\sigma_y\sigma_z=\begin{pmatrix}0&amp;-i\\i&amp;0\end{pmatrix}\begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix}=\begin{pmatrix}0&amp;i\\i&amp;0\end{pmatrix}=i\sigma_x\)이고, \(\sigma_z\sigma_y=\begin{pmatrix}0&amp;-i\\-i&amp;0\end{pmatrix}=-i\sigma_x\)다. 따라서 \([\hat S_y,\hat S_z]=(\hbar^2/4)(2i\sigma_x)=i\hbar\hat S_x\)다.</p></details></div>
+    <div class="prob" id="prob-pauli-expansion" data-level="2"><p>(가) 식 <a class="ref" href="#eq-pauli-expansion"></a>의 계수 공식을 대각합의 성질로 유도하라. (나) \(M=\begin{pmatrix}3&amp;1-i\\1+i&amp;1\end{pmatrix}\)을 \(a_0I+\boldsymbol a\cdot\boldsymbol\sigma\)로 쓰고, \((\boldsymbol a\cdot\boldsymbol\sigma)^2=|\boldsymbol a|^2I\)를 써서 \(M\)의 고유값을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(M=a_0I+\sum_ja_j\sigma_j\)의 대각합을 취하면 \(\operatorname{Tr}\sigma_j=0\)이므로 \(\operatorname{Tr}M=2a_0\)이다. \(\sigma_i\)를 오른쪽에 곱하고 대각합을 취하면 \(\operatorname{Tr}(\sigma_j\sigma_i)=2\delta_{ij}\)이므로 \(\operatorname{Tr}(M\sigma_i)=2a_i\)다.</p>
+      <p>(나) \(a_0=(3+1)/2=2\). \(\operatorname{Tr}(M\sigma_x)=M_{12}+M_{21}=2\), \(\operatorname{Tr}(M\sigma_y)=iM_{12}-iM_{21}=i(1-i)-i(1+i)=2\), \(\operatorname{Tr}(M\sigma_z)=M_{11}-M_{22}=2\)이므로 \(\boldsymbol a=(1,1,1)\)이다. \((M-2I)^2=(\boldsymbol a\cdot\boldsymbol\sigma)^2=3I\)이므로 \(M-2I\)의 고유값은 \(\pm\sqrt3\)이고, \(M\)의 고유값은 \(2\pm\sqrt3\)이다.</p></details></div>
     <div class="prob" id="prob-y-spinor" data-level="2"><p>\(|\uparrow_y\rangle=(|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2\)가 정규화되어 있고 \(\hat S_y\)의 \(+\hbar/2\) 고유상태임을 확인하라. \(S_x\)를 측정할 때의 두 확률도 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>노름은 \((|1|^2+|i|^2)/2=1\)이고 \(\sigma_y(1,i)^{\mathsf T}=(1,i)^{\mathsf T}\)다. \(\langle\uparrow_x|\uparrow_y\rangle=(1+i)/2\), \(\langle\downarrow_x|\uparrow_y\rangle=(1-i)/2\)이므로 두 확률은 각각 \(1/2\)이다.</p></details></div>
-    <div class="prob" id="prob-spin-expectation" data-level="2"><p>\(|\chi\rangle=(\sqrt3/2)|\uparrow_z\rangle+(1/2)|\downarrow_z\rangle\)에서 \(\langle\hat S_x\rangle,\langle\hat S_y\rangle,\langle\hat S_z\rangle\)를 구하고 평균 스핀 벡터의 크기를 확인하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\langle\sigma_x\rangle=2\operatorname{Re}(\alpha^*\beta)=\sqrt3/2\), \(\langle\sigma_y\rangle=2\operatorname{Im}(\alpha^*\beta)=0\), \(\langle\sigma_z\rangle=|\alpha|^2-|\beta|^2=1/2\)다. 따라서 세 평균은 \(\sqrt3\hbar/4,0,\hbar/4\)이고 벡터의 크기는 \(\sqrt{3\hbar^2/16+\hbar^2/16}=\hbar/2\)다.</p></details></div>
-    <div class="prob" id="prob-sequential-sg" data-level="2"><p>\(|\uparrow_z\rangle\) 빔을 \(S_x\)로 측정해 위 갈래만 통과시킨 뒤 \(S_z\)로 측정한다. 처음 입자 중 최종 \(S_z=-\hbar/2\) 갈래에 도착하는 비율과, 가운데 갈래를 통과한 입자만을 기준으로 한 조건부 확률을 각각 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>가운데 \(S_x=+\hbar/2\) 갈래의 확률은 \(1/2\)이고, 그 상태 \(|\uparrow_x\rangle\)에서 마지막 \(S_z=-\hbar/2\) 확률도 \(1/2\)다. 처음 입자 기준 비율은 \((1/2)(1/2)=1/4\), 가운데를 통과한 입자에 대한 조건부 확률은 \(1/2\)다.</p></details></div>
+      <details class="sol"><summary>풀이</summary><p>노름은 \((|1|^2+|i|^2)/2=1\)이고 \(\sigma_y(1,i)^{\mathsf T}=(1,i)^{\mathsf T}\)다. \(\langle\uparrow_x|\uparrow_y\rangle=(1+i)/2\), \(\langle\downarrow_x|\uparrow_y\rangle=(1-i)/2\)이므로 두 확률은 각각 \(1/2\)이다. 식 <a class="ref" href="#eq-spin-projector"></a>로는 \(\boldsymbol e_x\cdot\boldsymbol e_y=0\)이라 바로 \(1/2\)이다.</p></details></div>
+    <div class="prob" id="prob-spin-expectation" data-level="2"><p>\(|\chi\rangle=\bigl(|\uparrow_z\rangle+(1+i)|\downarrow_z\rangle\bigr)/\sqrt3\)의 블로흐 벡터 \(\boldsymbol n\)과 \(\theta,\phi\)를 구하라. 이 상태와 직교하는 상태를 식 <a class="ref" href="#eq-spin-direction"></a>의 꼴로 쓰고, \(\langle\hat{\boldsymbol S}\rangle\)의 크기가 \(\hbar/2\)임을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\alpha^*\beta=(1+i)/3\)이므로 식 <a class="ref" href="#eq-sigma-averages"></a>에서 \(\boldsymbol n=(\frac23,\frac23,-\frac13)\)이고 \(|\boldsymbol n|^2=\frac49+\frac49+\frac19=1\)이다. \(\cos\theta=-1/3\)(\(\theta\approx109.5^\circ\)), \(\phi=45^\circ\)다. \(\cos\frac\theta2=|\alpha|=1/\sqrt3\), \(\sin\frac\theta2=\sqrt{2/3}\)이므로 직교 상태는 \(|\downarrow_{\boldsymbol n}\rangle=\sqrt{2/3}\,|\uparrow_z\rangle-e^{i\pi/4}|\downarrow_z\rangle/\sqrt3\)이다. 실제로 \(\langle\chi|\downarrow_{\boldsymbol n}\rangle=\frac{\sqrt2}{3}-\frac{(1-i)e^{i\pi/4}}{3}=\frac{\sqrt2}{3}-\frac{\sqrt2}{3}=0\)이다. \(\langle\hat{\boldsymbol S}\rangle=\frac\hbar2\boldsymbol n\)의 크기는 \(\hbar/2\)다.</p></details></div>
+    <div class="prob" id="prob-time-reversal-spin" data-level="3"><p><a href="ch13.html#def-time-reversal">13장</a>의 스핀 1/2 시간 반전 \(\hat\Theta=-i\sigma_yK\)(\(K\)는 복소 켤레)에 대해 (가) \(\hat\Theta\sigma_i\hat\Theta^{-1}=-\sigma_i\), (나) \(\hat\Theta|\uparrow_{\boldsymbol n}\rangle=-e^{-i\phi}|\downarrow_{\boldsymbol n}\rangle\), (다) \(\hat\Theta^2=-I\)를 보여라. 블로흐 구에서 \(\hat\Theta\)는 무엇을 하는가?</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(U=-i\sigma_y=\begin{pmatrix}0&amp;-1\\1&amp;0\end{pmatrix}\)은 실수 행렬이고 \(U^{-1}=i\sigma_y\)다. \(\hat\Theta\sigma_i\hat\Theta^{-1}=U\sigma_i^*U^{-1}\)이고 \(\sigma_x^*=\sigma_x\), \(\sigma_y^*=-\sigma_y\), \(\sigma_z^*=\sigma_z\)다. 파울리 곱 공식에서 \(\sigma_y\)는 \(\sigma_x,\sigma_z\)와 반교환하므로 \(\sigma_y\sigma_x\sigma_y=-\sigma_x\), \(\sigma_y\sigma_z\sigma_y=-\sigma_z\)이고, \(\sigma_y(-\sigma_y)\sigma_y=-\sigma_y\)다. 세 성분 모두 부호가 바뀐다.</p>
+      <p>(나) \(K\)가 \(e^{i\phi}\)를 \(e^{-i\phi}\)로 바꾸고 \(U(\cos\frac\theta2,e^{-i\phi}\sin\frac\theta2)^{\mathsf T}=(-e^{-i\phi}\sin\frac\theta2,\cos\frac\theta2)^{\mathsf T}=-e^{-i\phi}(\sin\frac\theta2,-e^{i\phi}\cos\frac\theta2)^{\mathsf T}\)이다.</p>
+      <p>(다) \(U\)가 실수라 \(K\)와 교환하므로 \(\hat\Theta^2=U^2K^2=(-i\sigma_y)^2=-I\)다. \(\hat\Theta\)는 블로흐 벡터를 \(\boldsymbol n\)에서 \(-\boldsymbol n\)으로 뒤집는다. 직교하는 상태로 보내므로, 시간 반전 짝이 서로 다른 상태라는 13장 크라머스 축퇴의 결론과 맞는다.</p></details></div>
     <div class="prob" id="prob-sg-force-sign" data-level="2"><p>국소 근사에서 \(dB_z/dz=G&gt;0\)일 때, 자유 전자의 \(|\uparrow_z\rangle\), \(|\downarrow_z\rangle\)에 작용하는 \(z\)방향 힘을 각각 구하라.</p>
       <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-sg-force"></a>에서 \(F_z=-g_s\mu_B G S_z/\hbar\)다. 위 상태에는 \(-g_s\mu_B G/2\), 아래 상태에는 \(+g_s\mu_B G/2\)가 작용한다. 힘의 방향은 스핀 투영의 부호와 반대다.</p></details></div>
     <div class="prob" id="prob-half-tesla" data-level="1"><p>자유 전자의 \(\nu_0/B_0\simeq28.0\ \mathrm{GHz\,T^{-1}}\)를 써서 \(B_0=0.50\ \mathrm T\)의 공명 주파수와 두 스핀 준위의 에너지 간격을 \(h\)로 표현하라.</p>
       <details class="sol"><summary>풀이</summary><p>\(\nu_0\simeq(28.0\ \mathrm{GHz\,T^{-1}})(0.50\ \mathrm T)=14.0\ \mathrm{GHz}\)다. 간격은 \(\Delta E=\hbar\omega_0=h\nu_0=h(14.0\ \mathrm{GHz})\)다.</p></details></div>
-    <div class="prob" id="prob-half-precession" data-level="2"><p>처음 \(|\uparrow_x\rangle\)인 스핀이 정자기장 속에서 \(t=\pi/\omega_0\) 뒤 어떤 \(x\)축 상태가 되는가? 그때 \(S_x=+\hbar/2\)와 \(S_z=+\hbar/2\)의 확률도 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-spin-time-evolution"></a>에서 상태는 \((-i|\uparrow_z\rangle+i|\downarrow_z\rangle)/\sqrt2=-i|\downarrow_x\rangle\)다. 전체 위상은 무의미하므로 \(x\)축 아래 상태다. \(S_x\) 위 확률은 0, \(S_z\) 위 확률은 \(1/2\)이다.</p></details></div>
-    <div class="prob" id="prob-rotating-identity" data-level="3"><p>\(\hat V=e^{-i\omega t\sigma_z/2}\)에 대해 \(\hat V^\dagger(\sigma_x\cos\omega t+\sigma_y\sin\omega t)\hat V=\sigma_x\)를 \(2\times2\) 행렬로 보이고, 식 <a class="ref" href="#eq-rotating-frame"></a>의 \(\Delta\) 부호를 확인하라.</p>
-      <details class="sol"><summary>풀이</summary><p>괄호 안 행렬은 \(\begin{pmatrix}0&amp;e^{-i\omega t}\\e^{i\omega t}&amp;0\end{pmatrix}\), \(\hat V=\operatorname{diag}(e^{-i\omega t/2},e^{i\omega t/2})\)다. 양쪽에서 곱하면 비대각 위상이 지워져 \(\sigma_x\)만 남는다. \(-i\hbar\hat V^\dagger\dot{\hat V}=-\hbar\omega\sigma_z/2\)이므로 \(z\)항은 \(\hbar(\omega_0-\omega)\sigma_z/2\)다.</p></details></div>
+    <div class="prob" id="prob-neutron-4pi" data-level="2"><p>중성자 간섭계의 한 경로에 길이 \(\ell=1.0\ \mathrm{cm}\)의 균일한 자기장 영역이 있다. 파장 \(\lambda=0.18\ \mathrm{nm}\)인 중성자(질량 \(1.675\times10^{-27}\ \mathrm{kg}\))가 그 영역에서 각 \(\alpha=\gamma_nB\ell/v\)만큼 세차한다. 중성자 자기회전비의 크기는 \(\gamma_n=1.8325\times10^8\ \mathrm{s^{-1}T^{-1}}\)이다. (가) 중성자의 속력 \(v\)와 영역 통과 시간을 구하라. (나) \(\alpha=4\pi\)가 되는 \(B\)를 구하라. (다) 식 <a class="ref" href="#eq-neutron-interference"></a>에서 \(\alpha=2\pi\)일 때의 세기는? 스피너가 \(2\pi\) 회전에서 부호를 바꾸지 않는다면 결과가 어떻게 달라지는가?</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(v=h/(m_n\lambda)=2.20\times10^3\ \mathrm{m/s}\), 통과 시간 \(\ell/v=4.55\ \mu\mathrm s\)다. (나) \(B=4\pi v/(\gamma_n\ell)=15.1\ \mathrm{mT}\)다. (다) \(I\propto(1+\cos\pi)/2=0\)으로 두 경로가 완전히 상쇄된다. 스피너가 벡터처럼 \(2\pi\)에서 제자리로 돌아온다면 세기가 \(\alpha=2\pi\)에서 처음과 같은 최대여야 한다. 실험은 첫째를 보였다.</p></details></div>
     <div class="prob" id="prob-detuned-rabi" data-level="2"><p>원형 구동장에서 \(\Delta=\Omega_1&gt;0\)일 때 위에서 아래로의 최대 전이 확률과 처음 그 최대에 도달하는 시간을 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-rabi-probability"></a>에서 \(\Omega=\sqrt2\Omega_1\), 앞 계수는 \(1/2\)다. 사인 제곱이 처음 1이 되는 시각은 \(\Omega t/2=\pi/2\), 즉 \(t=\pi/(\sqrt2\Omega_1)\)이다. 최대 확률은 \(1/2\)다.</p></details></div>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-rabi-probability"></a>에서 \(\Omega=\sqrt2\Omega_1\), 앞 계수는 \(1/2\)다. 사인 제곱이 처음 1이 되는 시각은 \(\Omega t/2=\pi/2\), 즉 \(t=\pi/(\sqrt2\Omega_1)\)이다. 최대 확률은 \(1/2\)다. 그림 16-3 (가)에서 \(\boldsymbol k\)가 45° 기운 원이 남극과 북극 사이 절반까지만 내려가는 것과 같다.</p></details></div>
     <div class="prob" id="prob-linear-drive-factor" data-level="3"><p>직선 진동장 \(B_1\cos\omega t\,\boldsymbol e_x\)를 두 원형 성분으로 분해하라. 공명 근처에서 역회전 성분을 평균내는 근사를 쓰면, 같은 \(B_1\)을 가진 원형 구동장에 비해 \(\pi\) 펄스 시간이 몇 배인가?</p>
       <details class="sol"><summary>풀이</summary><p>\(B_1\cos\omega t\,\boldsymbol e_x=\frac{B_1}{2}(\cos\omega t\,\boldsymbol e_x+\sin\omega t\,\boldsymbol e_y)+\frac{B_1}{2}(\cos\omega t\,\boldsymbol e_x-\sin\omega t\,\boldsymbol e_y)\)다. 공명 근처에서는 함께 도는 첫 성분만 남겨 유효 \(\Omega_1\)이 \(g_s\mu_B B_1/(2\hbar)\)가 된다. 따라서 \(t_\pi=2\pi\hbar/(g_s\mu_B B_1)\)로 같은 최대 진폭의 원형 구동장보다 두 배 길다. 이는 회전파 근사에서의 결과다.</p></details></div>
+    <div class="prob" id="prob-ramsey" data-level="3"><p>회전 좌표계에서 비공명 \(\Delta\)인 스핀에 \(x\)축 둘레의 \(\pi/2\) 펄스, 시간 \(T\) 동안의 자유 세차, 다시 같은 \(\pi/2\) 펄스를 차례로 준다. 펄스는 아주 짧아 그동안의 \(\Delta\)는 무시한다. 처음 \(|\uparrow_z\rangle\)에서 끝에 \(|\downarrow_z\rangle\)일 확률이 \(\cos^2(\Delta T/2)\)임을 블로흐 벡터의 회전으로 보여라. 이 확률을 \(\Delta\)의 함수로 그린 무늬의 간격은?</p>
+      <details class="sol"><summary>풀이</summary><p>로드리게스 공식에서 \(\hat R_x(\pi/2)\)는 \((x,y,z)\)를 \((x,-z,y)\)로 보내므로 \(+z\)는 \(-y\)가 된다. 자유 세차는 회전 좌표계에서 \(\hat H=\hbar\Delta\sigma_z/2\)이므로 \(z\)축 둘레로 \(\Delta T\)만큼 돌려 \((\sin\Delta T,-\cos\Delta T,0)\)을 만든다. 둘째 \(\pi/2\) 펄스 뒤의 벡터는 \((\sin\Delta T,0,-\cos\Delta T)\)이다. \(P(\downarrow_z)=(1-n_z)/2=(1+\cos\Delta T)/2=\cos^2(\Delta T/2)\)다. 무늬의 간격은 \(\Delta\)로 \(2\pi/T\)이므로 펄스 사이 시간 \(T\)가 길수록 공명 주파수를 정밀하게 찾을 수 있다. 원자시계가 쓰는 램지 방법이다.</p></details></div>
+    <div class="prob" id="prob-echo-dephasing" data-level="3"><p>(가) \(\delta\)가 평균 0, 표준편차 \(s\)인 가우스 분포를 따를 때 \(e^{i\delta t}\)의 평균이 \(e^{-s^2t^2/2}\)임을 보여라. (나) \(s=2\pi\times10\ \mathrm{kHz}\)이면 평균 가로 성분이 \(e^{-1/2}\)배로 줄어드는 시간은? (다) 시각 \(\tau\)에 \(x\)축 둘레의 \(\pi\) 펄스를 주면 \(t&gt;\tau\)에서 평균의 크기가 \(e^{-s^2(t-2\tau)^2/2}\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(\int e^{-\delta^2/2s^2}e^{i\delta t}\,d\delta/(\sqrt{2\pi}s)\)의 지수를 \(-(\delta-is^2t)^2/2s^2-s^2t^2/2\)로 완전제곱하면 남는 가우스 적분이 1이다. (나) \(st=1\), 곧 \(t=1/s=15.9\ \mu\mathrm s\)다. (다) \(\pi/2\) 펄스 뒤 적도 위의 방위각은 \(-\pi/2\)이고 \(\tau\) 동안 \(-\pi/2+\delta\tau\)가 된다. \(x\)축 둘레의 \(\pi\) 회전은 적도의 방위각 \(\phi\)를 \(-\phi\)로 바꾸므로 \(\pi/2-\delta\tau\)이고, 그 뒤 \(t-\tau\) 동안 \(\pi/2+\delta(t-2\tau)\)가 된다. 가로 성분은 \(e^{i\pi/2}e^{i\delta(t-2\tau)}\)의 평균이므로 (가)에서 크기가 \(e^{-s^2(t-2\tau)^2/2}\)이다.</p></details></div>
   </section>
 </main>
 </body>
