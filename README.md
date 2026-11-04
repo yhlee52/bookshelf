@@ -239,5 +239,5 @@ Lab.register({
 
 - 사이트 이름·소개·저자·GitHub 주소: `data/site.js`
 - 분야 색: `data/books.js`의 `fields[].color` (표지·칩) + `assets/css/base.css`의 `body[data-field]` (책 페이지 강조색)
-- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `levels` · `bell` · `lattice` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
+- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `loop` · `levels` · `bell` · `lattice` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
 - 서재 색(종이·책장): `assets/css/shelf.css` 맨 위

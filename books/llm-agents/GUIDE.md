@@ -8,29 +8,43 @@
 
 독자는 Python으로 작은 실험을 해 본 적은 있지만 LLM과 에이전트 설계를 체계적으로 공부하지 않은 사람입니다. 신경망의 세부 수학은 [『머신러닝을 위한 선형대수』](../linear-algebra/index.html), 확률과 평가의 배경은 [『머신러닝을 위한 통계』](../statistics/index.html)에 맡깁니다. 『딥러닝 기초』와는 별개의 책입니다.
 
-**표기:** 이 책에서 RLM은 **Reasoning Language Model(추론형 언어모델)**을 뜻합니다. Recursive Language Models를 뜻하지 않습니다. VLM과 RLM은 에이전트의 필수 선행 단계가 아니라 서로 다른 능력 확장입니다. Agent, skill, workflow, harness, loop engineering은 모델 자체가 아닌 실행 시스템의 층에서 설명합니다.
+**표기:** 이 책에서 RLM은 **Reasoning Language Model(추론형 언어모델)**을 뜻합니다. 이 용어는 [Besta 외, *Reasoning Language Models: A Blueprint*](https://arxiv.org/abs/2501.11223)를 따르며, 같은 대상을 LRM(Large Reasoning Model)이라고도 부릅니다. 이름이 같은 Recursive Language Models와는 다른 것입니다. VLM과 RLM은 에이전트의 필수 선행 단계가 아니라 서로 다른 능력 확장입니다. Agent, skill, workflow, harness, loop engineering은 모델 자체가 아닌 실행 시스템의 층에서 설명합니다.
 
 ## 2. 전체 스토리라인
 
 | 부 | 장 | 왜 다음 부로 가는가 |
 |---|---|---|
 | 1부 언어모델의 출발 | 01–04 | 토큰을 이어 쓰는 언어모델이 문맥을 이용하고 지시를 따르는 모델이 되기까지의 최소 원리를 세웁니다. |
-| 2부 추론형 언어모델 | 05–08 | Reasoning Language Model(RLM)의 학습과 추론 시 계산을 살피고, 정답과 그럴듯한 풀이를 구분합니다. |
-| 3부 눈과 외부 지식 | 09–12 | VLM, 검색, 긴 문맥 처리로 모델의 입력과 참고 자료를 넓힙니다. 이들은 에이전트의 필수 선행 단계가 아닌 선택 가능한 능력입니다. |
+| 2부 추론형 언어모델 | 05–08 | 추론형 언어모델(RLM)의 학습과 추론 시 계산을 살피고, 정답과 그럴듯한 풀이를 구분하는 검증과 예산을 맞춘 비교를 세웁니다. |
+| 3부 눈과 외부 지식 | 09–12 | VLM, 검색, 긴 문맥 처리로 모델의 입력과 참고 자료를 넓힙니다. 9–10장은 건너뛰어도 되고, 11–12장은 18장의 바탕이 됩니다. |
 | 4부 행동하는 모델 | 13–16 | 도구 사용에서 시작해 관찰, 재계획, 상태 관리가 이어지는 단일 에이전트의 작업 루프를 만듭니다. |
-| 5부 에이전트의 부품 | 17–20 | 도구 계약, 컨텍스트, skill, hook과 권한을 설계해 재사용 가능한 실행 환경을 만듭니다. |
+| 5부 에이전트의 부품 | 17–20 | 도구 계약, 컨텍스트, skill, hook과 권한, 신뢰할 수 없는 입력의 경계를 설계해 재사용 가능한 실행 환경을 만듭니다. |
 | 6부 일을 나누는 구조 | 21–24 | 고정된 workflow와 모델 주도 agent, 위임과 검증, 사람의 결정을 조합합니다. |
 | 7부 장기 실행과 검증 | 25–28 | harness와 loop engineering으로 작업을 이어 가고, 실제 산출물과 비용을 기준으로 개선 여부를 평가합니다. |
 
-읽기 경로는 **모델의 출력 → 추론과 검증 → 이미지·자료 입력 → 도구 행동 → 재사용 부품 → 역할과 사람의 결정 → 장기 루프와 평가**입니다. 1–2부는 기초, 3부는 선택 가능한 능력, 4–7부는 실행 시스템입니다. 최신 연구의 발표 순서나 모두가 따라야 하는 단일 기술 발전 경로를 주장하지 않습니다.
+읽기 경로는 **모델의 출력 → 추론과 검증 → 이미지·자료 입력 → 도구 행동 → 재사용 부품 → 역할과 사람의 결정 → 장기 루프와 평가**입니다. 반드시 거치는 줄기는 1부 → 2부 → 4–7부입니다. 2부를 줄기에 두는 이유는 에이전트가 RLM을 꼭 써야 해서가 아니라, 7–8장에서 세우는 검증기와 예산을 맞춘 비교를 23장과 27장에서 다시 쓰기 때문입니다. 3부는 골라 읽습니다. 9–10장(VLM)은 건너뛰어도 4부로 갈 수 있지만, 11–12장의 검색과 긴 문맥은 18장 컨텍스트 엔지니어링의 바탕입니다. 최신 연구의 발표 순서나 모두가 따라야 하는 단일 기술 발전 경로를 주장하지 않습니다.
 
 각 장의 네 절 제목은 [data/books.js](../../data/books.js)의 `chapters[].desc`와 동일합니다. 장 파일은 절 제목만 놓은 빈 슬롯입니다. 앞부분에서 재현이 어려운 대규모 학습은 작은 계산·행동 비교로 원리를 확인하고, 후반부에서 Claude Code 실습으로 넘어갑니다.
+
+### 겹치기 쉬운 장의 경계
+
+같은 낱말이 여러 장에 나오는 주제는 아래처럼 나눕니다. 앞 장은 개념을 처음 세우고, 뒤 장은 그것을 시스템에서 다시 씁니다. 장을 쓰다가 경계를 넘는 내용이 나오면 설명을 되풀이하지 않고 해당 장으로 링크합니다.
+
+| 주제 | 장 | 나누는 기준 |
+|---|---|---|
+| 추론의 비용 | 05 · 07 · 08 | 05장은 단계적 풀이가 도움이 되는 과제와 그렇지 않은 과제, 07장은 후보 수·재시도로 계산을 늘리는 방법과 그 비용, 08장은 같은 예산에서 공정하게 비교하는 법 |
+| 평가 | 08 · 27 | 08장은 모델 응답 하나의 정답 평가, 27장은 여러 단계 실행의 경로·최종 상태·비용 평가 |
+| 긴 문맥 | 12 · 18 | 12장은 한 번의 호출에서 모델이 긴 입력을 어떻게 쓰는지(모델의 성질), 18장은 여러 차례 행동하는 동안 무엇을 문맥에 남기고 언제 읽을지(시스템 설계) |
+| 문맥 나누기 | 18 · 22 | 18장은 에이전트 하나가 자기 문맥을 관리하는 법, 22장은 일을 나눠 독립된 문맥에 맡기는 법 |
+| 부작용과 권한 | 13 · 20 | 13장은 도구마다 읽기·쓰기 부작용을 표시하고, 20장은 그 표시를 근거로 실행을 허용·확인·거부하는 규칙과 도구 결과 속 지시(프롬프트 주입)를 다룸 |
+| 멈추는 조건 | 15 · 26 | 15장은 한 작업 안에서 에이전트가 멈추는 조건(안쪽 루프), 26장은 여러 시도와 세션을 다시 시작하고 끝내는 바깥 루프 |
+| 기억과 재개 | 16 · 25 | 16장은 무엇을 기록해 다음 세션에 넘길지(기억의 내용), 25장은 누가 언제 저장하고 복원하는지(실행 환경의 장치) |
 
 ## 3. 장 한 편의 구성
 
 1. 앞 장에서 남긴 질문과 이 장의 목표.
 2. 네 절: 문제 → 구성요소 → 동작·실패 → 다음 단계. 실제 집필에서는 내용에 맞게 절을 나눌 수 있습니다.
-3. 실험: 기준 설계와 바꿀 요소 한 가지, 관측값, 예산과 반복 수, 실패 조건을 먼저 정합니다.
+3. 실험: 기준 설계와 바꿀 요소 한 가지, 관측값, 예산과 반복 수, 실패 조건을 먼저 정합니다. 장 파일의 ‘실험 계획’ 슬롯에는 무엇을 바꾸고 무엇을 관측하는지 드러나는 질문 한 문장을 둡니다.
 4. 핵심 정리, 설명이 있는 확인 퀴즈, 재현 가능한 연습문제.
 
 새 개념은 무엇이 부족해서 필요한지부터 설명합니다. 모델 내부에 접근할 수 없으면 출력과 실행 기록만 관측했다고 분명히 씁니다. 자료의 주장, 이 책의 설명, 실험에서 확인한 결과를 구분합니다. `status: "slot"`은 본문과 실험을 아직 작성하지 않았다는 뜻입니다. 장을 쓰고 검증한 뒤에만 `draft`로 바꾸며, `done`은 사용자 확인 뒤에 사용합니다. 구현되지 않은 실험 id는 `sims`에 넣지 않습니다.
@@ -45,11 +59,31 @@
 
 ## 5. 집필 자료와 검증
 
-이 책의 출발 자료는 원 논문과 공식 문서입니다. 다음은 집필 전 읽을 자료의 예시이며, 장을 쓸 때 판본과 현재 동작을 다시 확인합니다.
+이 책의 출발 자료는 원 논문과 공식 문서입니다. 아래 표는 장마다 먼저 읽을 자료의 출발점이며, 장을 쓸 때 판본과 현재 동작을 다시 확인합니다. 표에 없는 장(15·16·23·24·25·28장)은 ai_sci_cowork의 실제 실행 기록과 위 자료를 함께 씁니다.
 
-- LLM·추론: [Attention Is All You Need](https://arxiv.org/abs/1706.03762), [Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165), [InstructGPT](https://arxiv.org/abs/2203.02155), [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
-- 이미지·검색: [CLIP](https://arxiv.org/abs/2103.00020), [Visual Instruction Tuning (LLaVA)](https://arxiv.org/abs/2304.08485), [Retrieval-Augmented Generation](https://arxiv.org/abs/2005.11401)
-- agent·실행 시스템: [ReAct](https://arxiv.org/abs/2210.03629), [Building effective agents](https://www.anthropic.com/research/building-effective-agents), [Agent Skills](https://www.anthropic.com/research/equipping-agents-for-the-real-world-with-agent-skills), [Effective context engineering](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents), [Demystifying evals for AI agents](https://www.anthropic.com/research/demystifying-evals-for-ai-agents), [Loop Engineering: Building Blocks, Adoption, and Impact](https://arxiv.org/abs/2608.21884)
+| 장 | 자료 |
+|---|---|
+| 01 | Sennrich 외, [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) (BPE) · Holtzman 외, [The Curious Case of Neural Text Degeneration](https://arxiv.org/abs/1904.09751) (샘플링) |
+| 02 | Vaswani 외, [Attention Is All You Need](https://arxiv.org/abs/1706.03762) |
+| 03 | Brown 외, [Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165) |
+| 04 | Ouyang 외, [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155) (InstructGPT) |
+| 05 | Wei 외, [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903) |
+| 05–06 | Besta 외, [Reasoning Language Models: A Blueprint](https://arxiv.org/abs/2501.11223) (RLM이라는 용어와 범위) · DeepSeek-AI, [DeepSeek-R1](https://arxiv.org/abs/2501.12948) |
+| 07 | Wang 외, [Self-Consistency Improves Chain of Thought Reasoning](https://arxiv.org/abs/2203.11171) · Snell 외, [Scaling LLM Test-Time Compute Optimally](https://arxiv.org/abs/2408.03314) |
+| 07–08 | Lightman 외, [Let's Verify Step by Step](https://arxiv.org/abs/2305.20050) (과정 검증기) |
+| 09 | Radford 외, [CLIP](https://arxiv.org/abs/2103.00020) |
+| 10 | Liu 외, [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485) (LLaVA) |
+| 11 | Lewis 외, [Retrieval-Augmented Generation](https://arxiv.org/abs/2005.11401) |
+| 12 | Liu 외, [Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172) |
+| 13 | Schick 외, [Toolformer](https://arxiv.org/abs/2302.04761) |
+| 14 | Yao 외, [ReAct](https://arxiv.org/abs/2210.03629) |
+| 17 | [Model Context Protocol 명세](https://modelcontextprotocol.io/specification) |
+| 18 | Anthropic, [Effective context engineering for AI agents](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents) |
+| 19 | Anthropic, [Equipping agents for the real world with Agent Skills](https://www.anthropic.com/research/equipping-agents-for-the-real-world-with-agent-skills) |
+| 20 | Greshake 외, [Not what you've signed up for: … Indirect Prompt Injection](https://arxiv.org/abs/2302.12173) |
+| 21–22 | Anthropic, [Building effective agents](https://www.anthropic.com/research/building-effective-agents) |
+| 26 | Lulla 외, [Loop Engineering: Building Blocks, Adoption, and Impact](https://arxiv.org/abs/2608.21884) |
+| 27 | Anthropic, [Demystifying evals for AI agents](https://www.anthropic.com/research/demystifying-evals-for-ai-agents) · Jimenez 외, [SWE-bench](https://arxiv.org/abs/2310.06770) |
 
 새로운 용어와 최신 제품 기능은 바뀔 수 있습니다. 특히 loop engineering은 연구와 현장 실천이 진행 중인 주제이므로 검증된 결과와 제안된 관행을 나누어 씁니다. 그림·예제·연습문제는 새로 만들고, 출처의 결론을 실제 실험 범위보다 크게 말하지 않습니다.
 

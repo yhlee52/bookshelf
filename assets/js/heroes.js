@@ -1,6 +1,7 @@
 /* ==========================================================================
    히어로 장면 — 책 홈과 서재 홈의 첫 화면 그림
      <div class="hero-stage" data-hero="network"></div>   3D 신경망 + 신호 펄스 (논문 리뷰)
+     <div class="hero-stage" data-hero="loop"></div>      3D 모델·도구의 행동·관찰 루프와 바깥 장기 실행 루프 (LLM 에이전트)
      <div class="hero-stage" data-hero="ribbons"></div>   3D 시계열 폭포 (시계열)
      <div class="hero-stage" data-hero="orbits"></div>    3D 행성 궤도 (물리)
      <div class="hero-stage" data-hero="orbital"></div>   3D 수소 오비탈 전자 구름 (양자역학)
@@ -68,6 +69,78 @@
         edgeMat.color = hexOf("text-dim"); pulseMat.color = hexOf("accent-2");
       }));
       T.label("입력", [-4.8, 2.1, 0]); T.label("은닉층", [0, 2.6, 0]); T.label("출력", [4.8, 1.2, 0]);
+    }).catch(() => fail(el));
+  }
+
+  /* ------------------------------------------------------------ 에이전트 루프 */
+  // 가운데 모델이 둘레의 도구를 부르고(행동, accent-2) 결과를 돌려받는다(관찰, accent).
+  // 기울어진 바깥 고리는 체크포인트를 지나며 세션을 넘어 이어지는 장기 실행 루프
+  function loop(el) {
+    VZ.three(el, { camera: [7.8, 5.2, 9.6], target: [0, -0.2, 0], fov: 38, autoRotate: !reduced, autoRotateSpeed: 0.6, pan: false, minDistance: 7, maxDistance: 22 }).then((T) => {
+      const { THREE, scene } = T;
+      const R = 2.8, RO = 4.1, NT = 6, NC = 4;
+      const glow = (name, base) => { const m = new THREE.MeshStandardMaterial({ color: hexOf(name), emissive: hexOf(name), emissiveIntensity: base, roughness: 0.35 }); m.userData = { name, base }; return m; };
+      const circle = (r, n = 128) => { const a = []; for (let i = 0; i < n; i++) { const t = (i / n) * Math.PI * 2; a.push(r * Math.cos(t), 0, r * Math.sin(t)); } const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(a, 3)); return g; };
+
+      const model = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 22), glow("accent", 0.2));
+      scene.add(model);
+      const toolPos = Array.from({ length: NT }, (_, k) => { const a = (k / NT) * Math.PI * 2; return new THREE.Vector3(R * Math.cos(a), 0, R * Math.sin(a)); });
+      const tools = toolPos.map((p) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.44), glow("accent", 0.12)); m.position.copy(p); scene.add(m); return m; });
+      const spokes = [];
+      toolPos.forEach((p) => spokes.push(0, 0, 0, p.x, p.y, p.z));
+      const sg = new THREE.BufferGeometry();
+      sg.setAttribute("position", new THREE.Float32BufferAttribute(spokes, 3));
+      const lineMat = new THREE.LineBasicMaterial({ color: hexOf("text-dim"), transparent: true, opacity: 0.2 });
+      scene.add(new THREE.LineSegments(sg, lineMat));
+      scene.add(new THREE.LineLoop(circle(R), lineMat));
+
+      const outer = new THREE.Group();
+      outer.rotation.x = -0.24;
+      scene.add(outer);
+      const outerMat = new THREE.LineBasicMaterial({ color: hexOf("accent-2"), transparent: true, opacity: 0.35 });
+      outer.add(new THREE.LineLoop(circle(RO), outerMat));
+      const checkAt = Array.from({ length: NC }, (_, k) => ((k + 0.5) / NC) * Math.PI * 2);
+      const checks = checkAt.map((a) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), glow("accent-2", 0.15)); m.position.set(RO * Math.cos(a), 0, RO * Math.sin(a)); outer.add(m); return m; });
+      const runner = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), new THREE.MeshBasicMaterial({ color: hexOf("accent-2") }));
+      outer.add(runner);
+
+      const actMat = new THREE.MeshBasicMaterial({ color: hexOf("accent-2") });
+      const obsMat = new THREE.MeshBasicMaterial({ color: hexOf("accent") });
+      const O = new THREE.Vector3();
+      const pulses = [0, 1, 2].map((i) => {
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), actMat);
+        scene.add(m);
+        return { m, k: i * 2, t: i / 3, out: true };
+      });
+      const place = (p) => { p.m.material = p.out ? actMat : obsMat; p.m.position.lerpVectors(O, toolPos[p.k], p.t); };
+      pulses.forEach(place);
+      let ang = 0;
+      runner.position.set(RO, 0, 0);
+
+      T.onFrame((dt) => {
+        if (reduced) return;
+        pulses.forEach((p) => {
+          p.t += (p.out ? 1 : -1) * dt * 0.85;
+          if (p.out && p.t >= 1) { p.t = 1; p.out = false; tools[p.k].material.emissiveIntensity = 1.1; }
+          else if (!p.out && p.t <= 0) {
+            p.t = 0; p.out = true; model.material.emissiveIntensity = 0.9;
+            p.k = (p.k + 1 + Math.floor(Math.random() * (NT - 1))) % NT;
+          }
+          place(p);
+        });
+        const prev = ang;
+        ang = (ang + dt * 0.42) % (Math.PI * 2);
+        runner.position.set(RO * Math.cos(ang), 0, RO * Math.sin(ang));
+        checkAt.forEach((a, i) => { if ((prev < a && ang >= a) || (ang < prev && (a > prev || a <= ang))) checks[i].material.emissiveIntensity = 1.3; });
+        [model, ...tools, ...checks].forEach((n) => (n.material.emissiveIntensity = Math.max(n.material.userData.base, n.material.emissiveIntensity * Math.pow(0.08, dt))));
+      });
+      window.addEventListener("ls:theme", () => requestAnimationFrame(() => {
+        [model, ...tools, ...checks].forEach((n) => { const c = hexOf(n.material.userData.name); n.material.color = c; n.material.emissive = c.clone(); });
+        lineMat.color = hexOf("text-dim"); outerMat.color = hexOf("accent-2");
+        actMat.color = hexOf("accent-2"); obsMat.color = hexOf("accent"); runner.material.color = hexOf("accent-2");
+      }));
+      T.label("모델", [0, 1.1, 0]); T.label("도구", [R, 0.75, 0]);
+      T.label("장기 실행 루프", [-RO, 0.5, 0]);
     }).catch(() => fail(el));
   }
 
@@ -432,7 +505,7 @@
     VZ.loop(canvas, frame);
   }
 
-  const HEROES = { network, ribbons, orbits, orbital, gauss, svd, flow };
+  const HEROES = { network, loop, ribbons, orbits, orbital, gauss, svd, flow };
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-hero]").forEach((el) => {
       const fn = HEROES[el.dataset.hero];
