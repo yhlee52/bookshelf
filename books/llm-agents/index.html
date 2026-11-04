@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AgentBook · LLM에서 자율 에이전트까지</title>
-<meta name="description" content="언어모델의 예측과 추론에서 VLM·검색·도구 사용으로, 다시 skill·workflow·harness와 장기 실행 루프로 나아가는 에이전트 설계의 이론과 실습.">
+<meta name="description" content="언어모델의 예측과 추론에서 VLM·검색·도구 사용으로, 다시 Claude 환경에서 에이전트를 이루는 구성요소와 장기 실행 루프로 나아가는 에이전트 설계의 이론과 실습.">
 <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -30,42 +30,115 @@
     <div>
       <div class="eyebrow" data-fill="book-en">From LLMs to Autonomous Agents</div>
       <h1>다음 토큰에서<br><span class="grad">장기 실행 루프까지</span></h1>
-      <p data-fill="book-desc">언어모델의 예측과 추론에서 VLM·검색·도구 사용으로, 다시 skill·workflow·harness와 장기 실행 루프로 나아가는 에이전트 설계의 이론과 실습.</p>
+      <p data-fill="book-desc">언어모델의 예측과 추론에서 VLM·검색·도구 사용으로, 다시 Claude 환경에서 에이전트를 이루는 구성요소와 장기 실행 루프로 나아가는 에이전트 설계의 이론과 실습.</p>
       <div class="cta">
-        <a class="btn primary big" href="#chapters">28장 목차 살펴보기 →</a>
-        <a class="btn ghost big" href="#story">책의 이야기</a>
+        <a class="btn primary big" href="#chapters">43장 목차 살펴보기 →</a>
+        <a class="btn ghost big" href="#story">이 책의 지도</a>
       </div>
-      <div class="hero-badges"><span><b data-fill="part-count">7</b>부 <b data-fill="chapter-count">28</b>장</span><span>현재 모든 장은 빈 슬롯</span><span>이론 → 설계 → 검증</span><span data-fill="book-status">집필 중</span></div>
+      <div class="hero-badges"><span><b data-fill="part-count">8</b>부 <b data-fill="chapter-count">43</b>장</span><span>현재 모든 장은 빈 슬롯</span><span>이론 → 설계 → 검증</span><span data-fill="book-status">집필 중</span></div>
     </div>
-    <div class="hero-stage" data-hero="network"><span class="hint">이 장면은 책 표지용 기존 시각화입니다. 계획된 실험은 아직 구현되지 않았습니다.</span></div>
+    <div class="hero-stage" data-hero="loop"><span class="hint">드래그해서 돌려 보세요 · 가운데 모델이 둘레의 도구를 부르고 결과를 돌려받는 행동·관찰 루프 (나가는 점과 돌아오는 점은 색이 다릅니다). 기울어진 바깥 고리는 체크포인트를 지나며 이어지는 장기 실행 루프입니다.</span></div>
   </div>
 </section>
 <section class="home-section" id="story">
-  <h2>이 책의 이야기</h2>
-  <p class="sub">모델의 능력과 모델 주위의 실행 시스템을 구분하며 한 단계씩 쌓습니다. 아래는 집필 전 기획이며 장의 세부 구성은 자료와 실험을 검증하면서 다듬습니다.</p>
-  <div class="flow">
-    <div><b>1부</b>1부에서 다음 토큰을 예측하는 LLM의 원리와 대화 모델까지의 변화를 봅니다.</div>
-    <div><b>2부</b>2부에서는 RLM(Reasoning Language Model)이 어려운 문제에 더 많은 계산과 검증을 쓰는 이유를 살핍니다.</div>
-    <div><b>3부</b>3부의 VLM·검색·긴 문맥 처리는 서로 다른 입력과 외부 정보의 확장입니다. 에이전트를 만드는 데 모두 필요한 선행 단계는 아닙니다.</div>
-    <div><b>4부</b>4부에서 모델에 도구와 상태를 붙여 행동·관찰 루프를 만듭니다.</div>
-    <div><b>5–6부</b>5–6부에서는 skill, hook, workflow, subagent와 인간의 결정 지점을 조합합니다.</div>
-    <div><b>마지막</b>7부에서 harness와 장기 실행 루프를 설계하고, 실행 기록과 최종 산출물로 효과를 평가합니다.</div>
-  </div>
-  <div class="callout tip"><strong>RLM의 뜻</strong><p>이 책의 RLM은 <em>Reasoning Language Model</em>(추론형 언어모델)입니다. <em>Recursive Language Models</em>와 구분합니다. VLM과 RLM은 에이전트의 필수 선행 단계가 아니라 서로 다른 능력 확장입니다.</p></div>
+  <h2>이 책의 지도</h2>
+  <p class="sub">위 줄은 모델의 능력, 아래 줄은 모델 바깥에 세우는 실행 시스템입니다. 강조한 5부에서 Claude 에이전트의 구성요소를 하나씩 봅니다. 실선을 따라가면 빠짐없이 읽게 되고, 점선은 골라 읽을 수 있는 길입니다. 상자를 누르면 그 부의 첫 장으로 갑니다. 집필 전 기획이므로 장의 세부 구성은 자료와 실험을 검증하면서 다듬습니다.</p>
+  <figure class="diagram scroll">
+    <svg viewBox="0 0 1100 500" role="img" aria-label="이 책의 구성: 위 줄은 1부 언어모델의 출발, 2부 추론형 언어모델, 3부 눈과 외부 지식이고, 아래 줄은 4부 행동하는 모델, 5부 Claude 에이전트의 구성요소, 6부 구성요소를 조합하기, 7부 장기 실행과 평가이다. 1부에서 2부를 거쳐 4부로 내려가고 4부부터 7부까지 차례로 이어진다. 3부는 골라 읽으며, 3부의 11–12장은 5부의 20장에서 다시 쓴다. 8부 Codex로 다시 만들기는 7부 뒤에 골라 읽으며 5–7부와 같은 순서를 따른다">
+      <defs><marker id="ag-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+      <a href="chapters/ch01.html"><g transform="translate(20,20)">
+        <rect width="230" height="134" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">1부 · 1–4장</text>
+        <text x="16" y="56" class="t-b">언어모델의 출발</text>
+        <text x="16" y="82" class="t-dim">토큰과 다음 토큰 예측</text>
+        <text x="16" y="102" class="t-dim">어텐션 · 사전학습</text>
+        <text x="16" y="122" class="t-dim">지시 학습과 대화 모델</text>
+      </g></a>
+      <path d="M254 87 H296" class="s-acc" marker-end="url(#ag-arr)"/>
+      <a href="chapters/ch05.html"><g transform="translate(300,20)">
+        <rect width="230" height="134" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">2부 · 5–8장</text>
+        <text x="16" y="56" class="t-b">추론형 언어모델</text>
+        <text x="16" y="82" class="t-dim">추론이 필요한 문제 · 학습</text>
+        <text x="16" y="102" class="t-dim">추론 시 계산과 검증기</text>
+        <text x="16" y="122" class="t-dim">예산을 맞춘 비교</text>
+      </g></a>
+      <path d="M534 87 H576" class="s-acc2" stroke-dasharray="4 4" marker-end="url(#ag-arr)"/>
+      <a href="chapters/ch09.html"><g transform="translate(580,20)">
+        <rect width="500" height="134" rx="14" class="f-surface" stroke-dasharray="6 5"/>
+        <text x="16" y="28" class="t-acc">3부 · 9–12장 · 골라 읽기</text>
+        <text x="16" y="56" class="t-b">눈과 외부 지식</text>
+        <line x1="250" y1="72" x2="250" y2="122" class="s-faint"/>
+        <text x="16" y="90" class="t">9–10장 · 이미지와 VLM</text>
+        <text x="16" y="112" class="t-dim">건너뛰어도 4부로 갈 수 있음</text>
+        <text x="266" y="90" class="t">11–12장 · 검색과 긴 문맥</text>
+        <text x="266" y="112" class="t-dim">20장 컨텍스트 관리의 바탕</text>
+      </g></a>
+      <path d="M415 158 C415 192, 130 182, 130 212" class="s-acc" marker-end="url(#ag-arr)"/>
+      <path d="M955 158 C955 192, 410 182, 410 212" class="s-acc2" stroke-dasharray="4 4" marker-end="url(#ag-arr)"/>
+      <text x="640" y="176" class="t-dim">11–12장 → 20장</text>
+      <a href="chapters/ch13.html"><g transform="translate(20,216)">
+        <rect width="220" height="134" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">4부 · 13–16장</text>
+        <text x="16" y="56" class="t-b">행동하는 모델</text>
+        <text x="16" y="82" class="t-dim">도구 호출 · 행동 루프</text>
+        <text x="16" y="102" class="t-dim">계획 · 재계획 · 중단</text>
+        <text x="16" y="122" class="t-dim">상태와 기억</text>
+      </g></a>
+      <path d="M244 283 H296" class="s-acc" marker-end="url(#ag-arr)"/>
+      <a href="chapters/ch17.html"><g transform="translate(300,216)">
+        <rect width="220" height="134" rx="14" class="f-acc-soft" stroke-width="2"/>
+        <text x="16" y="28" class="t-acc">5부 · 17–24장</text>
+        <text x="16" y="56" class="t-b">Claude 에이전트의 구성요소</text>
+        <text x="16" y="82" class="t-dim">해부도 · CLAUDE.md와 메모리</text>
+        <text x="16" y="102" class="t-dim">도구와 MCP · 컨텍스트 관리</text>
+        <text x="16" y="122" class="t-dim">skill · subagent · hook · 권한</text>
+      </g></a>
+      <path d="M524 283 H576" class="s-acc" marker-end="url(#ag-arr)"/>
+      <a href="chapters/ch25.html"><g transform="translate(580,216)">
+        <rect width="220" height="134" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">6부 · 25–28장</text>
+        <text x="16" y="56" class="t-b">구성요소를 조합하기</text>
+        <text x="16" y="82" class="t-dim">workflow와 agent</text>
+        <text x="16" y="102" class="t-dim">검증자 · 비평가 · 사람</text>
+        <text x="16" y="122" class="t-dim">plugin · headless · SDK</text>
+      </g></a>
+      <path d="M804 283 H856" class="s-acc" marker-end="url(#ag-arr)"/>
+      <a href="chapters/ch29.html"><g transform="translate(860,216)">
+        <rect width="220" height="134" rx="14" class="f-surface"/>
+        <text x="16" y="28" class="t-acc">7부 · 29–32장</text>
+        <text x="16" y="56" class="t-b">장기 실행과 평가</text>
+        <text x="16" y="82" class="t-dim">harness · loop engineering</text>
+        <text x="16" y="102" class="t-dim">에이전트 평가와 설계 비교</text>
+        <text x="16" y="122" class="t-dim">사례 연구: ai_sci_cowork</text>
+      </g></a>
+      <path d="M970 354 V394" class="s-acc2" stroke-dasharray="4 4" marker-end="url(#ag-arr)"/>
+      <a href="chapters/ch33.html"><g transform="translate(300,398)">
+        <rect width="780" height="88" rx="14" class="f-surface" stroke-dasharray="6 5"/>
+        <text x="16" y="28" class="t-acc">8부 · 33–43장 · 골라 읽기</text>
+        <text x="16" y="54" class="t-b">Codex로 다시 만들기</text>
+        <text x="16" y="76" class="t-dim">5–7부의 구성요소, 조합, 장기 실행을 Codex 환경에서 같은 순서로 따로 살핍니다</text>
+      </g></a>
+    </svg>
+    <figcaption><b>그림 0-1.</b> 여덟 부의 순서와 의존 관계. 2부를 줄기에 둔 것은 에이전트가 RLM을 꼭 써야 해서가 아니라, 7–8장에서 세우는 검증기와 예산을 맞춘 비교를 26장과 31장에서 다시 쓰기 때문입니다. 3부의 9–10장(VLM)은 건너뛰어도 4부로 갈 수 있지만, 11–12장의 검색과 긴 문맥은 20장 컨텍스트 관리의 바탕입니다(점선). 4부에서 본 일반 원리는 5부에서 Claude의 구성요소로 다시 만납니다. 8부는 Codex를 쓰는 독자를 위해 5–7부를 같은 순서로 따로 다룹니다(점선).</figcaption>
+  </figure>
+  <div class="callout tip"><strong>RLM의 뜻</strong><p>이 책의 RLM은 <em>Reasoning Language Model</em>(추론형 언어모델)이며, 문헌에서는 LRM(Large Reasoning Model)이라고도 부릅니다(<a href="https://arxiv.org/abs/2501.11223">Besta 외, 2025</a>). 이름이 같은 <em>Recursive Language Models</em>와는 다른 것입니다.</p></div>
 </section>
 <section class="home-section" id="chapters">
   <h2>전체 목차</h2>
-  <p class="sub">각 카드의 설명은 장에 들어갈 절 제목입니다. 현재 28장은 모두 빈 슬롯이며, 본문·퀴즈·실험은 아직 작성하거나 등록하지 않았습니다.</p>
+  <p class="sub">각 카드의 설명은 장에 들어갈 절 제목입니다. 현재 43장은 모두 빈 슬롯이며, 본문·퀴즈·실험은 아직 작성하거나 등록하지 않았습니다.</p>
   <div class="ch-grid" data-chapter-grid></div>
 </section>
 <section class="home-section">
-  <h2>실습을 연결하는 방식</h2>
-  <p class="sub">앞부분은 작은 개념 실험으로 모델의 작동을 분리해서 보고, 뒷부분은 별도의 Claude Code 연구실 작업 공간에서 <a href="https://github.com/yhlee52/ai_sci_cowork">ai_sci_cowork</a>의 실제 구성요소를 관찰하고 비교할 계획입니다.</p>
+  <h2>실습과 예시</h2>
+  <p class="sub">앞부분은 작은 개념 실험으로 모델의 작동을 분리해서 보고, 5부부터는 Claude Code에서 구성요소를 하나씩 작게 만들어 봅니다. 장마다 빈 폴더에서 시작하므로 앞 장의 실습 결과가 없어도 따라 할 수 있습니다.</p>
   <div class="paths">
-    <div class="path"><h3>1–3부 · 모델의 능력</h3><p>토큰·어텐션·추론·이미지·검색의 동작을 작은 문제로 확인합니다. 모델 내부를 직접 관찰할 수 없는 곳은 관측 가능한 입출력만 비교합니다.</p></div>
-    <div class="path"><h3>4–7부 · 시스템 설계</h3><p>agent, skill, hook, workflow, harness를 한 번에 모두 켜지 않고 구성요소별로 비교합니다. 같은 과제·예산·평가 기준을 사용합니다.</p></div>
-    <div class="path"><h3>결과 읽기</h3><p>에이전트의 완료 보고와 실제 산출물을 구분하고, 성공률과 비용, 실패 유형을 함께 기록할 예정입니다.</p></div>
+    <div class="path"><h3>1–4부 · 일반 원리</h3><p>토큰·어텐션·추론·이미지·검색·도구 호출의 동작을 작은 문제로 확인합니다. 모델 내부를 직접 관찰할 수 없는 곳은 관측 가능한 입출력만 비교합니다.</p></div>
+    <div class="path"><h3>5부 · Claude의 구성요소</h3><p>CLAUDE.md, 도구와 MCP, skill, subagent, hook, 권한을 하나씩 다룹니다. 각각 무엇인지, 어떻게 작동하는지, 전체 에이전트에서 어떤 일을 맡는지 차례로 봅니다.</p></div>
+    <div class="path"><h3>6–7부 · 조합과 평가</h3><p>구성요소를 엮고 오래 실행한 뒤, 완료 보고와 실제 산출물을 구분해 성공률과 비용, 실패 유형을 함께 기록합니다.</p></div>
+    <div class="path"><h3>8부 · Codex로 다시</h3><p>5–7부와 같은 순서로 Codex 환경의 구성요소를 따로 봅니다. Claude 설명과 한 장에 섞지 않습니다.</p></div>
   </div>
+  <div class="callout tip"><strong>예시 저장소</strong><p><a href="https://github.com/yhlee52/ai_sci_cowork/tree/v0.10.0">ai_sci_cowork v0.10.0</a>은 Claude Code의 agent·skill·hook·plugin으로 만든 작은 AI 연구실 환경입니다. 이 책에서는 예시 하나로 32장 사례 연구에서 다루며, 다른 장은 이 저장소 없이도 따라 할 수 있습니다.</p></div>
   <div class="callout"><strong>집필 범위</strong><p>이 책은 모델의 거대한 사전학습을 재현하거나 내부 비공개 추론을 관찰하는 책이 아닙니다. 수학적 배경은 기존 <a href="../linear-algebra/index.html">선형대수</a>와 <a href="../statistics/index.html">통계</a> 책으로 연결하고, 에이전트를 설계·검증하는 데 필요한 원리를 다룹니다.</p></div>
 </section>
 </body>

@@ -4,7 +4,7 @@
 빌드 도구 없이 HTML · CSS · JavaScript 파일만으로 동작하므로 GitHub Pages에 그대로 올리면 됩니다.
 
 - 서재(허브): 홈 · 전체 책장 · 실험실(모든 실험 모음) · 실험 크게 보기
-- 책 7권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), LLM에서 자율 에이전트까지(7부 28장, 목차와 빈 슬롯), 움직이는 물리학(4부 13장, 1부 고전역학부터 집필), 차근차근 양자역학(이론서, 6부 23장 집필 완료), 머신러닝을 위한 선형대수(이론서, 6부 20장 목차와 빈 슬롯), 머신러닝을 위한 통계(이론서, 6부 20장 목차와 빈 슬롯)
+- 책 7권: 딥러닝 논문 리뷰(리뷰 슬롯 6개), 시계열 딥러닝(챕터 슬롯 8개), LLM에서 자율 에이전트까지(8부 43장, 목차와 빈 슬롯), 움직이는 물리학(4부 13장, 1부 고전역학부터 집필), 차근차근 양자역학(이론서, 6부 23장 집필 완료), 머신러닝을 위한 선형대수(이론서, 6부 20장 목차와 빈 슬롯), 머신러닝을 위한 통계(이론서, 6부 20장 목차와 빈 슬롯)
 - 집필 예정 책 2권: 물리 × 딥러닝, 딥러닝 기초 (표지만 있고 페이지는 없음)
 - 인터랙티브 실험 56개 (2D 캔버스 + 3D three.js), 책별 3D 첫 화면, 밝은/어두운 테마, 통합 검색
 
@@ -116,7 +116,7 @@ data/
 books/
   paper-review/         딥러닝 논문 리뷰  (index.html + chapters/p01~p06.html)
   timeseries-dl/        시계열 딥러닝     (index.html + chapters/ch01~ch08.html)
-  llm-agents/           LLM에서 자율 에이전트까지 (index.html + chapters/ch01~ch28.html + GUIDE.md 기획)
+  llm-agents/           LLM에서 자율 에이전트까지 (index.html + chapters/ch01~ch43.html + GUIDE.md 기획)
   physics/              움직이는 물리학   (index.html + chapters/ch01~ch13.html + GUIDE.md 집필 계획)
   quantum/              차근차근 양자역학 (index.html + chapters/ch01~ch23.html + GUIDE.md 집필 가이드)
   linear-algebra/       머신러닝을 위한 선형대수 (index.html + chapters/ch01~ch20.html + GUIDE.md 집필 가이드)
@@ -239,5 +239,5 @@ Lab.register({
 
 - 사이트 이름·소개·저자·GitHub 주소: `data/site.js`
 - 분야 색: `data/books.js`의 `fields[].color` (표지·칩) + `assets/css/base.css`의 `body[data-field]` (책 페이지 강조색)
-- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `levels` · `bell` · `lattice` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
+- 표지 그림: `data/books.js`의 `motif` (`attention` · `waves` · `orbit` · `field` · `network` · `loop` · `levels` · `bell` · `lattice` · `blank`), 새 그림은 `assets/js/covers.js`에 추가
 - 서재 색(종이·책장): `assets/css/shelf.css` 맨 위

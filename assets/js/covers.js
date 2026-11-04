@@ -69,6 +69,23 @@
       pts.flat().forEach((p, i) => (s += `<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="${W}"${i % 3 === 0 ? ` class="cv-pulse" style="animation-delay:${(i * 0.13).toFixed(2)}s"` : ""}/>`));
       return svg(s);
     },
+    // 가운데 모델과 둘레의 도구, 그 둘을 잇는 행동·관찰 고리. 바깥 점선 고리는 세션을 넘어 이어지는 장기 실행 루프
+    loop() {
+      const cx = 100, cy = 65, r = 40;
+      let s = `<g class="cv-spin" style="animation-duration:24s"><circle cx="${cx}" cy="${cy}" r="56" fill="none" stroke="${W}" stroke-opacity=".45" stroke-dasharray="2 7" stroke-width="1.6"/></g>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${W}" stroke-opacity=".5" stroke-width="1.6"/>`;
+      range(5).forEach((k) => {
+        const a = -Math.PI / 2 + (k * 2 * Math.PI) / 5, x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+        s += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${W}" stroke-opacity=".2"/>`;
+        s += `<rect x="${(x - 6).toFixed(1)}" y="${(y - 6).toFixed(1)}" width="12" height="12" rx="3" fill="${W}" fill-opacity=".85"${k % 2 ? ` class="cv-pulse" style="animation-delay:${(k * 0.3).toFixed(1)}s"` : ""}/>`;
+        // 고리 위 방향 표시 (시계 방향)
+        const b = a + Math.PI / 5, mx = cx + r * Math.cos(b), my = cy + r * Math.sin(b), d = (b * 180) / Math.PI + 90;
+        s += `<path d="M-3 -3 L1 0 L-3 3" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${d.toFixed(0)})" fill="none" stroke="${W}" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/>`;
+      });
+      s += `<circle cx="${cx}" cy="${cy}" r="17" fill="${W}" fill-opacity=".14"/><circle cx="${cx}" cy="${cy}" r="10" fill="${W}"/>`;
+      s += `<g class="cv-orbit"><circle cx="${cx + r}" cy="${cy}" r="3.6" fill="${W}"/></g>`;
+      return svg(s);
+    },
     // 조화 진동자 퍼텐셜 우물과 에너지 준위, 각 준위 위의 고유함수 ψ_n (에르미트 함수)
     levels() {
       const X = (x) => 100 + x * 21, Y = (E) => 120 - E * 26;
