@@ -1048,14 +1048,14 @@
   });
 
   /* ======================================================================
-     10. 소프트맥스 온도와 디코딩 (top-k, top-p)
+     10. 소프트맥스 temperature와 디코딩 (top-k, top-p)
      ====================================================================== */
   Lab.register({
     id: "softmax-temp", field: "dl", thumb: "bars",
-    title: "다음 토큰 고르기 — 온도 · top-k · top-p",
-    desc: "언어 모델이 내놓은 로짓을 확률로 바꾸고, 온도와 top-k/top-p 잘라내기로 샘플링 분포가 어떻게 바뀌는지 봅니다.",
+    title: "다음 토큰 고르기 — temperature · top-k · top-p",
+    desc: "언어모델이 내놓은 로짓을 확률로 바꾸고, temperature와 top-k·top-p로 샘플링 분포가 어떻게 바뀌는지 봅니다.",
     tags: ["LLM", "디코딩", "소프트맥스", "샘플링"],
-    note: "해볼 것: 온도를 0에 가깝게 하면 항상 '맑다'만 나오는 탐욕적 디코딩이 되고, 2 이상이면 '바나나'도 나옵니다. top-p = 0.9는 누적 확률 90%까지의 후보만 남깁니다. 회색 막대는 잘려 나간 후보입니다.",
+    note: "해볼 것: temperature를 0에 가깝게 하면 항상 '맑다'만 나오는 greedy decoding이 되고, 2 이상이면 '바나나'도 나옵니다. top-p = 0.9는 누적 확률 90%까지의 후보만 남깁니다. 회색 막대는 잘려 나간 후보입니다.",
     mount(S) {
       const base = [["맑다", 3.2], ["좋다", 2.9], ["흐리다", 2.1], ["춥다", 1.6], ["덥다", 1.2], ["이상하다", 0.4], ["최고다", 0.1], ["바나나", -1.5]];
       let logits = base.map((d) => d[1]);
@@ -1104,7 +1104,7 @@
         set("gen", st.last.length ? st.last.slice(-4).join(", ") : "—");
       }
       const draw1 = () => { let r = Math.random(), i = 0; while (i < probs.length - 1 && (r -= probs[i]) > 0) i++; return i; };
-      S.range({ label: "온도 T", min: 0.05, max: 3, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; st.samples.fill(0); st.nS = 0; upd(); } });
+      S.range({ label: "temperature T", min: 0.05, max: 3, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; st.samples.fill(0); st.nS = 0; upd(); } });
       S.range({ label: "top-k", min: 1, max: base.length, step: 1, value: base.length, onInput: (v) => { st.k = v; st.samples.fill(0); st.nS = 0; upd(); } });
       S.range({ label: "top-p (누적 확률)", min: 0.1, max: 1, step: 0.01, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.p = v; st.samples.fill(0); st.nS = 0; upd(); } });
       S.button("1개 샘플", () => { const i = draw1(); st.samples[i]++; st.nS++; st.last.push(base[i][0]); upd(); }, { primary: true });
@@ -1919,7 +1919,7 @@
   });
 
   /* ======================================================================
-     19. 바이그램 이어 쓰기 — 선택 규칙만 바꾸기 (LLM에서 자율 에이전트까지 1장 실험)
+     19. bigram 이어 쓰기 — 디코딩 전략만 바꾸기 (LLM에서 자율 에이전트까지 1장 실험)
      책의 파이썬 코드와 같은 말뭉치·같은 계산 순서·같은 난수(파이썬 random의 MT19937)를 쓴다.
      그래서 시드 0–199의 판독값이 책의 결과 표와 같다.
      ====================================================================== */
@@ -1968,10 +1968,10 @@
   ];
   Lab.register({
     id: "bigram-decode", field: "dl", thumb: "bars", layout: "stack",
-    title: "이어 쓰기 — 선택 규칙만 바꾸기 (바이그램 모형)",
-    desc: "17문장으로 센 바이그램 모형에서 탐욕 선택·온도·top-p만 바꾸어 200번씩 이어 쓰고, 반복·다양성·본 적 없는 이어짐을 셉니다.",
-    tags: ["LLM", "디코딩", "샘플링", "바이그램", "온도", "top-p"],
-    note: "해볼 것: ① <b>탐욕 선택</b>을 고르면 여섯 줄이 모두 같은 반복에 빠집니다. 그래프에서 막대 하나만 남는 이유를 보세요. ② <b>샘플링</b>에서 온도를 1.5로 올리면 그래프 오른쪽 끝 ‘본 적 없는 이어짐’ 막대가 커지고, 출력에 주황색 토큰이 늘어납니다. ③ 그 상태에서 top-p를 0.9로 내리면 무엇이 잘려 나가는지 보세요. ④ 시작 문맥을 ‘에이전트 는’으로 바꾸면 탐욕 선택도 반복 없이 끝납니다. 판독값은 시드 0–199로 200번 이어 쓴 결과이며, 책의 파이썬 코드와 같은 수를 냅니다. 주황색은 말뭉치에 한 번도 없던 두 토큰 이어짐입니다.",
+    title: "이어 쓰기 — 디코딩 전략만 바꾸기 (bigram 모델)",
+    desc: "17문장으로 센 bigram 모델에서 greedy decoding·temperature·top-p만 바꾸어 200번씩 이어 쓰고, 반복·다양성·학습에 없던 bigram을 셉니다.",
+    tags: ["LLM", "디코딩", "샘플링", "bigram", "temperature", "top-p"],
+    note: "해볼 것: ① <b>greedy</b>를 고르면 여섯 줄이 모두 같은 반복에 빠집니다. 그래프에서 막대 하나만 남는 이유를 보세요. ② <b>샘플링</b>에서 temperature를 1.5로 올리면 그래프 오른쪽 끝 ‘학습에 없던 bigram’ 막대가 커지고, 출력에 주황색 토큰이 늘어납니다. ③ 그 상태에서 top-p를 0.9로 내리면 무엇이 잘려 나가는지 보세요. ④ 프롬프트를 ‘에이전트 는’으로 바꾸면 greedy도 반복 없이 끝납니다. 판독값은 시드 0–199로 200번 이어 쓴 결과이며, 책의 Python 코드와 같은 수를 냅니다. 주황색은 말뭉치에 한 번도 없던 bigram입니다.",
     mount(S) {
       const ALPHA = 0.002, MAXNEW = 30, RUNS = 200, SHOW = 6;
       const sents = BIGRAM_CORPUS.map((l) => ["<s>", ...l.split(" "), "</s>"]);
@@ -1981,7 +1981,7 @@
       const count = (a, b) => pairs.get(a + "\u0001" + b) || 0;
       const probs = (prev) => { const z = (ctxN.get(prev) || 0) + ALPHA * vocab.length; return vocab.map((w) => (count(prev, w) + ALPHA) / z); };
       const st = { greedy: false, T: 1, topP: 1, prompt: "모델 은", seed0: 0 };
-      // 온도로 바꾼 분포 qs와, 큰 것부터 누적 확률이 topP에 닿을 때까지 남긴 후보 keep
+      // temperature로 바꾼 분포 qs와, 큰 것부터 누적 확률이 topP에 닿을 때까지 남긴 후보 keep
       function transform(p) {
         const q = p.map((v) => Math.pow(v, 1 / st.T)), s = q.reduce((a, b) => a + b, 0), qs = q.map((v) => v / s);
         const order = qs.map((v, i) => i).sort((a, b) => qs[b] - qs[a]), keep = [];
@@ -2010,13 +2010,13 @@
         else { const t = transform(p); q = p.map((v, i) => (t.keep.includes(i) ? t.qs[i] / t.cum : 0)); kept = new Set(t.keep); }
         const unseenIdx = p.map((v, i) => i).filter((i) => count(last, vocab[i]) === 0);
         const bars = seen.slice(0, 9).map((i) => ({ label: vocab[i], p: p[i], q: q[i], kept: kept.has(i) }));
-        bars.push({ label: `본 적 없는 ${unseenIdx.length}개`, p: unseenIdx.reduce((s, i) => s + p[i], 0), q: unseenIdx.reduce((s, i) => s + q[i], 0), kept: unseenIdx.some((i) => kept.has(i)), tail: true });
+        bars.push({ label: `학습에 없던 ${unseenIdx.length}개`, p: unseenIdx.reduce((s, i) => s + p[i], 0), q: unseenIdx.reduce((s, i) => s + q[i], 0), kept: unseenIdx.some((i) => kept.has(i)), tail: true });
         const m = { l: 34, r: 10, t: 28, b: 34 }, bw = (w - m.l - m.r) / bars.length, ph = h - m.t - m.b;
         const ymax = Math.max(0.35, ...bars.map((b) => Math.max(b.p, b.q))) * 1.08, Y = (v) => m.t + ph - (v / ymax) * ph;
         ctx.fillStyle = P.text; ctx.font = VZ.font(12.5, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
-        ctx.fillText(`‘${last}’ 다음 토큰의 확률 — 첫 걸음`, 8, 6);
+        ctx.fillText(`‘${last}’ 다음 토큰의 확률 — 첫 단계`, 8, 6);
         ctx.fillStyle = P.dim; ctx.font = VZ.font(10.5, false); ctx.textAlign = "right";
-        ctx.fillText("막대: 규칙을 적용한 확률 · 점선: 원래 확률", w - m.r, 8);
+        ctx.fillText("막대: 디코딩 전략을 적용한 확률 · 점선: 원래 확률", w - m.r, 8);
         ctx.strokeStyle = P.grid; ctx.fillStyle = P.dim; ctx.font = VZ.font(10); ctx.textBaseline = "middle";
         const stepV = ymax > 0.6 ? 0.2 : 0.1;
         for (let v = 0; v <= ymax + 1e-9; v += stepV) { ctx.beginPath(); ctx.moveTo(m.l, Y(v)); ctx.lineTo(w - m.r, Y(v)); ctx.stroke(); ctx.fillText(v.toFixed(1), m.l - 5, Y(v)); }
@@ -2046,8 +2046,8 @@
         return `<div><span style="font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-right:8px">시드 ${seed}</span>${toks}${end ? "" : ` <span style="color:var(--bad);font-size:12px">… 새 토큰 ${MAXNEW}개에서 멈춤</span>`}</div>`;
       }
       const set = S.stats([
-        { k: "end", label: "끝맺음" }, { k: "dist", label: "서로 다른 출력" }, { k: "rep", label: "반복" },
-        { k: "un", label: "본 적 없는 이어짐" }, { k: "len", label: "평균 새 토큰" },
+        { k: "end", label: "EOS 도달" }, { k: "dist", label: "서로 다른 출력" }, { k: "rep", label: "반복" },
+        { k: "un", label: "학습에 없던 bigram" }, { k: "len", label: "평균 새 토큰" },
       ]);
       function upd() {
         cv.redraw();
@@ -2066,10 +2066,10 @@
       }
       let tCtl, pCtl;
       const lock = () => { [tCtl, pCtl].forEach((c) => { c.el.disabled = st.greedy; c.el.closest(".ctrl").style.opacity = st.greedy ? 0.45 : 1; }); };
-      const ruleCtl = S.seg({ label: "선택 규칙", options: [["sample", "샘플링"], ["greedy", "탐욕 선택"]], value: "sample", onChange: (v) => { st.greedy = v === "greedy"; lock(); upd(); } });
-      tCtl = S.range({ label: "온도 T", min: 0.1, max: 2, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
+      const ruleCtl = S.seg({ label: "디코딩 전략", options: [["sample", "샘플링"], ["greedy", "greedy"]], value: "sample", onChange: (v) => { st.greedy = v === "greedy"; lock(); upd(); } });
+      tCtl = S.range({ label: "temperature T", min: 0.1, max: 2, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
       pCtl = S.range({ label: "top-p (누적 확률)", min: 0.5, max: 1, step: 0.01, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.topP = v; upd(); } });
-      const promptCtl = S.select({ label: "시작 문맥", options: [["모델 은", "모델 은"], ["사람 은", "사람 은"], ["에이전트 는", "에이전트 는"], ["토큰 을", "토큰 을"]], value: st.prompt, onChange: (v) => { st.prompt = v; upd(); } });
+      const promptCtl = S.select({ label: "프롬프트", options: [["모델 은", "모델 은"], ["사람 은", "사람 은"], ["에이전트 는", "에이전트 는"], ["토큰 을", "토큰 을"]], value: st.prompt, onChange: (v) => { st.prompt = v; upd(); } });
       S.button("다음 시드 6개 보기", () => { st.seed0 = (st.seed0 + SHOW) % RUNS; upd(); }, { primary: true });
       S.button("처음 설정으로", () => {
         Object.assign(st, { greedy: false, T: 1, topP: 1, prompt: "모델 은", seed0: 0 });
