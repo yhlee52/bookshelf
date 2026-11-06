@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>18 변분법과 WKB · QuantumBook</title>
-<meta name="description" content="변분 원리로 헬륨의 바닥 에너지를 추정하고 WKB 근사, 전환점 연결 공식, 보어–좀머펠트 양자화 조건을 유도한다.">
+<meta name="description" content="변분 원리와 레일리–리츠 방법으로 에너지의 상계를 구해 헬륨에 적용하고, WKB 근사와 에어리 함수의 연결 공식으로 알파 붕괴의 터널링과 보어–좀머펠트 양자화를 유도한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -29,73 +29,169 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">18</span></div>
     <h1 data-fill="chapter-title">변분법과 WKB</h1>
-    <p class="lead">슈뢰딩거 방정식을 정확히 풀기 어려울 때도 에너지를 추정할 수 있을까? 바닥 상태에 대해서는 시험 상태의 평균 에너지가 반드시 참값보다 높다는 사실을 이용한다. 공간에 따라 퍼텐셜이 천천히 바뀌는 1차원 문제에서는 파동의 국소 파장과 진폭을 이어 붙여 에너지 준위를 찾을 수 있다.</p>
+    <p class="lead">슈뢰딩거 방정식을 정확히 풀 수 있는 계는 손에 꼽는다. 전자가 둘인 헬륨이나 퍼텐셜이 \(x^4\)인 진동자만 되어도 닫힌 해가 없다. 이 장은 정확한 해 없이 에너지를 얻는 두 방법을 다룬다. 변분법은 바닥 에너지보다 반드시 높은 값을 주므로 위에서부터 참값에 다가간다. WKB 근사는 퍼텐셜이 한 파장 동안 거의 변하지 않을 때 고전 역학의 작용으로 파동함수와 에너지 준위를 쓴다.</p>
     <ul class="objectives">
-      <li>변분 원리의 상계 성질을 증명하고 시험 상태의 매개변수를 최적화한다.</li>
-      <li>헬륨의 두 전자 모형에서 유효 핵전하와 바닥 에너지의 변분 추정값을 구한다.</li>
-      <li>WKB 파동함수와 적용 조건을 유도하고 터널링 지수를 계산한다.</li>
-      <li>전환점의 연결 공식에서 위상 \(\pi/4\)와 보어–좀머펠트 양자화 조건을 얻는다.</li>
+      <li>변분 원리의 상계 성질을 증명하고, 에너지 오차가 상태 오차의 제곱이라는 점과 척도 최적화의 비리얼 관계를 유도한다.</li>
+      <li>레일리–리츠 방법을 일반화 고유값 문제로 세우고, 리츠 값이 모든 준위의 상계라는 것을 보인다.</li>
+      <li>헬륨의 유효 핵전하를 최적화하고 결과를 정확한 값, 이온화 에너지와 비교한다.</li>
+      <li>WKB 해와 그 적용 조건을 유도하고, 터널링 지수로 알파 붕괴의 반감기를 추정한다.</li>
+      <li>에어리 함수로 전환점의 연결 공식을 유도하고 보어–좀머펠트 양자화 조건과 그 정확도를 확인한다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch02.html#thm-spectral">2장</a> (고유상태 전개), <a href="ch07.html">7장</a> (1차원 속박과 터널링), <a href="ch12.html">12장</a> (동일 전자), <a href="ch15.html">15장</a> (수소 원자의 \(1s\) 상태), <a href="ch17.html#thm-triplet-singlet">17장</a> (스핀 단일항)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch02.html#thm-spectral">2장</a> (고유상태 전개), <a href="ch07.html#eq-barrier-thick">7장</a> (장벽 터널링), <a href="ch09.html#ex-virial">9장</a> (비리얼 정리), <a href="ch11.html#math-stationary-phase">11장</a> (정류 위상), <a href="ch15.html#eq-inverse-r">15장</a> (수소꼴 원자의 평균값), <a href="ch17.html#thm-triplet-singlet">17장</a> (스핀 단일항)</p>
   </header>
 
   <section id="s1">
     <h2>변분 원리</h2>
-    <p>바닥 에너지 \(E_0\)를 모르는 계에서 계산하기 쉬운 <span class="term">시험 상태</span> <span class="en">(trial state)</span> \(|\phi\rangle\)를 고른다. 그 상태의 평균 에너지를 낮추면 실제 바닥 에너지에 다가갈 수 있다. 이 절에서는 \(\hat H\)가 아래로 유계이고 정규화 가능한 바닥 상태를 가진다고 가정한다.</p>
+    <p>바닥 에너지 \(E_0\)를 모르는 계에서 계산하기 쉬운 <span class="term">시험 상태</span> <span class="en">(trial state)</span> \(|\phi\rangle\)를 하나 고른다. 그 상태의 평균 에너지는 언제나 \(E_0\)보다 높거나 같다. 따라서 시험 상태를 바꿔 가며 평균 에너지를 낮추면 위에서부터 바닥 에너지에 다가갈 수 있다. 이 절에서는 \(\hat H\)가 아래로 유계이고 정규화할 수 있는 바닥 상태를 가진다고 가정한다.</p>
     <div class="box thm" id="thm-variational"><div class="box-h">바닥 상태의 변분 원리</div>
       <div class="formula" id="eq-variational-bound">\[
         \mathcal E[\phi]=\frac{\langle\phi|\hat H|\phi\rangle}{\langle\phi|\phi\rangle}
         \geq E_0,\qquad |\phi\rangle\ne0.
       \]</div>
-      <p>정규화하지 않은 상태에도 쓸 수 있다. \(|\phi\rangle=\sum_n c_n|n\rangle\)를 에너지 고유상태로 전개하면</p>
+      <p>정규화하지 않은 상태에도 쓸 수 있다. <a href="ch02.html#thm-spectral">스펙트럼 정리</a>로 \(|\phi\rangle=\sum_n c_n|n\rangle\)처럼 에너지 고유상태로 전개하면 \(\langle\phi|\hat H|\phi\rangle=\sum_n|c_n|^2E_n\), \(\langle\phi|\phi\rangle=\sum_n|c_n|^2\)이다. 분자에서 \(E_0\langle\phi|\phi\rangle\)를 빼면</p>
       <div class="formula" id="eq-variational-proof">\[
         \mathcal E[\phi]-E_0
         =\frac{\sum_n |c_n|^2(E_n-E_0)}{\sum_n|c_n|^2}\geq0.
       \]</div>
-      <p>모든 항이 음수가 아니므로 상계가 성립한다. 등호는 \(|\phi\rangle\)가 바닥 에너지의 고유공간 안에 있을 때 성립한다. 연속 스펙트럼이 있어도 \(\hat H-E_0\)의 양의 성질로 같은 결론을 얻는다.</p>
+      <p>모든 항이 음수가 아니므로 상계가 성립한다. 등호는 \(|\phi\rangle\)가 바닥 에너지의 고유공간 안에 있을 때 성립한다. 연속 스펙트럼이 있으면 합이 적분으로 바뀔 뿐 결론은 같다.</p>
     </div>
-    <p>매개변수 \(\lambda\)를 가진 시험 상태 \(\phi_\lambda\)를 정하고 \(\mathcal E(\lambda)\)를 최소화한다. 시험 상태를 고를 수 있는 범위를 넓히면 최소값은 올라가지 않는다. 그러나 에너지가 잘 맞는다고 다른 관측량의 평균값도 같은 정확도로 맞는다는 보장은 없다. 들뜬 상태에는 더 낮은 에너지 고유상태들과 직교한다는 조건을 추가해야 그 준위의 상계를 얻는다.</p>
+    <p>실제로는 매개변수 \(\lambda\)를 가진 시험 상태 \(\phi_\lambda\)를 정하고 \(\mathcal E(\lambda)\)를 최소화한다. 그 최솟값이 이 함수족에서 얻을 수 있는 가장 좋은 상계다. 함수족을 넓히면 최솟값은 올라가지 않는다.</p>
+
+    <h3 id="s1-error">에너지 오차는 상태 오차의 제곱이다</h3>
+    <p>변분법이 대충 고른 시험 상태로도 에너지를 잘 맞히는 데는 이유가 있다. 시험 상태가 바닥 상태에서 조금 벗어났다고 하자. 벗어난 부분을 바닥 상태와 직교하게 잡아 \(|\phi\rangle=|0\rangle+\eta|\chi\rangle\), \(\langle0|\chi\rangle=0\), \(\langle\chi|\chi\rangle=1\)로 쓴다. 분모는 \(\langle\phi|\phi\rangle=1+\eta^2\)이다. 분자 \(\langle\phi|(\hat H-E_0)|\phi\rangle\)를 펼치면 \((\hat H-E_0)|0\rangle=0\)이고 에르미트성으로 \(\langle0|(\hat H-E_0)=0\)이므로, \(\eta\)의 0차 항과 1차 항 두 개가 모두 사라진다.</p>
+    <div class="formula" id="eq-variational-quadratic">\[ \begin{aligned}
+      \mathcal E[\phi]-E_0
+        &amp;=\frac{\langle\phi|(\hat H-E_0)|\phi\rangle}{\langle\phi|\phi\rangle}\\
+        &amp;=\frac{\eta^2\,\langle\chi|(\hat H-E_0)|\chi\rangle}{1+\eta^2}.
+    \end{aligned} \]</div>
+    <p>상태가 10% 틀리면(\(\eta=0.1\)) 에너지 오차는 \(\langle\chi|(\hat H-E_0)|\chi\rangle\)의 1%에 그친다. 반면 같은 시험 상태로 계산한 다른 관측량에는 보통 1차 오차가 남는다. \(\langle\hat A\rangle\)를 같은 방식으로 펼치면 \(2\eta\,{\rm Re}\langle0|\hat A|\chi\rangle\)가 남기 때문이다. 에너지가 잘 맞았다고 파동함수와 다른 평균값까지 그만큼 정확하다고 볼 수는 없다.</p>
+    <p>1차 항이 사라지는 것은 바닥 상태만의 성질이 아니다. \(|\phi\rangle\)를 \(|\phi\rangle+|\delta\phi\rangle\)로 조금 바꾸고 \(\mathcal E\langle\phi|\phi\rangle=\langle\phi|\hat H|\phi\rangle\)의 양변을 1차까지 비교하면 \(\delta\mathcal E\,\langle\phi|\phi\rangle+\mathcal E(\langle\delta\phi|\phi\rangle+\langle\phi|\delta\phi\rangle)=\langle\delta\phi|\hat H|\phi\rangle+\langle\phi|\hat H|\delta\phi\rangle\)이다. 정리하면</p>
+    <div class="formula" id="eq-variational-stationary">\[ \begin{aligned}
+      \delta\mathcal E\,\langle\phi|\phi\rangle
+        &amp;=\langle\delta\phi|(\hat H-\mathcal E)|\phi\rangle\\
+        &amp;\quad+\langle\phi|(\hat H-\mathcal E)|\delta\phi\rangle.
+    \end{aligned} \]</div>
+    <p>\(|\delta\phi\rangle\) 대신 \(i|\delta\phi\rangle\)를 넣으면 첫 항은 \(-i\)배, 둘째 항은 \(i\)배가 된다. 두 경우 모두 \(\delta\mathcal E=0\)이려면 각 항이 따로 0이어야 하므로, 모든 방향에서 정류하는 조건은 \((\hat H-\mathcal E)|\phi\rangle=0\)이다. 곧 \(\mathcal E[\phi]\)의 정류점은 정확히 에너지 고유상태들이고, 그 가운데 바닥 상태만 최소점이다.</p>
     <div class="box ex" id="ex-gaussian-variational"><div class="box-h">조화 진동자의 가우스 시험 상태</div>
-      <p>\(\hat H=\hat p^2/(2m)+m\omega^2\hat x^2/2\)에 \(\phi_\alpha(x)=(\alpha/\pi)^{1/4}e^{-\alpha x^2/2}\), \(\alpha&gt;0\)를 넣는다. 가우스 적분으로 \(\langle x^2\rangle=1/(2\alpha)\)이며, \(\phi_\alpha'= -\alpha x\phi_\alpha\)를 이용하면 \(\langle p^2\rangle=\hbar^2\alpha/2\)다.</p>
-      <div class="formula" id="eq-gaussian-energy">\[
-        \mathcal E(\alpha)=\frac{\hbar^2\alpha}{4m}+\frac{m\omega^2}{4\alpha},
-        \qquad \frac{d\mathcal E}{d\alpha}=0
+      <p>\(\hat H=\hat p^2/(2m)+m\omega^2\hat x^2/2\)에 \(\phi_\alpha(x)=(\alpha/\pi)^{1/4}e^{-\alpha x^2/2}\), \(\alpha&gt;0\)를 넣는다. \(|\phi_\alpha|^2\)은 분산 \(1/(2\alpha)\)인 가우스 분포이므로 \(\langle x^2\rangle=1/(2\alpha)\)이다. \(\phi_\alpha'=-\alpha x\phi_\alpha\)이므로 \(\langle p^2\rangle=\hbar^2\int|\phi_\alpha'|^2dx=\hbar^2\alpha^2\langle x^2\rangle=\hbar^2\alpha/2\)다.</p>
+      <div class="formula" id="eq-gaussian-energy">\[ \begin{gathered}
+        \mathcal E(\alpha)=\frac{\hbar^2\alpha}{4m}+\frac{m\omega^2}{4\alpha},\\
+        \frac{d\mathcal E}{d\alpha}=0
         \ \Longrightarrow\ \alpha_*=\frac{m\omega}{\hbar},\quad
         \mathcal E(\alpha_*)=\frac{\hbar\omega}{2}.
+      \end{gathered} \]</div>
+      <p>이 시험 함수족에는 실제 바닥 상태가 들어 있어 상계가 정확한 값과 같다. 다음 예제에서는 같은 최적화가 근삿값을 준다.</p>
+    </div>
+    <div class="box ex" id="ex-quartic-variational"><div class="box-h">비조화 진동자의 가우스 시험 상태</div>
+      <p>\(\hat H=\hat p^2/(2m)+g\hat x^4\), \(g&gt;0\)에는 닫힌 해가 없다. 같은 \(\phi_\alpha\)를 넣자. 분산 \(\sigma^2=1/(2\alpha)\)인 가우스 분포의 4차 모멘트는 \(3\sigma^4\)이므로 \(\langle x^4\rangle=3/(4\alpha^2)\)이다. 운동 에너지는 앞 예제와 같다.</p>
+      <div class="formula" id="eq-quartic-energy">\[ \begin{gathered}
+        \mathcal E(\alpha)=\frac{\hbar^2\alpha}{4m}+\frac{3g}{4\alpha^2},\\
+        \frac{d\mathcal E}{d\alpha}=\frac{\hbar^2}{4m}-\frac{3g}{2\alpha^3}=0
+        \ \Longrightarrow\ \alpha_*^3=\frac{6mg}{\hbar^2},\\
+        \mathcal E(\alpha_*)=\frac{3\cdot6^{1/3}}{8}\,\varepsilon_g\simeq0.6814\,\varepsilon_g.
+      \end{gathered} \]</div>
+      <p>에너지 단위 \(\varepsilon_g=(\hbar^4g/m^2)^{1/3}\)은 \(\hbar,m,g\)로 만들 수 있는 유일한 에너지 조합이다. 큰 행렬을 대각화해 구한 정확한 바닥 에너지는 \(0.66799\,\varepsilon_g\)이므로(18.2절) 가우스 하나로 2.0% 이내에 들어왔다. 최적점에서 운동 에너지는 \(6^{1/3}\varepsilon_g/4\simeq0.454\,\varepsilon_g\), 퍼텐셜 에너지는 \(6^{1/3}\varepsilon_g/8\simeq0.227\,\varepsilon_g\)로 정확히 \(2:1\)이다.</p>
+    </div>
+    <p>운동 에너지와 퍼텐셜 에너지의 비가 깔끔한 정수비로 나온 것은 우연이 아니다. 가우스 \(\phi_\alpha\)는 한 함수를 늘이거나 줄여서 만든 함수족이고, 그런 함수족에서 최적화하면 언제나 다음 관계가 성립한다.</p>
+    <div class="box thm" id="thm-scaling-virial"><div class="box-h">척도 최적화와 비리얼 관계</div>
+      <p>시험 함수 \(\phi\)를 늘이거나 줄인 함수족 \(\phi_\lambda(x)=\sqrt\lambda\,\phi(\lambda x)\), \(\lambda&gt;0\)을 생각하자. 모든 \(\lambda\)에서 정규화가 유지된다. 퍼텐셜이 \(V(sx)=s^kV(x)\)인 \(k\)차 동차 함수이면</p>
+      <div class="formula" id="eq-scaling-energy">\[
+        \langle T\rangle_\lambda=\lambda^2\langle T\rangle_1,\qquad
+        \langle V\rangle_\lambda=\lambda^{-k}\langle V\rangle_1
       \]</div>
-      <p>이 시험 함수족에는 실제 바닥 상태가 들어 있어 이 예에서는 상계가 정확한 값과 같다. 이후 헬륨 예제에서는 같은 최적화가 근삿값을 준다.</p>
+      <p>이고, \(\mathcal E(\lambda)\)가 최소인 \(\lambda_*\)에서</p>
+      <div class="formula" id="eq-scaling-virial">\[ 2\langle T\rangle_{\lambda_*}=k\,\langle V\rangle_{\lambda_*}. \]</div>
+      <p>3차원에서 \(N\)개 입자의 시험 함수는 \(\lambda^{3N/2}\phi(\lambda\boldsymbol r_1,\ldots,\lambda\boldsymbol r_N)\)로 늘이며, 결론은 같다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>\(\phi_\lambda'(x)=\lambda^{3/2}\phi'(\lambda x)\)이므로 \(y=\lambda x\)로 바꾸면 \(\int|\phi_\lambda'|^2dx=\lambda^3\int|\phi'(\lambda x)|^2dx=\lambda^2\int|\phi'(y)|^2dy\)이다. 퍼텐셜은 \(\int\lambda|\phi(\lambda x)|^2V(x)\,dx=\int|\phi(y)|^2V(y/\lambda)\,dy=\lambda^{-k}\langle V\rangle_1\)이다. 따라서 \(\mathcal E(\lambda)=\lambda^2\langle T\rangle_1+\lambda^{-k}\langle V\rangle_1\)이고, \(d\mathcal E/d\lambda=2\lambda\langle T\rangle_1-k\lambda^{-k-1}\langle V\rangle_1=0\)의 양변에 \(\lambda_*\)를 곱하면 \(2\lambda_*^2\langle T\rangle_1=k\lambda_*^{-k}\langle V\rangle_1\)이다. 식 <a class="ref" href="#eq-scaling-energy"></a>로 양변을 \(\lambda_*\)에서의 평균값으로 바꾸면 결론이 나온다.</p>
+      </details>
     </div>
-    <div class="box math" id="math-rayleigh-ritz"><div class="box-h">유한 기저로 넓히기: 레일리–리츠 방법</div>
-      <p>\(|\phi\rangle=\sum_i c_i|\chi_i\rangle\)를 여러 기저 함수의 합으로 두면 에너지 최소 조건은 \(\mathbf H\boldsymbol c=\mathcal E\,\mathbf S\boldsymbol c\)가 된다. 여기서 \(H_{ij}=\langle\chi_i|\hat H|\chi_j\rangle\), \(S_{ij}=\langle\chi_i|\chi_j\rangle\)다. 기저가 정규 직교하면 \(\mathbf S=I\)이고, 그렇지 않으면 겹침 행렬 \(\mathbf S\)를 함께 계산한다.</p>
-    </div>
+    <p>정확한 고유상태가 만족하는 <a href="ch09.html#ex-virial">9장의 비리얼 정리</a> \(2\langle T\rangle=k\langle V\rangle\)와 같은 꼴이다. 가우스 \(\phi_\alpha\)는 \(\lambda=\sqrt\alpha\)로 늘인 함수족이므로 앞 예제의 \(2:1\)은 \(k=4\)인 경우다. 척도를 최적화하면 함수의 모양이 틀려도 이 관계가 정확히 성립한다. 그러므로 비리얼 관계가 맞는다는 사실만으로 근사가 좋다고 판단할 수는 없다. 반대로 척도 매개변수가 없는 시험 상태에서는 비리얼 관계가 어긋난 정도가 개선의 여지를 알려 준다.</p>
+    <div class="callout tip"><strong>시험 함수를 고르는 요령</strong><p>정확한 해가 지켜야 할 성질을 먼저 담는다. 경계 조건과 무한대에서의 감쇠, 퍼텐셜의 대칭(패리티, 각운동량), 동일 입자의 교환 대칭이 그것이다. 쿨롱 퍼텐셜의 바닥 상태는 원점에서 뾰족하고 멀리서 \(e^{-r}\)처럼 줄어드므로, \(e^{-r}\)꼴이 \(e^{-r^2}\)꼴보다 훨씬 낫다(<a class="ref" href="#prob-hydrogen-gaussian"></a>). 그다음 척도 매개변수를 하나 넣어 최적화하고, 더 필요하면 18.2절처럼 여러 함수의 선형 결합으로 넓힌다.</p></div>
   </section>
 
   <section id="s2">
+    <h2>들뜬 상태와 레일리–리츠 방법</h2>
+    <p>변분 원리는 바닥 상태 하나에만 상계를 준다. 들뜬 준위를 추정하려면 시험 상태에 조건을 더해야 한다. 낮은 고유상태 \(|0\rangle,\ldots,|k-1\rangle\)과 직교하는 시험 상태에는 그 성분이 없으므로, 식 <a class="ref" href="#eq-variational-proof"></a>의 합이 \(n=k\)부터 시작한다.</p>
+    <div class="formula" id="eq-excited-bound">\[
+      \langle n|\phi\rangle=0\quad(n=0,\ldots,k-1)
+      \ \Longrightarrow\ \mathcal E[\phi]\geq E_k.
+    \]</div>
+    <p>정확한 \(|0\rangle\)을 모르면 이 직교 조건을 직접 걸 수 없다. 대칭이 이 문제를 풀어 준다. 퍼텐셜이 짝함수인 1차원 문제에서 속박 상태는 짝함수이거나 홀함수이고(<a href="ch07.html#thm-real-parity">7장</a>), 홀함수 시험 상태는 모든 짝 고유상태와 자동으로 직교한다. 따라서 홀 시험 상태의 평균 에너지는 가장 낮은 홀 준위의 상계다. \(x^4\) 진동자에서는 그 준위가 첫 들뜬 상태 \(E_1\)이다(<a class="ref" href="#prob-quartic-odd"></a>). 3차원에서는 궤도 각운동량 \(l\)이, 두 전자계에서는 전체 스핀이 같은 역할을 한다. 대칭 부류마다 가장 낮은 준위의 상계를 따로 얻는다.</p>
+    <p>시험 상태를 체계적으로 넓히는 방법은 정해진 함수 여러 개의 선형 결합을 쓰는 것이다. 그러면 결합 계수가 변분 매개변수가 되어, 최소화 문제가 행렬의 고유값 문제로 바뀐다.</p>
+    <div class="box math" id="math-rayleigh-ritz"><div class="box-h">유한 기저로 넓히기: 레일리–리츠 방법</div>
+      <p>서로 독립인 기저 함수 \(|\chi_1\rangle,\ldots,|\chi_N\rangle\)으로 \(|\phi\rangle=\sum_ic_i|\chi_i\rangle\)를 만든다. 기저가 정규 직교일 필요는 없다. \(H_{ij}=\langle\chi_i|\hat H|\chi_j\rangle\)와 <span class="term">겹침 행렬</span> <span class="en">(overlap matrix)</span> \(S_{ij}=\langle\chi_i|\chi_j\rangle\)를 쓰면 평균 에너지는 계수 벡터 \(\boldsymbol c\)의 함수다.</p>
+      <div class="formula" id="eq-ritz-functional">\[
+        \mathcal E(\boldsymbol c)=\frac{\boldsymbol c^\dagger\mathbf H\boldsymbol c}{\boldsymbol c^\dagger\mathbf S\boldsymbol c}.
+      \]</div>
+      <p>\(c_i\)와 \(c_i^*\)를 독립 변수로 보고 \(c_i^*\)로 미분하면 \(\partial\mathcal E/\partial c_i^*=[(\mathbf H\boldsymbol c)_i-\mathcal E\,(\mathbf S\boldsymbol c)_i]/(\boldsymbol c^\dagger\mathbf S\boldsymbol c)\)이다. 모든 \(i\)에서 이것이 0이어야 하므로</p>
+      <div class="formula" id="eq-ritz-equation">\[
+        \mathbf H\boldsymbol c=\varepsilon\,\mathbf S\boldsymbol c,\qquad
+        \det(\mathbf H-\varepsilon\mathbf S)=0.
+      \]</div>
+      <p>이를 <span class="term">일반화 고유값 문제</span> <span class="en">(generalized eigenvalue problem)</span>라 한다. 해인 <span class="term">리츠 값</span> <span class="en">(Ritz value)</span>을 \(\varepsilon_0\le\varepsilon_1\le\cdots\le\varepsilon_{N-1}\)로 쓴다. \(\mathbf S\)는 양의 정부호 에르미트 행렬이므로 \(\boldsymbol y=\mathbf S^{1/2}\boldsymbol c\)로 바꾸면 보통의 에르미트 고유값 문제 \(\mathbf S^{-1/2}\mathbf H\mathbf S^{-1/2}\boldsymbol y=\varepsilon\boldsymbol y\)가 된다. 그래서 리츠 값은 실수이고, 고유벡터를 \(\boldsymbol c^{(i)\dagger}\mathbf S\boldsymbol c^{(j)}=\delta_{ij}\), \(\boldsymbol c^{(i)\dagger}\mathbf H\boldsymbol c^{(j)}=\varepsilon_j\delta_{ij}\)가 되도록 고를 수 있다. 기저가 정규 직교하면 \(\mathbf S=I\)이다.</p>
+    </div>
+    <p>가장 낮은 리츠 값 \(\varepsilon_0\)는 기저가 펼치는 공간 안에서 \(\mathcal E\)의 최솟값이므로 바닥 에너지의 상계다. 나머지 리츠 값도 각각 들뜬 준위의 상계라는 점이 레일리–리츠 방법의 쓸모를 크게 넓힌다.</p>
+    <div class="box thm" id="thm-ritz-bounds"><div class="box-h">리츠 값은 모든 준위의 상계다</div>
+      <p>정확한 준위를 \(E_0\le E_1\le\cdots\)로 쓰면 \(N\)개 기저의 리츠 값은</p>
+      <div class="formula" id="eq-ritz-bounds">\[ \begin{gathered}
+        \varepsilon_k^{(N)}\geq E_k,\qquad
+        \varepsilon_k^{(N+1)}\leq\varepsilon_k^{(N)}\\
+        (k=0,\ldots,N-1).
+      \end{gathered} \]</div>
+      <p>둘째 식은 기저 함수를 하나 더하면 모든 리츠 값이 내려가거나 그대로라는 뜻이다. 이를 힐레라스–운데임–맥도널드 정리라 한다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>리츠 벡터 \(\boldsymbol c^{(0)},\ldots,\boldsymbol c^{(k)}\)가 만드는 상태들이 펼치는 \(k+1\)차원 공간 \(W\)를 생각하자. \(W\)의 상태 \(\boldsymbol c=\sum_{j\le k}d_j\boldsymbol c^{(j)}\)의 평균 에너지는 위의 직교 관계로 \(\mathcal E=\sum_j|d_j|^2\varepsilon_j/\sum_j|d_j|^2\le\varepsilon_k\)이다. 한편 \(W\) 안에서 정확한 고유상태 \(|0\rangle,\ldots,|k-1\rangle\)과 직교하라는 조건은 \(k+1\)개의 계수 \(d_j\)에 대한 \(k\)개의 선형 방정식이므로 0이 아닌 해가 있다. 그 상태는 식 <a class="ref" href="#eq-excited-bound"></a>에 따라 \(\mathcal E\geq E_k\)를 만족한다. 두 부등식을 이으면 \(E_k\le\mathcal E\le\varepsilon_k\)이다.</p>
+        <p>둘째 식도 같은 논리다. \(N+1\)개 기저가 펼치는 공간을 전체 공간으로 보면 그 안의 정확한 준위가 \(\varepsilon_k^{(N+1)}\)이고, 원래 \(N\)개 기저는 그 부분 공간을 펼친다. 첫째 식을 이 경우에 적용하면 \(\varepsilon_k^{(N)}\geq\varepsilon_k^{(N+1)}\)이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-ritz-quartic"><div class="box-h">\(x^4\) 진동자의 리츠 수렴</div>
+      <p><a class="ref" href="#ex-quartic-variational"></a>의 \(\alpha_*\)를 \(m\omega/\hbar\)로 갖는 조화 진동자의 고유함수 \(|n\rangle\)을 기저로 쓰자. \(\hat x^4\)는 패리티를 바꾸지 않으므로 짝 상태 \(|0\rangle,|2\rangle,\ldots,|2N-2\rangle\)끼리만 섞인다. 행렬 원소는 <a href="ch08.html#eq-x-p-ladder">8장의 사다리 연산자</a> \(\hat x=b(\hat a+\hat a^\dagger)/\sqrt2\), \(b^2=1/\alpha_*\)로 계산한다.</p>
+      <p>\(N=1\)이면 기저가 \(|0\rangle=\phi_{\alpha_*}\) 하나뿐이므로 \(\varepsilon_0=0.68142\,\varepsilon_g\)로 앞 예제와 같다. \(N=2\)로 \(|2\rangle\)을 더해도 \(\varepsilon_0\)는 그대로다. \(\langle0|(\hat a-\hat a^\dagger)^2|2\rangle=\sqrt2\), \(\langle0|(\hat a+\hat a^\dagger)^4|2\rangle=6\sqrt2\)를 쓰면</p>
+      <div class="formula" id="eq-ritz-offdiagonal">\[
+        \langle0|\hat H|2\rangle=\frac{\sqrt2}{4}\left(-\frac{\hbar^2\alpha}{m}+\frac{6g}{\alpha^2}\right)
+      \]</div>
+      <p>이다(기저의 폭 \(\alpha\)를 일반적으로 두었다). 이 값은 \(\alpha_*^3=6mg/\hbar^2\)에서 정확히 0이다. 가우스의 폭을 바꾸는 변화 \(\partial\phi_\alpha/\partial\alpha=(1/(4\alpha)-x^2/2)\phi_\alpha\)는 \(|0\rangle\)과 \(|2\rangle\)의 결합이다. 그래서 \(\alpha\)를 최적화할 때 \(|2\rangle\) 방향의 개선을 이미 다 써 버렸다. \(|4\rangle\)부터는 새 방향이어서 리츠 값이 다시 내려간다. \(N=3\)에서 \(\varepsilon_0=0.66973\,\varepsilon_g\), \(N=8\)에서는 상대 오차가 \(2\times10^{-7}\)까지 줄어 정확한 값 \(0.667986\,\varepsilon_g\)에 이른다. 둘째 리츠 값은 짝 준위 가운데 둘째인 \(E_2=4.69680\,\varepsilon_g\)를 위에서 근사한다.</p>
+    </div>
+    <figure class="diagram" id="fig-ritz-convergence">
+      <div class="fig-narrow"><!--fig:18-1--><svg viewBox="0 0 440 300" role="img" aria-label="x의 네제곱 퍼텐셜에서 짝 기저 함수 수 N을 1부터 8까지 늘릴 때 가장 낮은 세 리츠 값의 상대 오차를 로그 눈금으로 그렸다. 모든 오차가 양수여서 리츠 값은 정확한 준위보다 높고, N이 늘수록 줄어든다. 가장 낮은 값은 N이 1에서 2로 갈 때 그대로이다"><line x1="74" y1="236" x2="340" y2="236" class="s-grid" stroke-dasharray="2 4"/><line x1="74" y1="206.6" x2="340" y2="206.6" class="s-grid" stroke-dasharray="2 4"/><text x="66" y="211.6" class="t-math dim" text-anchor="end">10<tspan baseline-shift="super" font-size="72%">−6</tspan></text><line x1="74" y1="177.1" x2="340" y2="177.1" class="s-grid" stroke-dasharray="2 4"/><line x1="74" y1="147.7" x2="340" y2="147.7" class="s-grid" stroke-dasharray="2 4"/><text x="66" y="152.7" class="t-math dim" text-anchor="end">10<tspan baseline-shift="super" font-size="72%">−4</tspan></text><line x1="74" y1="118.3" x2="340" y2="118.3" class="s-grid" stroke-dasharray="2 4"/><line x1="74" y1="88.9" x2="340" y2="88.9" class="s-grid" stroke-dasharray="2 4"/><text x="66" y="93.9" class="t-math dim" text-anchor="end">10<tspan baseline-shift="super" font-size="72%">−2</tspan></text><line x1="74" y1="59.4" x2="340" y2="59.4" class="s-grid" stroke-dasharray="2 4"/><line x1="74" y1="30" x2="340" y2="30" class="s-grid" stroke-dasharray="2 4"/><text x="66" y="35" class="t-math dim" text-anchor="end">1</text><line x1="74" y1="244" x2="340" y2="244" class="s-line" stroke-width="1.2"/><line x1="74" y1="244" x2="74" y2="248" class="s-line" stroke-width="1.2"/><text x="74" y="264" class="t-math dim" text-anchor="middle">1</text><line x1="112" y1="244" x2="112" y2="248" class="s-line" stroke-width="1.2"/><text x="112" y="264" class="t-math dim" text-anchor="middle">2</text><line x1="150" y1="244" x2="150" y2="248" class="s-line" stroke-width="1.2"/><text x="150" y="264" class="t-math dim" text-anchor="middle">3</text><line x1="188" y1="244" x2="188" y2="248" class="s-line" stroke-width="1.2"/><text x="188" y="264" class="t-math dim" text-anchor="middle">4</text><line x1="226" y1="244" x2="226" y2="248" class="s-line" stroke-width="1.2"/><text x="226" y="264" class="t-math dim" text-anchor="middle">5</text><line x1="264" y1="244" x2="264" y2="248" class="s-line" stroke-width="1.2"/><text x="264" y="264" class="t-math dim" text-anchor="middle">6</text><line x1="302" y1="244" x2="302" y2="248" class="s-line" stroke-width="1.2"/><text x="302" y="264" class="t-math dim" text-anchor="middle">7</text><line x1="340" y1="244" x2="340" y2="248" class="s-line" stroke-width="1.2"/><text x="340" y="264" class="t-math dim" text-anchor="middle">8</text><text x="340" y="284" class="t-dim" text-anchor="end">짝 기저 함수 수 <tspan font-style="italic">N</tspan></text><text x="66" y="18" class="t-dim" text-anchor="start">상대 오차 (리츠 값 ÷ 정확한 값 − 1)</text><path d="M74 79.9 L112 79.9 L150 106.1 L188 149.5 L226 150.1 L264 165.7 L302 197.3 L340 226" class="s-acc" fill="none" stroke-width="1.8"/><circle cx="74" cy="79.9" r="4" class="f-acc"/><circle cx="112" cy="79.9" r="4" class="f-acc"/><circle cx="150" cy="106.1" r="4" class="f-acc"/><circle cx="188" cy="149.5" r="4" class="f-acc"/><circle cx="226" cy="150.1" r="4" class="f-acc"/><circle cx="264" cy="165.7" r="4" class="f-acc"/><circle cx="302" cy="197.3" r="4" class="f-acc"/><circle cx="340" cy="226" r="4" class="f-acc"/><path d="M112 57.9 L150 98.4 L188 99.3 L226 113.7 L264 144.5 L302 171.6 L340 172.5" class="s-acc2" fill="none" stroke-width="1.8"/><circle cx="112" cy="57.9" r="4" class="f-acc2"/><circle cx="150" cy="98.4" r="4" class="f-acc2"/><circle cx="188" cy="99.3" r="4" class="f-acc2"/><circle cx="226" cy="113.7" r="4" class="f-acc2"/><circle cx="264" cy="144.5" r="4" class="f-acc2"/><circle cx="302" cy="171.6" r="4" class="f-acc2"/><circle cx="340" cy="172.5" r="4" class="f-acc2"/><path d="M150 43.1 L188 68.7 L226 102.1 L264 107.6 L302 114.5 L340 134.3" class="s-line" fill="none" stroke-width="1.8"/><circle cx="150" cy="43.1" r="4" class="f-dim"/><circle cx="188" cy="68.7" r="4" class="f-dim"/><circle cx="226" cy="102.1" r="4" class="f-dim"/><circle cx="264" cy="107.6" r="4" class="f-dim"/><circle cx="302" cy="114.5" r="4" class="f-dim"/><circle cx="340" cy="134.3" r="4" class="f-dim"/><text x="352" y="231" class="t-math acc" text-anchor="start"><tspan font-style="italic">ε</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan> → <tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><text x="352" y="177.5" class="t-math acc2" text-anchor="start"><tspan font-style="italic">ε</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan> → <tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text x="352" y="139.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">ε</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan> → <tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">4</tspan></text></svg><!--/fig:18-1--></div>
+      <figcaption><b>그림 18-1.</b> \(x^4\) 진동자를 조화 진동자의 짝 고유함수 \(N\)개로 전개해 구한 리츠 값의 상대 오차(로그 눈금). \(\varepsilon_k\)는 \(k\)번째로 낮은 리츠 값이고, 짝 상태만 섞이므로 정확한 짝 준위 \(E_0,E_2,E_4\)와 비교했다. 모든 오차가 양수이고(상계) \(N\)이 늘면 줄어든다. \(\varepsilon_0\)는 \(N=1\)에서 \(N=2\)로 갈 때 그대로다.</figcaption>
+    </figure>
+    <p>그림 18-1에서 모든 오차는 양수이고 \(N\)이 늘수록 줄어든다. <a class="ref" href="#thm-ritz-bounds"></a>이 말하는 그대로다. 실제 원자·분자 계산은 대부분 이런 레일리–리츠 계산이고, 기저를 늘려 리츠 값이 더 바뀌지 않을 때 수렴했다고 본다.</p>
+  </section>
+
+  <section id="s3">
     <h2>헬륨 바닥 상태</h2>
     <p>헬륨에는 전자가 둘이다. 한 전자가 다른 전자의 전하를 느끼기 때문에 두 개의 독립적인 수소 원자처럼 정확히 풀 수 없다. 핵을 고정하고 상대론적 효과를 제외한 모형에서 핵전하를 \(Ze\)로 쓰면 헬륨은 \(Z=2\)다. 이 절의 질량은 전자 질량 \(m_e\)이며, \(e&gt;0\)는 기본 전하의 크기다.</p>
     <div class="box def" id="def-helium-hamiltonian"><div class="box-h">두 전자 쿨롱 해밀토니안</div>
-      <div class="formula" id="eq-helium-hamiltonian">\[
-        \hat H=\sum_{i=1}^{2}\left(
-          -\frac{\hbar^2}{2m_e}\nabla_i^2
-          -\frac{Ze^2}{4\pi\epsilon_0r_i}\right)
-          +\frac{e^2}{4\pi\epsilon_0r_{12}},\qquad
-        r_{12}=|\boldsymbol r_1-\boldsymbol r_2|.
-      \]</div>
-      <p>마지막 항은 전자 사이의 양의 반발 에너지다. 자연스러운 길이와 에너지로 \(a_0=4\pi\epsilon_0\hbar^2/(m_e e^2)\), \(E_{\rm h}=e^2/(4\pi\epsilon_0a_0)=\hbar^2/(m_ea_0^2)\)를 사용한다. \(a_0\)는 핵 질량을 무한대로 둔 <a href="ch15.html">15장</a>의 보어 반지름이다.</p>
+      <div class="formula" id="eq-helium-hamiltonian">\[ \begin{aligned}
+        \hat H&amp;=\hat h_Z(1)+\hat h_Z(2)+\frac{e^2}{4\pi\epsilon_0r_{12}},\\
+        \hat h_Z(i)&amp;=-\frac{\hbar^2}{2m_e}\nabla_i^2-\frac{Ze^2}{4\pi\epsilon_0r_i}.
+      \end{aligned} \]</div>
+      <p>\(\hat h_Z(i)\)는 전자 \(i\)만의 수소꼴 해밀토니안이고, 마지막 항은 \(r_{12}=|\boldsymbol r_1-\boldsymbol r_2|\)만큼 떨어진 두 전자의 반발 에너지다. 자연스러운 길이와 에너지로 \(a_0=4\pi\epsilon_0\hbar^2/(m_e e^2)\)와 <span class="term">하트리 에너지</span> <span class="en">(Hartree energy)</span> \(E_{\rm h}=e^2/(4\pi\epsilon_0a_0)=\hbar^2/(m_ea_0^2)\simeq27.211\ {\rm eV}\)를 쓴다. \(a_0\)는 핵 질량을 무한대로 둔 <a href="ch15.html">15장</a>의 보어 반지름이다.</p>
     </div>
-    <p>각 전자에 같은 \(1s\)형 궤도를 주되 핵전하 대신 조절 가능한 \(\zeta\)를 지수에 넣는다. 공간 부분이 교환에 대칭이므로 스핀 부분은 <a href="ch17.html#eq-triplet-singlet">단일항</a>으로 둔다. \(\zeta\)는 실제 핵전하가 아니라 파동함수의 너비를 정하는 시험 매개변수다.</p>
+    <p>전자 반발을 끄면 두 전자는 각각 \(\hat h_Z\)의 바닥 상태, 곧 <a href="ch15.html#eq-hydrogenic">15장의 수소꼴</a> \(1s\) 궤도에 들어간다. 그 에너지는 \(2\times(-Z^2E_{\rm h}/2)=-4E_{\rm h}\simeq-108.8\ {\rm eV}\)로, 실험에서 잰 \(-79.0\ {\rm eV}\)와 크게 다르다. 반발 항을 무시할 수 없다.</p>
+    <p>각 전자에 같은 \(1s\)형 궤도를 주되 핵전하 대신 조절 가능한 \(\zeta\)를 지수에 넣는다. 공간 부분이 교환에 대칭이므로 스핀 부분은 <a href="ch17.html#eq-triplet-singlet">단일항</a>으로 둔다. \(\zeta\)는 실제 핵전하가 아니라 파동함수의 크기를 정하는 시험 매개변수다.</p>
     <div class="formula" id="eq-helium-trial">\[
       \Psi_\zeta(\boldsymbol r_1,\boldsymbol r_2)
         =\frac{\zeta^3}{\pi a_0^3}
           e^{-\zeta(r_1+r_2)/a_0},\qquad \zeta&gt;0.
     \]</div>
-    <p>각 궤도에 대해 \(\langle1/r_i\rangle=\zeta/a_0\), \(\langle T_i\rangle=\zeta^2E_{\rm h}/2\)다. 전자 반발 항은 각도 적분을 먼저 하면 계산하기 쉽다. 두 구형 전하 분포의 상대각 코사인을 \(u\)라 하면</p>
-    <div class="formula" id="eq-helium-angular-average">\[
-      \frac12\int_{-1}^{1}\frac{du}{\sqrt{r_1^2+r_2^2-2r_1r_2u}}
-        =\frac{r_1+r_2-|r_1-r_2|}{2r_1r_2}
-        =\frac1{\max(r_1,r_2)}.
-    \]</div>
-    <p>한 전자의 반지름 확률밀도는 \(P_\zeta(r)=4\zeta^3r^2e^{-2\zeta r/a_0}/a_0^3\)이다. 두 반지름의 적분 영역을 \(r_1\geq r_2\)와 \(r_2\geq r_1\)로 나누면 같은 기여가 두 번 나온다.</p>
+    <p>평균값을 구하는 요령은 각 궤도 \(\phi_\zeta\)가 핵전하 \(\zeta\)인 수소꼴 원자의 바닥 상태라는 점을 쓰는 것이다. 해밀토니안에 \(\hat h_\zeta\)를 더하고 빼면</p>
+    <div class="formula" id="eq-helium-split">\[ \begin{aligned}
+      \hat H&amp;=\hat h_\zeta(1)+\hat h_\zeta(2)\\
+        &amp;\quad+\frac{(\zeta-Z)e^2}{4\pi\epsilon_0}\left(\frac1{r_1}+\frac1{r_2}\right)\\
+        &amp;\quad+\frac{e^2}{4\pi\epsilon_0r_{12}}.
+    \end{aligned} \]</div>
+    <p>\(\hat h_\zeta\phi_\zeta=-(\zeta^2/2)E_{\rm h}\phi_\zeta\)이므로 첫째 줄의 평균은 \(-\zeta^2E_{\rm h}\)이다. <a href="ch15.html#eq-inverse-r">15장</a>의 \(\langle1/r\rangle=1/(n^2a)\)에 \(n=1\), \(a=a_0/\zeta\)를 넣으면 \(\langle1/r_i\rangle=\zeta/a_0\)이므로 둘째 줄의 평균은 \(2(\zeta-Z)\zeta E_{\rm h}\)이다. 같은 방법으로 한 전자의 운동 에너지는 \(\langle T_i\rangle=\langle\hat h_\zeta\rangle+\zeta e^2\langle1/r_i\rangle/(4\pi\epsilon_0)=\zeta^2E_{\rm h}/2\)다.</p>
+    <p>남은 것은 전자 반발이다. 각도 적분을 먼저 하면 계산하기 쉽다. 두 위치 벡터 사이 각의 코사인을 \(u\)라 하면 \(r_{12}^2=r_1^2+r_2^2-2r_1r_2u\)이고, \(\phi_\zeta\)가 구대칭이므로 \(u\)에 대해 고르게 평균한다.</p>
+    <div class="formula" id="eq-helium-angular-average">\[ \begin{aligned}
+      &amp;\frac12\int_{-1}^{1}\frac{du}{\sqrt{r_1^2+r_2^2-2r_1r_2u}}\\
+      &amp;\quad=\frac{1}{2r_1r_2}\Bigl[\sqrt{r_1^2+r_2^2-2r_1r_2u}\,\Bigr]_{u=1}^{u=-1}\\
+      &amp;\quad=\frac{(r_1+r_2)-|r_1-r_2|}{2r_1r_2}
+         =\frac1{\max(r_1,r_2)}.
+    \end{aligned} \]</div>
+    <p>반지름 \(r_2\)인 균일한 구 껍질의 퍼텐셜과 같다. 껍질 밖에서는 중심의 점전하처럼, 안에서는 상수로 보인다. 한 전자의 반지름 확률밀도 \(P_\zeta(r)=4\zeta^3r^2e^{-2\zeta r/a_0}/a_0^3\)으로 평균하고, \(r_1\geq r_2\)와 \(r_2\geq r_1\) 두 영역이 같은 기여를 준다는 것을 쓰면</p>
     <div class="formula" id="eq-helium-repulsion">\[
       \begin{aligned}
       \left\langle\frac1{r_{12}}\right\rangle
@@ -103,11 +199,14 @@
                     \left[\int_0^{r_1}P_\zeta(r_2)\,dr_2\right]dr_1
          =\frac{5\zeta}{8a_0},\\
       \int_0^r P_\zeta(s)\,ds
-        &amp;=1-e^{-u}\left(1+u+\frac{u^2}{2}\right),
-          \qquad u=\frac{2\zeta r}{a_0}.
+        &amp;=1-e^{-v}\left(1+v+\frac{v^2}{2}\right),
+          \qquad v=\frac{2\zeta r}{a_0}.
       \end{aligned}
     \]</div>
-    <p>이 세 평균값을 식 <a class="ref" href="#eq-helium-hamiltonian"></a>에 넣으면 두 전자의 운동 에너지는 \(\zeta^2E_{\rm h}\), 핵 인력은 \(-2Z\zeta E_{\rm h}\), 전자 반발은 \(5\zeta E_{\rm h}/8\)이다.</p>
+    <details class="proof"><summary>적분 계산</summary>
+      <p>\(\lambda=2\zeta/a_0\)로 쓰면 \(P_\zeta(r)=\lambda^3r^2e^{-\lambda r}/2\)이다. 둘째 식은 \(\int_0^r s^2e^{-\lambda s}ds\)를 부분 적분 세 번으로 계산한 것이다. 이를 첫째 식에 넣으면 1에서 오는 부분과 지수에서 오는 부분으로 갈린다. 적분마다 \(\int_0^\infty r^ne^{-cr}dr=n!/c^{n+1}\)을 쓴다. 첫 부분은 \(2\int_0^\infty P_\zeta(r)\,dr/r=\lambda^3\int_0^\infty re^{-\lambda r}dr=\lambda\)이다. 둘째 부분은 \(\lambda^3\int_0^\infty re^{-2\lambda r}(1+\lambda r+\lambda^2r^2/2)\,dr\)이고, 세 항이 각각 \(\lambda^3\cdot\frac1{4\lambda^2}\), \(\lambda^4\cdot\frac{2}{8\lambda^3}\), \(\frac{\lambda^5}2\cdot\frac{6}{16\lambda^4}\)이므로 합은 \(\lambda(\tfrac14+\tfrac14+\tfrac3{16})=11\lambda/16\)이다. 차는 \(\lambda-11\lambda/16=5\lambda/16=5\zeta/(8a_0)\)이다.</p>
+    </details>
+    <p>세 평균을 모으면 \(E_{\rm h}\) 단위로 \(-\zeta^2+2(\zeta-Z)\zeta+5\zeta/8=\zeta^2-2Z\zeta+5\zeta/8\)이다.</p>
     <div class="box thm" id="thm-helium-variational"><div class="box-h">유효 핵전하의 최적값</div>
       <div class="formula" id="eq-helium-energy">\[
         \begin{aligned}
@@ -115,138 +214,229 @@
           &amp;=E_{\rm h}\left[\zeta^2-2Z\zeta+\frac{5\zeta}{8}\right],\\
         \zeta_*&amp;=Z-\frac5{16}=\frac{27}{16}\quad(Z=2),\\
         \mathcal E(\zeta_*)&amp;=-\frac{729}{256}E_{\rm h}
-          \simeq-77.5\ {\rm eV}.
+          \simeq-77.49\ {\rm eV}.
         \end{aligned}
       \]</div>
-      <p>\(d\mathcal E/d\zeta=E_{\rm h}(2\zeta-2Z+5/8)\)가 0인 곳을 택했다. \(d^2\mathcal E/d\zeta^2=2E_{\rm h}&gt;0\)이므로 최소다. \(\zeta_*=1.6875&lt;2\)는 전자 반발을 반영해 궤도가 넓어진다는 뜻이다. \(\zeta=2\)를 고정했을 때의 \(-2.75E_{\rm h}\)보다 낮지만, 여전히 이 해밀토니안의 정확한 바닥 에너지에 대한 상계다.</p>
+      <p>\(d\mathcal E/d\zeta=E_{\rm h}(2\zeta-2Z+5/8)\)가 0인 곳을 택했다. \(d^2\mathcal E/d\zeta^2=2E_{\rm h}&gt;0\)이므로 최소다. \(\zeta_*=1.6875&lt;2\)는 다른 전자가 핵전하의 일부를 가려(<span class="term">차폐</span> <span class="en">(screening)</span>) 각 전자가 느끼는 전하가 줄고 궤도가 넓어진다는 뜻이다.</p>
     </div>
-    <p>에너지의 eV 값에는 <a href="https://physics.nist.gov/cuu/pdf/wall_2022.pdf">NIST 2022 CODATA의 \(E_{\rm h}=27.211386\ {\rm eV}\)</a>를 반올림해 사용했다. 이 모형은 핵 운동과 상대론적 효과를 제외하므로 실험값과 직접 비교할 때는 그 차이도 고려해야 한다.</p>
-    <figure class="diagram">
-      <div class="fig-narrow"><svg viewBox="0 0 440 260" role="img" aria-label="헬륨 변분 에너지의 유효 핵전하에 따른 포물선과 최솟값">
-
-        <line x1="45" y1="220" x2="405" y2="220" class="s-line"/><line x1="45" y1="220" x2="45" y2="40" class="s-line"/>
-        <polyline points="45.0,87.8 51.8,96.5 58.5,104.9 65.2,112.8 72.0,120.4 78.8,127.7 85.5,134.5 92.3,141.0 99.0,147.1 105.8,152.8 112.5,158.1 119.2,163.1 126.0,167.7 132.8,171.9 139.5,175.8 146.2,179.2 153.0,182.3 159.8,185.0 166.5,187.4 173.3,189.3 180.0,190.9 186.8,192.2 193.5,193.0 200.3,193.5 207.0,193.6 213.8,193.3 220.5,192.6 227.2,191.6 234.0,190.2 240.8,188.4 247.5,186.2 254.2,183.7 261.0,180.8 267.8,177.5 274.5,173.9 281.2,169.8 288.0,165.4 294.8,160.7 301.5,155.5 308.2,150.0 315.0,144.1 321.8,137.8 328.5,131.1 335.2,124.1 342.0,116.7 348.8,108.9 355.5,100.7 362.2,92.2 369.0,83.3 375.8,74.0 382.5,64.4" class="s-acc" stroke-width="2.5"/>
-        <line x1="205.3" y1="52" x2="205.3" y2="220" class="s-grid" stroke-dasharray="4 4"/>
-        <circle cx="205.3" cy="193.6" r="4" class="f-acc"/>
-        <circle cx="247.5" cy="186.2" r="4" class="f-dim"/>
-        <text x="7" y="41" class="t-dim">E/Eₕ</text><text x="402" y="239" class="t-dim">ζ</text>
-        <text x="184" y="239" class="t-dim">27/16</text><text x="243" y="239" class="t-dim">2</text>
-        <text x="65" y="65" class="t-acc">최솟값 −729/256 Eₕ</text>
-      </svg></div>
-      <figcaption><b>그림 18-1.</b> 헬륨 시험 상태의 에너지 E(ζ)/Eₕ=ζ²−27ζ/8을 계산한 곡선. 최적 유효 핵전하 ζ=27/16에서 최소이고, 차폐를 무시한 ζ=2보다 낮은 에너지를 준다.</figcaption>
+    <p>\(\mathcal E(\zeta)\)가 \(\zeta^2\)항과 \(\zeta\)의 일차항으로만 된 것은 우연이 아니다. 식 <a class="ref" href="#eq-helium-trial"></a>의 시험 상태는 \(\zeta\)로 모든 좌표를 늘이는 함수족이고, 해밀토니안의 세 퍼텐셜 항은 모두 \(k=-1\)차 동차 함수다. <a class="ref" href="#thm-scaling-virial"></a>에 따라 운동 에너지는 \(\zeta^2\), 퍼텐셜 에너지는 \(\zeta\)에 비례하고, 최적점에서 \(\langle T\rangle=\zeta_*^2E_{\rm h}=-\mathcal E(\zeta_*)\)이다.</p>
+    <p>에너지의 eV 값에는 <a href="https://physics.nist.gov/cuu/pdf/wall_2022.pdf">NIST 2022 CODATA의 \(E_{\rm h}=27.211386\ {\rm eV}\)</a>를 썼다. 같은 고정 핵 비상대론 해밀토니안을 매우 큰 기저로 푼 수치 해는 \(-2.903724\,E_{\rm h}\)이다. 표에 여러 시험 상태의 결과를 모았다. 셋째 줄은 \(\zeta\)와 \(c\)를 함께 최적화한 값이다. 모두 이 값보다 높다(그림 18-2).</p>
+    <table>
+      <thead><tr><th>시험 상태</th><th>\(\mathcal E/E_{\rm h}\)</th><th>eV</th><th>정확한 값과의 차</th></tr></thead>
+      <tbody>
+        <tr><td>\(\zeta=2\) 고정</td><td>\(-2.7500\)</td><td>\(-74.83\)</td><td>4.18 eV</td></tr>
+        <tr><td>\(\zeta_*=27/16\)</td><td>\(-2.8477\)</td><td>\(-77.49\)</td><td>1.53 eV</td></tr>
+        <tr><td>\(\Psi_\zeta\times(1+c\,r_{12}/a_0)\)</td><td>\(-2.8911\)</td><td>\(-78.67\)</td><td>0.34 eV</td></tr>
+        <tr><td>정확한 수치 해</td><td>\(-2.9037\)</td><td>\(-79.01\)</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>\(\zeta=2\)의 값은 반발을 끈 바닥 상태로 반발 에너지의 평균을 낸 것이므로 <a href="ch19.html#thm-nondegenerate-perturbation">19장의 1차 섭동 결과</a>와 같다. 핵전하 하나를 조절하는 것만으로 오차가 4.18 eV에서 1.53 eV로 줄었다. 실험에서 잰 두 이온화 에너지의 합은 79.005 eV로, 수치 해와의 차 0.01 eV는 핵의 운동과 상대론 효과에서 온다.</p>
+    <p>총에너지보다 덜 정확한 것은 에너지의 차이다. 전자 하나를 떼어 낸 He<sup>+</sup>의 에너지는 정확히 \(-Z^2E_{\rm h}/2=-2E_{\rm h}\)이므로 첫 이온화 에너지의 추정값은 \(-2E_{\rm h}-\mathcal E(\zeta_*)=0.848\,E_{\rm h}=23.07\ {\rm eV}\)이다. 수치 해로 구한 24.59 eV보다 6% 작다. 총에너지의 오차 1.53 eV가 He<sup>+</sup> 쪽에는 없으므로 이온화 에너지에 그대로 들어가기 때문이다. 변분법은 각 에너지가 상계라는 것은 보장하지만 두 상계의 차이에 대해서는 아무것도 보장하지 않는다.</p>
+    <figure class="diagram" id="fig-helium-energy">
+      <div class="fig-narrow"><!--fig:18-2--><svg viewBox="0 0 440 290" role="img" aria-label="헬륨 시험 상태의 평균 에너지를 유효 핵전하 제타의 함수로 그린 포물선. 제타가 27/16일 때 최소 마이너스 2.8477 하트리이고, 제타가 2일 때는 마이너스 2.75 하트리다. 점선으로 표시한 정확한 값 마이너스 2.9037 하트리는 곡선 전체보다 낮다"><defs><marker id="f182-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f182-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f182-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="82" y1="207.4" x2="410" y2="207.4" class="s-grid" stroke-dasharray="2 4"/><text x="74" y="212.4" class="t-math dim" text-anchor="end">−2.9</text><line x1="82" y1="156.4" x2="410" y2="156.4" class="s-grid" stroke-dasharray="2 4"/><text x="74" y="161.4" class="t-math dim" text-anchor="end">−2.8</text><line x1="82" y1="105.4" x2="410" y2="105.4" class="s-grid" stroke-dasharray="2 4"/><text x="74" y="110.4" class="t-math dim" text-anchor="end">−2.7</text><line x1="82" y1="54.4" x2="410" y2="54.4" class="s-grid" stroke-dasharray="2 4"/><text x="74" y="59.4" class="t-math dim" text-anchor="end">−2.6</text><line x1="82" y1="238" x2="422" y2="238" class="s-line" stroke-width="1.2" marker-end="url(#f182-dim)"/><line x1="141.6" y1="238" x2="141.6" y2="242" class="s-line" stroke-width="1.2"/><text x="141.6" y="258" class="t-math dim" text-anchor="middle">1.4</text><line x1="201.3" y1="238" x2="201.3" y2="242" class="s-line" stroke-width="1.2"/><text x="201.3" y="258" class="t-math dim" text-anchor="middle">1.6</text><line x1="260.9" y1="238" x2="260.9" y2="242" class="s-line" stroke-width="1.2"/><text x="260.9" y="258" class="t-math dim" text-anchor="middle">1.8</text><line x1="320.5" y1="238" x2="320.5" y2="242" class="s-line" stroke-width="1.2"/><text x="320.5" y="258" class="t-math dim" text-anchor="middle">2.0</text><line x1="380.2" y1="238" x2="380.2" y2="242" class="s-line" stroke-width="1.2"/><text x="380.2" y="258" class="t-math dim" text-anchor="middle">2.2</text><text x="422" y="258" class="t-math dim" text-anchor="end"><tspan font-style="italic">ζ</tspan></text><text x="74" y="20" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan>/<tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">h</tspan></text><line x1="82" y1="209.3" x2="410" y2="209.3" class="s-acc2" stroke-width="1.6" stroke-dasharray="6 4"/><text x="410" y="227.3" class="t-math acc2" text-anchor="end">정확한 값 −2.9037</text><path d="M82 59.5 L85 64.4 L88 69.2 L90.9 74 L93.9 78.6 L96.9 83.1 L99.9 87.5 L102.9 91.8 L105.9 96 L108.8 100.1 L111.8 104.1 L114.8 108 L117.8 111.8 L120.8 115.5 L123.7 119.1 L126.7 122.6 L129.7 126 L132.7 129.3 L135.7 132.5 L138.7 135.6 L141.6 138.5 L144.6 141.4 L147.6 144.2 L150.6 146.9 L153.6 149.5 L156.5 151.9 L159.5 154.3 L162.5 156.6 L165.5 158.7 L168.5 160.8 L171.5 162.8 L174.4 164.6 L177.4 166.4 L180.4 168.1 L183.4 169.6 L186.4 171.1 L189.3 172.4 L192.3 173.7 L195.3 174.8 L198.3 175.9 L201.3 176.8 L204.3 177.6 L207.2 178.4 L210.2 179 L213.2 179.6 L216.2 180 L219.2 180.3 L222.1 180.5 L225.1 180.7 L228.1 180.7 L231.1 180.6 L234.1 180.4 L237.1 180.2 L240 179.8 L243 179.3 L246 178.7 L249 178 L252 177.2 L254.9 176.3 L257.9 175.3 L260.9 174.3 L263.9 173.1 L266.9 171.8 L269.9 170.3 L272.8 168.8 L275.8 167.2 L278.8 165.5 L281.8 163.7 L284.8 161.8 L287.7 159.8 L290.7 157.7 L293.7 155.5 L296.7 153.1 L299.7 150.7 L302.7 148.2 L305.6 145.6 L308.6 142.8 L311.6 140 L314.6 137.1 L317.6 134 L320.5 130.9 L323.5 127.7 L326.5 124.3 L329.5 120.9 L332.5 117.3 L335.5 113.7 L338.4 109.9 L341.4 106.1 L344.4 102.1 L347.4 98.1 L350.4 93.9 L353.3 89.7 L356.3 85.3 L359.3 80.8 L362.3 76.3 L365.3 71.6 L368.3 66.8 L371.2 62 L374.2 57 L377.2 51.9 L380.2 46.8 L383.2 41.5 L386.1 36.1" class="s-acc" fill="none" stroke-width="2.4"/><line x1="227.4" y1="136.7" x2="227.4" y2="238" class="s-faint" stroke-dasharray="3 4"/><circle cx="227.4" cy="180.7" r="5" class="f-acc"/><text x="227.4" y="110.7" class="t-math acc" text-anchor="middle"><tspan font-style="italic">ζ</tspan> = 27/16</text><text x="227.4" y="128.7" class="t-math acc" text-anchor="middle">−2.8477</text><circle cx="320.5" cy="130.9" r="5" class="f-dim"/><text x="330.5" y="150.9" class="t-math dim" text-anchor="start"><tspan font-style="italic">ζ</tspan> = 2</text><text x="330.5" y="168.9" class="t-math dim" text-anchor="start">−2.75</text><line x1="257.4" y1="183.7" x2="257.4" y2="206.3" class="s-line" stroke-width="1.2" marker-start="url(#f182-dim)" marker-end="url(#f182-dim)"/><text x="265.4" y="200" class="t-dim" text-anchor="start">0.056 <tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">h</tspan> = 1.53 eV</text></svg><!--/fig:18-2--></div>
+      <figcaption><b>그림 18-2.</b> 헬륨 시험 상태의 에너지 \(\mathcal E(\zeta)/E_{\rm h}=\zeta^2-27\zeta/8\)을 계산한 곡선. 최소점 \(\zeta_*=27/16\)은 차폐를 무시한 \(\zeta=2\)보다 낮은 에너지를 주지만, 곡선 전체가 정확한 바닥 에너지(점선)보다 위에 있다.</figcaption>
     </figure>
+    <div class="callout deep"><strong>음이온 H<sup>−</sup>는 결합할까</strong><p>같은 계산을 \(Z=1\)에 하면 \(\zeta_*=11/16\), \(\mathcal E=-(11/16)^2E_{\rm h}=-0.4727\,E_{\rm h}\)이다(<a class="ref" href="#prob-hminus"></a>). 이 값은 수소 원자 하나와 멀리 떨어져 정지한 전자의 에너지 \(-0.5\,E_{\rm h}\)보다 높다. 그렇다고 H<sup>−</sup>가 결합하지 않는다는 결론은 나오지 않는다. 상계가 문턱보다 높다는 사실은 아무것도 증명하지 않는다. 반대로 문턱보다 낮은 상계를 하나라도 찾으면 결합 상태가 있다는 증명이 된다. 찬드라세카르는 두 전자에 다른 지수를 준 시험 상태 \(e^{-(ar_1+br_2)/a_0}+e^{-(br_1+ar_2)/a_0}\)를 썼다. 이 함수로 계산하면 \(a=1.039\), \(b=0.283\)에서 \(\mathcal E=-0.5133\,E_{\rm h}&lt;-0.5\,E_{\rm h}\)이므로 H<sup>−</sup>는 결합한다. 한 전자는 수소 원자처럼 단단히 묶이고, 다른 전자는 \(a_0/b\simeq3.5\,a_0\) 정도로 넓게 퍼진다. 정밀한 수치 해는 \(-0.52775\,E_{\rm h}\)로, 전자 친화도 약 0.75 eV에 해당한다.</p></div>
+    <div class="callout deep"><strong>전자 사이의 거리를 시험 함수에 넣기</strong><p>식 <a class="ref" href="#eq-helium-trial"></a>의 곱 꼴 시험 상태에서는 한 전자의 위치가 다른 전자의 위치와 무관하다. 실제 전자들은 서로 밀어내므로 가까이 있을 확률이 줄어든다. 이 효과를 <span class="term">전자 상관</span> <span class="en">(electron correlation)</span>이라 한다. 힐레라스는 1929년에 \(r_{12}\)를 시험 함수에 직접 넣었다. 가장 간단한 \(e^{-\zeta(r_1+r_2)/a_0}(1+c\,r_{12}/a_0)\)만으로도 \(\zeta=1.850\), \(c=0.366\)에서 \(-2.8911\,E_{\rm h}\)가 되어 오차가 4분의 1 아래로 준다(위 표). \(r_1+r_2\), \(r_1-r_2\), \(r_{12}\)의 다항식으로 기저를 늘려 레일리–리츠 계산을 하면, <a class="ref" href="#thm-ritz-bounds"></a>에 따라 위에서부터 단조롭게 \(-2.903724\,E_{\rm h}\)에 다가간다.</p></div>
   </section>
 
-  <section id="s3">
+  <section id="s4">
     <h2>WKB 근사</h2>
-    <p>변분법은 시험 상태를 골라 에너지를 계산한다. 이제 1차원 파동함수 자체를 근사하는 방법을 살펴보자. 퍼텐셜 \(V(x)\)가 한 국소 파장에 걸쳐 조금씩 변한다면, 짧은 구간마다 평면파의 운동량을 \(x\)의 함수로 바꾼 뒤 이어 붙일 수 있다. 이를 <span class="term">WKB 근사</span> <span class="en">(Wentzel–Kramers–Brillouin approximation)</span>라 한다.</p>
+    <p>변분법은 시험 상태를 골라 에너지를 계산한다. 이제 1차원 파동함수 자체를 근사하는 방법을 살펴보자. 퍼텐셜이 일정하면 해는 평면파 \(e^{\pm ipx/\hbar}\)다. 퍼텐셜이 한 파장에 걸쳐 조금씩만 변하면 짧은 구간마다 평면파로 보고 그 운동량을 \(x\)의 함수로 바꿔 이어 붙일 수 있다. 이를 <span class="term">WKB 근사</span> <span class="en">(Wentzel–Kramers–Brillouin approximation)</span>라 한다. <a href="ch11.html#thm-classical-limit">11장</a>에서 전파 함수가 고전 경로의 \(e^{iS/\hbar}\)로 근사되었듯, 여기서는 파동함수가 같은 꼴을 가진다.</p>
     <div class="box def" id="def-local-momentum"><div class="box-h">국소 운동량과 금지 영역</div>
-      <div class="formula" id="eq-local-momentum">\[
-        \psi''+\frac{2m}{\hbar^2}(E-V)\psi=0,\qquad
-        p(x)=\sqrt{2m[E-V(x)]}\quad(E&gt;V),\qquad
+      <div class="formula" id="eq-local-momentum">\[ \begin{gathered}
+        \psi''+\frac{2m}{\hbar^2}(E-V)\psi=0,\\
+        p(x)=\sqrt{2m[E-V(x)]}\quad(E&gt;V),\\
         \kappa(x)=\sqrt{2m[V(x)-E]}\quad(E&lt;V).
-      \]</div>
-      <p>\(p,\kappa\)는 모두 운동량 단위다. <a href="ch07.html">7장</a>의 장벽 계산에서는 \(\kappa\)를 역길이 단위의 감쇠 상수로 썼으므로, 이 장의 \(\kappa\)를 \(\hbar\)로 나누면 그 표기와 같아진다.</p>
+      \end{gathered} \]</div>
+      <p>\(E&gt;V\)인 곳을 허용 영역, \(E&lt;V\)인 곳을 금지 영역이라 한다. \(p,\kappa\)는 모두 운동량 단위다. <a href="ch07.html">7장</a>의 장벽 계산에서는 \(\kappa\)를 역길이 단위의 감쇠 상수로 썼으므로, 이 장의 \(\kappa\)를 \(\hbar\)로 나누면 그 표기와 같아진다.</p>
     </div>
-    <p>허용 영역에서 \(\psi(x)=A(x)e^{iS(x)/\hbar}\)를 식 <a class="ref" href="#eq-local-momentum"></a>에 대입한다. \(S'\)가 지배적인 항을 먼저 맞추면 \((S')^2=p^2\)이고, 다음 차수의 항은 \(2S'A'+S''A=0\)이다. 따라서 \(S'=\pm p\), \(A^2S'=\text{상수}\)가 되어 진폭은 \(1/\sqrt p\)에 비례한다.</p>
+    <p>파동함수를 실수 진폭과 위상으로 \(\psi(x)=A(x)e^{iS(x)/\hbar}\)처럼 쓰자. 두 번 미분하면</p>
+    <div class="formula" id="eq-wkb-second-derivative">\[
+      \psi''=\Bigl[A''-\frac{A(S')^2}{\hbar^2}+\frac{i}{\hbar}\bigl(2A'S'+AS''\bigr)\Bigr]e^{iS/\hbar}.
+    \]</div>
+    <p>이를 식 <a class="ref" href="#eq-local-momentum"></a>에 넣고 실수부와 허수부를 따로 0으로 놓는다. 허수부에 \(A\)를 곱하면 \(2AA'S'+A^2S''=(A^2S')'\)이다.</p>
+    <div class="formula" id="eq-wkb-amplitude-phase">\[
+      (S')^2=p^2+\hbar^2\frac{A''}{A},\qquad \bigl(A^2S'\bigr)'=0.
+    \]</div>
+    <p>두 식 모두 아직 정확하다. 둘째 식은 확률 흐름의 보존이다. <a href="ch07.html#eq-current">7장의 확률 흐름</a> \(j=(\hbar/m){\rm Im}(\psi^*\psi')\)에 넣으면 \(j=A^2S'/m\)이므로, 정상 상태에서 흐름이 위치에 무관하다는 뜻이다. 근사는 첫째 식에서만 한다. \(\hbar^2A''/A\)가 \(p^2\)보다 훨씬 작으면 이를 버려 \(S'=\pm p\)를 얻고, 둘째 식에서 \(A^2p\)가 상수, 곧 \(A\propto p^{-1/2}\)이다. 금지 영역에서는 같은 계산에서 \(p\)를 \(i\kappa\)로 바꾸면 된다.</p>
     <div class="box thm" id="thm-wkb-forms"><div class="box-h">허용·금지 영역의 WKB 해</div>
       <div class="formula" id="eq-wkb-forms">\[
         \begin{aligned}
-        E&gt;V:\quad
-        \psi(x)&amp;\simeq\frac{C_+}{\sqrt{p(x)}}e^{\,i\int^x p(x')dx'/\hbar}
-                   +\frac{C_-}{\sqrt{p(x)}}e^{-i\int^x p(x')dx'/\hbar},\\
-        E&lt;V:\quad
-        \psi(x)&amp;\simeq\frac{D_+}{\sqrt{\kappa(x)}}e^{\,\int^x\kappa(x')dx'/\hbar}
-                   +\frac{D_-}{\sqrt{\kappa(x)}}e^{-\int^x\kappa(x')dx'/\hbar}.
+        E&gt;V:&amp;\quad
+        \psi\simeq\frac{C_+e^{i\theta(x)}+C_-e^{-i\theta(x)}}{\sqrt{p(x)}},\\
+        E&lt;V:&amp;\quad
+        \psi\simeq\frac{D_+e^{\sigma(x)}+D_-e^{-\sigma(x)}}{\sqrt{\kappa(x)}},\\
+        &amp;\quad\theta(x)=\frac1\hbar\int^x p\,dx',\\
+        &amp;\quad\sigma(x)=\frac1\hbar\int^x\kappa\,dx'.
         \end{aligned}
       \]</div>
-      <p>적분의 기준점은 계수의 위상이나 크기로 흡수된다. 허용 영역에서 \(1/\sqrt p\) 진폭은 느린 곳에 확률밀도가 더 많이 쌓이는 고전적 직관과 맞는다.</p>
+      <p>적분의 기준점은 계수의 위상이나 크기로 흡수된다.</p>
     </div>
-    <p>이 전개는 대략 \(|\hbar p'|/p^2\ll1\)이고 버린 \(A''\) 항도 충분히 작을 때 성립한다. \(V(x_t)=E\)인 <span class="term">전환점</span> <span class="en">(turning point)</span>에서는 \(p\) 또는 \(\kappa\)가 0이므로 식 <a class="ref" href="#eq-wkb-forms"></a>의 진폭이 발산한다. 실제 파동함수의 발산이 아니라 근사법이 실패한다는 신호다.</p>
+    <p>허용 영역에서 두 항 가운데 하나만 있으면 \(|\psi|^2=|C|^2/p\propto1/v\)이다. 입자가 느린 곳에 오래 머무는 <a href="ch08.html#eq-classical-density">고전적 확률밀도</a>와 같은 꼴이다. 정상파 \(\cos\theta/\sqrt p\)에서는 빠르게 진동하는 \(\cos^2\theta\)를 한 파장에 걸쳐 평균하면 같은 결론이 나온다.</p>
+
+    <h3 id="s4-validity">근사가 맞는 조건</h3>
+    <p>버린 항을 \(A=p^{-1/2}\)로 계산하면 \(A''/A=\tfrac34(p'/p)^2-\tfrac12p''/p\)이다. 이것이 \(p^2/\hbar^2\)보다 훨씬 작으려면 \((\hbar p'/p^2)^2\ll1\)과 \(\hbar^2|p''|/p^3\ll1\)이 필요하다. 첫째 조건이 핵심이다. 국소 파장 \(\lambda(x)=2\pi\hbar/p(x)\)와 \(pp'=-mV'\)을 쓰면</p>
+    <div class="formula" id="eq-wkb-validity">\[
+      \frac{\hbar|p'|}{p^2}=\frac{1}{2\pi}\left|\frac{d\lambda}{dx}\right|=\frac{m\hbar|V'|}{p^3}\ll1.
+    \]</div>
+    <p>한 파장을 지나는 동안 파장이 거의 바뀌지 않아야 한다는 뜻이다. 같은 퍼텐셜에서도 \(p\)가 클수록, 곧 에너지가 높고 \(\hbar\)가 작을수록 조건이 잘 맞는다. 그래서 WKB는 \(\hbar\)에 대한 전개의 첫 항이며 <span class="term">준고전 근사</span> <span class="en">(semiclassical approximation)</span>라고도 부른다. 반대로 \(V(x_t)=E\)인 <span class="term">전환점</span> <span class="en">(turning point)</span>에서는 \(p=0\)이어서 식 <a class="ref" href="#eq-wkb-validity"></a>의 왼쪽이 무한대가 되고, 식 <a class="ref" href="#eq-wkb-forms"></a>의 진폭도 발산한다. 실제 파동함수의 발산이 아니라 근사가 실패한다는 신호다. 이 문제는 18.5절에서 다룬다.</p>
     <div class="box ex" id="ex-wkb-tunnel"><div class="box-h">매끄러운 장벽의 터널링 지수</div>
-      <p>\(a&lt;x&lt;b\)에서 \(V(x)&gt;E\)인 두 전환점 사이의 작용을 \(K=\int_a^b\kappa(x)\,dx/\hbar\)로 쓰자. 장벽이 충분히 두꺼워 \(K\gg1\)이면 투과 확률의 주된 지수는</p>
+      <p>\(a&lt;x&lt;b\)에서 \(V(x)&gt;E\)인 두 전환점 사이의 작용을 \(K=\int_a^b\kappa(x)\,dx/\hbar\)로 쓰자. 장벽 안의 WKB 해는 식 <a class="ref" href="#eq-wkb-forms"></a>의 둘째 줄이다. 장벽이 두꺼워 \(K\gg1\)이면 오른쪽으로 갈수록 줄어드는 항 \(e^{-\sigma}\)가 지배하고, 그 진폭은 장벽을 건너는 동안 \(e^{-K}\)배가 된다. 투과 확률은 진폭의 제곱을 따르므로 주된 지수는</p>
       <div class="formula" id="eq-wkb-tunnel">\[
         T\sim e^{-2K}
         =\exp\!\left[-\frac2\hbar\int_a^b\sqrt{2m(V-E)}\,dx\right].
       \]</div>
-      <p>파동 진폭이 장벽을 건너며 \(e^{-K}\)만큼 작아지고, 확률 흐름의 비는 그 제곱을 따른다. 기호 \(\sim\)은 여기서 지수 정확도를 뜻하며 경계의 세부 구조가 정하는 앞계수는 생략했다. 전환점이 매끄럽지 않은 직사각형 장벽에는 <a href="ch07.html">7장의 경계 조건 계산</a>이 적합하다.</p>
+      <p>기호 \(\sim\)은 지수 정확도를 뜻한다. 전환점 근처의 세부 구조가 정하는 앞계수는 생략했다. 높이 \(V_0\), 폭 \(w\)인 직사각형 장벽이면 \(\kappa\)가 상수여서 \(2K=2\kappa w/\hbar\)가 되고, <a href="ch07.html#eq-barrier-thick">7장의 근사식</a>의 지수와 같다. 다만 벽이 매끄럽지 않으므로 그 앞계수 \(16(E/V_0)(1-E/V_0)\)는 WKB로 얻을 수 없고 7장처럼 경계 조건으로 계산해야 한다.</p>
     </div>
-  </section>
-
-  <section id="s4">
-    <h2>연결 공식</h2>
-    <p>전환점 양쪽의 WKB 해는 각각 그 점에서 사용할 수 없다. 그래도 \(V\)가 전환점 근처에서 거의 직선이라면 그 구간의 방정식을 정확히 풀어 두 근사해가 멀리서 어떻게 맞물리는지 알 수 있다. 오른쪽 전환점을 \(b\), 그 근처의 기울기를 \(F=V'(b)&gt;0\)라 하자.</p>
-    <div class="box math" id="math-airy-turning"><div class="box-h">직선 퍼텐셜에서 에어리 방정식</div>
-      <p>\(V(x)-E\simeq F(x-b)\)를 슈뢰딩거 방정식에 넣고 \(\ell=[\hbar^2/(2mF)]^{1/3}\), \(z=(x-b)/\ell\)로 바꾸면</p>
-      <div class="formula" id="eq-airy-equation">\[
-        \frac{d^2\psi}{dz^2}-z\psi=0,\qquad
-        \psi(z)\propto\operatorname{Ai}(z)
-        \quad\text{(오른쪽에서 감쇠하는 해)}.
-      \]</div>
-      <p>\(\operatorname{Ai}(z)\)는 에어리 함수다. \(z\gg1\)에서 \(e^{-2z^{3/2}/3}/(2\sqrt\pi\,z^{1/4})\)처럼 감쇠한다. \(z=-u,\ u\gg1\)에서는 \(\cos(2u^{3/2}/3-\pi/4)/(\sqrt\pi\,u^{1/4})\)처럼 진동한다. 두 점근형을 비교하면 진동 진폭의 계수 2와 위상 \(\pi/4\)가 함께 나온다.</p>
+    <div class="box ex" id="ex-alpha-decay"><div class="box-h">알파 붕괴와 가모프 인자</div>
+      <p>무거운 핵 안의 알파 입자는 반지름 \(R\) 안쪽의 핵력 우물에 갇혀 있다. 밖으로 나오면 전하 \(Z_de\)인 딸핵과 쿨롱 반발 \(V(r)=2Z_de^2/(4\pi\epsilon_0r)\)을 주고받는다. 붕괴 에너지 \(Q\)는 알파 입자와 딸핵의 상대 운동 에너지이고, 질량은 환산 질량 \(\mu\)를 쓴다. 궤도 각운동량이 0이면 \(u(r)=r\psi\)가 1차원 슈뢰딩거 방정식을 만족하므로(<a href="ch15.html#eq-coulomb-radial">15장</a>) 식 <a class="ref" href="#eq-wkb-tunnel"></a>를 그대로 쓸 수 있다. 바깥 전환점은 \(V(b)=Q\)에서 \(b=2Z_de^2/(4\pi\epsilon_0Q)\)이고, \(V(r)=Qb/r\)이다. \(r=b\cos^2\vartheta\)로 치환하면 \(\sqrt{b/r-1}=\tan\vartheta\), \(dr=-2b\cos\vartheta\sin\vartheta\,d\vartheta\)이므로</p>
+      <div class="formula" id="eq-gamow">\[ \begin{aligned}
+        2K&amp;=\frac{2\sqrt{2\mu Q}}{\hbar}\int_R^b\sqrt{\frac br-1}\,dr\\
+        &amp;=\frac{4b\sqrt{2\mu Q}}{\hbar}\int_0^{\vartheta_R}\sin^2\vartheta\,d\vartheta\\
+        &amp;=\frac{2b\sqrt{2\mu Q}}{\hbar}\bigl(\vartheta_R-\sin\vartheta_R\cos\vartheta_R\bigr).
+      \end{aligned} \]</div>
+      <p>여기서 \(\cos^2\vartheta_R=R/b\)다. \(R\ll b\)이면 \(\vartheta_R\simeq\pi/2-\sqrt{R/b}\)이므로 첫 항 \(2K\simeq\pi b\sqrt{2\mu Q}/\hbar=4\pi Z_d\alpha\,c/v\)가 지배한다. \(v=\sqrt{2Q/\mu}\)는 멀리 떨어졌을 때 알파 입자의 상대 속력이고, \(\alpha\simeq1/137\)은 미세 구조 상수다. 지수가 \(Z_d/\sqrt Q\)에 비례하므로 반감기의 로그는 \(Z_d/\sqrt Q\)에 대해 거의 직선을 그린다. 이 경험 법칙(가이거–누탈 법칙)을 1928년 가모프, 그리고 거니와 콘던이 이렇게 설명했다.</p>
+      <p>숫자를 넣어 보자. \({}^{238}\mathrm U\to{}^{234}\mathrm{Th}\)는 \(Q=4.27\ {\rm MeV}\), \(Z_d=90\)이다. 핵 반지름을 \(R=1.2\ {\rm fm}\times(234^{1/3}+4^{1/3})=9.3\ {\rm fm}\)로 잡으면 \(b=60.7\ {\rm fm}\), \(2K=88.0\)이고 투과 확률은 \(e^{-2K}\approx6\times10^{-39}\)이다(그림 18-3). 알파 입자가 핵 안에서 속력 \(v\)로 지름 \(2R\)을 오가며 1초에 \(v/(2R)\approx8\times10^{20}\)번 벽을 두드린다고 어림하면 반감기는 \(\ln2\,(2R/v)\,e^{2K}\approx1.5\times10^{17}\ {\rm s}\), 곧 46억 년이다. 측정값 44.7억 년과 이렇게 잘 맞는 것은 운이 좋은 편이다. \(R\)을 8% 키우면 \(2K\)가 3.2 줄어 반감기가 24분의 1이 된다.</p>
+      <p>확실하게 믿을 수 있는 것은 지수의 차이다. \({}^{212}\mathrm{Po}\to{}^{208}\mathrm{Pb}\)는 \(Q=8.95\ {\rm MeV}\), \(Z_d=82\)이고 같은 계산으로 \(2K=32.3\)이다. \(Q\)가 두 배쯤 되었을 뿐인데 지수가 56만큼 달라져 반감기로는 \(10^{24.2}\)배 차이가 난다. 측정한 두 반감기 44.7억 년과 \(0.29\ \mu{\rm s}\)의 비는 \(10^{23.7}\)이다.</p>
     </div>
-    <div class="box thm" id="thm-wkb-connection"><div class="box-h">단순 전환점의 감쇠해 연결</div>
-      <p>\(x&gt;b\)에서 감쇠하는 해를 하나 골랐을 때, 양쪽 전환점에서 충분히 떨어진 영역의 대응은</p>
-      <div class="formula" id="eq-wkb-right-connection">\[
-        \frac{C}{\sqrt{\kappa(x)}}\exp\!\left[-\frac1\hbar\int_b^x\kappa\,dx'\right]
-        \quad(x&gt;b)
-        \ \longleftrightarrow\
-        \frac{2C}{\sqrt{p(x)}}\cos\!\left(\frac1\hbar\int_x^b p\,dx'-\frac\pi4\right)
-        \quad(x&lt;b).
-      \]</div>
-      <p>왼쪽 전환점 \(a\)에서 왼쪽으로 감쇠하는 해는 마찬가지로</p>
-      <div class="formula" id="eq-wkb-left-connection">\[
-        \frac{C}{\sqrt{\kappa(x)}}\exp\!\left[-\frac1\hbar\int_x^a\kappa\,dx'\right]
-        \quad(x&lt;a)
-        \ \longleftrightarrow\
-        \frac{2C}{\sqrt{p(x)}}\cos\!\left(\frac1\hbar\int_a^x p\,dx'-\frac\pi4\right)
-        \quad(x&gt;a).
-      \]</div>
-      <p>적분 기호 안의 \(p,\kappa\)는 해당 위치 \(x'\)에서의 함수다. 각 식의 \(C\)는 별도의 정규화 상수다. 이 식은 <em>금지 영역에서 감쇠하는 조건으로부터</em> 허용 영역의 진동해를 정할 때 사용한다. 반대 방향으로 오차가 있는 진동해를 이어 붙이면 작은 오차가 금지 영역의 증폭 지수항으로 커질 수 있다.</p>
-    </div>
+    <figure class="diagram" id="fig-alpha-barrier">
+      <div class="fig-narrow"><!--fig:18-3--><svg viewBox="0 0 440 292" role="img" aria-label="우라늄 238의 알파 붕괴에서 알파 입자가 느끼는 퍼텐셜. 핵 반지름 9.3 펨토미터 바깥은 쿨롱 반발로 높이 약 28 메가전자볼트에서 거리에 반비례해 줄어든다. 알파 입자의 에너지 4.27 메가전자볼트 선은 61 펨토미터에서 곡선과 만나며, 그 사이 금지 영역이 색칠되어 있다"><defs><marker id="f183-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f183-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f183-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="60" y1="171.6" x2="412" y2="171.6" class="s-grid" stroke-dasharray="2 4"/><text x="52" y="176.6" class="t-math dim" text-anchor="end">10</text><line x1="60" y1="107.2" x2="412" y2="107.2" class="s-grid" stroke-dasharray="2 4"/><text x="52" y="112.2" class="t-math dim" text-anchor="end">20</text><line x1="60" y1="42.9" x2="412" y2="42.9" class="s-grid" stroke-dasharray="2 4"/><text x="52" y="47.9" class="t-math dim" text-anchor="end">30</text><text x="52" y="241" class="t-math dim" text-anchor="end">0</text><line x1="60" y1="236" x2="424" y2="236" class="s-line" stroke-width="1.2" marker-end="url(#f183-dim)"/><line x1="60" y1="236" x2="60" y2="240" class="s-line" stroke-width="1.2"/><text x="60" y="256" class="t-math dim" text-anchor="middle">0</text><line x1="153.9" y1="236" x2="153.9" y2="240" class="s-line" stroke-width="1.2"/><text x="153.9" y="256" class="t-math dim" text-anchor="middle">20</text><line x1="247.7" y1="236" x2="247.7" y2="240" class="s-line" stroke-width="1.2"/><text x="247.7" y="256" class="t-math dim" text-anchor="middle">40</text><line x1="341.6" y1="236" x2="341.6" y2="240" class="s-line" stroke-width="1.2"/><text x="341.6" y="256" class="t-math dim" text-anchor="middle">60</text><text x="424" y="256" class="t-dim" text-anchor="end"><tspan font-style="italic">r</tspan> (fm)</text><text x="52" y="18" class="t-dim" text-anchor="start"><tspan font-style="italic">V</tspan> (MeV)</text><path d="M103.6 208.5 L103.6 56.6 L104.8 61.3 L106 65.7 L107.2 70 L108.3 74 L109.5 77.8 L110.7 81.5 L111.9 85 L113 88.3 L114.2 91.5 L115.4 94.6 L116.6 97.5 L117.7 100.3 L118.9 103 L120.1 105.6 L121.2 108.1 L122.4 110.5 L123.6 112.9 L124.8 115.1 L125.9 117.2 L127.1 119.3 L128.3 121.3 L129.5 123.3 L130.6 125.1 L131.8 126.9 L133 128.7 L134.2 130.4 L135.3 132 L136.5 133.6 L137.7 135.2 L138.8 136.7 L140 138.1 L141.2 139.5 L142.4 140.9 L143.5 142.3 L144.7 143.6 L145.9 144.8 L147.1 146 L148.2 147.2 L149.4 148.4 L150.6 149.5 L151.8 150.6 L152.9 151.7 L154.1 152.8 L155.3 153.8 L156.4 154.8 L157.6 155.8 L158.8 156.7 L160 157.7 L161.1 158.6 L162.3 159.5 L163.5 160.3 L164.7 161.2 L165.8 162 L167 162.8 L168.2 163.6 L169.4 164.4 L170.5 165.1 L171.7 165.9 L172.9 166.6 L174 167.3 L175.2 168 L176.4 168.7 L177.6 169.4 L178.7 170 L179.9 170.7 L181.1 171.3 L182.3 171.9 L183.4 172.6 L184.6 173.2 L185.8 173.7 L187 174.3 L188.1 174.9 L189.3 175.4 L190.5 176 L191.6 176.5 L192.8 177 L194 177.6 L195.2 178.1 L196.3 178.6 L197.5 179.1 L198.7 179.5 L199.9 180 L201 180.5 L202.2 180.9 L203.4 181.4 L204.6 181.8 L205.7 182.3 L206.9 182.7 L208.1 183.1 L209.2 183.5 L210.4 183.9 L211.6 184.3 L212.8 184.7 L213.9 185.1 L215.1 185.5 L216.3 185.9 L217.5 186.3 L218.6 186.6 L219.8 187 L221 187.4 L222.2 187.7 L223.3 188.1 L224.5 188.4 L225.7 188.7 L226.8 189.1 L228 189.4 L229.2 189.7 L230.4 190 L231.5 190.3 L232.7 190.7 L233.9 191 L235.1 191.3 L236.2 191.6 L237.4 191.9 L238.6 192.1 L239.8 192.4 L240.9 192.7 L242.1 193 L243.3 193.3 L244.4 193.5 L245.6 193.8 L246.8 194.1 L248 194.3 L249.1 194.6 L250.3 194.9 L251.5 195.1 L252.7 195.4 L253.8 195.6 L255 195.8 L256.2 196.1 L257.4 196.3 L258.5 196.6 L259.7 196.8 L260.9 197 L262 197.2 L263.2 197.5 L264.4 197.7 L265.6 197.9 L266.7 198.1 L267.9 198.3 L269.1 198.5 L270.3 198.8 L271.4 199 L272.6 199.2 L273.8 199.4 L275 199.6 L276.1 199.8 L277.3 200 L278.5 200.2 L279.6 200.3 L280.8 200.5 L282 200.7 L283.2 200.9 L284.3 201.1 L285.5 201.3 L286.7 201.5 L287.9 201.6 L289 201.8 L290.2 202 L291.4 202.2 L292.6 202.3 L293.7 202.5 L294.9 202.7 L296.1 202.8 L297.2 203 L298.4 203.2 L299.6 203.3 L300.8 203.5 L301.9 203.6 L303.1 203.8 L304.3 203.9 L305.5 204.1 L306.6 204.2 L307.8 204.4 L309 204.5 L310.2 204.7 L311.3 204.8 L312.5 205 L313.7 205.1 L314.8 205.3 L316 205.4 L317.2 205.6 L318.4 205.7 L319.5 205.8 L320.7 206 L321.9 206.1 L323.1 206.2 L324.2 206.4 L325.4 206.5 L326.6 206.6 L327.8 206.8 L328.9 206.9 L330.1 207 L331.3 207.1 L332.4 207.3 L333.6 207.4 L334.8 207.5 L336 207.6 L337.1 207.7 L338.3 207.9 L339.5 208 L340.7 208.1 L341.8 208.2 L343 208.3 L344.2 208.4 L344.9 208.5 Z" class="f-acc-soft"/><path d="M103.6 56.6 L104.8 61.3 L106 65.7 L107.2 70 L108.3 74 L109.5 77.8 L110.7 81.5 L111.9 85 L113 88.3 L114.2 91.5 L115.4 94.6 L116.6 97.5 L117.7 100.3 L118.9 103 L120.1 105.6 L121.2 108.1 L122.4 110.5 L123.6 112.9 L124.8 115.1 L125.9 117.2 L127.1 119.3 L128.3 121.3 L129.5 123.3 L130.6 125.1 L131.8 126.9 L133 128.7 L134.2 130.4 L135.3 132 L136.5 133.6 L137.7 135.2 L138.8 136.7 L141.2 139.5 L143.5 142.3 L145.9 144.8 L148.2 147.2 L150.6 149.5 L152.9 151.7 L155.3 153.8 L157.6 155.8 L160 157.7 L162.3 159.5 L164.7 161.2 L167 162.8 L169.4 164.4 L171.7 165.9 L174 167.3 L177.6 169.4 L181.1 171.3 L184.6 173.2 L188.1 174.9 L191.6 176.5 L195.2 178.1 L198.7 179.5 L202.2 180.9 L206.9 182.7 L211.6 184.3 L216.3 185.9 L221 187.4 L225.7 188.7 L230.4 190 L236.2 191.6 L242.1 193 L248 194.3 L253.8 195.6 L260.9 197 L267.9 198.3 L275 199.6 L283.2 200.9 L291.4 202.2 L299.6 203.3 L309 204.5 L318.4 205.7 L328.9 206.9 L339.5 208 L351.2 209.1 L363 210.2 L375.9 211.2 L389.9 212.3 L404 213.2 L411.1 213.7" class="s-line" fill="none" stroke-width="2.2"/><line x1="103.6" y1="56.6" x2="103.6" y2="236" class="s-line" stroke-width="2.2"/><text x="81.8" y="126.6" class="t-dim" text-anchor="middle">핵</text><text x="81.8" y="144.6" class="t-dim" text-anchor="middle">안</text><line x1="60" y1="208.5" x2="103.6" y2="208.5" class="s-acc" stroke-width="2.4"/><line x1="103.6" y1="208.5" x2="344.9" y2="208.5" class="s-acc" stroke-width="1.6" stroke-dasharray="5 4"/><line x1="344.9" y1="208.5" x2="412" y2="208.5" class="s-acc" stroke-width="2.4"/><text x="412" y="198.5" class="t-math acc" text-anchor="end"><tspan font-style="italic">Q</tspan> = 4.27 MeV</text><line x1="103.6" y1="208.5" x2="103.6" y2="236" class="s-faint" stroke-dasharray="3 4"/><circle cx="103.6" cy="208.5" r="3.5" class="f-acc"/><line x1="344.9" y1="208.5" x2="344.9" y2="236" class="s-faint" stroke-dasharray="3 4"/><circle cx="344.9" cy="208.5" r="3.5" class="f-acc"/><text x="344.9" y="230.5" class="t-math dim" text-anchor="middle"><tspan font-style="italic">b</tspan> = 60.7 fm</text><text x="111.6" y="60.6" class="t-math dim" text-anchor="start"><tspan font-style="italic">V</tspan>(<tspan font-style="italic">R</tspan>) = 27.9 MeV, <tspan font-style="italic">R</tspan> = 9.3 fm</text><text x="163.3" y="194.5" class="t-acc" text-anchor="middle">터널링 구간</text></svg><!--/fig:18-3--></div>
+      <figcaption><b>그림 18-3.</b> \({}^{238}\mathrm U\)의 알파 입자가 느끼는 퍼텐셜. \(r&gt;R\)에서는 딸핵(\(Z_d=90\))의 쿨롱 반발 \(V=2Z_de^2/(4\pi\epsilon_0r)\)을 그렸고, 핵 안쪽의 핵력 우물은 깊이를 그리지 않았다. 색칠한 금지 영역의 폭이 핵 반지름의 여섯 배가 넘는다.</figcaption>
+    </figure>
   </section>
 
   <section id="s5">
+    <h2>연결 공식</h2>
+    <p>전환점 양쪽의 WKB 해는 각각 그 점에서 쓸 수 없다. 그래도 \(V\)가 전환점 근처에서 거의 직선이라면 그 구간의 방정식을 정확히 풀어 두 근사해가 멀리서 어떻게 맞물리는지 알 수 있다. 오른쪽 전환점을 \(b\), 그 근처의 기울기를 \(F=V'(b)&gt;0\)라 하자. \(x&gt;b\)가 금지 영역이다.</p>
+    <div class="box math" id="math-airy-turning"><div class="box-h">직선 퍼텐셜과 에어리 함수</div>
+      <p>\(V(x)-E\simeq F(x-b)\)를 슈뢰딩거 방정식에 넣으면 \(\psi''=(2mF/\hbar^2)(x-b)\psi\)이다. 길이 단위 \(\ell=[\hbar^2/(2mF)]^{1/3}\)와 \(z=(x-b)/\ell\)로 바꾸면 계수가 1이 된다.</p>
+      <div class="formula" id="eq-airy-equation">\[ \frac{d^2\psi}{dz^2}=z\,\psi. \]</div>
+      <p>이 방정식은 푸리에 변환으로 풀린다. \(\psi(z)=\frac1{2\pi}\int\tilde\psi(t)e^{izt}dt\)로 쓰면 \(\psi''\)은 \(-t^2\tilde\psi\)에 대응한다. \(ze^{izt}=-i\,\partial_te^{izt}\)이므로 \(z\psi\)는 부분 적분으로 \(i\tilde\psi'(t)\)에 대응한다. 따라서 \(-t^2\tilde\psi=i\tilde\psi'\), 곧 \(\tilde\psi=e^{it^3/3}\)이다. 운동량 표현에서 직선 퍼텐셜이 미분 연산자가 되어 2차 방정식이 1차 방정식으로 바뀐 것이다. 이렇게 얻은 해가 <span class="term">에어리 함수</span> <span class="en">(Airy function)</span>다.</p>
+      <div class="formula" id="eq-airy-integral">\[ \begin{aligned}
+        \operatorname{Ai}(z)&amp;=\frac1{2\pi}\int_{-\infty}^{\infty}e^{i(t^3/3+zt)}\,dt\\
+        &amp;=\frac1\pi\int_0^\infty\cos\!\left(\frac{t^3}3+zt\right)dt.
+      \end{aligned} \]</div>
+      <p>아래에서 보듯 \(\operatorname{Ai}\)는 \(z&gt;0\)에서 감쇠한다. 방정식의 다른 해는 \(z\to\infty\)에서 지수적으로 커진다. 두 독립해가 모두 감쇠하면 론스키안이 0으로 가야 하는데, 이 방정식의 론스키안은 상수이기 때문이다. 그러므로 금지 영역에서 감쇠해야 하는 파동함수는 \(\operatorname{Ai}\)에 비례한다.</p>
+    </div>
+    <p>\(\operatorname{Ai}\)의 점근형은 <a href="ch11.html#math-stationary-phase">11장의 정류 위상</a>으로 구한다. \(z=-u\), \(u\gg1\)이면 지수의 위상 \(\varphi(t)=t^3/3-ut\)는 \(t=\pm\sqrt u\)에서 정류한다. \(t=\sqrt u+s\) 근처에서 \(\varphi\simeq-\tfrac23u^{3/2}+\sqrt u\,s^2\), \(t=-\sqrt u+s\) 근처에서 \(\varphi\simeq\tfrac23u^{3/2}-\sqrt u\,s^2\)이다. <a href="ch11.html#math-fresnel">진동하는 가우스 적분</a> \(\int e^{\pm i\sqrt u\,s^2}ds=\sqrt{\pi/\sqrt u}\,e^{\pm i\pi/4}\)를 쓰면 두 정류점의 기여가 켤레로 짝을 이룬다.</p>
+    <div class="formula" id="eq-airy-oscillating">\[ \begin{aligned}
+      \operatorname{Ai}(-u)&amp;\simeq\frac{1}{2\pi}\sqrt{\frac{\pi}{\sqrt u}}\Bigl[e^{-i(\xi-\pi/4)}+e^{i(\xi-\pi/4)}\Bigr]\\
+      &amp;=\frac{\cos(\xi-\pi/4)}{\sqrt\pi\,u^{1/4}},\qquad \xi=\frac23u^{3/2}.
+    \end{aligned} \]</div>
+    <p>위상 \(\pi/4\)는 정류점 근처의 가우스 적분이 주는 \(e^{\pm i\pi/4}\)에서 온다. \(z&gt;0\)이면 정류점 \(t=\pm i\sqrt z\)가 허수축에 있다. 적분 경로를 \(t=i\sqrt z\)를 지나도록 옮겨 같은 계산을 하면</p>
+    <div class="formula" id="eq-airy-decaying">\[
+      \operatorname{Ai}(z)\simeq\frac{e^{-\xi}}{2\sqrt\pi\,z^{1/4}},\qquad \xi=\frac23z^{3/2}.
+    \]</div>
+    <p>그림 18-4를 보면 두 점근형은 전환점에서 발산하지만 \(|z|\)가 2 정도만 되어도 정확한 \(\operatorname{Ai}\)와 거의 겹친다.</p>
+    <details class="proof"><summary>경로를 옮기는 계산</summary>
+      <p>\(t=x+iy\)이면 \(|e^{it^3/3}|=e^{-x^2y+y^3/3}\)이므로 띠 \(0\le y\le\sqrt z\)의 양 끝(\(|x|\to\infty\))에서 피적분 함수가 사라진다. 따라서 실수축 위의 적분을 \(t=i\sqrt z+s\), \(s\)는 실수인 직선 위의 적분으로 바꿀 수 있다. 전개하면 \(i(t^3/3+zt)=-\tfrac23z^{3/2}-\sqrt z\,s^2+is^3/3\)이 정확히 성립한다. \(z\gg1\)이면 가우스 인자의 폭 \(z^{-1/4}\)이 작아 그 안에서 \(s^3\)항은 무시할 수 있고, \(\frac1{2\pi}e^{-\xi}\int e^{-\sqrt z\,s^2}ds=e^{-\xi}/(2\sqrt\pi\,z^{1/4})\)이다.</p>
+    </details>
+    <p>이제 두 점근형을 WKB 해와 비교한다. 직선 근사 구간에서는 \(2mF=\hbar^2/\ell^3\)이므로 \(\kappa=\sqrt{2mF(x-b)}=\hbar\sqrt z/\ell\), \(p=\hbar\sqrt u/\ell\)이고, 위상 적분이 정확히 \(\xi\)가 된다.</p>
+    <div class="formula" id="eq-airy-phase">\[
+      \frac1\hbar\int_b^x\kappa\,dx'=\frac23z^{3/2},\qquad
+      \frac1\hbar\int_x^b p\,dx'=\frac23u^{3/2}.
+    \]</div>
+    <p>또 \(1/\sqrt\kappa=\sqrt{\ell/\hbar}\,z^{-1/4}\), \(1/\sqrt p=\sqrt{\ell/\hbar}\,u^{-1/4}\)이다. 이를 식 <a class="ref" href="#eq-airy-oscillating"></a>, <a class="ref" href="#eq-airy-decaying"></a>에 넣으면 \(\operatorname{Ai}\)의 두 점근형이 각각 WKB 해의 꼴이 되고, 공통 상수 \(C=\sqrt{\hbar/\ell}/(2\sqrt\pi)\)로 다음 정리의 첫 식이 나온다.</p>
+    <p>남은 질문은 두 점근형이 어디서 맞물리느냐다. 직선 근사는 \(|x-b|\)가 퍼텐셜의 곡률이 눈에 띄는 거리보다 작을 때 맞는다. WKB는 식 <a class="ref" href="#eq-wkb-validity"></a>에 따라 \(\hbar|p'|/p^2=\tfrac12u^{-3/2}\ll1\), 곧 \(|x-b|\gg\ell\)일 때 맞는다. \(\hbar\)가 작으면 \(\ell\propto\hbar^{2/3}\)이 작아져 두 조건을 함께 만족하는 구간이 생긴다. 그 구간에서는 WKB 해와 에어리 함수가 같은 함수이므로, 에어리 함수를 거쳐 전환점 양쪽의 WKB 해를 이을 수 있다.</p>
+    <div class="box thm" id="thm-wkb-connection"><div class="box-h">단순 전환점의 감쇠해 연결</div>
+      <p>\(x&gt;b\)에서 감쇠하는 해를 하나 골랐을 때, 전환점에서 충분히 떨어진 양쪽 영역의 대응은</p>
+      <div class="formula" id="eq-wkb-right-connection">\[ \begin{aligned}
+        x&gt;b:&amp;\quad\frac{C}{\sqrt{\kappa(x)}}\exp\!\left[-\frac1\hbar\int_b^x\kappa\,dx'\right]\\
+        \longleftrightarrow\quad x&lt;b:&amp;\quad\frac{2C}{\sqrt{p(x)}}\cos\!\left(\frac1\hbar\int_x^b p\,dx'-\frac\pi4\right).
+      \end{aligned} \]</div>
+      <p>왼쪽 전환점 \(a\)에서 왼쪽으로 감쇠하는 해는 같은 계산을 거울에 비춘 것이다.</p>
+      <div class="formula" id="eq-wkb-left-connection">\[ \begin{aligned}
+        x&lt;a:&amp;\quad\frac{C}{\sqrt{\kappa(x)}}\exp\!\left[-\frac1\hbar\int_x^a\kappa\,dx'\right]\\
+        \longleftrightarrow\quad x&gt;a:&amp;\quad\frac{2C}{\sqrt{p(x)}}\cos\!\left(\frac1\hbar\int_a^x p\,dx'-\frac\pi4\right).
+      \end{aligned} \]</div>
+      <p>적분 기호 안의 \(p,\kappa\)는 해당 위치 \(x'\)에서의 함수다. 각 식의 \(C\)는 별도의 정규화 상수다. 이 식은 <em>금지 영역에서 감쇠하는 조건으로부터</em> 허용 영역의 진동해를 정할 때 쓴다. 반대 방향으로, 오차가 조금 있는 진동해에서 출발해 금지 영역으로 이어 붙이면 작은 오차가 증가하는 지수항으로 커질 수 있다.</p>
+    </div>
+    <figure class="diagram" id="fig-airy-connection">
+      <div class="fig-narrow"><!--fig:18-4--><svg viewBox="0 0 440 310" role="img" aria-label="에어리 함수 Ai(z)와 두 WKB 점근형. z가 음수인 허용 영역에서는 진폭이 서서히 줄어드는 진동, z가 양수인 금지 영역에서는 지수 감쇠다. 점선인 WKB 식은 전환점 z=0 근처에서 발산하지만 z의 절댓값이 2 정도만 되어도 실선과 거의 겹친다"><defs><marker id="f184-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f184-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f184-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="40" y1="144.8" x2="420" y2="144.8" class="s-grid" stroke-dasharray="3 4"/><text x="32" y="149.8" class="t-math dim" text-anchor="end">0</text><line x1="40" y1="222" x2="430" y2="222" class="s-line" stroke-width="1.2" marker-end="url(#f184-dim)"/><line x1="40" y1="222" x2="40" y2="226" class="s-line" stroke-width="1.2"/><text x="40" y="242" class="t-math dim" text-anchor="middle">−10</text><line x1="94.3" y1="222" x2="94.3" y2="226" class="s-line" stroke-width="1.2"/><text x="94.3" y="242" class="t-math dim" text-anchor="middle">−8</text><line x1="148.6" y1="222" x2="148.6" y2="226" class="s-line" stroke-width="1.2"/><text x="148.6" y="242" class="t-math dim" text-anchor="middle">−6</text><line x1="202.9" y1="222" x2="202.9" y2="226" class="s-line" stroke-width="1.2"/><text x="202.9" y="242" class="t-math dim" text-anchor="middle">−4</text><line x1="257.1" y1="222" x2="257.1" y2="226" class="s-line" stroke-width="1.2"/><text x="257.1" y="242" class="t-math dim" text-anchor="middle">−2</text><line x1="311.4" y1="222" x2="311.4" y2="226" class="s-line" stroke-width="1.2"/><text x="311.4" y="242" class="t-math dim" text-anchor="middle">0</text><line x1="365.7" y1="222" x2="365.7" y2="226" class="s-line" stroke-width="1.2"/><text x="365.7" y="242" class="t-math dim" text-anchor="middle">2</text><line x1="420" y1="222" x2="420" y2="226" class="s-line" stroke-width="1.2"/><text x="420" y="242" class="t-math dim" text-anchor="middle">4</text><text x="430" y="214" class="t-math dim" text-anchor="end"><tspan font-style="italic">z</tspan></text><line x1="311.4" y1="34" x2="311.4" y2="222" class="s-grid" stroke-dasharray="4 4"/><text x="311.4" y="22" class="t-dim" text-anchor="middle">전환점 <tspan font-style="italic">z</tspan> = 0</text><text x="175.7" y="266" class="t-dim" text-anchor="middle">허용 영역 (<tspan font-style="italic">E</tspan> &gt; <tspan font-style="italic">V</tspan>)</text><text x="371.1" y="266" class="t-dim" text-anchor="middle">금지 영역</text><path d="M40 139.3 L41.6 131.2 L43 124.8 L44.1 120 L45.2 115.6 L46 112.6 L46.8 109.9 L47.6 107.5 L48.4 105.4 L49.2 103.6 L50 102.2 L50.9 101.2 L51.7 100.6 L52.5 100.3 L53.3 100.4 L54.1 100.9 L54.9 101.8 L55.7 103 L56.6 104.6 L57.4 106.6 L58.2 108.8 L59 111.4 L60.1 115.2 L61.2 119.5 L62.3 124.1 L63.6 130.3 L65.5 139.6 L68.2 153 L69.9 160.8 L71.2 167 L72.3 171.5 L73.4 175.7 L74.5 179.4 L75.3 181.9 L76.1 184.1 L76.9 186 L77.7 187.6 L78.5 188.9 L79.4 189.8 L80.2 190.3 L81 190.5 L81.8 190.4 L82.6 189.9 L83.4 189.1 L84.2 187.9 L85.1 186.4 L85.9 184.6 L86.7 182.5 L87.8 179.3 L88.9 175.6 L89.9 171.5 L91 167.1 L92.4 161.1 L94.3 152.3 L97.5 136.6 L99.2 129 L100.5 123 L101.6 118.5 L102.7 114.3 L103.8 110.5 L104.9 107.1 L106 104.2 L106.8 102.3 L107.6 100.8 L108.4 99.5 L109.2 98.5 L110 97.8 L110.8 97.4 L111.7 97.4 L112.5 97.6 L113.3 98.2 L114.1 99.1 L114.9 100.3 L115.7 101.7 L116.8 104.1 L117.9 107 L119 110.3 L120.1 113.9 L121.2 118 L122.5 123.4 L124.1 130.4 L126.6 141.6 L129.3 154.1 L130.9 161.4 L132.3 167.2 L133.6 172.6 L134.7 176.6 L135.8 180.2 L136.9 183.5 L138 186.4 L139.1 188.9 L140.2 191 L141.2 192.5 L142.3 193.6 L143.4 194.2 L144.5 194.3 L145.6 194 L146.7 193.1 L147.8 191.8 L148.8 190 L149.9 187.8 L151 185.2 L152.1 182.2 L153.2 178.9 L154.5 174.2 L155.9 169.2 L157.5 162.7 L159.4 154.6 L163.8 135.6 L165.7 127.5 L167.3 120.9 L168.7 115.8 L170 111 L171.1 107.5 L172.2 104.3 L173.3 101.5 L174.4 99 L175.4 96.8 L176.5 95.1 L177.6 93.7 L178.7 92.8 L179.8 92.2 L180.9 92.1 L182 92.3 L183 93 L184.1 94 L185.2 95.4 L186.3 97.2 L187.4 99.4 L188.5 101.8 L189.8 105.4 L191.2 109.3 L192.5 113.7 L194.2 119.4 L195.8 125.4 L198 133.9 L202.9 153.8 L205 162.4 L206.9 169.6 L208.6 175.4 L209.9 179.9 L211.3 184.1 L212.6 187.9 L214 191.4 L215.3 194.4 L216.7 197 L218.1 199.1 L219.1 200.5 L220.2 201.5 L221.3 202.3 L222.4 202.8 L223.5 203 L224.6 202.8 L225.9 202.2 L227.3 201.2 L228.6 199.8 L230 197.9 L231.4 195.6 L232.7 193 L234.1 190 L235.7 186 L237.3 181.6 L239 176.8 L240.9 170.9 L243 163.7 L246 153.4 L251.4 134.2 L254.2 124.8 L256.6 116.7 L258.8 109.9 L260.7 104.3 L262.6 99 L264.5 94.1 L266.4 89.6 L268.3 85.5 L270.2 81.9 L272.1 78.6 L274 75.8 L275.9 73.4 L277.8 71.4 L279.7 69.8 L281.6 68.5 L283.7 67.4 L286.2 66.6 L288.9 66.1 L295.7 65.8 L298.1 65.5 L299.8 65 L301.1 64.3 L302.5 63.3 L303.6 62.1 L304.4 60.9 L305.2 59.4 L306 57.4 L306.5 55.8 L307.1 53.8 L307.6 51.4 L308.2 48.4 L308.4 46.5 L308.7 44.5 L309 42.1 L309.3 39.3 L309.5 36.1" class="s-acc2" fill="none" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M312 41.1 L312.2 51.2 L312.5 57.9 L312.8 62.8 L313.1 66.6 L313.3 69.8 L313.6 72.4 L313.9 74.7 L314.1 76.8 L314.7 80.2 L315.2 83.1 L315.8 85.6 L316.6 88.8 L317.4 91.5 L318.5 94.7 L319.6 97.5 L320.9 100.5 L322.6 103.8 L324.5 107.2 L326.6 110.6 L329.1 114.1 L331.8 117.5 L334.8 120.9 L337.8 124 L341 126.9 L344.5 129.6 L348.3 132.2 L352.1 134.4 L356.2 136.4 L360.8 138.2 L365.7 139.8 L371.1 141.1 L377.4 142.3 L384.7 143.2 L393.9 143.9 L406.7 144.4 L420 144.6" class="s-acc2" fill="none" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M40 139.2 L41.1 133.7 L42.2 128.5 L43.3 123.4 L43.8 121 L44.3 118.7 L44.9 116.5 L45.4 114.5 L46 112.5 L46.5 110.7 L47.1 109 L47.6 107.4 L48.1 106 L48.7 104.7 L49.2 103.6 L49.8 102.6 L50.3 101.8 L50.9 101.2 L51.4 100.7 L51.9 100.4 L52.5 100.3 L53 100.4 L53.6 100.6 L54.1 101 L54.7 101.5 L55.2 102.2 L55.7 103.1 L56.3 104.1 L56.8 105.3 L57.4 106.6 L57.9 108.1 L58.5 109.7 L59 111.5 L59.5 113.3 L60.1 115.3 L60.6 117.4 L61.2 119.6 L62.3 124.3 L63.3 129.2 L64.4 134.4 L67.7 150.5 L68.8 155.8 L69.9 161 L70.9 165.9 L72 170.6 L72.6 172.7 L73.1 174.8 L73.7 176.8 L74.2 178.7 L74.7 180.4 L75.3 182 L75.8 183.5 L76.4 184.9 L76.9 186.1 L77.5 187.2 L78 188.1 L78.5 188.9 L79.1 189.5 L79.6 190 L80.2 190.3 L80.7 190.5 L81.3 190.5 L81.8 190.4 L82.3 190.1 L82.9 189.6 L83.4 189 L84 188.3 L84.5 187.4 L85.1 186.3 L85.6 185.2 L86.1 183.8 L86.7 182.4 L87.2 180.8 L87.8 179.2 L88.3 177.4 L88.9 175.5 L89.4 173.4 L90.5 169.2 L91.6 164.6 L92.7 159.7 L93.7 154.6 L97 139 L98.1 133.8 L99.2 128.8 L100.3 124 L101.3 119.4 L102.4 115.2 L103 113.2 L103.5 111.3 L104.1 109.5 L104.6 107.8 L105.1 106.2 L105.7 104.8 L106.2 103.5 L106.8 102.2 L107.3 101.2 L107.9 100.2 L108.4 99.4 L108.9 98.7 L109.5 98.2 L110 97.8 L110.6 97.5 L111.1 97.4 L111.7 97.4 L112.2 97.6 L112.7 97.8 L113.3 98.3 L113.8 98.8 L114.4 99.5 L114.9 100.4 L115.5 101.3 L116 102.4 L116.5 103.6 L117.1 105 L117.6 106.4 L118.2 107.9 L118.7 109.6 L119.3 111.3 L120.3 115.1 L121.4 119.3 L122.5 123.7 L123.6 128.3 L124.7 133.1 L126.3 140.6 L129 153.1 L130.1 158.1 L131.2 162.8 L132.3 167.4 L133.4 171.8 L134.5 175.8 L135.5 179.6 L136.1 181.3 L136.6 182.9 L137.2 184.5 L137.7 185.9 L138.3 187.2 L138.8 188.5 L139.3 189.6 L139.9 190.6 L140.4 191.5 L141 192.2 L141.5 192.9 L142.1 193.4 L142.6 193.8 L143.1 194.1 L143.7 194.3 L144.2 194.3 L144.8 194.2 L145.3 194 L145.9 193.7 L146.4 193.3 L146.9 192.7 L147.5 192 L148 191.2 L148.6 190.3 L149.1 189.3 L149.7 188.2 L150.2 187 L150.7 185.7 L151.3 184.2 L152.4 181.1 L153.5 177.7 L154.5 173.9 L155.6 169.9 L156.7 165.6 L157.8 161.2 L159.4 154.2 L163.2 137.5 L164.9 130.5 L165.9 126 L167 121.6 L168.1 117.4 L169.2 113.5 L170.3 109.8 L171.4 106.4 L172.5 103.3 L173.5 100.6 L174.6 98.2 L175.2 97.2 L175.7 96.2 L176.3 95.3 L176.8 94.6 L177.3 93.9 L177.9 93.4 L178.4 92.9 L179 92.6 L179.5 92.3 L180.1 92.1 L180.6 92.1 L181.1 92.1 L181.7 92.3 L182.2 92.6 L182.8 92.9 L183.3 93.4 L183.9 93.9 L184.4 94.5 L184.9 95.3 L186 97 L187.1 99.1 L188.2 101.6 L189.3 104.3 L190.4 107.4 L191.5 110.7 L192.5 114.2 L193.6 118 L194.7 121.9 L195.8 126 L197.4 132.4 L199.6 141.2 L202.3 152.3 L203.9 158.8 L205.6 165.2 L206.7 169.3 L207.7 173.2 L208.8 176.9 L209.9 180.5 L211 183.8 L212.1 186.9 L213.2 189.8 L214.3 192.4 L215.3 194.7 L216.4 196.8 L217.5 198.5 L218.6 200 L219.7 201.1 L220.8 202 L221.9 202.5 L222.9 202.8 L224 202.7 L225.1 202.4 L226.2 201.7 L227.3 200.8 L228.4 199.5 L229.5 198.1 L230.5 196.3 L231.6 194.3 L232.7 192.1 L233.8 189.7 L234.9 187 L236 184.2 L237.1 181.2 L238.1 178 L239.2 174.7 L240.9 169.5 L242.5 164 L244.7 156.5 L250.6 135.3 L252.8 127.7 L254.4 122.1 L256.1 116.8 L257.7 111.6 L259.3 106.6 L260.4 103.5 L261.5 100.5 L262.6 97.6 L263.7 94.8 L264.7 92.2 L265.8 89.7 L266.9 87.4 L268 85.2 L269.1 83.2 L270.2 81.4 L271.3 79.7 L272.3 78.1 L273.4 76.7 L274.5 75.4 L275.6 74.3 L276.7 73.4 L277.8 72.6 L278.9 71.9 L279.9 71.4 L281 71 L282.1 70.7 L283.2 70.6 L284.8 70.7 L286.5 71 L288.1 71.5 L289.7 72.3 L291.3 73.3 L293 74.4 L294.6 75.8 L296.2 77.3 L298.4 79.5 L300.6 81.9 L303.3 85.1 L306.5 89.2 L315.8 101.3 L319.6 106.2 L322.8 110.1 L325.5 113.3 L328.3 116.3 L331 119.1 L333.7 121.8 L336.4 124.2 L339.1 126.5 L341.8 128.5 L344.5 130.4 L347.3 132.2 L350 133.7 L353.2 135.4 L356.5 136.8 L359.7 138.1 L363 139.1 L366.8 140.2 L370.6 141.1 L374.9 141.9 L379.8 142.7 L385.3 143.3 L391.8 143.8 L399.9 144.2 L410.2 144.5 L420 144.6" class="s-acc" fill="none" stroke-width="2.4"/><line x1="50" y1="287" x2="76" y2="287" class="s-acc" stroke-width="2.4"/><text x="84" y="292" class="t-math acc" text-anchor="start">Ai(<tspan font-style="italic">z</tspan>)</text><line x1="190" y1="287" x2="216" y2="287" class="s-acc2" stroke-width="1.8" stroke-dasharray="6 4"/><text x="224" y="292" class="t-acc" style="fill:var(--accent-2)" text-anchor="start">WKB 점근형</text></svg><!--/fig:18-4--></div>
+      <figcaption><b>그림 18-4.</b> 에어리 함수 \(\operatorname{Ai}(z)\)(실선)와 식 <a class="ref" href="#eq-airy-oscillating"></a>, <a class="ref" href="#eq-airy-decaying"></a>의 점근형(점선). WKB 식은 전환점에서 발산하지만 \(|z|\gtrsim2\)에서는 정확한 해와 거의 겹친다. 두 점근형의 진폭 비 2와 위상 \(\pi/4\)가 연결 공식이다.</figcaption>
+    </figure>
+    <div class="callout deep"><strong>\(\pi/4\)와 매슬로프 지수</strong><p><a href="ch11.html#ex-ho-half">11장</a>에서 고전 경로가 초점을 하나 지날 때마다 전파 함수에 \(e^{-i\pi/2}\)가 붙는 것을 보았다. 전환점도 같은 종류의 점이다. 식 <a class="ref" href="#eq-wkb-right-connection"></a>의 \(\cos(\vartheta-\pi/4)\), \(\vartheta=\int_x^bp\,dx'/\hbar\)를 \(e^{-i(\vartheta-\pi/4)}\)와 \(e^{i(\vartheta-\pi/4)}\)로 나누면, 앞의 것은 전환점으로 다가가는 파동이고 뒤의 것은 반사되어 돌아오는 파동이다. 전환점(\(\vartheta=0\))에서 두 위상은 \(\pi/4\)와 \(-\pi/4\)이므로, 반사할 때 위상이 \(\pi/2\) 늦어진다. 한 주기 동안 전환점을 두 번 지나 모두 \(\pi\)가 늦어진다. 매슬로프 지수 2에 해당하며, 다음 절의 \(1/2\)이 여기서 나온다.</p></div>
+  </section>
+
+  <section id="s6">
     <h2>보어–좀머펠트 양자화</h2>
-    <p>매끄러운 우물에서 \(a&lt;b\)가 두 단순 전환점이고 바깥에서는 파동함수가 감쇠한다고 하자. 식 <a class="ref" href="#eq-wkb-left-connection"></a>는 왼쪽에서 들어온 진동해를, 식 <a class="ref" href="#eq-wkb-right-connection"></a>은 오른쪽에서 들어온 진동해를 준다. 하나의 파동함수가 되려면 \(a&lt;x&lt;b\)에서 둘이 같은 함수에 비례해야 한다.</p>
-    <div class="formula" id="eq-wkb-phase-match">\[
+    <p>매끄러운 우물에서 \(a&lt;b\)가 두 단순 전환점이고 바깥에서는 파동함수가 감쇠한다고 하자. 식 <a class="ref" href="#eq-wkb-left-connection"></a>은 왼쪽 꼬리에서 정한 진동해를, 식 <a class="ref" href="#eq-wkb-right-connection"></a>는 오른쪽 꼬리에서 정한 진동해를 준다. 하나의 파동함수가 되려면 \(a&lt;x&lt;b\)에서 둘이 같은 함수에 비례해야 한다.</p>
+    <div class="formula" id="eq-wkb-phase-match">\[ \begin{gathered}
       \theta(x)=\frac1\hbar\int_a^x p\,dx',\qquad
-      \Theta=\frac1\hbar\int_a^b p\,dx',\qquad
+      \Theta=\frac1\hbar\int_a^b p\,dx',\\
       \cos\!\left(\theta-\frac\pi4\right)
       \propto\cos\!\left(\Theta-\theta-\frac\pi4\right).
-    \]</div>
-    <p>오른쪽 코사인을 \(\cos\theta,\sin\theta\)로 펼치면 두 계수는 \(\cos(\Theta-\pi/4)\), \(\sin(\Theta-\pi/4)\)이다. 왼쪽 코사인에서는 두 계수가 같다. 따라서 \(\tan(\Theta-\pi/4)=1\), 곧 \(\Theta=(n+1/2)\pi\)가 된다.</p>
+    \end{gathered} \]</div>
+    <p>오른쪽 코사인을 덧셈 정리로 펼치면 \(\cos(\Theta-\pi/4)\cos\theta+\sin(\Theta-\pi/4)\sin\theta\)이고, 왼쪽은 \((\cos\theta+\sin\theta)/\sqrt2\)이다. 두 함수가 비례하려면 \(\cos\theta\)와 \(\sin\theta\)의 계수 비가 같아야 하므로 \(\tan(\Theta-\pi/4)=1\), 곧 \(\Theta-\pi/4=\pi/4+n\pi\)이다. \(\Theta&gt;0\)이므로 \(n=0,1,2,\ldots\)이고 \(\Theta=(n+\tfrac12)\pi\)이다. 이때 비례 상수는 \((-1)^n\)이다. 파동함수 \(\cos(\theta-\pi/4)/\sqrt p\)의 위상은 \(a\)에서 \(b\)까지 \(-\pi/4\)에서 \(n\pi+\pi/4\)로 바뀌므로 마디가 정확히 \(n\)개다.</p>
     <div class="box thm" id="thm-bohr-sommerfeld"><div class="box-h">두 매끄러운 전환점의 WKB 양자화</div>
-      <div class="formula" id="eq-bohr-sommerfeld">\[
+      <div class="formula" id="eq-bohr-sommerfeld">\[ \begin{gathered}
         \int_a^b\sqrt{2m[E_n-V(x)]}\,dx
-          =\pi\hbar\left(n+\frac12\right),
-        \quad n=0,1,2,\ldots,\qquad
-        \oint p\,dx=2\pi\hbar\left(n+\frac12\right).
-      \]</div>
+          =\pi\hbar\left(n+\frac12\right),\\
+        \oint p\,dx=2\pi\hbar\left(n+\frac12\right),\qquad n=0,1,2,\ldots
+      \end{gathered} \]</div>
       <p>닫힌 궤도의 적분은 \(a\)에서 \(b\)로 갔다가 돌아오는 왕복 작용이므로 첫 적분의 두 배다. \(1/2\)의 이동은 두 전환점에서 각각 생기는 \(\pi/4\) 위상에서 온다. 이 조건은 일반적인 매끄러운 우물에서는 근사식이며 높은 준위에서 대체로 좋아진다.</p>
     </div>
+
+    <h3 id="s6-phase-space">위상 공간의 넓이와 준위 간격</h3>
+    <p>\(\oint p\,dx\)는 \((x,p)\) 평면에서 에너지 \(E\)의 고전 궤도가 둘러싼 넓이다. 식 <a class="ref" href="#eq-bohr-sommerfeld"></a>는 이웃한 준위의 궤도 사이에 넓이 \(2\pi\hbar=h\)가 들어간다고 말한다. 위상 공간의 넓이 \(h\)마다 양자 상태가 하나씩 있다는 뜻이다. <a href="ch04.html#s2-hamilton">4장</a>에서 본 옛 양자론은 이 넓이를 \(nh\)로 두었는데, WKB는 두 전환점의 위상에서 생기는 \(1/2\) 이동까지 정해 준다.</p>
+    <p>양자화 조건을 \(E\)로 미분하면 준위 간격이 나온다. \(dp/dE=m/p=1/v\)이므로</p>
+    <div class="formula" id="eq-level-spacing">\[ \begin{gathered}
+      \frac{d}{dE}\oint p\,dx=\oint\frac{dx}{v}=T_{\rm cl}(E),\\
+      E_{n+1}-E_n\simeq\frac{2\pi\hbar}{T_{\rm cl}}=\hbar\,\omega_{\rm cl}.
+    \end{gathered} \]</div>
+    <p>\(T_{\rm cl}\)은 고전 궤도의 주기, \(\omega_{\rm cl}=2\pi/T_{\rm cl}\)은 고전 각진동수다. 이웃 준위 사이를 오갈 때 내는 빛의 진동수가 고전 운동의 진동수와 같아진다. 이것이 보어의 <span class="term">대응 원리</span> <span class="en">(correspondence principle)</span>다.</p>
     <div class="box ex" id="ex-wkb-oscillator"><div class="box-h">조화 진동자의 에너지 준위</div>
-      <p>\(V(x)=m\omega^2x^2/2\)이면 전환점은 \(\pm x_t\), \(x_t=\sqrt{2E/(m\omega^2)}\)다. \(x=x_t\sin u\)로 바꾸어 작용을 적분하면</p>
-      <div class="formula" id="eq-wkb-oscillator">\[
+      <p>\(V(x)=m\omega^2x^2/2\)이면 전환점은 \(\pm x_t\), \(x_t=\sqrt{2E/(m\omega^2)}\)다. \(x=x_t\sin s\)로 바꾸면 \(p=m\omega x_t\cos s\), \(dx=x_t\cos s\,ds\)이고, 작용은 \(m\omega x_t^2\int_{-\pi/2}^{\pi/2}\cos^2s\,ds=\pi m\omega x_t^2/2\)이다.</p>
+      <div class="formula" id="eq-wkb-oscillator">\[ \begin{gathered}
         \int_{-x_t}^{x_t}\sqrt{2m\left(E-\frac12m\omega^2x^2\right)}\,dx
-        =\frac{\pi E}{\omega},\qquad
+        =\frac{\pi E}{\omega},\\
         E_n=\hbar\omega\left(n+\frac12\right).
-      \]</div>
-      <p>이 경우 WKB 에너지 값은 정확한 답과 일치한다. 파동함수의 전환점 근처 형태까지 WKB 식이 정확하다는 뜻은 아니다.</p>
+      \end{gathered} \]</div>
+      <p>이 경우 WKB 에너지 값은 정확한 답과 일치한다. 고전 주기 \(2\pi/\omega\)가 에너지와 무관하므로 간격도 정확히 \(\hbar\omega\)다. 파동함수의 전환점 근처 형태까지 WKB 식이 정확하다는 뜻은 아니다.</p>
     </div>
-    <div class="callout warn"><strong>단단한 벽은 매끄러운 전환점이 아니다</strong><p>무한 우물의 벽에서는 퍼텐셜을 직선으로 근사할 수 없으므로 식 <a class="ref" href="#eq-bohr-sommerfeld"></a>의 \(1/2\)을 그대로 넣지 않는다. 두 벽 사이에서는 \(\psi=0\) 경계 조건으로 \(pL=n\pi\hbar\), \(n=1,2,\ldots\)를 얻는다. 한쪽만 단단한 벽이고 다른 쪽이 매끄러운 전환점이면 \(\int_0^b p\,dx=(n+3/4)\pi\hbar\), \(n=0,1,\ldots\)다.</p></div>
+    <div class="box ex" id="ex-quartic-wkb"><div class="box-h">\(x^4\) 진동자의 WKB 준위</div>
+      <p>\(V=gx^4\)이면 전환점은 \(\pm x_t\), \(x_t=(E/g)^{1/4}\)이다. \(x=x_tt\)로 바꾸면</p>
+      <div class="formula" id="eq-quartic-action">\[ \begin{gathered}
+        \int_{-x_t}^{x_t}\sqrt{2m(E-gx^4)}\,dx=\sqrt{2m}\,g^{-1/4}E^{3/4}\,I,\\
+        I=\int_{-1}^{1}\sqrt{1-t^4}\,dt\simeq1.74804.
+      \end{gathered} \]</div>
+      <p>이를 \(\pi\hbar(n+\tfrac12)\)와 같게 놓으면 \(E_n=[\pi(n+\tfrac12)/(\sqrt2\,I)]^{4/3}\varepsilon_g\)이다. 아래 표는 18.2절의 리츠 방법으로 구한 정확한 값과 비교한 것이고, 단위는 \(\varepsilon_g\)다.</p>
+      <table>
+        <thead><tr><th>\(n\)</th><th>정확한 값</th><th>WKB</th><th>상대 오차</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0.66799</td><td>0.54627</td><td>\(-18.2\%\)</td></tr>
+          <tr><td>1</td><td>2.39364</td><td>2.36356</td><td>\(-1.26\%\)</td></tr>
+          <tr><td>2</td><td>4.69680</td><td>4.67052</td><td>\(-0.56\%\)</td></tr>
+          <tr><td>3</td><td>7.33573</td><td>7.31480</td><td>\(-0.29\%\)</td></tr>
+          <tr><td>4</td><td>10.24431</td><td>10.22654</td><td>\(-0.17\%\)</td></tr>
+          <tr><td>5</td><td>13.37934</td><td>13.36376</td><td>\(-0.12\%\)</td></tr>
+        </tbody>
+      </table>
+      <p>바닥 상태는 18% 틀리지만 \(n=1\)부터 오차가 1% 남짓으로 줄고, \(n\)이 커질수록 계속 줄어든다. 높은 준위일수록 파장이 짧아 식 <a class="ref" href="#eq-wkb-validity"></a>가 잘 맞기 때문이다. 반면 가우스 변분법은 바닥 상태를 2% 이내로 맞혔다. 두 방법은 서로 반대쪽 끝에서 강하다. 여기서는 WKB 값이 모두 정확한 값보다 낮은데, WKB에는 변분법과 같은 상계 보장이 없다. 또 \(T_{\rm cl}=d(\oint p\,dx)/dE\propto E^{-1/4}\)이므로 준위 간격 \(\hbar\omega_{\rm cl}\)이 \(E^{1/4}\)로 벌어진다.</p>
+    </div>
+    <div class="callout warn"><strong>단단한 벽은 매끄러운 전환점이 아니다</strong><p>무한 우물의 벽에서는 퍼텐셜을 직선으로 근사할 수 없으므로 연결 공식을 쓸 수 없다. 대신 벽에서 \(\psi=0\)이 그대로 경계 조건이 된다. 두 벽 사이에서는 \(\sin(px/\hbar)\)가 \(x=L\)에서 0이어야 하므로 \(pL=n\pi\hbar\), \(n=1,2,\ldots\)로 정확한 답이다. 한쪽이 벽(\(x=0\))이고 다른 쪽이 매끄러운 전환점 \(b\)이면, 식 <a class="ref" href="#eq-wkb-right-connection"></a>의 \(\cos(\int_x^bp\,dx'/\hbar-\pi/4)\)가 \(x=0\)에서 0이어야 하므로 \(\int_0^bp\,dx=(n+\tfrac34)\pi\hbar\), \(n=0,1,\ldots\)이다.</p></div>
+    <div class="box ex" id="ex-quantum-bouncer"><div class="box-h">중력 속에서 튀는 중성자</div>
+      <p>질량 \(m\)인 입자가 수평 거울(\(z=0\)) 위에서 중력 퍼텐셜 \(V=mgz\)를 받는다. 거울은 단단한 벽이고 위쪽 전환점 \(b=E/(mg)\)는 매끄러우므로 \((n+\tfrac34)\) 조건을 쓴다. 작용은 \(\int_0^b\sqrt{2m(E-mgz)}\,dz=2\sqrt{2m}\,E^{3/2}/(3mg)\)이고, 이를 \((n+\tfrac34)\pi\hbar\)와 같게 놓으면</p>
+      <div class="formula" id="eq-bouncer-wkb">\[
+        E_n^{\rm WKB}=\Bigl[\frac{3\pi}2\Bigl(n+\frac34\Bigr)\Bigr]^{2/3}\Bigl(\frac{mg^2\hbar^2}{2}\Bigr)^{1/3}.
+      \]</div>
+      <p>이 문제는 정확히도 풀린다. 거울 위는 <a class="ref" href="#math-airy-turning"></a>에서 \(F=mg\)인 경우이므로 해는 \(\operatorname{Ai}((z-b)/\ell)\), \(\ell=[\hbar^2/(2m^2g)]^{1/3}\)이다. 거울에서 0이 되려면 \(-b/\ell\)이 \(\operatorname{Ai}\)의 영점 \(a_k\)여야 하므로 \(E_n=mg\ell\,|a_{n+1}|\), \(mg\ell=(mg^2\hbar^2/2)^{1/3}\)이다. 처음 세 영점의 크기 2.33811, 4.08795, 5.52056을 WKB의 계수 2.32025, 4.08181, 5.51716과 비교하면 오차가 0.76%, 0.15%, 0.06%다. 바닥 상태부터 1% 이내로 맞는다.</p>
+      <p>중성자(\(m=1.675\times10^{-27}\ {\rm kg}\))이면 \(\ell=5.87\ \mu{\rm m}\), \(mg\ell=0.602\ {\rm peV}\)이다. 바닥 에너지는 \(1.41\ {\rm peV}\)이고, 그 에너지로 고전적으로 올라갈 수 있는 높이는 \(b=13.7\ \mu{\rm m}\)다. 2002년 프랑스 그르노블의 ILL 연구소에서 아주 느린 중성자를 거울과 흡수판 사이의 틈으로 보냈다. 틈을 이 높이 정도까지 좁히자 지나가는 중성자가 거의 사라졌다. 중력 속에서 양자화된 준위를 처음 본 실험이다.</p>
+    </div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li>바닥 에너지에 대해 모든 허용 시험 상태의 평균 에너지는 \(\mathcal E[\phi]\geq E_0\)이다.</li>
-      <li>시험 상태의 매개변수를 최소화하면 그 함수족에서 가장 낮은 상계를 얻는다. 기저를 넓혀도 최소 상계는 올라가지 않는다.</li>
-      <li>헬륨의 대칭 \(1s\)형 두 전자 시험 상태는 스핀 단일항과 짝을 이루며, 최적 유효 핵전하는 \(\zeta=27/16\)이다.</li>
-      <li>헬륨 모형의 변분 에너지는 \(-729E_{\rm h}/256\)이며, 고정 핵 비상대론 해밀토니안의 바닥 에너지에 대한 상계다.</li>
-      <li>WKB 해는 허용 영역에서 \(p^{-1/2}e^{\pm i\int p\,dx/\hbar}\), 금지 영역에서 \(\kappa^{-1/2}e^{\pm\int\kappa\,dx/\hbar}\) 꼴이다.</li>
-      <li>전환점에서는 WKB 근사가 실패한다. 직선 퍼텐셜의 에어리 해가 감쇠 지수와 진동해를 진폭 비 1:2, 위상 \(\pi/4\)로 연결한다.</li>
-      <li>두 매끄러운 전환점을 가진 1차원 우물의 양자화 조건은 \(\int_a^b p\,dx=\pi\hbar(n+1/2)\)이다. 단단한 벽에는 별도 경계 조건을 적용한다.</li>
+      <li>모든 시험 상태의 평균 에너지는 바닥 에너지 이상이다. 시험 상태가 바닥 상태에서 \(\eta\)만큼 벗어나면 에너지 오차는 \(\eta^2\)에 비례한다.</li>
+      <li>평균 에너지의 정류점은 에너지 고유상태다. 척도 매개변수를 최적화한 시험 상태는 비리얼 관계 \(2\langle T\rangle=k\langle V\rangle\)를 정확히 만족한다.</li>
+      <li>레일리–리츠 방법은 최소화를 일반화 고유값 문제 \(\mathbf H\boldsymbol c=\varepsilon\mathbf S\boldsymbol c\)로 바꾼다. 리츠 값은 각 준위의 상계이고 기저를 늘리면 내려간다. 대칭으로 직교 조건을 걸면 들뜬 준위의 상계도 얻는다.</li>
+      <li>헬륨의 최적 유효 핵전하는 \(\zeta=27/16\)이고, 변분 에너지 \(-2.848\,E_{\rm h}\)는 정확한 값 \(-2.904\,E_{\rm h}\)보다 1.53 eV 높다. 에너지의 차이인 이온화 에너지에서는 오차가 6%로 커진다.</li>
+      <li>WKB 해는 \(p^{-1/2}e^{\pm i\int p\,dx/\hbar}\), \(\kappa^{-1/2}e^{\pm\int\kappa\,dx/\hbar}\) 꼴이다. 진폭 \(p^{-1/2}\)은 확률 흐름 보존에서 나오고, 근사는 국소 파장의 변화율 \(|d\lambda/dx|\ll2\pi\)에만 기댄다.</li>
+      <li>터널링 확률의 지수는 \(e^{-2\int\kappa\,dx/\hbar}\)이다. 알파 붕괴에서 이 지수는 \(Z_d/\sqrt Q\)에 비례해, \(Q\)가 두 배쯤 되면 반감기가 \(10^{24}\)배 바뀐다.</li>
+      <li>전환점 근처는 에어리 함수로 풀고, 그 점근형이 감쇠해와 진동해를 진폭 비 \(1:2\), 위상 \(\pi/4\)로 잇는다. \(\pi/4\)는 정류 위상의 가우스 적분에서 나온다.</li>
+      <li>두 매끄러운 전환점의 양자화 조건은 \(\oint p\,dx=2\pi\hbar(n+\tfrac12)\)이다. 상태 하나가 위상 공간 넓이 \(h\)를 차지하고 준위 간격은 \(\hbar\omega_{\rm cl}\)이다. 단단한 벽에는 \(\psi=0\)을 직접 적용한다.</li>
     </ol>
   </section>
 
@@ -257,48 +447,50 @@
       <div class="quiz-q"><p>1. 바닥 상태에 대한 시험 상태의 평균 에너지 \(\mathcal E[\phi]\)는?</p><div class="opts">
         <button class="opt">\(\mathcal E[\phi]\leq E_0\)</button><button class="opt" data-correct>\(\mathcal E[\phi]\geq E_0\)</button><button class="opt">항상 \(E_0\)와 같다</button>
       </div><div class="quiz-exp">에너지 고유값의 가중 평균이므로 가장 작은 고유값보다 낮을 수 없다.</div></div>
-      <div class="quiz-q"><p>2. 이 장의 헬륨 시험 상태에서 최적 유효 핵전하 \(\zeta_*\)는?</p><div class="opts">
+      <div class="quiz-q"><p>2. 시험 상태가 \(|0\rangle+\eta|\chi\rangle\), \(\langle0|\chi\rangle=0\)으로 바닥 상태에서 벗어났다. 작은 \(\eta\)에서 평균 에너지의 오차는?</p><div class="opts">
+        <button class="opt">\(\eta\)에 비례한다</button><button class="opt" data-correct>\(\eta^2\)에 비례한다</button><button class="opt">\(\eta\)와 무관하다</button>
+      </div><div class="quiz-exp">\((\hat H-E_0)|0\rangle=0\)이므로 \(\eta\)의 1차 항이 사라진다.</div></div>
+      <div class="quiz-q"><p>3. 레일리–리츠 계산에 기저 함수를 하나 더하면 \(k\)번째 리츠 값은?</p><div class="opts">
+        <button class="opt">올라갈 수도 있다</button><button class="opt" data-correct>내려가거나 그대로다</button><button class="opt">정확한 \(E_k\)보다 낮아질 수 있다</button>
+      </div><div class="quiz-exp">더 넓은 공간에서 최소화하므로 올라가지 않고, 모든 리츠 값이 상계이므로 \(E_k\) 아래로 내려가지도 않는다.</div></div>
+      <div class="quiz-q"><p>4. 이 장의 헬륨 시험 상태에서 최적 유효 핵전하 \(\zeta_*\)는?</p><div class="opts">
         <button class="opt">\(2\)</button><button class="opt" data-correct>\(27/16\)</button><button class="opt">\(5/16\)</button>
-      </div><div class="quiz-exp">\(d\mathcal E/d\zeta=0\)에서 \(\zeta_*=Z-5/16=27/16\)이다.</div></div>
-      <div class="quiz-q"><p>3. 이 장에서 \(\kappa(x)=\sqrt{2m(V-E)}\)의 단위는?</p><div class="opts">
-        <button class="opt">역길이</button><button class="opt" data-correct>운동량</button><button class="opt">에너지</button>
-      </div><div class="quiz-exp">제곱근 안은 질량 곱하기 에너지이므로 운동량의 제곱이다.</div></div>
-      <div class="quiz-q"><p>4. 전환점 \(E=V(x_t)\)에서 기본 WKB 식이 실패하는 직접적인 이유는?</p><div class="opts">
-        <button class="opt">질량이 0이어서</button><button class="opt" data-correct>\(p(x_t)=0\)이어서</button><button class="opt">파동함수가 정확히 0이어서</button>
-      </div><div class="quiz-exp">국소 파장은 무한대로 가고 \(1/\sqrt p\) 진폭이 발산한다.</div></div>
+      </div><div class="quiz-exp">\(d\mathcal E/d\zeta=0\)에서 \(\zeta_*=Z-5/16=27/16\)이다. 다른 전자가 핵전하를 가려 2보다 작다.</div></div>
       <div class="quiz-q"><p>5. 매끄러운 전환점 오른쪽의 감쇠 지수 하나가 왼쪽의 진동해와 연결될 때 생기는 위상은?</p><div class="opts">
         <button class="opt">\(0\)</button><button class="opt" data-correct>\(\pi/4\)</button><button class="opt">\(\pi\)</button>
-      </div><div class="quiz-exp">전환점의 선형 근사에 대한 에어리 함수의 점근형에서 \(\pi/4\)가 나온다.</div></div>
+      </div><div class="quiz-exp">에어리 적분의 두 정류점에서 진동하는 가우스 적분이 \(e^{\pm i\pi/4}\)를 준다.</div></div>
       <div class="quiz-q"><p>6. 두 매끄러운 전환점을 가진 우물의 WKB 조건은?</p><div class="opts">
         <button class="opt">\(\int_a^b p\,dx=n\pi\hbar\)</button><button class="opt" data-correct>\(\int_a^b p\,dx=(n+1/2)\pi\hbar\)</button><button class="opt">\(\int_a^b p\,dx=(n+1)\,2\pi\hbar\)</button>
-      </div><div class="quiz-exp">두 전환점의 위상 이동을 맞추면 반정수 이동이 생긴다.</div></div>
+      </div><div class="quiz-exp">두 전환점의 위상 \(\pi/4\)를 더하면 반정수 이동이 생긴다.</div></div>
     </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <div class="prob" id="prob-two-level-variation" data-level="1"><p>\(\hat H|0\rangle=E_0|0\rangle\), \(\hat H|1\rangle=(E_0+\Delta)|1\rangle\), \(\Delta&gt;0\)일 때 \(|\phi\rangle=(\sqrt3|0\rangle+|1\rangle)/2\)의 변분 에너지를 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>상태는 정규화되어 있다. 두 고유값의 가중 평균은 \(\mathcal E=(3/4)E_0+(1/4)(E_0+\Delta)=E_0+\Delta/4\)이므로 바닥 에너지보다 높다.</p></details></div>
-    <div class="prob" id="prob-gaussian-width" data-level="2"><p>식 <a class="ref" href="#eq-gaussian-energy"></a>에서 \(\langle x^2\rangle=1/(2\alpha)\), \(\langle p^2\rangle=\hbar^2\alpha/2\)를 써서 최소값이 \(\hbar\omega/2\)임을 확인하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\langle T\rangle=\hbar^2\alpha/(4m)\), \(\langle V\rangle=m\omega^2/(4\alpha)\)다. 도함수 \(\hbar^2/(4m)-m\omega^2/(4\alpha^2)=0\)에서 \(\alpha=m\omega/\hbar\). 둘째 도함수 \(m\omega^2/(2\alpha^3)&gt;0\)이고 두 항이 각각 \(\hbar\omega/4\)가 된다.</p></details></div>
+    <div class="prob" id="prob-two-level-variation" data-level="1"><p>\(\hat H|0\rangle=E_0|0\rangle\), \(\hat H|1\rangle=(E_0+\Delta)|1\rangle\), \(\Delta&gt;0\)일 때 \(|\phi\rangle=(\sqrt3|0\rangle+|1\rangle)/2\)의 변분 에너지를 구하라. 이 상태를 \(|0\rangle+\eta|1\rangle\)에 비례하게 쓰고 식 <a class="ref" href="#eq-variational-quadratic"></a>과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>상태는 정규화되어 있다. 두 고유값의 가중 평균은 \(\mathcal E=(3/4)E_0+(1/4)(E_0+\Delta)=E_0+\Delta/4\)이므로 바닥 에너지보다 높다. \(|\phi\rangle\propto|0\rangle+|1\rangle/\sqrt3\)이므로 \(\eta=1/\sqrt3\)이고, 식 <a class="ref" href="#eq-variational-quadratic"></a>은 \(\eta^2\Delta/(1+\eta^2)=(\Delta/3)/(4/3)=\Delta/4\)로 같은 답을 준다.</p></details></div>
+    <div class="prob" id="prob-hydrogen-gaussian" data-level="2"><p>원자 단위(\(\hbar=m_e=a_0=1\), 에너지 단위 \(E_{\rm h}\))에서 수소 원자의 해밀토니안은 \(-\nabla^2/2-1/r\)이다. 가우스 시험 상태 \(\phi_\alpha=(2\alpha/\pi)^{3/4}e^{-\alpha r^2}\)의 \(\langle T\rangle\)와 \(\langle1/r\rangle\)을 계산해 최적의 \(\alpha\)와 변분 에너지를 구하고, 정확한 값 \(-1/2\)과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(|\phi_\alpha|^2\)은 각 좌표의 분산이 \(1/(4\alpha)\)인 가우스 분포이므로 \(\langle r^2\rangle=3/(4\alpha)\)이다. \(\nabla\phi_\alpha=-2\alpha\boldsymbol r\phi_\alpha\)이므로 \(\langle T\rangle=\tfrac12\cdot4\alpha^2\langle r^2\rangle=3\alpha/2\)다. \(\langle1/r\rangle=4\pi(2\alpha/\pi)^{3/2}\int_0^\infty re^{-2\alpha r^2}dr=4\pi(2\alpha/\pi)^{3/2}/(4\alpha)=2\sqrt{2\alpha/\pi}\)이다. 따라서 \(\mathcal E(\alpha)=3\alpha/2-2\sqrt{2\alpha/\pi}\)이고, \(d\mathcal E/d\alpha=3/2-\sqrt{2/(\pi\alpha)}=0\)에서 \(\alpha_*=8/(9\pi)\simeq0.283\)이다. 그러면 \(\langle T\rangle=4/(3\pi)\), \(\langle V\rangle=-8/(3\pi)\)이므로 \(\mathcal E=-4/(3\pi)\simeq-0.4244\)로 정확한 값보다 15% 높다. \(\langle T\rangle=-\mathcal E\)는 <a class="ref" href="#thm-scaling-virial"></a>의 \(k=-1\)인 경우다. 오차가 큰 까닭은 가우스가 원점의 뾰족한 꼭짓점을 만들지 못하고 멀리서 너무 빨리 줄어들기 때문이다.</p></details></div>
+    <div class="prob" id="prob-linear-variational" data-level="2"><p>\(\hat H=\hat p^2/(2m)+F|\hat x|\), \(F&gt;0\)에 가우스 \(\phi_\alpha=(\alpha/\pi)^{1/4}e^{-\alpha x^2/2}\)를 써서 최소 에너지를 구하고, 최적점에서 \(2\langle T\rangle=\langle V\rangle\)임을 확인하라. 정확한 바닥 에너지 \(0.80862\,(\hbar^2F^2/m)^{1/3}\)과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\langle|x|\rangle=2\sqrt{\alpha/\pi}\int_0^\infty xe^{-\alpha x^2}dx=1/\sqrt{\pi\alpha}\)이므로 \(\mathcal E(\alpha)=\hbar^2\alpha/(4m)+F/\sqrt{\pi\alpha}\)다. \(d\mathcal E/d\alpha=\hbar^2/(4m)-F/(2\sqrt\pi\,\alpha^{3/2})=0\)의 양변에 \(\alpha\)를 곱하면 \(\hbar^2\alpha/(4m)=\tfrac12F/\sqrt{\pi\alpha}\), 곧 \(2\langle T\rangle=\langle V\rangle\)로 \(k=1\)인 비리얼 관계다. \(\alpha_*=(2mF/(\sqrt\pi\hbar^2))^{2/3}\)를 넣으면 \(\mathcal E=3\langle T\rangle=\tfrac34(4/\pi)^{1/3}(\hbar^2F^2/m)^{1/3}\simeq0.8129\,(\hbar^2F^2/m)^{1/3}\)이고, 정확한 값보다 0.53% 높다. 정확한 값은 \(x&gt;0\)에서 해가 \(\operatorname{Ai}((x-E/F)/\ell)\), \(\ell=[\hbar^2/(2mF)]^{1/3}\)이고, 짝 바닥 상태는 \(\psi'(0)=0\)이어야 한다는 데서 나온다. \(\operatorname{Ai}'\)의 첫 영점 \(-1.01879\)에서 \(E=1.01879\,F\ell=1.01879\cdot2^{-1/3}(\hbar^2F^2/m)^{1/3}\)이다.</p></details></div>
+    <div class="prob" id="prob-quartic-odd" data-level="2"><p>\(\hat H=\hat p^2/(2m)+g\hat x^4\)에 홀 시험 상태 \(\phi=xe^{-\alpha x^2/2}\)를 쓴다. \(\langle x^2\rangle=3/(2\alpha)\), \(\langle x^4\rangle=15/(4\alpha^2)\), \(\langle p^2\rangle=3\hbar^2\alpha/2\)를 보이고 최소 에너지를 구하라. 이 값이 어느 준위의 상계인지 설명하고 정확한 값 \(E_1=2.39364\,\varepsilon_g\)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(e^{-\alpha x^2}\)을 분산 \(\sigma^2=1/(2\alpha)\)인 가우스로 보면 가우스 모멘트 \(\langle x^{2j}\rangle_G=(2j-1)!!\,\sigma^{2j}\)로 \(\langle x^2\rangle=\langle x^4\rangle_G/\langle x^2\rangle_G=3\sigma^2=3/(2\alpha)\), \(\langle x^4\rangle=\langle x^6\rangle_G/\langle x^2\rangle_G=15\sigma^4=15/(4\alpha^2)\)이다. \(\phi'=(1-\alpha x^2)e^{-\alpha x^2/2}\)이므로 \(\int\phi'^2dx/\int\phi^2dx=(1-2\alpha\sigma^2+3\alpha^2\sigma^4)/\sigma^2=(3/4)\cdot2\alpha=3\alpha/2\)이다. 따라서 \(\mathcal E(\alpha)=3\hbar^2\alpha/(4m)+15g/(4\alpha^2)\), 최소 조건은 \(\alpha^3=10mg/\hbar^2\), 최솟값은 \(\tfrac98\cdot10^{1/3}\varepsilon_g\simeq2.4237\,\varepsilon_g\)다. 홀함수이므로 모든 짝 고유상태와 직교하고, 식 <a class="ref" href="#eq-excited-bound"></a>에 따라 가장 낮은 홀 준위 \(E_1\)의 상계다. 정확한 값보다 1.3% 높다.</p></details></div>
     <div class="prob" id="prob-ritz-two-basis" data-level="2"><p>두 시험 함수의 겹침 행렬이 \(S_{11}=S_{22}=1,\ S_{12}=S_{21}=1/2\), 해밀토니안 행렬이 \(H_{11}=H_{22}=2,\ H_{12}=H_{21}=1/5\)일 때 레일리–리츠 에너지 두 개를 구하라. 에너지 단위는 임의로 잡는다.</p>
-      <details class="sol"><summary>풀이</summary><p>대칭 벡터 \((1,1)\)와 반대칭 벡터 \((1,-1)\)가 두 행렬의 공통 고유벡터다. 일반화 고유값은 각각 \((2+1/5)/(1+1/2)=22/15\), \((2-1/5)/(1-1/2)=18/5\)다. 낮은 변분값은 \(22/15\)다.</p></details></div>
-    <div class="prob" id="prob-helium-repulsion" data-level="3"><p>\(\lambda=2\zeta/a_0\)로 놓고 \(P_\zeta(r)=\lambda^3r^2e^{-\lambda r}/2\)를 이용해 식 <a class="ref" href="#eq-helium-repulsion"></a>의 \(5\zeta/(8a_0)\)를 적분으로 확인하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\int_0^r P_\zeta(s)ds=1-e^{-\lambda r}(1+\lambda r+\lambda^2r^2/2)\)다. 이를 \(2\int_0^\infty P_\zeta(r)F(r)\,dr/r\)에 넣으면 첫 부분은 \(\lambda\), 뺄 부분은 \(11\lambda/16\)이므로 결과는 \(5\lambda/16=5\zeta/(8a_0)\)다.</p></details></div>
-    <div class="prob" id="prob-helium-optimum" data-level="2"><p>헬륨의 식 <a class="ref" href="#eq-helium-energy"></a>을 미분하여 \(\zeta_*\)와 \(\mathcal E(\zeta_*)/E_{\rm h}\)를 구하고, \(\zeta=2\)의 값과 비교하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\mathcal E/E_{\rm h}=\zeta^2-(27/8)\zeta\)이므로 최소점은 \(2\zeta-27/8=0\), 즉 \(27/16\)이다. 최소값은 \(-729/256\approx-2.84766\), \(\zeta=2\)의 값은 \(-11/4=-2.75\)다. 최소화한 값이 더 낮다.</p></details></div>
-    <div class="prob" id="prob-wkb-transport" data-level="2"><p>\(\psi=Ae^{iS/\hbar}\)를 1차원 슈뢰딩거 방정식에 대입하고 \(S'=p\)일 때 \(2pA'+p'A=0\)에서 \(A\propto p^{-1/2}\)를 얻어라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\psi''=e^{iS/\hbar}[A''+2iS'A'/\hbar+iS''A/\hbar-(S')^2A/\hbar^2]\)다. 가장 큰 항에서 \((S')^2=p^2\), 다음 항에서 \(2S'A'+S''A=0\). \(S'=p\)를 넣으면 \((pA^2)'=0\)이므로 \(A=C/\sqrt p\)다.</p></details></div>
-    <div class="prob" id="prob-wkb-validity" data-level="2"><p>\(x\geq0\)에서 \(p(x)=p_0(1+x/L)\), \(p_0,L&gt;0\)일 때 \(|\hbar p'|/p^2\)를 구하고 어디서 WKB 조건이 가장 엄격한지 말하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(p'=p_0/L\)이므로 비는 \(\hbar/[p_0L(1+x/L)^2]\)다. \(x=0\)에서 최대이며 \(p_0L\gg\hbar\)이면 이 구간 전체에서 작은 값이다.</p></details></div>
+      <details class="sol"><summary>풀이</summary><p>대칭 벡터 \((1,1)\)와 반대칭 벡터 \((1,-1)\)가 두 행렬의 공통 고유벡터다. 일반화 고유값은 각각 \((2+1/5)/(1+1/2)=22/15\), \((2-1/5)/(1-1/2)=18/5\)다. \(\det(\mathbf H-\varepsilon\mathbf S)=(2-\varepsilon)^2-(1/5-\varepsilon/2)^2=0\)을 직접 풀어도 같다. 낮은 리츠 값 \(22/15\)가 바닥 에너지의 상계, \(18/5\)가 첫 들뜬 준위의 상계다.</p></details></div>
+    <div class="prob" id="prob-hminus" data-level="2"><p>식 <a class="ref" href="#eq-helium-energy"></a>를 \(Z=1\)인 수소 음이온 H<sup>−</sup>에 적용해 \(\zeta_*\)와 \(\mathcal E(\zeta_*)\)를 구하라. 이 값을 수소 원자 하나와 멀리 떨어져 정지한 전자의 에너지 \(-E_{\rm h}/2\)와 비교하고, 이것으로 H<sup>−</sup>의 결합 여부를 판단할 수 있는지 말하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\zeta_*=1-5/16=11/16\)이고 \(\mathcal E=E_{\rm h}\,\zeta_*(\zeta_*-11/8)=-(11/16)^2E_{\rm h}=-121E_{\rm h}/256\simeq-0.4727\,E_{\rm h}\)로 \(-0.5\,E_{\rm h}\)보다 높다. 그러나 변분값은 상계일 뿐이므로 참 에너지가 \(-0.4727\,E_{\rm h}\) 이하라는 것만 알 수 있다. 문턱 \(-0.5\,E_{\rm h}\)보다 낮은지는 알 수 없어서 결합 여부를 판단할 수 없다. 두 전자에 다른 지수를 주는 시험 상태가 문턱보다 낮은 \(-0.5133\,E_{\rm h}\)를 주어 결합을 증명한다(18.3절).</p></details></div>
+    <div class="prob" id="prob-wkb-transport" data-level="2"><p>\(\psi=Ae^{iS/\hbar}\)(\(A,S\)는 실수)를 1차원 슈뢰딩거 방정식에 대입해 식 <a class="ref" href="#eq-wkb-amplitude-phase"></a>를 유도하라. 둘째 식의 \(A^2S'/m\)이 확률 흐름임을 보이고, \(\hbar^2A''/A\)를 버리면 \(A\propto p^{-1/2}\)임을 확인하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\psi'=(A'+iAS'/\hbar)e^{iS/\hbar}\), \(\psi''=[A''+2iA'S'/\hbar+iAS''/\hbar-A(S')^2/\hbar^2]e^{iS/\hbar}\)이다. \(\psi''+p^2\psi/\hbar^2=0\)의 실수부는 \(A''-A(S')^2/\hbar^2+p^2A/\hbar^2=0\), 허수부는 \(2A'S'+AS''=0\)이다. 허수부에 \(A\)를 곱하면 \((A^2S')'=0\)이다. \(\psi^*\psi'=AA'+iA^2S'/\hbar\)이므로 \(j=(\hbar/m){\rm Im}(\psi^*\psi')=A^2S'/m\)이다. 실수부에서 \(\hbar^2A''/A\)를 버리면 \(S'=\pm p\)이고, \(A^2p\)가 상수이므로 \(A=C/\sqrt p\)다.</p></details></div>
+    <div class="prob" id="prob-wkb-validity" data-level="2"><p>\(x\geq0\)에서 \(p(x)=p_0(1+x/L)\), \(p_0,L&gt;0\)일 때 \(\hbar|p'|/p^2\)를 구하고 어디서 WKB 조건이 가장 엄격한지 말하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(p'=p_0/L\)이므로 비는 \(\hbar/[p_0L(1+x/L)^2]\)다. 운동량이 가장 작은 \(x=0\)에서 최대이며, \(p_0L\gg\hbar\)이면 이 구간 전체에서 식 <a class="ref" href="#eq-wkb-validity"></a>가 성립한다.</p></details></div>
     <div class="prob" id="prob-parabolic-barrier" data-level="3"><p>장벽 구간이 \(V(x)=V_0-m\Omega^2x^2/2\)이고 \(E&lt;V_0\)일 때 두 전환점 사이의 \(K=\int\kappa\,dx/\hbar\)를 계산하라. \(K\gg1\)에서 터널링 확률의 주된 지수도 쓰라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\Delta=V_0-E\), \(x_t=\sqrt{2\Delta/(m\Omega^2)}\)라 하면 \(\kappa=m\Omega\sqrt{x_t^2-x^2}\)다. 반원의 넓이 \(\int_{-x_t}^{x_t}\sqrt{x_t^2-x^2}dx=\pi x_t^2/2\)를 써서 \(K=\pi\Delta/(\hbar\Omega)\), 따라서 \(T\sim e^{-2\pi\Delta/(\hbar\Omega)}\)다.</p></details></div>
-    <div class="prob" id="prob-airy-scale" data-level="2"><p>\(V(x)-E\simeq F(x-b)\), \(F&gt;0\)인 전환점에서 \(\ell=[\hbar^2/(2mF)]^{1/3}\)을 유도하고, 허용 쪽의 위상 적분 \(\int_x^b p\,dx'/\hbar\)를 \(u=(b-x)/\ell\)로 나타내라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(x-b=\ell z\)를 넣은 방정식의 두 계수 \(\hbar^2/(2m\ell^2)\)와 \(F\ell\)을 같게 두면 \(\ell^3=\hbar^2/(2mF)\)다. \(p=\sqrt{2mF(b-x)}\)를 적분하면 \(\int_x^b p\,dx'/\hbar=2u^{3/2}/3\)이다.</p></details></div>
-    <div class="prob" id="prob-oscillator-action" data-level="2"><p>\(V=m\omega^2x^2/2\)에 대해 \(x=x_t\sin u\)로 작용 적분을 계산하고 식 <a class="ref" href="#eq-bohr-sommerfeld"></a>에 넣어 \(E_n\)을 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(p=m\omega x_t\sqrt{1-x^2/x_t^2}\)이고 \(x_t^2=2E/(m\omega^2)\)다. 따라서 작용은 \(m\omega x_t^2\int_{-\pi/2}^{\pi/2}\cos^2u\,du=\pi E/\omega\). 이를 \(\pi\hbar(n+1/2)\)와 같게 두면 \(E_n=\hbar\omega(n+1/2)\)다.</p></details></div>
-    <div class="prob" id="prob-half-oscillator" data-level="3"><p>\(x=0\)에 무한히 높은 벽이 있고 \(x&gt;0\)에서 \(V=m\omega^2x^2/2\)인 반쪽 진동자를 생각하자. 오른쪽 전환점의 연결 공식과 \(\psi(0)=0\)으로 WKB 에너지를 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>오른쪽 감쇠 꼬리가 만드는 허용 쪽 해는 \(\cos[\int_x^{x_t}p\,dx'/\hbar-\pi/4]/\sqrt p\)에 비례한다. \(x=0\)에서 0이려면 \(\int_0^{x_t}p\,dx=(n+3/4)\pi\hbar\)다. 적분은 \(\pi E/(2\omega)\)이므로 \(E_n=\hbar\omega(2n+3/2)\), \(n=0,1,\ldots\)이다.</p></details></div>
+      <details class="sol"><summary>풀이</summary><p>\(\Delta=V_0-E\), \(x_t=\sqrt{2\Delta/(m\Omega^2)}\)라 하면 \(\kappa=m\Omega\sqrt{x_t^2-x^2}\)다. 반원의 넓이 \(\int_{-x_t}^{x_t}\sqrt{x_t^2-x^2}dx=\pi x_t^2/2\)를 써서 \(K=\pi\Delta/(\hbar\Omega)\), 따라서 \(T\sim e^{-2\pi\Delta/(\hbar\Omega)}\)다. 포물선 장벽은 정확히 풀리며 그 답 \(T=1/(1+e^{2\pi\Delta/(\hbar\Omega)})\)은 \(K\gg1\)에서 이 지수와 같다.</p></details></div>
+    <div class="prob" id="prob-gamow-sensitivity" data-level="2"><p>식 <a class="ref" href="#eq-gamow"></a>의 첫 항 \(2K\simeq4\pi Z_d\alpha\,c/v\)만 남겨, \({}^{238}\mathrm U\)(\(Z_d=90\), \(v/c=0.0483\))에서 \(Q\)가 1% 커지면 반감기가 몇 배 줄어드는지 추정하라.</p>
+      <details class="sol"><summary>풀이</summary><p>첫 항의 크기는 \(4\pi\times90/137.04/0.0483\simeq171\)이다. \(v\propto Q^{1/2}\)이므로 이 항은 \(Q^{-1/2}\)에 비례하고, \(Q\)가 1% 커지면 \(\delta(2K)\simeq-\tfrac12\times171\times0.01\simeq-0.85\)이다. 반감기는 \(e^{2K}\)에 비례하므로 \(e^{0.85}\simeq2.3\)배 줄어든다. 시도 빈도 \(v/(2R)\)의 변화는 0.5%로 무시할 수 있다. 식 <a class="ref" href="#eq-gamow"></a> 전체로 계산해도 \(\delta(2K)=-0.83\)으로 거의 같다. 에너지가 1% 바뀌면 반감기가 두 배 넘게 바뀐다.</p></details></div>
+    <div class="prob" id="prob-power-law-levels" data-level="2"><p>\(V=g|x|^k\), \(k&gt;0\)에서 식 <a class="ref" href="#eq-bohr-sommerfeld"></a>로 \(E_n\propto(n+\tfrac12)^{2k/(k+2)}\)임을 보여라. \(k=2\)와 \(k\to\infty\)에서 결과를 해석하라.</p>
+      <details class="sol"><summary>풀이</summary><p>전환점은 \(x_t=(E/g)^{1/k}\)이고 \(x=x_tt\)로 바꾸면 \(\int_{-x_t}^{x_t}\sqrt{2m(E-g|x|^k)}\,dx=\sqrt{2mE}\,x_tI_k\propto E^{1/2+1/k}\), \(I_k=\int_{-1}^1\sqrt{1-|t|^k}\,dt\)이다. 이를 \(\pi\hbar(n+\tfrac12)\)와 같게 놓으면 \(E^{(k+2)/(2k)}\propto n+\tfrac12\)이다. \(k=2\)이면 지수가 1이어서 간격이 일정한 조화 진동자가 된다. \(k\to\infty\)이면 퍼텐셜이 \(|x|&lt;1\)에서 0, 밖에서 무한대인 상자가 되고 지수는 2다. 그러나 \((n+\tfrac12)^2\)은 상자의 정확한 답 \((n+1)^2\)과 다르다. 벽이 매끄러운 전환점이 아니어서 \(\pi/4\) 위상이 맞지 않기 때문이며, 벽에서 \(\psi=0\)을 직접 쓰면 정확한 답이 나온다.</p></details></div>
+    <div class="prob" id="prob-half-oscillator" data-level="3"><p>\(x=0\)에 무한히 높은 벽이 있고 \(x&gt;0\)에서 \(V=m\omega^2x^2/2\)인 반쪽 진동자를 생각하자. 오른쪽 전환점의 연결 공식과 \(\psi(0)=0\)으로 WKB 에너지를 구하고 <a href="ch08.html#prob-half-oscillator">8장의 정확한 답</a>과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>오른쪽 감쇠 꼬리가 만드는 허용 쪽 해는 \(\cos[\int_x^{x_t}p\,dx'/\hbar-\pi/4]/\sqrt p\)에 비례한다. \(x=0\)에서 0이려면 \(\int_0^{x_t}p\,dx=(n+3/4)\pi\hbar\)다. 적분은 온전한 진동자 작용의 절반인 \(\pi E/(2\omega)\)이므로 \(E_n=\hbar\omega(2n+3/2)\), \(n=0,1,\ldots\)이다. 온전한 진동자의 홀 상태 에너지와 같으며 8장의 정확한 답과 일치한다.</p></details></div>
   </section>
 </main>
 </body>
