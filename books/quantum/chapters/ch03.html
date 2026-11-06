@@ -379,7 +379,7 @@
       <div class="formula">\[ \begin{aligned} L = 1\ \mathrm{cm}: &\quad \Delta v = \frac{h}{m_e L} \approx 7.27\times10^{-2}\ \mathrm{m/s}, \\ L = 1\ \mathrm{nm}: &\quad \Delta v \approx 7.27\times10^{5}\ \mathrm{m/s} \end{aligned} \]</div>
       <p>상온(300 K)에서 전자의 열운동 속도는 \(\sqrt{3k_BT/m_e} \approx 1.2\times10^5\ \mathrm{m/s}\)이다. 1 cm 고리의 속도 간격은 이보다 백만 배 넘게 작아서 사실상 연속이다. 실험실 크기의 계에서 상자의 크기가 물리적 결과에 나타나지 않는 이유다. 반면 분자 크기(1 nm)의 고리에서는 간격이 열운동 속도보다 커서 운동량이 띄엄띄엄한 것이 그대로 드러난다. 원자와 분자 크기의 계에서 양자화가 눈에 띄는 이유다(7장, 15장).</p>
     </div>
-    <p>상자 정규화는 계산을 위한 장부 정리 방법이다. 정규화할 수 있는 상태에 대한 물리적 결과는 \(L \to \infty\)에서 \(L\)에 의존하지 않는다. 21장의 산란 이론이나 통계역학의 상태 밀도 계산에서 자주 쓴다.</p>
+    <p>상자 정규화는 계산을 위한 장부 정리 방법이다. 정규화할 수 있는 상태에 대한 물리적 결과는 \(L \to \infty\)에서 \(L\)에 의존하지 않는다. <a href="ch21.html#s2-golden">21장의 산란 이론</a>이나 통계역학의 상태 밀도 계산에서 자주 쓴다.</p>
 
     <h3 id="s5-relabel">이름표를 바꾸면 정규화도 바뀐다</h3>
     <p>운동량 대신 파수 \(k = p/\hbar\)로 고유 켓에 이름을 붙이는 교재도 많다. 같은 상태를 \(|k\rangle\)로 부르고 \(\langle k|k'\rangle = \delta(k - k')\)로 정규화하면, 식 <a class="ref" href="#eq-delta-fourier"></a>에 따라 \(\langle x|k\rangle = e^{ikx}/\sqrt{2\pi}\)이다. 그런데 식 <a class="ref" href="#eq-delta-scale"></a>에 따라 \(\delta(k - k') = \delta\big((p - p')/\hbar\big) = \hbar\,\delta(p - p')\)이므로, 두 이름표의 켓은 크기가 다르다.</p>
@@ -533,7 +533,7 @@
       <details class="sol"><summary>풀이</summary>
         <p>\(|\omega\rangle = c(\mu)|\mu\rangle\)로 두면 \(\langle\omega|\omega'\rangle = |c|^2\,\delta(\mu - \mu')\)이다. 한편 식 <a class="ref" href="#eq-delta-compose"></a>에 따라 \(\delta(\omega - \omega') = \delta\big(g(\mu) - g(\mu')\big) = \delta(\mu - \mu')/|g'(\mu)|\)이다. 두 식이 같으려면 \(|c|^2 = 1/|g'(\mu)|\)이다.</p>
         <p>(가) 이름표를 \(\mu = p\), \(\omega = k = p/\hbar\)로 두면 \(g' = 1/\hbar\)이므로 \(|k\rangle = \sqrt\hbar\,|p\rangle\), 곧 식 <a class="ref" href="#eq-relabel"></a>이다.</p>
-        <p>(나) \(g'(p) = p/m\)이므로 \(|E\rangle = \sqrt{m/p}\;|p\rangle\)이고, \(\langle x|E\rangle = \sqrt{\dfrac{m}{2\pi\hbar\,p}}\;e^{ipx/\hbar}\)이다. 에너지로 정규화한 평면파는 운동량이 작을수록 진폭이 크다. 7장과 21장에서 이런 정규화를 쓴다.</p>
+        <p>(나) \(g'(p) = p/m\)이므로 \(|E\rangle = \sqrt{m/p}\;|p\rangle\)이고, \(\langle x|E\rangle = \sqrt{\dfrac{m}{2\pi\hbar\,p}}\;e^{ipx/\hbar}\)이다. 에너지로 정규화한 평면파는 운동량이 작을수록 진폭이 크다. 7장과 <a href="ch21.html#s2-golden">21장</a>에서 이런 정규화를 쓴다.</p>
       </details>
     </div>
 
