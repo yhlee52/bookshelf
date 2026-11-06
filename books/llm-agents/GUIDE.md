@@ -1,6 +1,6 @@
 # 『LLM에서 자율 에이전트까지』 집필 계획
 
-> 현재 **1장은 초고**(`draft`)이고, 나머지 42장은 제목·절 제목·실험 질문만 정한 빈 슬롯입니다. 목차의 기준은 [data/books.js](../../data/books.js)의 `llm-agents` 항목입니다.
+> 현재 **1–2장은 초고**(`draft`)이고, 나머지 41장은 제목·절 제목·실험 질문만 정한 빈 슬롯입니다. 목차의 기준은 [data/books.js](../../data/books.js)의 `llm-agents` 항목입니다.
 
 ## 1. 책의 질문과 독자
 
@@ -84,6 +84,8 @@
 - **에이전트 연결:** 원리가 에이전트에서 어떻게 드러나는지는 `<div class="callout agent">`(제목 앞에 '에이전트 ·'가 붙음)로 짧게 잇고, 자세한 설명은 해당 장으로 링크합니다. 1–4부에서는 장마다 두세 개를 넘기지 않습니다.
 - **실험의 재현:** 결과 표의 수는 본문에 실은 코드를 그대로 실행해 나와야 합니다. 코드에는 시드와 반복 수를 적고, 실행한 파이썬 버전을 본문에 밝힙니다. 실험 카드가 같은 실험을 브라우저에서 다시 돌릴 때는 같은 계산 순서와 같은 난수(파이썬 `random`과 같은 MT19937)를 써서 표와 같은 수를 내게 합니다. 같은 수를 낼 수 없으면 본문에 그렇게 밝힙니다.
 - **실험 설계 표:** 실험 절은 모델, 시작 조건(프롬프트 등), 바꾸는 것(하나), 고정하는 것, 관측값, 예산, 미리 적은 예상, 예상이 틀렸다고 볼 조건을 표로 먼저 적고, 결과와 해석·한계를 그 뒤에 씁니다.
+- **예상과 조정:** 설계 표의 '예상'은 이론에서 도출한 것만 적습니다. 결과를 본 뒤 말뭉치·시드·크기 같은 설정을 바꿨다면 그 사실과 바꾸기 전 결과를 '해석과 한계'에 밝힙니다. 결과를 보지 않고 적은 것처럼 '미리 적은'이라 쓰지 않습니다.
+- **구조를 모르는 제품:** Claude처럼 내부 구조가 공개되지 않은 모델은 층 수·차원·attention 방식을 추측해 쓰지 않습니다. 크기를 가늠하는 예시 설정은 '가상 설정'이라고 밝힙니다.
 - **제품 기능:** Claude API·Claude Code의 동작이나 제한을 쓸 때는 공식 문서를 링크하고 확인한 달을 본문에 적습니다. 제품이 바뀌어도 원리 설명이 틀리지 않도록, 원리와 제품의 현재 동작을 다른 문단으로 나눕니다.
 - **숫자:** 본문·표·그림·퀴즈·연습문제의 수는 스크립트로 계산하거나 실제로 실행해 얻습니다. 검산 스크립트는 저장소에 넣지 않습니다.
 - **참조:** 번호는 `assets/js/book.js`가 붙입니다. `<a class="ref" href="#eq-…"></a>`는 식이면 '(1.3)'만 채우므로 앞에 '식'을 쓰고, 정의·정리·예제·문제는 '예제 1.2'처럼 종류 이름까지 채우므로 앞에 종류 이름을 쓰지 않습니다. 참조 바로 뒤에는 받침에 따라 바뀌지 않는 조사(의·에·에서)를 쓰면 실수가 줄어듭니다. 그림 번호(그림 1-1)는 손으로 씁니다.
@@ -118,7 +120,7 @@
 | 장 | 자료 |
 |---|---|
 | 01 | Sennrich 외, [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) (BPE) · Holtzman 외, [The Curious Case of Neural Text Degeneration](https://arxiv.org/abs/1904.09751) (샘플링) · Petrov 외, [Language Model Tokenizers Introduce Unfairness Between Languages](https://arxiv.org/abs/2305.15425) · [tiktoken](https://github.com/openai/tiktoken) 0.14.0 (그림 1-1과 토큰 수 표) · Claude, [Token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting) · [Claude Opus 5.5 migration guide](https://platform.claude.com/docs/en/models/opus-5-5/migration-guide) (샘플링 매개변수, 2026-11-06 확인) |
-| 02 | Vaswani 외, [Attention Is All You Need](https://arxiv.org/abs/1706.03762) |
+| 02 | Vaswani 외, [Attention Is All You Need](https://arxiv.org/abs/1706.03762) · Bahdanau 외, [Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473) (attention의 기원) · Su 외, [RoFormer](https://arxiv.org/abs/2104.09864) (RoPE) · Xiong 외, [On Layer Normalization in the Transformer Architecture](https://arxiv.org/abs/2002.04745) (pre-LN) · Dao 외, [FlashAttention](https://arxiv.org/abs/2205.14135) · Ainslie 외, [GQA](https://arxiv.org/abs/2305.13245) · Claude, [Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) (2026-11 확인) |
 | 03 | Brown 외, [Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165) |
 | 04 | Ouyang 외, [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155) (InstructGPT) |
 | 05 | Wei 외, [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903) |

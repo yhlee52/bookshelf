@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>02 어텐션과 트랜스포머 · AgentBook</title>
-<meta name="description" content="컨텍스트 속 토큰을 연결하는 문제 · query·key·value와 어텐션 · 위치 정보와 층의 반복 · 긴 입력의 비용">
+<meta name="description" content="토큰 임베딩이 컨텍스트를 읽는 방법인 scaled dot-product attention(query·key·value, causal mask, multi-head), 위치 정보(sinusoidal, RoPE)와 트랜스포머 블록의 구조·파라미터 수, 그리고 attention 비용과 KV cache로 보는 긴 입력의 비용을 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,504 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch02">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">02</span></div>
     <h1 data-fill="chapter-title">어텐션과 트랜스포머</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">1장의 bigram 모델은 바로 앞 토큰 하나만 보고 다음 토큰의 분포를 정했다. 실제 언어모델은 컨텍스트 전체를 읽는다. 어느 토큰을 얼마나 읽을지는 내용에 따라 달라지고, 그 읽기 방식 자체를 학습한다. 이 장은 그 장치인 attention과, attention을 층층이 쌓아 만든 트랜스포머를 세운다. 이어서 컨텍스트가 길어질 때 비용이 어떻게 늘어나는지 계산한다. 에이전트가 파일과 도구 결과를 컨텍스트에 쌓을수록 느려지고 비싸지는 이유가 여기서 나온다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>토큰 임베딩만으로는 컨텍스트를 반영할 수 없는 이유를 설명하고, scaled dot-product attention을 query·key·value로 쓸 수 있다.</li>
+      <li>작은 예에서 attention 가중치와 출력을 손으로 계산하고, \(\sqrt{d_k}\)로 나누는 이유와 causal mask가 하는 일을 설명할 수 있다.</li>
+      <li>attention이 토큰의 순서를 모른다는 것을 보이고, sinusoidal 위치 인코딩과 RoPE가 이를 어떻게 해결하는지 말할 수 있다.</li>
+      <li>트랜스포머 블록(residual, LayerNorm, MLP)의 구조를 그리고, 층당 파라미터가 약 \(12d^2\)임을 계산할 수 있다.</li>
+      <li>attention의 계산량이 입력 길이의 제곱으로 늘어나는 이유와 KV cache가 줄이는 것·늘리는 것을 수치로 설명할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch01.html">1장</a>(토큰, 소프트맥스, 생성 루프), 행렬곱과 내적(<a href="../../linear-algebra/index.html">『머신러닝을 위한 선형대수』</a>)</p>
   </header>
+
+  <!-- ============================================================ 2.1 -->
   <section id="s1">
     <h2>컨텍스트 속 토큰을 연결하는 문제</h2>
-    <p class="slot" data-slot="2.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>다음 두 문장은 마지막 단어 하나만 다르다.</p>
+    <ul>
+      <li>트로피는 가방에 들어가지 않았다. 그것이 너무 <b>컸기</b> 때문이다.</li>
+      <li>트로피는 가방에 들어가지 않았다. 그것이 너무 <b>작았기</b> 때문이다.</li>
+    </ul>
+    <p>'그것'이 가리키는 대상은 첫 문장에서는 '트로피', 둘째 문장에서는 '가방'이다. 대명사 하나를 풀려면 몇 토큰 앞의 '트로피'와 '가방'을 읽어야 하고, 어느 쪽인지는 '컸기'인지 '작았기'인지라는 다른 토큰의 내용이 정한다. 다음 토큰을 잘 예측하려면 각 위치의 표현이 컨텍스트의 어디를 읽을지 내용에 따라 스스로 정해야 한다.</p>
+
+    <h3 id="h-embedding">임베딩과 그 한계</h3>
+    <p>1장에서 모델의 입력은 토큰 id의 시퀀스였다. 신경망이 계산하려면 id를 벡터로 바꿔야 한다.</p>
+    <div class="box def" id="def-embedding"><div class="box-h">임베딩</div>
+      <p>어휘 크기가 \(|\mathcal V|\)이고 모델의 차원이 \(d\)일 때, 학습되는 행렬 \(E\in\mathbb R^{|\mathcal V|\times d}\)의 \(i\)번째 행을 토큰 id \(i\)의 <span class="term">임베딩</span> <span class="en">(embedding)</span>이라 한다. 토큰 \(x_t\)는 \(E[x_t]\)로 바뀐다. \(d\)를 \(d_{\text{model}}\)이라고도 한다.</p>
+    </div>
+    <p>문제는 임베딩이 컨텍스트와 무관하다는 점이다. '배'가 과일인지 탈것인지에 상관없이 같은 토큰에는 같은 벡터가 붙는다. 그러니 임베딩 다음에는 각 위치의 벡터를 컨텍스트에 맞게 고쳐 쓰는 단계가 있어야 한다. 이 단계가 갖춰야 할 조건은 네 가지다.</p>
+    <ol>
+      <li>입력 길이가 달라져도 쓸 수 있어야 한다.</li>
+      <li>멀리 떨어진 토큰도 가까운 토큰만큼 직접 읽을 수 있어야 한다.</li>
+      <li>어디를 읽을지가 고정되지 않고 내용에 따라 정해져야 한다.</li>
+      <li>1장의 teacher forcing처럼 모든 위치를 한꺼번에 계산할 수 있어야 한다.</li>
+    </ol>
+    <p>순환 신경망(RNN)은 토큰을 하나씩 읽으며 크기가 정해진 상태 벡터 하나에 지금까지의 정보를 눌러 담는다. 그래서 먼 토큰의 정보는 여러 번 덮어쓰이면서 흐려지고, 앞 토큰의 계산이 끝나야 다음 토큰을 계산할 수 있어 병렬화도 어렵다. <a href="https://arxiv.org/abs/1409.0473">Bahdanau 외(2014)</a>는 번역에서 디코더가 원문의 모든 위치를 가중합으로 조회하게 했고, <a href="https://arxiv.org/abs/1706.03762">Vaswani 외(2017)</a>는 이 조회를 모델의 유일한 부품으로 삼은 트랜스포머를 제안했다. 생각은 이렇다. <b>각 위치의 새 표현을 다른 위치 표현들의 가중 평균으로 만들고, 가중치는 내용을 비교해서 정한다.</b></p>
   </section>
+
+  <!-- ============================================================ 2.2 -->
   <section id="s2">
     <h2>query·key·value와 어텐션</h2>
-    <p class="slot" data-slot="2.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>가중 평균의 가중치를 내용으로 정하려면 두 위치의 내용이 얼마나 맞는지 점수로 매겨야 한다. 파이썬의 딕셔너리 조회를 떠올리면 편하다. 딕셔너리는 찾는 키가 저장된 키와 정확히 같을 때만 값을 돌려준다. attention은 이 조회를 부드럽게 만든다. 모든 키와의 일치 정도를 점수로 매기고, 점수가 높은 키의 값을 더 많이 섞어서 돌려준다.</p>
+    <p>이를 위해 각 위치의 벡터 \(x_i\in\mathbb R^d\)에서 세 가지 벡터를 만든다. 입력 행렬 \(X\in\mathbb R^{n\times d}\)의 행이 \(x_i^\top\)이다.</p>
+    <div class="box def" id="def-qkv"><div class="box-h">query, key, value</div>
+      <p>학습되는 행렬 \(W_Q,W_K\in\mathbb R^{d\times d_k}\), \(W_V\in\mathbb R^{d\times d_v}\)로 다음 세 행렬을 만든다.</p>
+      <div class="formula">\[ Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V \]</div>
+      <p>위치 \(i\)의 <span class="term">query</span> \(q_i\)는 '이 위치가 지금 무엇을 찾는가', <span class="term">key</span> \(k_j\)는 '위치 \(j\)가 어떤 질의에 찾아질 수 있는가', <span class="term">value</span> \(v_j\)는 '찾아졌을 때 무엇을 건네는가'를 나타낸다.</p>
+    </div>
+    <p>같은 위치에서 세 가지를 따로 만드는 이유는 역할이 다르기 때문이다. 무엇을 찾는지(query)와 어떻게 찾아지는지(key), 찾은 뒤 무엇을 가져오는지(value)가 같은 벡터여야 할 이유는 없다. 세 행렬을 따로 학습하면 모델이 각 역할에 맞는 표현을 스스로 만든다.</p>
+    <div class="box def" id="def-attention"><div class="box-h">scaled dot-product attention</div>
+      <div class="formula" id="eq-attention">\[ \operatorname{Attention}(Q,K,V)=\operatorname{softmax}\!\Bigl(\frac{QK^\top}{\sqrt{d_k}}+M\Bigr)V \]<div class="where">softmax는 행마다 적용한다. \(M\)은 마스크로, 가리지 않는 위치는 0이다. 마스크는 이 절 뒤에서 설명한다.</div></div>
+      <p>위치 \(i\)의 출력은 \(\sum_j a_{ij}v_j\)이다. 가중치 \(a_{ij}=\operatorname{softmax}_j\bigl(q_i\cdot k_j/\sqrt{d_k}\bigr)\)는 1장의 소프트맥스로 만든 확률 분포이고 합이 1이다. 곧 출력은 value들의 <b>가중 평균</b>이다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 220" role="img" aria-label="scaled dot-product attention의 계산 흐름: X에서 Q, K, V를 만들고, QKᵀ를 √dₖ로 나눈 점수에 마스크와 소프트맥스를 적용해 가중치 A를 얻은 뒤 V의 가중 평균을 출력한다">
+  <defs><marker id="g21-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker></defs>
+  <rect class="f-surface" x="5" y="75" width="70" height="60" rx="8"/>
+  <text class="t-b" x="40" y="102" text-anchor="middle">X</text><text class="t-mono" x="40" y="121" text-anchor="middle">n × d</text>
+  <rect class="f-acc-soft" x="125" y="15" width="95" height="44" rx="8"/>
+  <text class="t-b" x="172" y="34" text-anchor="middle">Q = X W_Q</text><text class="t-mono" x="172" y="51" text-anchor="middle">n × dₖ</text>
+  <rect class="f-acc-soft" x="125" y="88" width="95" height="44" rx="8"/>
+  <text class="t-b" x="172" y="107" text-anchor="middle">K = X W_K</text><text class="t-mono" x="172" y="124" text-anchor="middle">n × dₖ</text>
+  <rect class="f-acc2-soft" x="125" y="161" width="95" height="44" rx="8"/>
+  <text class="t-b" x="172" y="180" text-anchor="middle">V = X W_V</text><text class="t-mono" x="172" y="197" text-anchor="middle">n × dᵥ</text>
+  <path d="M75 105 C100 105 100 37 121 37" class="s-line" marker-end="url(#g21-arr)"/>
+  <path d="M75 105 H121" class="s-line" marker-end="url(#g21-arr)"/>
+  <path d="M75 105 C100 105 100 183 121 183" class="s-line" marker-end="url(#g21-arr)"/>
+  <rect class="f-surface" x="265" y="62" width="125" height="96" rx="8"/>
+  <text class="t-b" x="327" y="95" text-anchor="middle">점수 S</text><text class="t-dim" x="327" y="115" text-anchor="middle">Q Kᵀ / √dₖ</text><text class="t-mono" x="327" y="136" text-anchor="middle">n × n</text>
+  <path d="M220 37 C245 37 245 85 261 85" class="s-line" marker-end="url(#g21-arr)"/>
+  <path d="M220 110 C245 110 245 110 261 110" class="s-line" marker-end="url(#g21-arr)"/>
+  <rect class="f-acc-soft" x="430" y="62" width="125" height="96" rx="8"/>
+  <text class="t-b" x="492" y="90" text-anchor="middle">mask + softmax</text><text class="t-dim" x="492" y="111" text-anchor="middle">행마다 합이 1</text><text class="t-b" x="492" y="132" text-anchor="middle">A</text><text class="t-mono" x="492" y="148" text-anchor="middle">n × n</text>
+  <path d="M390 110 H426" class="s-line" marker-end="url(#g21-arr)"/>
+  <rect class="f-surface" x="595" y="62" width="190" height="96" rx="8"/>
+  <text class="t-b" x="690" y="95" text-anchor="middle">출력 O = A V</text><text class="t-dim" x="690" y="115" text-anchor="middle">각 행은 value의 가중 평균</text><text class="t-mono" x="690" y="136" text-anchor="middle">n × dᵥ</text>
+  <path d="M555 110 H591" class="s-line" marker-end="url(#g21-arr)"/>
+  <path d="M220 183 H690 V162" class="s-acc2" marker-end="url(#g21-arr)"/>
+  <text class="t-dim" x="455" y="177" text-anchor="middle">V는 점수 계산에 쓰이지 않고 마지막 가중 평균에서만 쓰인다</text>
+</svg>
+      <figcaption><b>그림 2-1.</b> attention의 계산 흐름. \(n\)은 토큰 수이다. 점수 행렬과 가중치 행렬이 \(n\times n\)이라는 점이 2.4절의 비용 계산에 쓰인다.</figcaption>
+    </figure>
+
+    <div class="box ex" id="ex-attention"><div class="box-h">토큰 세 개로 손계산하기</div>
+      <p>\(d_k=2\)이고 \(W_Q=W_K=I\)라 하여 \(Q=K=X\)로 두자. 세 토큰의 벡터와 value는 다음과 같다.</p>
+      <div class="formula">\[ X=\begin{pmatrix}1&0\\0&1\\1&1\end{pmatrix},\qquad V=\begin{pmatrix}1&2\\3&4\\5&6\end{pmatrix} \]</div>
+      <p>세 번째 토큰의 query \((1,1)\)과 세 key의 내적은 \(1,\,1,\,2\)이고, \(\sqrt2\)로 나누면 \(0.707,\,0.707,\,1.414\)이다. \(e^{0.707}=2.028\), \(e^{1.414}=4.113\)이므로 합은 \(8.169\)이고 가중치는 \((0.248,\,0.248,\,0.503)\)이다. 출력은</p>
+      <div class="formula">\[ 0.248\begin{pmatrix}1\\2\end{pmatrix}+0.248\begin{pmatrix}3\\4\end{pmatrix}+0.503\begin{pmatrix}5\\6\end{pmatrix}=\begin{pmatrix}3.51\\4.51\end{pmatrix} \]</div>
+      <p>자기 자신(내적 2)에 가장 큰 가중치가 갔고, 나머지 둘은 같다. 같은 방식으로 모든 행을 계산하면 아래 표가 나온다. 오른쪽 열은 다음에 설명할 causal mask를 씌운 결과다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>위치</th><th class="num">마스크 없음: 가중치</th><th class="num">출력</th><th class="num">causal mask: 가중치</th><th class="num">출력</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="num">0.401, 0.198, 0.401</td><td class="num">3.00, 4.00</td><td class="num">1, 0, 0</td><td class="num">1.00, 2.00</td></tr>
+          <tr><td>2</td><td class="num">0.198, 0.401, 0.401</td><td class="num">3.41, 4.41</td><td class="num">0.33, 0.67, 0</td><td class="num">2.34, 3.34</td></tr>
+          <tr><td>3</td><td class="num">0.248, 0.248, 0.503</td><td class="num">3.51, 4.51</td><td class="num">0.248, 0.248, 0.503</td><td class="num">3.51, 4.51</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <p>가중치가 바뀌면 출력이 어떻게 바뀌는지는 아래 실험 카드에서 직접 볼 수 있다. query 화살표 끝이나 key를 끌어 보자. 출력(★)은 value들의 가중 평균이므로 항상 value들이 이루는 영역 안에 있다.</p>
+    <div data-sim="attention-qk"></div>
+
+    <h3 id="h-scale">왜 \(\sqrt{d_k}\)로 나누는가</h3>
+    <p>점수를 \(\sqrt{d_k}\)로 나누는 것은 장식이 아니다. query와 key의 각 성분이 평균 0, 분산 1이고 서로 독립이라고 하자. 내적 \(q\cdot k=\sum_{i=1}^{d_k}q_ik_i\)는 \(d_k\)개의 독립인 항의 합이고, 각 항의 분산은 \(E[q_i^2]E[k_i^2]=1\)이다. 따라서 \(q\cdot k\)의 분산은 \(d_k\)이고 표준편차는 \(\sqrt{d_k}\)다. 차원이 크면 점수가 커지고, 점수가 크면 소프트맥스는 가장 큰 점수 하나로 쏠려서 기울기가 거의 0이 된다. \(\sqrt{d_k}\)로 나누면 차원과 상관없이 점수의 표준편차가 1로 유지된다.</p>
+    <p>키 8개를 두고 시드 0으로 20,000번 시뮬레이션하면 다음과 같다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">\(d_k\)</th><th class="num">\(q\cdot k\)의 표준편차</th><th class="num">가장 큰 가중치의 평균: 나누지 않음</th><th class="num">\(\sqrt{d_k}\)로 나눔</th></tr></thead>
+      <tbody>
+        <tr><td class="num">4</td><td class="num">2.01</td><td class="num">0.530</td><td class="num">0.345</td></tr>
+        <tr><td class="num">64</td><td class="num">7.98</td><td class="num">0.874</td><td class="num">0.359</td></tr>
+        <tr><td class="num">512</td><td class="num">22.68</td><td class="num">0.956</td><td class="num">0.361</td></tr>
+      </tbody>
+    </table></div>
+    <p>표준편차는 \(\sqrt{d_k}\)와 거의 같다(\(\sqrt{64}=8\), \(\sqrt{512}\approx22.6\)). 나누지 않으면 \(d_k=512\)에서 키 하나가 가중치 0.956을 가져가지만, 나누면 차원에 상관없이 0.36 안팎이다.</p>
+
+    <h3 id="h-mask">Causal mask</h3>
+    <p>1장의 생성 루프에서 위치 \(t\)의 출력은 \(x_{\le t}\)만 보고 \(x_{t+1}\)을 예측해야 한다. 학습 때 모든 위치를 한꺼번에 계산하는 teacher forcing에서 위치 \(t\)가 \(x_{t+1}\)을 볼 수 있다면, 정답을 보고 정답을 맞히는 것이 되어 아무것도 배우지 못한다. 그래서 위치 \(i\)가 \(j>i\)를 읽지 못하게 막는다.</p>
+    <div class="box def" id="def-causal"><div class="box-h">causal mask</div>
+      <p>식 <a class="ref" href="#eq-attention"></a>의 마스크 \(M\)을 \(M_{ij}=0\)(\(j\le i\)), \(M_{ij}=-\infty\)(\(j>i\))로 둔다. 소프트맥스에서 \(e^{-\infty}=0\)이므로 미래 위치의 가중치는 정확히 0이다.</p>
+    </div>
+    <p><a class="ref" href="#ex-attention"></a>의 표에서 위치 1은 자기 자신에게만 가중치 1을 주었고, 위치 2는 \((0.33,0.67)\)로 앞의 둘만 보았다. 이 마스크 덕분에 \(n\)개 위치의 다음 토큰 예측을 한 번의 계산으로 얻는다. 위치 \(i\)의 출력은 \(x_{\le i}\)에만 달려 있기 때문이다(<a class="ref" href="#prob-causal"></a>). 이 성질은 2.5절의 실험 1에서 확인한다.</p>
+
+    <h3 id="h-multihead">Multi-head attention</h3>
+    <p>토큰 하나가 컨텍스트에서 읽어야 하는 정보는 한 가지가 아니다. '그것'은 지시 대상(트로피)도 읽고, 문장의 시제나 서술어도 읽어야 한다. 점수 하나로는 이 모두를 담기 어려우므로, 서로 다른 \(W_Q,W_K,W_V\)를 가진 attention을 여러 개 병렬로 돌리고 이어 붙인다.</p>
+    <div class="box def" id="def-multihead"><div class="box-h">multi-head attention</div>
+      <p>head 수를 \(h\), \(d_k=d_v=d/h\)라 하자. head \(m\)마다 \(W_Q^{(m)},W_K^{(m)},W_V^{(m)}\)를 두고 \(O^{(m)}=\operatorname{Attention}(XW_Q^{(m)},XW_K^{(m)},XW_V^{(m)})\)을 계산한 뒤, 이어 붙인 결과에 출력 행렬 \(W_O\in\mathbb R^{d\times d}\)를 곱한다.</p>
+      <div class="formula">\[ \operatorname{MHA}(X)=\bigl[O^{(1)};\ldots;O^{(h)}\bigr]\,W_O \]</div>
+    </div>
+    <p>head를 \(d/h\)차원으로 쪼개 쓰기 때문에 head가 몇 개든 attention의 파라미터는 \(W_Q,W_K,W_V,W_O\) 네 행렬의 \(4d^2\)으로 같고, 계산량도 같다. 아래 카드에서 문장을 입력해 head별 attention 행렬과 마스크의 효과를 볼 수 있다. 이 카드의 Q·K는 학습된 것이 아니라 무작위 투영이므로 패턴 자체에 의미를 두지 말고, 마스크와 head가 행렬의 모양을 어떻게 바꾸는지만 보면 된다.</p>
+    <div data-sim="attention-matrix"></div>
+    <div class="callout agent"><strong>컨텍스트에 있는 것은 모두 읽기 대상이다</strong>
+      <p>attention은 컨텍스트의 모든 위치를 같은 방식으로 비교한다. 사용자의 지시, 시스템 프롬프트, 에이전트가 읽어 온 파일, 웹 페이지, 도구의 출력이 모두 토큰이 되어 같은 컨텍스트에 놓이고, attention 계산 자체에는 이 가운데 무엇이 '지시'이고 무엇이 '데이터'인지 가르는 장치가 없다. 구분은 4장의 학습과 special token 같은 형식에 맡겨진다. 읽어 온 문서 속의 문장이 지시처럼 작동할 수 있는 것은 이 때문이며, <a href="ch24.html">24장</a>의 prompt injection에서 다시 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 2.3 -->
   <section id="s3">
     <h2>위치 정보와 층의 반복</h2>
-    <p class="slot" data-slot="2.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <h3 id="h-position">attention은 순서를 모른다</h3>
+    <p>식 <a class="ref" href="#eq-attention"></a>을 다시 보면 위치 번호가 어디에도 없다. 점수는 두 벡터의 내용만으로 정해진다. 그러면 '개가 사람을 물었다'와 '사람이 개를 물었다'를 어떻게 구별할까? 마스크 없이 쓴 attention에서는 입력의 순서를 바꾸면 출력도 같은 순서로 바뀔 뿐이다.</p>
+    <div class="box thm" id="thm-perm"><div class="box-h">attention의 순열 등변성</div>
+      <p>마스크가 없을 때, 순열 행렬 \(P\)에 대해 \(\operatorname{Attention}(PQ,PK,PV)=P\,\operatorname{Attention}(Q,K,V)\)이다. 곧 입력을 섞으면 출력도 같은 방식으로 섞일 뿐, 출력의 내용은 바뀌지 않는다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>점수 행렬은 \(PQ(PK)^\top=P\,(QK^\top)\,P^\top\)이다. 행과 열을 같은 순열로 섞은 것이다. 소프트맥스는 행 안에서 열의 순서와 무관하게 정규화하므로 \(\operatorname{softmax}(PSP^\top)=P\operatorname{softmax}(S)P^\top\)이고, 여기에 \(PV\)를 곱하면 \(P\operatorname{softmax}(S)P^\top PV=P\operatorname{softmax}(S)V\)이다. \(P^\top P=I\)를 썼다.</p>
+      </details>
+    </div>
+    <p>임베딩, 위치별 MLP, 마스크 없는 attention을 아무리 쌓아도 순서를 모른다는 뜻이다. 그래서 위치 정보를 따로 넣어야 한다. 이 성질도 2.5절의 실험 2에서 확인한다.</p>
+
+    <h3 id="h-posenc">위치 인코딩</h3>
+    <p>방법은 크게 둘로 나뉜다. 하나는 입력 임베딩에 위치를 나타내는 벡터를 <b>더하는</b> 방법이다. Vaswani 외는 위치 \(p\)에 대해 서로 다른 파장의 사인과 코사인을 쓴다.</p>
+    <div class="formula" id="eq-sinusoid">\[ \mathrm{PE}(p,2i)=\sin\frac{p}{10000^{2i/d}},\qquad \mathrm{PE}(p,2i+1)=\cos\frac{p}{10000^{2i/d}} \]</div>
+    <p>차원 \(i\)가 클수록 파장이 길어서, 낮은 차원은 가까운 위치를, 높은 차원은 먼 위치를 구별한다. 아래 카드에서 차원마다 파장이 다른 모습을 볼 수 있다. GPT-2 같은 모델은 위치마다 학습되는 벡터를 두는 learned positional embedding을 쓰는데, 이 표의 크기가 최대 길이를 정한다.</p>
+    <div data-sim="posenc"></div>
+    <p>다른 하나는 위치를 임베딩에 더하는 대신 <b>attention 점수 안에서</b> 반영하는 방법이다. 많은 최근 모델이 쓰는 <span class="term">RoPE</span> <span class="en">(rotary position embedding, <a href="https://arxiv.org/abs/2104.09864">Su 외</a>)</span>가 대표적이다. query와 key의 성분을 두 개씩 짝지어 2차원 벡터로 보고, 위치 \(m\)의 벡터를 \(m\theta\)만큼 회전한다. \(\theta\)는 짝마다 다른 값(차원이 클수록 작은 값)을 쓴다.</p>
+    <div class="box thm" id="thm-rope"><div class="box-h">RoPE의 내적은 상대 위치에만 달려 있다</div>
+      <p>2차원 벡터 \(q,k\)와 각 \(\theta\)에 대해, 회전 행렬을 \(R(\alpha)\)라 하면 \((R(m\theta)q)\cdot(R(n\theta)k)=q^\top R\bigl((n-m)\theta\bigr)k\)이다. 곧 위치 \(m\)의 query와 위치 \(n\)의 key의 점수는 \(n-m\)에만 달려 있다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>회전 행렬은 \(R(\alpha)^\top=R(-\alpha)\)이고 \(R(\alpha)R(\beta)=R(\alpha+\beta)\)이다. 따라서 \((R(m\theta)q)^\top R(n\theta)k=q^\top R(-m\theta)R(n\theta)k=q^\top R((n-m)\theta)k\)이다.</p>
+      </details>
+    </div>
+    <p>무작위 벡터로 계산해 보면 \((m,n)=(5,9)\)와 \((105,109)\)에서 점수가 소수 14자리까지 같다. 위치를 더하는 방식은 학습한 길이를 넘는 위치에서 일반화가 어렵지만, 상대 위치를 쓰는 방식은 컨텍스트를 늘릴 때 다루기 쉬워서 많이 쓰인다. 학습한 길이보다 긴 컨텍스트에서 성능이 어떻게 변하는지는 <a href="ch12.html">12장</a>에서 다룬다.</p>
+
+    <h3 id="h-block">트랜스포머 블록</h3>
+    <p>attention은 위치 사이에서 정보를 섞고, 위치 안에서 정보를 가공하는 일은 다른 부품이 맡는다. 트랜스포머 블록은 두 부분으로 이루어진다.</p>
+    <div class="box def" id="def-block"><div class="box-h">트랜스포머 블록 (pre-LN)</div>
+      <p>입력 \(x\)(위치마다 \(d\)차원 벡터)에 대해 다음을 계산한다.</p>
+      <div class="formula" id="eq-block">\[ h=x+\operatorname{MHA}\bigl(\operatorname{LN}(x)\bigr),\qquad x'=h+\operatorname{MLP}\bigl(\operatorname{LN}(h)\bigr) \]</div>
+      <ul>
+        <li><b>LN</b>(layer normalization)은 위치마다 벡터를 평균 0, 분산 1로 맞춘다(학습되는 크기·이동 값이 붙는다).</li>
+        <li><b>MLP</b>는 위치마다 따로 적용하는 2층 신경망 \(\operatorname{MLP}(u)=W_2\,\sigma(W_1u)\)이다. 은닉 크기는 보통 \(4d\)이고 \(\sigma\)는 GELU 같은 비선형 함수다.</li>
+        <li><b>residual connection</b>(\(x+\cdots\))은 입력을 그대로 더해 준다. 각 층은 벡터 전체를 새로 쓰는 대신 현재 벡터에 무언가를 보태는 역할이 되어, 층이 깊어도 학습이 안정된다.</li>
+      </ul>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 270" role="img" aria-label="decoder-only 트랜스포머: 토큰 id를 임베딩과 위치 정보로 바꾸고, 블록을 L번 쌓은 뒤 최종 LayerNorm과 unembedding으로 로짓을 만든다. 블록 하나는 LayerNorm, attention, 잔차 연결, LayerNorm, MLP, 잔차 연결로 이루어진다.">
+  <defs>
+    <marker id="g22-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+    <marker id="g22-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+  </defs>
+  <rect class="f-surface" x="5" y="15" width="108" height="56" rx="8"/><text class="t-b" x="59" y="40" text-anchor="middle">토큰 id</text><text class="t-mono" x="59" y="58" text-anchor="middle">x₁ … xₙ</text>
+  <rect class="f-surface" x="140" y="15" width="108" height="56" rx="8"/><text class="t-b" x="194" y="40" text-anchor="middle">임베딩 + 위치</text><text class="t-mono" x="194" y="58" text-anchor="middle">E[x] + 위치 정보</text>
+  <rect class="f-acc-soft" x="275" y="15" width="108" height="56" rx="8"/><text class="t-b" x="329" y="40" text-anchor="middle">블록 × L</text><text class="t-dim" x="329" y="58" text-anchor="middle">아래에서 확대</text>
+  <rect class="f-surface" x="410" y="15" width="108" height="56" rx="8"/><text class="t-b" x="464" y="40" text-anchor="middle">최종 LN</text><text class="t-mono" x="464" y="58" text-anchor="middle">n × d</text>
+  <rect class="f-surface" x="545" y="15" width="108" height="56" rx="8"/><text class="t-b" x="599" y="40" text-anchor="middle">unembedding</text><text class="t-mono" x="599" y="58" text-anchor="middle">Eᵀ → 로짓</text>
+  <rect class="f-surface" x="680" y="15" width="108" height="56" rx="8"/><text class="t-b" x="734" y="40" text-anchor="middle">소프트맥스</text><text class="t-mono" x="734" y="58" text-anchor="middle">p( · | x≤t)</text>
+  <path d="M113 43 H136" class="s-line" marker-end="url(#g22-arr)"/><path d="M248 43 H271" class="s-line" marker-end="url(#g22-arr)"/>
+  <path d="M383 43 H406" class="s-line" marker-end="url(#g22-arr)"/><path d="M518 43 H541" class="s-line" marker-end="url(#g22-arr)"/><path d="M653 43 H676" class="s-line" marker-end="url(#g22-arr)"/>
+  <path d="M329 71 V105" class="s-acc" stroke-dasharray="4 4"/>
+  <rect class="f-elev" x="5" y="105" width="783" height="155" rx="12"/>
+  <text class="t-dim" x="20" y="125">블록 하나 (위치마다 같은 가중치를 쓰며, 입력과 출력의 크기가 같다)</text>
+  <rect class="f-surface" x="15" y="180" width="50" height="40" rx="8"/><text class="t-b" x="40" y="205" text-anchor="middle">x</text>
+  <rect class="f-surface" x="100" y="180" width="50" height="40" rx="8"/><text class="t" x="125" y="205" text-anchor="middle">LN</text>
+  <rect class="f-acc-soft" x="190" y="180" width="90" height="40" rx="8"/><text class="t-b" x="235" y="205" text-anchor="middle">attention</text>
+  <circle class="f-surface" cx="330" cy="200" r="14"/><text class="t-b" x="330" y="205" text-anchor="middle">+</text>
+  <rect class="f-surface" x="390" y="180" width="50" height="40" rx="8"/><text class="t" x="415" y="205" text-anchor="middle">LN</text>
+  <rect class="f-acc2-soft" x="480" y="180" width="70" height="40" rx="8"/><text class="t-b" x="515" y="205" text-anchor="middle">MLP</text>
+  <circle class="f-surface" cx="610" cy="200" r="14"/><text class="t-b" x="610" y="205" text-anchor="middle">+</text>
+  <rect class="f-surface" x="670" y="180" width="60" height="40" rx="8"/><text class="t-b" x="700" y="205" text-anchor="middle">x′</text>
+  <path d="M65 200 H96" class="s-line" marker-end="url(#g22-arr)"/><path d="M150 200 H186" class="s-line" marker-end="url(#g22-arr)"/><path d="M280 200 H312" class="s-line" marker-end="url(#g22-arr)"/>
+  <path d="M344 200 H386" class="s-line" marker-end="url(#g22-arr)"/><path d="M440 200 H476" class="s-line" marker-end="url(#g22-arr)"/><path d="M550 200 H592" class="s-line" marker-end="url(#g22-arr)"/><path d="M624 200 H666" class="s-line" marker-end="url(#g22-arr)"/>
+  <path d="M40 180 V148 H330 V184" class="s-acc" marker-end="url(#g22-acc)"/>
+  <path d="M365 200 V148 H610 V184" class="s-acc" marker-end="url(#g22-acc)"/>
+  <text class="t-acc" x="185" y="142" text-anchor="middle">잔차 연결 (residual connection)</text>
+  <text class="t-acc" x="487" y="142" text-anchor="middle">잔차 연결</text>
+  <text class="t-dim" x="400" y="248" text-anchor="middle">h = x + attention(LN(x)),   x′ = h + MLP(LN(h))</text>
+</svg>
+      <figcaption><b>그림 2-2.</b> decoder-only 트랜스포머. 블록의 입력과 출력의 크기가 같아서 \(L\)개를 그대로 쌓을 수 있다. 마지막 벡터에 \(E^\top\)을 곱한 것이 1장의 로짓이다.</figcaption>
+    </figure>
+    <p>블록을 \(L\)번 쌓고 마지막 벡터에 LN을 한 번 더 적용한 뒤, 임베딩 행렬의 전치 \(E^\top\)을 곱해 어휘 크기의 로짓을 얻는다. 입력 임베딩과 출력 행렬을 같은 \(E\)로 쓰는 것을 weight tying이라 한다. 이 로짓에 1장의 소프트맥스를 적용하면 다음 토큰의 분포가 된다. 1장에서 '모델'이라고만 부른 것이 이 구조다. 입력 문장 전체를 읽는 모델과 달리, 마스크를 씌워 이전 위치만 읽는 이 구조를 decoder-only 트랜스포머라 한다.</p>
+    <div class="callout deep"><strong>post-LN과 pre-LN</strong>
+      <p>원래의 트랜스포머는 residual을 더한 <em>뒤에</em> LN을 적용했다(post-LN). 식 <a class="ref" href="#eq-block"></a>은 LN을 각 부품의 <em>앞에</em> 두는 pre-LN이다. <a href="https://arxiv.org/abs/2002.04745">Xiong 외(2020)</a>는 pre-LN이 학습 초기의 기울기를 안정시켜 깊은 모델을 학습하기 쉽다고 보였고, 최근의 큰 모델 대부분이 이 배치를 따른다고 알려져 있다.</p>
+    </div>
+
+    <h3 id="h-params">파라미터는 어디에 있는가</h3>
+    <p>편향과 LN을 무시하고 층 하나의 가중치를 세어 보자. attention은 \(W_Q,W_K,W_V,W_O\) 네 행렬로 \(4d^2\)이다. MLP는 \(d\times4d\)와 \(4d\times d\) 두 행렬로 \(8d^2\)이다. 합하면 층당 \(12d^2\)이고, 전체는 대략 다음과 같다.</p>
+    <div class="formula" id="eq-params">\[ \#\text{파라미터}\approx 12\,L\,d^2+|\mathcal V|\,d \]</div>
+    <p>첫째 항이 블록, 둘째 항이 임베딩이다. 층 파라미터의 \(8/12\)가 MLP에 있다는 점이 눈에 띈다. 공개된 GPT-2 small의 구성(\(L=12\), \(d=768\), \(|\mathcal V|=50{,}257\), 위치 1,024개)에 편향과 LN까지 넣어 세면 다음과 같다. 층 하나는 \(12d^2+13d=7{,}087{,}872\)개이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th class="num">파라미터 수</th></tr></thead>
+      <tbody>
+        <tr><td>블록 12개</td><td class="num">85,054,464</td></tr>
+        <tr><td>토큰 임베딩 (\(50{,}257\times768\))</td><td class="num">38,597,376</td></tr>
+        <tr><td>위치 임베딩 (\(1{,}024\times768\))</td><td class="num">786,432</td></tr>
+        <tr><td>최종 LN</td><td class="num">1,536</td></tr>
+        <tr><td><b>합계</b></td><td class="num"><b>124,439,808</b></td></tr>
+      </tbody>
+    </table></div>
+    <p>GPT-2 small이 약 1억 2천 4백만 파라미터라고 알려진 값과 맞는다. 식 <a class="ref" href="#eq-params"></a>의 근사식은 이 모델에서 \(12\cdot12\cdot768^2+38{,}597{,}376\approx1.235\)억으로 실제보다 0.7% 작다.</p>
+    <div class="callout agent"><strong>Claude의 내부 구조는 공개되어 있지 않다</strong>
+      <p>이 장은 공개된 논문과 모델의 일반적인 구조를 설명한다. Claude의 층 수, 차원, attention 방식은 공개되어 있지 않으므로 추측하지 않는다. 에이전트를 설계할 때 필요한 것은 구조 자체보다 그 구조에서 나오는 성질, 곧 컨텍스트가 길수록 늘어나는 비용과 지연이다. 다음 절은 이 성질을 계산한다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 2.4 -->
   <section id="s4">
     <h2>긴 입력의 비용</h2>
-    <p class="slot" data-slot="2.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <h3 id="h-cost">attention은 \(n^2\)에 비례한다</h3>
+    <p>그림 2-1에서 점수 행렬과 가중치 행렬은 \(n\times n\)이다. 층 하나가 \(n\)개 토큰을 처리하는 데 드는 곱셈-덧셈 횟수(곱셈 1번과 덧셈 1번을 2로 센다)를 세어 보자.</p>
+    <ul>
+      <li>\(Q,K,V\)와 \(W_O\) 곱: \(4\times2nd^2=8nd^2\)</li>
+      <li>\(QK^\top\)와 \(AV\): \(2\times2n^2d=4n^2d\) (head를 합친 \(d_k\cdot h=d\) 기준)</li>
+      <li>MLP: \(2\times2n\cdot d\cdot4d=16nd^2\)</li>
+    </ul>
+    <p>위치마다 따로 계산하는 부분은 \(24nd^2\)으로 \(n\)에 비례하고, 위치 사이를 잇는 attention은 \(4n^2d\)로 \(n\)의 제곱에 비례한다. 둘이 같아지는 길이는 \(n=6d\)이다. attention이 층 계산량에서 차지하는 몫은 \(n/(n+6d)\)다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">\(n\) (토큰 수)</th><th class="num">\(d=768\)</th><th class="num">\(d=4096\)</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1,024</td><td class="num">18.2%</td><td class="num">4.0%</td></tr>
+        <tr><td class="num">8,192</td><td class="num">64.0%</td><td class="num">25.0%</td></tr>
+        <tr><td class="num">131,072</td><td class="num">96.6%</td><td class="num">84.2%</td></tr>
+      </tbody>
+    </table></div>
+    <p>짧은 입력에서는 파라미터가 큰 MLP와 투영이 대부분이지만, 입력이 길어지면 attention이 계산을 지배한다. 모델이 클수록(\(d\)가 클수록) 전환점이 더 긴 입력으로 밀려난다.</p>
+    <p>메모리도 문제다. 점수 행렬을 그대로 만들어 두면 \(n=131{,}072\)에서 한 head, 한 층당 \(131{,}072^2\approx1.7\times10^{10}\)개의 수가 필요하다. 16비트로 32 GiB이다. \(n=1{,}000{,}000\)이면 \(10^{12}\)개로 head 하나, 층 하나에 2 TB다. 실제 구현은 <a href="https://arxiv.org/abs/2205.14135">FlashAttention</a>처럼 점수 행렬 전체를 GPU 메모리에 쓰지 않고 작은 블록 단위로 계산해 결과를 합친다. 결과는 같지만(exact) 계산량은 여전히 \(n^2\)에 비례한다. 계산량 자체를 줄이려는 방법은 보는 범위를 제한하거나 attention을 근사하는 것으로, 정확한 attention과 성능이 다를 수 있다.</p>
+
+    <h3 id="h-kv">KV cache</h3>
+    <p>1장의 생성 루프는 토큰을 하나 더할 때마다 모델을 다시 부른다. 매번 컨텍스트 전체를 처음부터 계산한다면 낭비가 크다. 그런데 causal mask 덕분에 이미 계산한 앞 위치의 key와 value는 새 토큰이 들어와도 변하지 않는다. 위치 \(i\)의 \(k_i,v_i\)는 \(x_{\le i}\)에만 달려 있기 때문이다. 그러므로 층마다 \(K,V\)를 저장해 두고, 새 토큰의 \(q,k,v\)만 계산해서 \(k,v\)를 이어 붙이면 된다. 이것이 <span class="term">KV cache</span>이다.</p>
+    <p>KV cache를 쓰는 생성은 두 단계로 나뉜다.</p>
+    <ul>
+      <li><b>prefill</b>: 프롬프트 전체를 한 번에 병렬로 처리해 모든 위치의 \(K,V\)를 채우고 첫 토큰을 만든다. 시간은 프롬프트 길이에 따라 늘어나며, 응답이 시작되기까지의 대기 시간이 여기서 정해진다.</li>
+      <li><b>decode</b>: 새 토큰 하나씩 처리한다. 계산량은 작지만 매번 저장된 \(K,V\)와 모델 가중치를 메모리에서 읽어야 하므로, 실제 장치에서는 연산 속도보다 메모리 대역폭이 한계가 되는 경우가 많다.</li>
+    </ul>
+    <p>cache는 계산을 메모리와 맞바꾼다. 토큰 하나당 저장하는 양은 \(2\times L\times n_{\text{kv}}\times d_{\text{head}}\times(\text{바이트})\)이다. 앞의 2는 key와 value, \(n_{\text{kv}}\)는 key·value head의 수다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>설정 (16비트)</th><th class="num">토큰당</th><th class="num">컨텍스트 길이</th><th class="num">cache 크기</th></tr></thead>
+      <tbody>
+        <tr><td>GPT-2 small (\(L=12\), \(n_{\text{kv}}=12\), \(d_{\text{head}}=64\))</td><td class="num">36,864 B</td><td class="num">1,024</td><td class="num">36 MiB</td></tr>
+        <tr><td>가상 설정 A (\(L=32\), \(n_{\text{kv}}=32\), \(d_{\text{head}}=128\))</td><td class="num">512 KiB</td><td class="num">131,072</td><td class="num">64 GiB</td></tr>
+        <tr><td>가상 설정 B (A에서 \(n_{\text{kv}}=8\)로)</td><td class="num">128 KiB</td><td class="num">131,072</td><td class="num">16 GiB</td></tr>
+      </tbody>
+    </table></div>
+    <p>가상 설정 A, B는 크기를 가늠하려는 예시이며 실제 모델이 아니다. 같은 모델에서 컨텍스트 하나를 들고 있는 데만 수십 GiB가 든다는 점이 요지다. 그래서 query head 여러 개가 key·value head 하나를 공유하는 <b>grouped-query attention</b>(<a href="https://arxiv.org/abs/2305.13245">Ainslie 외(2023)</a>)이 널리 쓰인다. 설정 B처럼 \(n_{\text{kv}}\)를 \(1/4\)로 줄이면 cache도 \(1/4\)이 된다.</p>
+    <div class="callout agent"><strong>에이전트는 같은 컨텍스트를 거듭 다시 보낸다</strong>
+      <p>에이전트 루프는 도구를 한 번 부를 때마다 앞의 컨텍스트에 결과를 붙여 모델을 다시 부른다. 매번 앞부분이 거의 그대로 반복된다. 앞부분이 같으면 계산을 재사용할 수 있다는 것이 KV cache의 아이디어이고, Claude API의 <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">prompt caching</a>은 반복되는 프롬프트의 접두부를 캐시해 비용과 지연을 줄이는 기능이다(2026년 11월 확인). 응답의 <code>usage</code>에는 캐시를 만들 때 쓴 토큰(<code>cache_creation_input_tokens</code>)과 읽어 온 토큰(<code>cache_read_input_tokens</code>)이 따로 표시된다. 캐시는 접두부가 같아야 재사용되므로, 컨텍스트의 앞부분을 바꾸면 그 뒤가 모두 새로 계산된다. 무엇을 앞에 두고 무엇을 뒤에 둘지는 <a href="ch20.html">20장</a>의 컨텍스트 관리에서 다룬다.</p>
+    </div>
+    <p>컨텍스트 창이 크다고 해서 그 안의 정보를 모두 잘 쓰는 것은 아니다. 길이에 따른 비용은 이 절에서 보았지만, 길이에 따른 성능은 <a href="ch12.html">12장</a>에서 다룬다.</p>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 짧은 문장의 어텐션 가중치를 바꾸면 참조하는 정보가 어떻게 달라지는가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: attention이 지키는 성질과 KV cache</h2>
+    <p>이 장에서 증명하거나 계산한 세 가지를 작은 트랜스포머를 직접 구현해 확인한다. 가중치가 무작위인 모델이어서 생성된 토큰에는 의미가 없다. 확인하려는 것은 구조의 성질이다.</p>
+    <ol>
+      <li>causal mask를 쓰면 위치 \(i\)의 출력은 \(x_{\le i}\)에만 달려 있는가?</li>
+      <li>마스크와 위치 정보가 없으면 입력을 섞은 결과가 출력을 섞은 결과와 같은가? 위치 정보를 넣으면 달라지는가?</li>
+      <li>KV cache는 재계산과 같은 토큰을 내면서 계산량을 얼마나 줄이는가?</li>
+    </ol>
+
+    <h3 id="h-design">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모델</td><td>decoder-only 트랜스포머. \(L=2\), \(d=32\), head 4개, MLP 은닉 128, 어휘 50, sinusoidal 위치 인코딩, pre-LN, weight tying. 가중치는 시드 0의 정규분포 난수</td></tr>
+        <tr><td>기준 설계</td><td>실험 1·2: 마스크와 위치 정보를 모두 쓰는 기본 모델. 실험 3: 토큰을 만들 때마다 컨텍스트 전체를 다시 계산하는 구현</td></tr>
+        <tr><td>바꾸는 것</td><td>실험 1: 마지막 토큰 하나. 실험 2: 마스크와 위치 정보의 유무. 실험 3: KV cache의 유무(하나만)</td></tr>
+        <tr><td>관측값</td><td>실험 1·2: 로짓의 최대 차이. 실험 3: 두 방식이 낸 토큰이 같은지, 곱셈-덧셈 횟수(코드가 직접 센다)</td></tr>
+        <tr><td>예산</td><td>프롬프트 16토큰에 새 토큰 16·64·256개(greedy decoding). 곱셈-덧셈은 \(2mkn\)으로 센다</td></tr>
+        <tr><td>예상 (이론에서)</td><td>실험 1은 0이다(2.2절). 실험 2는 위치 정보가 없을 때만 0이다(<a class="ref" href="#thm-perm"></a>). 실험 3은 토큰이 모두 같고(cache는 같은 값을 저장해 둘 뿐이다), 새 토큰이 많아 컨텍스트가 길수록 cache의 이득이 커진다(2.4절). 구체적인 배수는 예상하지 않았다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td>실험 1이 0이 아니거나, 위치 정보를 넣어도 실험 2의 차이가 0이거나, 실험 3에서 토큰이 하나라도 다르면 구현 또는 이론이 틀린 것이다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code">코드</h3>
+    <p>Python 3.14와 NumPy 2.5.4에서 실행했다. 곱셈-덧셈 횟수는 배열 크기만으로 정해지므로 환경이 달라도 같다. 부동소수점 오차(\(10^{-15}\) 안팎)와, 오차가 근소한 점수에서 argmax가 뒤집혀 토큰 id가 달라지는 일은 환경에 따라 있을 수 있다. 그래도 두 방식이 같은 토큰을 낸다는 결과는 같아야 한다.</p>
+<pre><code>import time
+import numpy as np
+
+rng = np.random.default_rng(0)
+V, D, H, L, FF = 50, 32, 4, 2, 128   # 어휘, d_model, head 수, 층 수, MLP 은닉 크기
+DH = D // H
+POS, CAUSAL = True, True             # 실험 1·2에서 끄고 켠다
+flops = 0                            # 곱셈-덧셈 횟수(곱셈 1번 + 덧셈 1번 = 2)
+
+def mm(a, b):
+    global flops
+    flops += 2 * a.shape[0] * a.shape[1] * b.shape[1]
+    return a @ b
+
+W = {"E": rng.normal(0, 0.1, (V, D))}   # 임베딩 겸 unembedding (weight tying)
+for l in range(L):
+    for c in "qkvo":
+        W[f"{c}{l}"] = rng.normal(0, D ** -0.5, (D, D))
+    W[f"u{l}"] = rng.normal(0, D ** -0.5, (D, FF))
+    W[f"d{l}"] = rng.normal(0, FF ** -0.5, (FF, D))
+
+def ln(x):
+    return (x - x.mean(-1, keepdims=True)) / np.sqrt(x.var(-1, keepdims=True) + 1e-5)
+
+def gelu(x):
+    return 0.5 * x * (1 + np.tanh(0.79788456 * (x + 0.044715 * x ** 3)))
+
+def sinusoid(n, start):               # 2.3절의 sinusoidal 위치 인코딩
+    p, i = np.arange(start, start + n)[:, None], np.arange(0, D, 2)[None, :]
+    out = np.zeros((n, D))
+    out[:, 0::2], out[:, 1::2] = np.sin(p / 10000 ** (i / D)), np.cos(p / 10000 ** (i / D))
+    return out
+
+def attend(q, k, v):
+    """q: 새 위치 m개, k·v: 지금까지의 모든 위치 n개. 새 위치 i의 번호는 n-m+i."""
+    m, n = len(q), len(k)
+    ok = np.arange(n)[None, :] &lt;= np.arange(m)[:, None] + n - m if CAUSAL else np.ones((m, n), bool)
+    out = np.zeros_like(q)
+    for h in range(H):
+        s = slice(h * DH, (h + 1) * DH)
+        sc = np.where(ok, mm(q[:, s], k[:, s].T) / np.sqrt(DH), -np.inf)
+        w = np.exp(sc - sc.max(-1, keepdims=True))
+        out[:, s] = mm(w / w.sum(-1, keepdims=True), v[:, s])
+    return out
+
+def forward(tokens, cache=None):
+    """tokens의 로짓을 돌려준다. cache가 있으면 앞 토큰의 K·V를 다시 계산하지 않고 이어 붙인다."""
+    n0 = cache["n"] if cache else 0
+    x = W["E"][tokens] + (sinusoid(len(tokens), n0) if POS else 0)
+    for l in range(L):
+        h = ln(x)
+        q, k, v = (mm(h, W[f"{c}{l}"]) for c in "qkv")
+        if cache:
+            if cache["k"][l] is not None:
+                k, v = np.vstack([cache["k"][l], k]), np.vstack([cache["v"][l], v])
+            cache["k"][l], cache["v"][l] = k, v
+        x = x + mm(attend(q, k, v), W[f"o{l}"])
+        x = x + mm(gelu(mm(ln(x), W[f"u{l}"])), W[f"d{l}"])
+    if cache:
+        cache["n"] = n0 + len(tokens)
+    return mm(ln(x), W["E"].T)
+
+def generate(prompt, new, use_cache):          # greedy decoding
+    global flops
+    flops, toks = 0, list(prompt)
+    cache = {"k": [None] * L, "v": [None] * L, "n": 0} if use_cache else None
+    logits = forward(toks, cache)[-1]          # prefill: 프롬프트 전체를 한 번에
+    for i in range(new):
+        toks.append(int(logits.argmax()))
+        if i &lt; new - 1:                        # decode: 한 번에 토큰 하나
+            logits = forward(toks[-1:], cache)[-1] if use_cache else forward(toks)[-1]
+    return toks, flops
+
+a = rng.integers(0, V, 12)
+# 실험 1. 인과 마스크: 마지막 토큰을 바꿔도 앞 위치의 로짓은 그대로다
+b = a.copy(); b[-1] = (b[-1] + 1) % V
+print("1. 마지막 토큰을 바꿨을 때 앞 위치 로짓의 최대 변화:", np.abs(forward(a)[:-1] - forward(b)[:-1]).max())
+# 실험 2. 위치 정보와 마스크가 없으면 attention은 토큰 순서를 모른다 (입력을 섞으면 출력도 같은 순서로 섞일 뿐)
+perm = rng.permutation(len(a))
+for POS, CAUSAL in [(False, False), (True, False)]:
+    print(f"2. 위치 정보 {POS}, 마스크 {CAUSAL}: 입력을 섞은 결과와 출력을 섞은 결과의 최대 차이:",
+          np.abs(forward(a[perm]) - forward(a)[perm]).max())
+POS, CAUSAL = True, True
+# 실험 3. KV cache: 같은 토큰을 내는가, 계산량은 얼마나 줄어드는가
+print("3. prompt 16토큰 + 새 토큰")
+for new in (16, 64, 256):
+    prompt = rng.integers(0, V, 16)
+    t0 = time.perf_counter(); t1, f1 = generate(prompt, new, False)
+    t2 = time.perf_counter(); t3, f3 = generate(prompt, new, True); t4 = time.perf_counter()
+    print(f"   {new:3d}개: 같은 토큰 {t1 == t3}  곱셈-덧셈 {f1:&gt;12,} → {f3:&gt;10,} ({f1 / f3:5.1f}배)  시간 {t2 - t0:.3f}s → {t4 - t2:.3f}s")</code></pre>
+
+    <h3 id="h-result">결과</h3>
+    <p>코드가 출력한 값을 옮기면 다음과 같다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>실험</th><th class="num">결과</th></tr></thead>
+      <tbody>
+        <tr><td>1. 마지막 토큰을 바꿨을 때 앞 위치 로짓의 최대 변화</td><td class="num">0.0</td></tr>
+        <tr><td>2. 위치 정보 없음, 마스크 없음: 입력을 섞은 결과와 출력을 섞은 결과의 최대 차이</td><td class="num">1.3 × 10⁻¹⁵</td></tr>
+        <tr><td>2. 위치 정보 있음, 마스크 없음: 같은 차이</td><td class="num">0.96</td></tr>
+      </tbody>
+    </table></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">새 토큰</th><th class="num">같은 토큰</th><th class="num">cache 없음 (곱셈-덧셈)</th><th class="num">cache 있음</th><th class="num">줄어든 배수</th></tr></thead>
+      <tbody>
+        <tr><td class="num">16</td><td class="num">예</td><td class="num">22,033,408</td><td class="num">1,780,608</td><td class="num">12.4배</td></tr>
+        <tr><td class="num">64</td><td class="num">예</td><td class="num">201,707,520</td><td class="num">4,975,488</td><td class="num">40.5배</td></tr>
+        <tr><td class="num">256</td><td class="num">예</td><td class="num">3,630,645,248</td><td class="num">23,653,248</td><td class="num">153.5배</td></tr>
+      </tbody>
+    </table></div>
+    <p>실행 시간도 코드가 출력한다. 시간은 기계마다 다르므로 표에는 싣지 않는다. 이 글을 쓴 환경에서는 새 토큰 256개에서 1.34초가 0.105초로 줄었다. 곱셈-덧셈의 줄어든 배수(153.5배)보다 훨씬 작은데, 작은 모델에서는 파이썬 반복과 배열 복사의 부담이 계산량 못지않게 크기 때문이다.</p>
+
+    <h3 id="h-limits">해석과 한계</h3>
+    <ul>
+      <li><b>예상은 모두 맞았다.</b> 실험 1의 변화는 정확히 0이었다. 마스크가 미래 위치의 가중치를 0으로 만들고 \(0\cdot v=0\)을 더하므로, 앞 위치의 계산에는 마지막 토큰이 흘러들지 않는다. 마스크를 빼면(<a class="ref" href="#prob-nomask"></a>) 이 값이 0이 아니게 된다.</li>
+      <li><b>실험 2가 보여 주는 것.</b> 위치 정보와 마스크를 모두 뺀 모델은 순서를 구별하지 못한다. 차이가 \(1.3\times10^{-15}\)로 0이 아닌 것은 순서가 바뀌면 점수의 합산 순서가 달라지는 부동소수점 오차이며, <a class="ref" href="#thm-perm"></a>이 말하는 대로 사실상 0이다. 위치 정보를 넣으면 0.96으로 벌어진다. 위치 정보가 순서를 구별할 수 있는 유일한 단서라는 뜻이다. 마스크 자체도 위치에 따라 볼 수 있는 범위가 달라 순서 정보를 주지만, 이 실험은 마스크를 뺀 채로 위치 정보의 효과만 분리했다.</li>
+      <li><b>KV cache의 이득은 길이에 따라 커진다.</b> cache가 없으면 새 토큰마다 길이 \(n\)의 컨텍스트를 처음부터 계산하므로 전체 계산량은 새 토큰 수에 비례해 크게 늘어난다. cache가 있으면 한 단계가 새 토큰 하나의 \(q,k,v\)와 길이 \(n\)의 점수 계산뿐이다. 그래서 줄어든 배수가 12.4배, 40.5배, 153.5배로 컨텍스트 길이와 함께 커진다.</li>
+      <li><b>이 실험이 세지 않은 것.</b> 곱셈-덧셈 횟수는 메모리 이동량을 세지 않는다. 앞 절에서 보았듯 실제 장치의 decode는 \(K,V\)를 읽는 메모리 대역폭이 한계가 되는 경우가 많고, cache는 메모리를 더 쓴다. 이 표는 'cache가 계산을 얼마나 아끼는가'만 보여 주며 '실제 속도가 몇 배 빨라지는가'는 말하지 않는다.</li>
+      <li><b>설정은 결과를 보고 조정하지 않았다.</b> 모델 크기, 시드 0, 프롬프트 길이 16, 새 토큰 수는 코드를 처음 쓸 때 정한 값 그대로다.</li>
+    </ul>
+    <p>모델이 작고 가중치가 무작위여서, 학습된 모델의 attention 패턴이나 위치 인코딩 방식 사이의 성능 차이는 이 실험에서 알 수 없다. 옮겨지는 것은 구조의 성질이다. 마스크가 있으면 앞 위치가 뒤 위치에 달려 있지 않다는 것, 위치 정보가 없으면 순서를 모른다는 것, cache가 같은 결과를 더 적은 계산으로 낸다는 것은 가중치와 상관없이 성립한다. 이 성질이 3장의 사전학습과 이후 에이전트의 컨텍스트 관리를 떠받친다.</p>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>임베딩은 컨텍스트와 무관하다. attention은 각 위치의 새 표현을 다른 위치 value들의 가중 평균으로 만들고, 가중치는 query와 key의 내적으로 정한다.</li>
+      <li>\(\operatorname{Attention}(Q,K,V)=\operatorname{softmax}(QK^\top/\sqrt{d_k}+M)V\). \(\sqrt{d_k}\)로 나누는 것은 내적의 표준편차 \(\sqrt{d_k}\)를 상쇄해 소프트맥스가 쏠리지 않게 하려는 것이다.</li>
+      <li>causal mask는 미래 위치의 가중치를 0으로 만든다. 덕분에 위치 \(i\)의 출력은 \(x_{\le i}\)에만 달려 있고, 한 번의 계산으로 모든 위치의 다음 토큰 예측을 얻는다.</li>
+      <li>multi-head attention은 \(d/h\)차원의 attention을 병렬로 돌려 이어 붙인다. head 수와 상관없이 attention의 파라미터는 \(4d^2\)이다.</li>
+      <li>마스크 없는 attention은 순열 등변이어서 순서를 모른다. 위치 정보는 임베딩에 더하거나(sinusoidal, learned), attention 점수에 상대 위치로 넣는다(RoPE).</li>
+      <li>트랜스포머 블록은 \(h=x+\operatorname{MHA}(\operatorname{LN}(x))\), \(x'=h+\operatorname{MLP}(\operatorname{LN}(h))\)이다. 층당 파라미터는 약 \(12d^2\)이고 그중 \(2/3\)가 MLP에 있다. 마지막 벡터에 \(E^\top\)을 곱한 로짓이 1장의 소프트맥스로 이어진다.</li>
+      <li>층의 계산량은 위치별 부분이 \(24nd^2\), attention이 \(4n^2d\)다. 입력이 길수록 attention의 몫이 커지고, 모델이 클수록 그 전환점이 멀어진다.</li>
+      <li>KV cache는 앞 위치의 \(K,V\)를 저장해 재계산을 없애는 대신 토큰당 \(2Ln_{\text{kv}}d_{\text{head}}\)바이트의 메모리를 쓴다. 에이전트의 반복되는 컨텍스트에서는 prompt caching이 같은 아이디어를 서비스 수준에서 쓴다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. attention에서 위치 \(i\)의 출력은 무엇인가?</p><div class="opts">
+        <button class="opt">key들의 가중 평균</button>
+        <button class="opt" data-correct>value들의 가중 평균</button>
+        <button class="opt">query들의 합</button>
+      </div><div class="quiz-exp">가중치는 query와 key의 내적으로 만들지만, 그 가중치로 섞는 대상은 value다. 출력 \(\sum_j a_{ij}v_j\)는 value의 가중 평균이다.</div></div>
+      <div class="quiz-q"><p>2. 점수를 \(\sqrt{d_k}\)로 나누는 이유로 알맞은 것은?</p><div class="opts">
+        <button class="opt">계산량을 줄이려고</button>
+        <button class="opt" data-correct>\(d_k\)가 커져도 점수의 크기가 일정하게 유지되어 소프트맥스가 한 곳으로 쏠리지 않게 하려고</button>
+        <button class="opt">가중치의 합을 1로 만들려고</button>
+      </div><div class="quiz-exp">독립인 성분의 내적은 분산이 \(d_k\), 표준편차가 \(\sqrt{d_k}\)다. 나누지 않으면 \(d_k=512\)에서 가장 큰 가중치가 평균 0.956이다. 합을 1로 만드는 것은 소프트맥스가 한다.</div></div>
+      <div class="quiz-q"><p>3. causal mask가 하는 일은?</p><div class="opts">
+        <button class="opt">긴 입력을 잘라 낸다.</button>
+        <button class="opt" data-correct>미래 위치의 점수를 \(-\infty\)로 만들어 가중치를 0으로 한다.</button>
+        <button class="opt">같은 토큰이 두 번 나오는 것을 막는다.</button>
+      </div><div class="quiz-exp">소프트맥스에서 \(e^{-\infty}=0\)이므로 위치 \(i\)가 \(j>i\)를 읽지 못한다. 학습 때 정답 토큰이 입력에 새어 들어가는 것을 막는다.</div></div>
+      <div class="quiz-q"><p>4. 마스크도 위치 정보도 없는 attention 모델에 입력 토큰의 순서를 섞어 넣으면?</p><div class="opts">
+        <button class="opt">전혀 다른 출력이 나온다.</button>
+        <button class="opt" data-correct>출력이 입력과 같은 순서로 섞이기만 한다.</button>
+        <button class="opt">오류가 난다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-perm"></a>의 순열 등변성이다. 순서를 구별하려면 위치 정보가 있어야 한다.</div></div>
+      <div class="quiz-q"><p>5. \(d=1024\)인 트랜스포머 층 하나의 가중치는 편향과 LN을 빼고 약 몇 개인가? (MLP 은닉 크기 \(4d\))</p><div class="opts">
+        <button class="opt">약 420만 개</button>
+        <button class="opt" data-correct>약 1,260만 개</button>
+        <button class="opt">약 5,000만 개</button>
+      </div><div class="quiz-exp">attention \(4d^2\)과 MLP \(8d^2\)를 합친 \(12d^2=12\times1024^2=12{,}582{,}912\)이다.</div></div>
+      <div class="quiz-q"><p>6. KV cache를 쓰면 무엇이 달라지는가?</p><div class="opts">
+        <button class="opt">출력이 약간 부정확해지는 대신 빨라진다.</button>
+        <button class="opt" data-correct>같은 출력을 더 적은 계산으로 내지만, 컨텍스트 길이에 비례하는 메모리를 더 쓴다.</button>
+        <button class="opt">컨텍스트 길이 제한이 사라진다.</button>
+      </div><div class="quiz-exp">cache는 앞 위치의 \(K,V\)를 다시 계산하지 않고 저장해 두는 것이어서 결과가 같다(2.5절 실험 3). 대신 토큰마다 \(2Ln_{\text{kv}}d_{\text{head}}\)바이트가 쌓이고, 컨텍스트의 최대 길이는 모델의 학습과 설정이 정한다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-hand" data-level="1"><p><a class="ref" href="#ex-attention"></a>에서 세 번째 토큰의 query만 \((2,0)\)으로 바꾸고 key와 value는 그대로 둔다. 가중치와 출력을 구하라. 출력이 왜 그렇게 되는지 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>세 key \((1,0),(0,1),(1,1)\)과의 내적은 \(2,0,2\)이고 \(\sqrt2\)로 나누면 \(1.414,0,1.414\)이다. 가중치는 \(e^{1.414}=4.113\), \(e^0=1\)로 \((0.446,\,0.108,\,0.446)\)이다. 출력은 \(0.446(1,2)+0.108(3,4)+0.446(5,6)=(3,4)\)이다. 첫째와 셋째 value에 가중치가 같고 그 평균이 \((3,4)\)인데, 둘째 value도 \((3,4)\)여서 어떻게 섞어도 \((3,4)\)가 된다.</p></details></div>
+    <div class="prob" id="prob-causal" data-level="2"><p>causal mask를 쓴 \(L\)층 트랜스포머에서 위치 \(i\)의 최종 은닉 상태가 \(x_{\le i}\)에만 달려 있음을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>층 하나에서 위치 \(i\)의 attention 출력은 \(\sum_{j\le i}a_{ij}v_j\)이고, \(j>i\)의 가중치는 0이어서 그 위치의 \(v_j\)는 기여하지 않는다. LN, MLP, residual은 위치마다 따로 계산하므로 위치 \(i\)의 값만 쓴다. 따라서 층 \(l\)에서 위치 \(j\le i\)의 은닉 상태가 \(x_{\le j}\subseteq x_{\le i}\)에만 달려 있다면, 층 \(l+1\)에서 위치 \(i\)의 은닉 상태도 \(x_{\le i}\)에만 달려 있다. 입력 임베딩에서는 위치 \(i\)가 \(x_i\)에만 달려 있으므로 귀납으로 모든 층에서 성립한다.</p></details></div>
+    <div class="prob" id="prob-params" data-level="1"><p>\(d=4096\)인 층에서 attention 가중치와 MLP 가중치(편향 제외, 은닉 \(4d\))의 수를 구하라. head를 32개에서 64개로 늘리면 attention의 파라미터는 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary><p>attention은 \(4d^2=67{,}108{,}864\)개, MLP는 \(8d^2=134{,}217{,}728\)개로 합이 \(12d^2=201{,}326{,}592\)개다. head를 늘려도 각 head가 \(d/h\)차원이어서 \(W_Q,W_K,W_V,W_O\)의 크기가 \(d\times d\)로 그대로이므로 파라미터는 변하지 않는다.</p></details></div>
+    <div class="prob" id="prob-variance" data-level="2"><p>\(q,k\)의 성분이 평균 0, 분산 1이고 모두 독립일 때 \(\operatorname{Var}(q\cdot k)=d_k\)임을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(q\cdot k=\sum_{i=1}^{d_k}q_ik_i\)이다. \(q_i\)와 \(k_i\)가 독립이고 평균이 0이므로 \(E[q_ik_i]=0\), \(\operatorname{Var}(q_ik_i)=E[q_i^2]E[k_i^2]=1\)이다. 서로 다른 \(i\)의 항은 독립이므로 분산이 더해져 \(\operatorname{Var}(q\cdot k)=d_k\)다.</p></details></div>
+    <div class="prob" id="prob-cache" data-level="2"><p>\(L=24\), \(n_{\text{kv}}=16\), \(d_{\text{head}}=64\), 16비트인 모델에서 컨텍스트 32,768토큰의 KV cache 크기를 구하라. \(n_{\text{kv}}=4\)로 줄이면?</p>
+      <details class="sol"><summary>풀이</summary><p>토큰당 \(2\times24\times16\times64\times2=98{,}304\)바이트(96 KiB)이고, 32,768토큰이면 \(98{,}304\times32{,}768=3\) GiB다. \(n_{\text{kv}}=4\)이면 \(1/4\)인 0.75 GiB(768 MiB)이다.</p></details></div>
+    <div class="prob" id="prob-crossover" data-level="1"><p>\(d=1024\)인 모델에서 층의 attention 점수·가중 평균 계산(\(4n^2d\))이 위치별 계산(\(24nd^2\))과 같아지는 \(n\)을 구하라. 그 길이에서 attention의 몫은?</p>
+      <details class="sol"><summary>풀이</summary><p>\(4n^2d=24nd^2\)에서 \(n=6d=6{,}144\)다. 몫은 \(n/(n+6d)=1/2\)이다.</p></details></div>
+    <div class="prob" id="prob-rope" data-level="3"><p>RoPE에서 위치 \(m\)의 query와 위치 \(n\)의 key를 같은 각 \(\theta\)로 회전했을 때 점수가 \(n-m\)에만 달려 있음을, <a class="ref" href="#thm-rope"></a>의 증명을 따라 쓰고 \(\theta\)가 짝마다 다를 때 전체 내적이 어떻게 되는지 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\((R(m\theta)q)^\top(R(n\theta)k)=q^\top R(-m\theta)R(n\theta)k=q^\top R((n-m)\theta)k\)로 \(m,n\)이 \(n-m\)으로만 들어온다. 전체 벡터는 2차원 짝 \(i=1,\ldots,d/2\)로 나뉘고 짝마다 각 \(\theta_i\)를 쓰므로, 내적은 짝별 항 \(q_{(i)}^\top R((n-m)\theta_i)k_{(i)}\)의 합이다. 각 항이 \(n-m\)에만 달려 있어 합도 그렇다.</p></details></div>
+    <div class="prob" id="prob-float" data-level="1"><p>실험 2의 첫 줄이 정확히 0이 아니라 \(1.3\times10^{-15}\)인 이유를 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>입력을 섞으면 각 위치의 점수와 가중 평균을 이루는 항들의 더하는 순서가 바뀐다. 부동소수점 덧셈은 결합법칙이 성립하지 않아 순서에 따라 마지막 자리가 달라진다. \(10^{-15}\)는 64비트 실수의 상대 오차(약 \(10^{-16}\)) 수준으로, 이론이 말하는 0과 구별되지 않는다.</p></details></div>
+    <div class="prob" id="prob-nomask" data-level="2"><p>코드의 <code>CAUSAL</code>을 <code>False</code>로 두고 실험 1을 다시 하면 값이 어떻게 되는가? 이렇게 학습하면 어떤 문제가 생기는지 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>0이 아닌 값이 나온다. 마스크가 없으면 앞 위치가 뒤 위치의 key·value를 읽어서 마지막 토큰을 바꾸면 앞 위치의 로짓도 바뀐다. 이 모델을 teacher forcing으로 학습하면 위치 \(t\)가 정답인 \(x_{t+1}\)을 입력에서 직접 읽을 수 있어서, 정답을 베껴 쓰도록 학습되고 다음 토큰을 예측하는 능력은 배우지 않는다. 생성할 때는 \(x_{t+1}\)이 아직 없으므로 쓸모없는 모델이 된다.</p></details></div>
   </section>
 </main>
 </body>

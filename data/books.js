@@ -240,7 +240,7 @@ window.SHELF_DATA = {
       ],
       chapters: [
         { slug: "ch01", num: "01", part: 1, status: "draft", title: "토큰과 다음 토큰 예측", desc: "텍스트를 BPE로 토큰 id 시퀀스로 바꾸고, 다음 토큰의 조건부 확률·소프트맥스·교차 엔트로피·퍼플렉서티를 세웁니다. greedy decoding·temperature·top-k·top-p로 이어 쓰는 생성 루프를 작은 bigram 실험으로 비교하고, 다음 토큰 예측이 사실·새 정보·계산·instruction following·행동을 보장하지 않는 이유를 정리합니다.", sims: ["softmax-temp", "bigram-decode"] },
-        { slug: "ch02", num: "02", part: 1, status: "slot", title: "어텐션과 트랜스포머", desc: "컨텍스트 속 토큰을 연결하는 문제 · query·key·value와 어텐션 · 위치 정보와 층의 반복 · 긴 입력의 비용" },
+        { slug: "ch02", num: "02", part: 1, status: "draft", title: "어텐션과 트랜스포머", desc: "토큰 임베딩이 컨텍스트를 읽는 방법인 scaled dot-product attention(query·key·value, causal mask, multi-head)을 손계산으로 세우고, 위치 정보(sinusoidal, RoPE)와 트랜스포머 블록의 구조·파라미터 수를 계산합니다. attention의 n² 비용과 KV cache로 긴 입력의 비용을 따지고, 작은 트랜스포머로 마스크·순서·KV cache의 성질을 확인합니다.", sims: ["attention-qk", "attention-matrix", "posenc"] },
         { slug: "ch03", num: "03", part: 1, status: "slot", title: "사전학습과 in-context learning", desc: "대규모 사전학습의 목표 · 파라미터에 남는 정보와 한계 · 예시를 컨텍스트에 넣는 방법 · 학습과 in-context 적응의 차이" },
         { slug: "ch04", num: "04", part: 1, status: "slot", title: "Instruction tuning과 대화 모델", desc: "base model의 응답과 instruction following · SFT와 선호 학습 · system·user 메시지의 역할 · 유용함과 정확함의 차이" },
         { slug: "ch05", num: "05", part: 2, status: "slot", title: "추론이 필요한 문제", desc: "즉답으로 어려운 과제 · 중간 단계와 검증 가능한 답 · 풀이 문장과 실제 정답의 구별 · 단계적 풀이가 도움이 되지 않는 과제" },

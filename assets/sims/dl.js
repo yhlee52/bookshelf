@@ -643,10 +643,10 @@
      ====================================================================== */
   Lab.register({
     id: "attention-qk", field: "dl", thumb: "arcs",
-    title: "어텐션 = 부드러운 검색 (쿼리 · 키 · 값)",
+    title: "어텐션 = 부드러운 검색 (query · key · value)",
     desc: "2차원 쿼리 벡터를 끌어 키와의 내적, 소프트맥스 가중치, 값의 가중 평균이 어떻게 바뀌는지 봅니다.",
     tags: ["어텐션", "Transformer", "소프트맥스"],
-    note: "해볼 것: 왼쪽에서 <b>쿼리 화살표 끝</b>이나 <b>키(원)</b>를 끌어 보세요. 출력(★)은 값(□)들의 가중 평균입니다. 온도를 낮추면 가장 비슷한 키 하나만 고르는 <b>하드 검색</b>, 높이면 모두를 고르게 섞는 평균이 됩니다.",
+    note: "해볼 것: 왼쪽에서 <b>query 화살표 끝</b>이나 <b>key(원)</b>를 끌어 보세요. 출력(★)은 value(□)들의 가중 평균입니다. temperature를 낮추면 가장 비슷한 키 하나만 고르는 <b>하드 검색</b>, 높이면 모두를 고르게 섞는 평균이 됩니다.",
     mount(S) {
       const toks = [
         { n: "고양이", k: [1.6, 0.9], v: [1.9, -1.2] },
@@ -734,7 +734,7 @@
         const k = W.indexOf(Math.max(...W)); set("top", toks[k].n);
         set("out", `(${out[0].toFixed(2)}, ${out[1].toFixed(2)})`);
       }
-      S.range({ label: "온도 T", min: 0.05, max: 5, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
+      S.range({ label: "temperature T", min: 0.05, max: 5, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
       S.check({ label: "√d로 나누기 (scaled dot-product)", value: true, onChange: (v) => { st.scale = v; upd(); } });
       S.button("키 섞기", () => { const r = Math.random; toks.forEach((t) => (t.k = [(r() * 2 - 1) * 2.1, (r() * 2 - 1) * 2.1])); upd(); });
       VZ.drag(cv.canvas, {
@@ -760,7 +760,7 @@
      ====================================================================== */
   Lab.register({
     id: "attention-matrix", field: "dl", thumb: "heat", layout: "stack",
-    title: "셀프 어텐션 행렬 — 마스크와 멀티헤드",
+    title: "self-attention 행렬 — causal mask와 multi-head",
     desc: "문장을 입력하면 무작위 투영으로 만든 Q·K에서 어텐션 행렬을 계산합니다. 인과 마스크, 헤드, 위치 인코딩의 효과를 봅니다.",
     tags: ["어텐션", "Transformer", "마스크", "멀티헤드"],
     note: "주의: 학습되지 않은 <b>무작위 가중치</b>라 의미 있는 패턴이 아니라 <b>계산 구조</b>를 보여 줍니다. 같은 단어는 같은 임베딩을 가지므로 서로 강하게 주목합니다. 인과 마스크를 켜면 위쪽 삼각형이 막혀 GPT처럼 과거만 봅니다. 행을 클릭하면 아래에 그 토큰이 어디를 보는지 호로 그립니다.",
@@ -862,7 +862,7 @@
         });
       }
       buildHeadSeg();
-      S.range({ label: "온도", min: 0.2, max: 3, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
+      S.range({ label: "temperature", min: 0.2, max: 3, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
       S.check({ label: "인과 마스크 (미래 가리기)", value: false, onChange: (v) => { st.causal = v; upd(); } });
       S.check({ label: "위치 인코딩 더하기", value: true, onChange: (v) => { st.pe = v; upd(); } });
       S.check({ label: "W_Q = W_K (대칭 점수)", value: false, onChange: (v) => { st.shared = v; upd(); } });
