@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>20 시간 의존 섭동론 · QuantumBook</title>
-<meta name="description" content="시간 의존 섭동론의 전이 진폭과 페르미 황금률을 유도하고, 빛과 원자의 상호작용 및 단열 변화의 베리 위상을 살펴본다.">
+<meta name="description" content="시간에 따라 변하는 섭동이 일으키는 전이를 계수 방정식에서 유도하고, 페르미 황금률과 지수 붕괴, 빛의 흡수·방출과 아인슈타인 계수, 선택 규칙과 수소의 수명, 급격 근사와 단열 정리, 베리 위상을 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -29,305 +29,405 @@
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">20</span></div>
     <h1 data-fill="chapter-title">시간 의존 섭동론</h1>
-    <p class="lead">외부에서 약한 힘을 잠깐 가하거나 진동하는 빛을 비추면, 원자는 언제 다른 상태로 옮겨 갈까? 시간 의존 섭동론은 전이 진폭을 시간 적분으로 구하고 연속적인 최종 상태에 대해서는 전이율을 준다. 아주 천천히 바뀌는 해밀토니안에서는 전이 대신 상태를 따라가는 단열 변화와 베리 위상이 나타난다.</p>
+    <p class="lead">원자에 빛을 비추거나 외부 장을 잠깐 걸면 원자는 얼마의 확률로 다른 상태로 옮겨 갈까? 시간 의존 섭동론은 이 확률을 섭동의 시간 적분으로 계산한다. 옮겨 갈 상태가 에너지에 대해 연속적으로 퍼져 있으면 일정한 전이율이 나오고, 이것이 들뜬 원자가 지수 함수로 붕괴하는 까닭이 된다. 같은 방법으로 빛의 흡수와 방출을 계산해 수소 \(2p\) 상태의 수명을 구한다. 끝으로 섭동이 아주 빠르거나 아주 느린 두 극한을 보는데, 이때는 섭동이 작지 않아도 쓸 수 있는 근사가 성립한다.</p>
     <ul class="objectives">
-      <li>상호작용 묘사에서 다이슨 전개와 1차 전이 진폭을 유도한다.</li>
-      <li>유한 시간의 전이 확률에서 페르미 황금률과 그 적용 조건을 얻는다.</li>
-      <li>전기 쌍극자 상호작용으로 흡수·유도 방출과 선택 규칙을 설명한다.</li>
-      <li>단열 정리의 조건을 읽고 동역학적 위상과 베리 위상을 구분한다.</li>
+      <li>상호작용 묘사의 계수 방정식에서 1·2차 전이 진폭을 유도하고, 정확히 풀리는 강제 진동자와 비교해 1차 결과를 믿을 수 있는 범위를 판단한다.</li>
+      <li>연속 상태로의 전이에서 페르미 황금률을 유도하고, 같은 계산을 이어 가 지수 붕괴와 로렌츠 선폭을 얻는다.</li>
+      <li>전기 쌍극자 근사로 흡수와 유도 방출의 비율을 구하고, 아인슈타인의 열평형 논증으로 자발 방출률을 계산한다.</li>
+      <li>짝홀성과 각운동량에서 전기 쌍극자 선택 규칙을 유도하고, 수소 \(n\le3\) 상태들의 수명을 계산한다.</li>
+      <li>급격한 변화와 단열 변화의 두 극한을 구분하고, 란다우–제너 공식과 베리 위상으로 단열 진화를 정량적으로 다룬다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b> <a href="ch10.html#eq-interaction-state">10장</a> (상호작용 묘사), <a href="ch13.html">13장</a> (대칭과 짝홀성), <a href="ch14.html#eq-low-spherical-harmonics">14장</a> (구면 조화 함수), <a href="ch15.html#eq-low-radial">15장</a> (수소 원자), <a href="ch16.html#eq-spin-direction">16장</a> (방향을 따른 스핀), <a href="ch19.html#thm-nondegenerate-perturbation">19장</a> (작은 섭동)</p>
+    <p class="prereq"><b>선수 지식</b> <a href="ch05.html#eq-planck">5장</a> (흑체 복사), <a href="ch08.html#eq-poisson">8장</a> (결맞음 상태), <a href="ch09.html#eq-lorentz">9장</a> (수명과 선폭), <a href="ch10.html#eq-dyson-two">10장</a> (상호작용 묘사와 다이슨 급수), <a href="ch13.html#thm-parity-selection">13장</a> (짝홀성 선택 규칙), <a href="ch15.html#eq-low-radial">15장</a> (수소의 지름 함수), <a href="ch16.html#thm-rabi-probability">16장</a> (자기 공명), <a href="ch17.html#thm-wigner-eckart">17장</a> (위그너–에카르트 정리), <a href="ch19.html#eq-nondegenerate-results">19장</a> (시간 무관 섭동)</p>
   </header>
 
   <section id="s1">
-    <h2>상호작용 묘사에서의 전개</h2>
-    <p><a href="ch19.html">19장</a>에서는 섭동이 시간에 따라 변하지 않을 때 에너지의 변화를 구했다. 이제 \(\hat H(t)=\hat H_0+\lambda\hat V(t)\)에서 \(\hat H_0\)는 시간에 무관하고 풀 수 있으며, \(\lambda\hat V(t)\)는 작다고 하자. 처음 시각을 \(t_0=0\)으로 잡는다. <a href="ch10.html#eq-interaction-def">10장의 상호작용 묘사</a>에서 자유 진화를 \(\hat U_0(t)=e^{-i\hat H_0t/\hbar}\)로 묶어 빼면</p>
-    <div class="box def" id="def-interaction-evolution"><div class="box-h">상호작용 묘사의 상태와 섭동</div>
-      <div class="formula" id="eq-interaction-evolution">\[
-        |\psi_I(t)\rangle=\hat U_0^\dagger(t)|\psi_S(t)\rangle,\qquad
-        \hat V_I(t)=\hat U_0^\dagger(t)\hat V(t)\hat U_0(t),\qquad
-        i\hbar\frac{d}{dt}|\psi_I(t)\rangle=\lambda\hat V_I(t)|\psi_I(t)\rangle .
-      \]</div>
-      <p>슈뢰딩거 방정식에 \(|\psi_S\rangle=\hat U_0|\psi_I\rangle\)를 대입해 미분하면 \(\hat H_0\hat U_0|\psi_I\rangle\) 항이 양쪽에서 상쇄된다. 남은 상태 변화는 \(\hat V_I\)가 맡는다.</p>
+    <h2>전이 진폭</h2>
+    <p><a href="ch19.html">19장</a>에서는 시간에 따라 변하지 않는 섭동이 에너지 준위를 얼마나 옮기는지 구했다. 이 장의 질문은 다르다. 풀 수 있는 해밀토니안 \(\hat H_0\)에 시간에 따라 변하는 작은 항 \(\hat V(t)\)를 더한 \(\hat H(t)=\hat H_0+\hat V(t)\)를 생각하자. \(\hat H_0\)의 고유상태 \(|i\rangle\)에서 출발한 계를 나중에 다른 고유상태 \(|f\rangle\)에서 발견할 확률은 얼마인가? 준위는 \(\hat H_0\)의 것을 그대로 두고, 준위 사이를 오가는 확률을 계산하는 것이다.</p>
+
+    <h3 id="s1-equations">계수 방정식</h3>
+    <p>이 질문에는 <a href="ch10.html#s4">10장의 상호작용 묘사</a>가 알맞다. \(\hat H_0|n\rangle=E_n|n\rangle\)이라 하고 처음 시각을 0으로 잡자. 상호작용 묘사의 상태를 \(|\psi_I(t)\rangle=\sum_nc_n(t)|n\rangle\)로 전개하면 \(|c_n(t)|^2\)이 곧 \(|n\rangle\)에서 발견할 확률이다(<a href="ch10.html#eq-interaction-coeff">10장</a>). 상태는 \(i\hbar\,d|\psi_I\rangle/dt=\hat V_I(t)|\psi_I\rangle\)를 따르고 \(\hat V_I(t)=e^{i\hat H_0t/\hbar}\hat V(t)e^{-i\hat H_0t/\hbar}\)이다. 이 식에 \(\langle f|\)를 곱하고 \(\hat V_I\)와 상태 사이에 \(\sum_n|n\rangle\langle n|=I\)를 끼우자. 양쪽의 지수 연산자는 고유상태에 작용해 숫자가 되므로</p>
+    <div class="formula" id="eq-interaction-element">\[ \begin{aligned}
+      \langle f|\hat V_I(t)|n\rangle&amp;=e^{iE_ft/\hbar}\,V_{fn}(t)\,e^{-iE_nt/\hbar}\\
+      &amp;=V_{fn}(t)\,e^{i\omega_{fn}t}
+    \end{aligned} \]</div>
+    <p>이다. 여기서 \(V_{fn}(t)=\langle f|\hat V(t)|n\rangle\)은 슈뢰딩거 묘사의 행렬 원소이고 \(\omega_{fn}=(E_f-E_n)/\hbar\)이다. 따라서 계수들은 다음 연립 방정식을 따른다.</p>
+    <div class="formula" id="eq-coefficient-equations">\[ i\hbar\,\dot c_f(t)=\sum_nV_{fn}(t)\,e^{i\omega_{fn}t}\,c_n(t). \]</div>
+    <p>아직 근사는 하나도 하지 않았다. 식 <a class="ref" href="#eq-coefficient-equations"></a>는 슈뢰딩거 방정식을 \(\hat H_0\)의 고유 기저에서 쓴 것일 뿐이다. 상태가 \(N\)개면 \(N\)개의 연립 미분 방정식이 되고, 보통은 정확히 풀 수 없다. \(\hat V\)가 작을 때는 오른쪽의 \(c_n\)에 한 차수 낮은 값을 넣어 차례로 적분한다. \(c_n=c_n^{(0)}+c_n^{(1)}+c_n^{(2)}+\cdots\)로 쓰되 위 첨자는 \(\hat V\)의 거듭제곱 차수다. 처음 상태가 \(|i\rangle\)이므로 \(c_n(0)=\delta_{ni}\)이고, 같은 차수끼리 모아 적분하면</p>
+    <div class="formula" id="eq-order-recursion">\[ \begin{aligned}
+      c_f^{(0)}(t)&amp;=\delta_{fi},\\
+      c_f^{(k)}(t)&amp;=-\frac{i}{\hbar}\sum_n\int_0^t\!dt'\,V_{fn}(t')e^{i\omega_{fn}t'}c_n^{(k-1)}(t')
+    \end{aligned} \]</div>
+    <p>이다(\(k\ge1\)). 0차 계수는 처음 값 그대로이고, 각 차수는 바로 앞 차수에서 적분 한 번으로 얻는다. 이것은 <a href="ch10.html#eq-dyson-two">10장의 다이슨 급수</a>를 \(\langle f|\cdots|i\rangle\)로 감싼 것과 같다. \(k=1\)에서는 오른쪽의 합에 \(n=i\)만 남는다.</p>
+    <div class="box thm" id="thm-first-order-transition"><div class="box-h">1차·2차 전이 진폭</div>
+      <p>처음 상태가 \(|i\rangle\)일 때 \(f\ne i\)인 상태의 진폭은 다음과 같다.</p>
+      <div class="formula" id="eq-first-order-transition">\[ c_f^{(1)}(t)=-\frac{i}{\hbar}\int_0^t\!dt'\,V_{fi}(t')\,e^{i\omega_{fi}t'}, \]</div>
+      <div class="formula" id="eq-second-order-transition">\[ \begin{aligned}
+        c_f^{(2)}(t)=\Big(\!-\frac{i}{\hbar}\Big)^{2}\sum_m&amp;\int_0^t\!dt_1\,V_{fm}(t_1)e^{i\omega_{fm}t_1}\\
+        &amp;\times\int_0^{t_1}\!dt_2\,V_{mi}(t_2)e^{i\omega_{mi}t_2}.
+      \end{aligned} \]</div>
+      <p>전이 확률은 \(P_{i\to f}(t)=|c_f^{(1)}(t)|^2+O(V^3)\)이다. 1차 진폭은 행렬 원소 \(V_{fi}(t)\)에 \(e^{i\omega_{fi}t}\)를 곱해 적분한 것, 곧 섭동의 시간 변화 가운데 진동수 \(\omega_{fi}\)인 성분의 크기다. 2차 진폭은 먼저 \(t_2\)에 \(i\to m\), 나중 \(t_1\)에 \(m\to f\)로 두 번 옮겨 가는 경로를 모든 중간 상태 \(m\)에 대해 더한 것이다. 중간 상태의 에너지는 \(E_i\)와 같지 않아도 된다.</p>
     </div>
-    <p>전파 연산자 \(\hat U_I(t,0)\)에 대해 식 <a href="ch10.html#eq-interaction-integral">10장의 적분 방정식</a>을 한 번, 다시 한 번 대입하면 시간 순서가 저절로 생긴다.</p>
-    <div class="formula" id="eq-dyson-series">\[
-      \begin{aligned}
-      \hat U_I(t,0)&amp;=I-\frac{i\lambda}{\hbar}\int_0^t\!dt_1\,\hat V_I(t_1)\\
-      &amp;\quad+\left(-\frac{i\lambda}{\hbar}\right)^2
-        \int_0^t\!dt_1\int_0^{t_1}\!dt_2\,
-        \hat V_I(t_1)\hat V_I(t_2)+O(\lambda^3).
-      \end{aligned}
-    \]</div>
-    <p>두 번째 적분의 \(t_1&gt;t_2\)는 나중 시각의 연산자가 왼쪽에 놓인다는 뜻이다. 서로 다른 시각의 \(\hat V_I\)가 교환하지 않아도 이 순서는 유효하다. 이를 <span class="term">다이슨 전개</span> <span class="en">(Dyson series)</span>라 하며, 형식적으로 \(\hat U_I=\mathcal T\exp[-i\lambda\int_0^t\hat V_I(t')dt'/\hbar]\)로 쓴다.</p>
-    <p>\(\hat H_0|n\rangle=E_n|n\rangle\)이고 처음 상태가 \(|i\rangle\)라 하자. \(f\ne i\)인 최종 상태의 1차 진폭은 첫 적분에 \(\langle f|\)를 곱해 얻는다. \(\omega_{fi}=(E_f-E_i)/\hbar\)로 두면 \(\langle f|\hat V_I(t)|i\rangle=e^{i\omega_{fi}t}V_{fi}(t)\)이다.</p>
-    <div class="box thm" id="thm-first-order-transition"><div class="box-h">1차 전이 진폭</div>
-      <div class="formula" id="eq-first-order-transition">\[
-        c_f^{(1)}(t)=-\frac{i\lambda}{\hbar}
-          \int_0^t\!dt'\,e^{i\omega_{fi}t'}V_{fi}(t'),\qquad
-        P_{i\to f}(t)=|c_f^{(1)}(t)|^2+O(\lambda^3).
-      \]</div>
-      <p>전이는 섭동의 시간 변화에서 에너지 간격에 맞는 진동 성분을 읽는다. 위 확률의 나머지 차수는 일반적인 복소 섭동에서 \(O(\lambda^3)\)이며, 대칭 때문에 홀수 차수가 사라지는 예제도 있다.</p>
-    </div>
-    <div class="box ex" id="ex-rectangular-pulse"><div class="box-h">길이 \(T\)의 일정한 펄스</div>
-      <p>\(0&lt;t&lt;T\) 동안 \(V_{fi}(t)=v\)이고 그 밖에서는 0이라고 하자. 식 <a class="ref" href="#eq-first-order-transition"></a>을 적분하면</p>
-      <div class="formula" id="eq-pulse-transition">\[
-        c_f^{(1)}(T)=
-          -\frac{i\lambda vT}{\hbar}\,
-          e^{i\omega_{fi}T/2}
-          \operatorname{sinc}\!\left(\frac{\omega_{fi}T}{2}\right),
-        \qquad
-        P_{i\to f}(T)=
-          \frac{\lambda^2|v|^2T^2}{\hbar^2}
-          \operatorname{sinc}^2\!\left(\frac{\omega_{fi}T}{2}\right),
-      \]</div>
-      <p>여기서 \(\operatorname{sinc}x=\sin x/x\), \(\operatorname{sinc}0=1\)이다. 에너지 간격이 0에 가까울수록 처음에는 \(T^2\)로 자란다. 이 1차 계산은 \(P\ll1\)인 짧은 시간에만 믿을 수 있다. 두 고립된 준위를 계속 구동하면 확률이 무한히 자라지 않고 오르내린다.</p>
+    <p>처음 상태에 남을 진폭도 같은 방법으로 구한다. \(c_i^{(1)}=-(i/\hbar)\int_0^tV_{ii}\,dt'\)인데, \(\hat V\)가 에르미트라 \(V_{ii}\)는 실수이므로 이것은 순허수다. 그래서 \(|1+c_i^{(1)}|^2=1+|c_i^{(1)}|^2\)이 되어 1차에서는 처음 상태의 확률이 줄지 않는다. 확률이 줄어드는 것은 2차에서이고, 그 양은 다른 상태로 새어 나간 1차 확률과 정확히 같다.</p>
+    <div class="formula" id="eq-survival-second">\[ |c_i(t)|^2=1-\sum_{f\ne i}|c_f^{(1)}(t)|^2+O(V^3). \]</div>
+    <details class="proof"><summary>유도</summary>
+      <p>\(a_m(t)\equiv V_{mi}(t)e^{i\omega_{mi}t}\)로 두자. \(\hat V\)가 에르미트이므로 \(V_{im}=V_{mi}^*\)이고 \(\omega_{im}=-\omega_{mi}\)여서 \(V_{im}e^{i\omega_{im}t}=a_m^*\)이다. 그러면 \(c_m^{(1)}=-(i/\hbar)\int_0^ta_m\,dt'\)이고, 식 <a class="ref" href="#eq-second-order-transition"></a>에서 \(f=i\)로 두면</p>
+      <div class="formula">\[ \begin{gathered}
+        c_i^{(2)}=-\frac1{\hbar^2}\sum_mI_m,\\
+        I_m\equiv\int_0^t\!dt_1\,a_m^*(t_1)\int_0^{t_1}\!dt_2\,a_m(t_2).
+      \end{gathered} \]</div>
+      <p>\(I_m\)은 \((t_1,t_2)\) 평면에서 \(t_2&lt;t_1\)인 삼각형 위의 적분이다. 켤레 \(I_m^*\)에서 두 적분 변수의 이름을 맞바꾸면 같은 피적분 함수 \(a_m^*(t_1)a_m(t_2)\)를 나머지 삼각형 \(t_1&lt;t_2\) 위에서 적분한 것이 된다. 두 삼각형을 합치면 정사각형이므로</p>
+      <div class="formula">\[ \begin{aligned}
+        2\,\mathrm{Re}\,I_m=I_m+I_m^*&amp;=\int_0^t\!a_m^*\,dt_1\int_0^t\!a_m\,dt_2\\
+        &amp;=\hbar^2|c_m^{(1)}|^2.
+      \end{aligned} \]</div>
+      <p>따라서 \(2\,\mathrm{Re}\,c_i^{(2)}=-\sum_m|c_m^{(1)}|^2\)이다. \(|c_i|^2=1+2\,\mathrm{Re}\,c_i^{(1)}+|c_i^{(1)}|^2+2\,\mathrm{Re}\,c_i^{(2)}+O(V^3)\)에서 \(\mathrm{Re}\,c_i^{(1)}=0\)이고, 합의 \(m=i\) 항이 \(|c_i^{(1)}|^2\)을 지우므로 식 <a class="ref" href="#eq-survival-second"></a>이 남는다.</p>
+    </details>
+
+    <h3 id="s1-pulses">펄스의 모양과 전이</h3>
+    <div class="box ex" id="ex-rectangular-pulse"><div class="box-h">일정한 세기의 펄스</div>
+      <p>\(0&lt;t&lt;T\) 동안만 \(V_{fi}(t)=v\)로 일정하고 그 밖에서는 0이라 하자. \(\omega=\omega_{fi}\)로 줄여 쓰면 식 <a class="ref" href="#eq-first-order-transition"></a>의 적분은 \(\int_0^Te^{i\omega t}dt=(e^{i\omega T}-1)/(i\omega)\)이다. 분자를 \(e^{i\omega T/2}(e^{i\omega T/2}-e^{-i\omega T/2})=2ie^{i\omega T/2}\sin(\omega T/2)\)로 묶으면</p>
+      <div class="formula" id="eq-pulse-transition">\[ \begin{gathered}
+        c_f^{(1)}(T)=-\frac{2iv}{\hbar\omega_{fi}}\,e^{i\omega_{fi}T/2}\sin\frac{\omega_{fi}T}{2},\\
+        P_{i\to f}(T)=\frac{4|v|^2}{\hbar^2\omega_{fi}^2}\sin^2\frac{\omega_{fi}T}{2}.
+      \end{gathered} \]</div>
+      <p>이다. 공명 \(\omega_{fi}\to0\)에서는 \(\sin x\simeq x\)이므로 \(P\to|v|^2T^2/\hbar^2\)로 시간의 제곱에 비례해 자란다. 공명에서 벗어나면 확률은 \(4|v|^2/(\hbar\omega_{fi})^2\) 아래에서 오르내릴 뿐 쌓이지 않는다. <a href="ch10.html#eq-spin-transition">10장에서 계산한 두 준위계</a>도 같은 꼴이다(\(v=\hbar\Omega/2\)).</p>
     </div>
     <figure class="diagram" id="fig-pulse-spectrum">
-      <div class="fig-narrow"><svg viewBox="0 0 440 250" role="img" aria-label="같은 높이로 정규화한 일정한 펄스의 전이 확률에서 펄스 시간이 두 배가 되면 공명 봉우리 폭이 절반으로 줄어든다">
-        <line x1="45" y1="205" x2="400" y2="205" class="s-line"/>
-        <line x1="45" y1="205" x2="45" y2="50" class="s-line"/>
-        <line x1="220" y1="53" x2="220" y2="205" class="s-grid"/>
-        <line x1="176" y1="70" x2="176" y2="205" class="s-grid" stroke-dasharray="4 4"/>
-        <line x1="264" y1="70" x2="264" y2="205" class="s-grid" stroke-dasharray="4 4"/>
-        <polyline points="52.0,204.7 56.2,204.3 60.4,203.7 64.6,203.0 68.8,202.1 73.0,201.3 77.2,200.4 81.4,199.6 85.6,199.0 89.8,198.6 94.0,198.4 98.2,198.5 102.4,199.0 106.6,199.7 110.8,200.6 115.0,201.7 119.2,202.9 123.4,203.9 127.6,204.7 131.8,205.0 136.0,204.7 140.2,203.6 144.4,201.5 148.6,198.3 152.8,193.9 157.0,188.3 161.2,181.3 165.4,173.2 169.6,164.0 173.8,153.9 178.0,143.1 182.2,131.9 186.4,120.5 190.6,109.5 194.8,98.9 199.0,89.4 203.2,81.0 207.4,74.2 211.6,69.1 215.8,66.0 220.0,65.0 224.2,66.0 228.4,69.1 232.6,74.2 236.8,81.0 241.0,89.4 245.2,98.9 249.4,109.5 253.6,120.5 257.8,131.9 262.0,143.1 266.2,153.9 270.4,164.0 274.6,173.2 278.8,181.3 283.0,188.3 287.2,193.9 291.4,198.3 295.6,201.5 299.8,203.6 304.0,204.7 308.2,205.0 312.4,204.7 316.6,203.9 320.8,202.9 325.0,201.7 329.2,200.6 333.4,199.7 337.6,199.0 341.8,198.5 346.0,198.4 350.2,198.6 354.4,199.0 358.6,199.6 362.8,200.4 367.0,201.3 371.2,202.1 375.4,203.0 379.6,203.7 383.8,204.3 388.0,204.7" class="s-acc" stroke-width="2.5"/>
-        <polyline points="52.0,204.7 56.2,204.4 60.4,204.1 64.6,203.9 68.8,203.8 73.0,204.0 77.2,204.3 81.4,204.7 85.6,205.0 89.8,205.0 94.0,204.7 98.2,204.2 102.4,203.6 106.6,203.0 110.8,202.7 115.0,202.8 119.2,203.3 123.4,204.0 127.6,204.7 131.8,205.0 136.0,204.7 140.2,203.7 144.4,202.1 148.6,200.4 152.8,199.0 157.0,198.4 161.2,199.0 165.4,200.6 169.6,202.9 173.8,204.7 178.0,204.7 182.2,201.5 186.4,193.9 190.6,181.3 194.8,164.0 199.0,143.1 203.2,120.5 207.4,98.9 211.6,81.0 215.8,69.1 220.0,65.0 224.2,69.1 228.4,81.0 232.6,98.9 236.8,120.5 241.0,143.1 245.2,164.0 249.4,181.3 253.6,193.9 257.8,201.5 262.0,204.7 266.2,204.7 270.4,202.9 274.6,200.6 278.8,199.0 283.0,198.4 287.2,199.0 291.4,200.4 295.6,202.1 299.8,203.7 304.0,204.7 308.2,205.0 312.4,204.7 316.6,204.0 320.8,203.3 325.0,202.8 329.2,202.7 333.4,203.0 337.6,203.6 341.8,204.2 346.0,204.7 350.2,205.0 354.4,205.0 358.6,204.7 362.8,204.3 367.0,204.0 371.2,203.8 375.4,203.9 379.6,204.1 383.8,204.4 388.0,204.7" class="s-acc2" stroke-width="2.5"/>
-        <text x="11" y="47" class="t-dim">P/P(0)</text>
-        <text x="375" y="226" class="t-dim">ωfi T₀</text>
-        <text x="214" y="224" class="t-dim">0</text>
-        <text x="166" y="224" class="t-dim">−π</text>
-        <text x="258" y="224" class="t-dim">π</text>
-        <line x1="286" y1="55" x2="304" y2="55" class="s-acc"/><text x="308" y="59" class="t-dim">T₀</text>
-        <line x1="351" y1="55" x2="369" y2="55" class="s-acc2"/><text x="373" y="59" class="t-dim">2T₀</text>
-      </svg></div>
-      <figcaption><b>그림 20-1.</b> 식 <a class="ref" href="#eq-pulse-transition"></a>의 확률을 각 펄스의 공명값으로 나눈 \(\operatorname{sinc}^2(\omega_{fi}T/2)\). \(T=T_0\)와 \(2T_0\)를 실제 식으로 계산했다. 시간이 두 배가 되면 정규화한 봉우리는 좁아지지만, 정규화하기 전 공명값은 네 배가 된다.</figcaption>
+      <div class="fig-narrow"><!--fig:20-1--><svg viewBox="0 0 440 262" role="img" aria-label="일정한 결합을 시간 T 동안 켰을 때 전이 확률을 진동수 어긋남에 대해 그렸다. T가 T0일 때 봉우리 높이는 1이고 첫 영점은 플러스마이너스 2파이다. T가 2T0이면 높이는 4로 커지고 첫 영점은 플러스마이너스 파이로 좁아진다. 곡선 아래 넓이는 T에 비례해 두 배가 된다"><defs><marker id="f201-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f201-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f201-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><line x1="56" y1="173.8" x2="404" y2="173.8" class="s-grid" stroke-dasharray="2 4"/><line x1="56" y1="135.6" x2="404" y2="135.6" class="s-grid" stroke-dasharray="2 4"/><line x1="56" y1="97.5" x2="404" y2="97.5" class="s-grid" stroke-dasharray="2 4"/><line x1="56" y1="59.3" x2="404" y2="59.3" class="s-grid" stroke-dasharray="2 4"/><line x1="234" y1="212" x2="234" y2="44" class="s-grid" stroke-dasharray="2 4"/><line x1="56" y1="212" x2="422" y2="212" class="s-line" stroke-width="1.2" marker-end="url(#f201-dim)"/><line x1="56" y1="212" x2="56" y2="26" class="s-line" stroke-width="1.2" marker-end="url(#f201-dim)"/><line x1="64" y1="212" x2="64" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="64" y="230" class="t-math dim" text-anchor="middle">−4π</text><line x1="149" y1="212" x2="149" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="149" y="230" class="t-math dim" text-anchor="middle">−2π</text><line x1="191.5" y1="212" x2="191.5" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="191.5" y="230" class="t-math dim" text-anchor="middle">−π</text><line x1="234" y1="212" x2="234" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="234" y="230" class="t-math dim" text-anchor="middle">0</text><line x1="276.5" y1="212" x2="276.5" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="276.5" y="230" class="t-math dim" text-anchor="middle">π</text><line x1="319" y1="212" x2="319" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="319" y="230" class="t-math dim" text-anchor="middle">2π</text><line x1="404" y1="212" x2="404" y2="216" class="s-line" stroke-width="1.2"/><text font-size="13" x="404" y="230" class="t-math dim" text-anchor="middle">4π</text><line x1="52" y1="173.8" x2="56" y2="173.8" class="s-line" stroke-width="1.2"/><text font-size="13" x="49" y="178.3" class="t-math dim" text-anchor="end">1</text><line x1="52" y1="135.6" x2="56" y2="135.6" class="s-line" stroke-width="1.2"/><text font-size="13" x="49" y="140.1" class="t-math dim" text-anchor="end">2</text><line x1="52" y1="97.5" x2="56" y2="97.5" class="s-line" stroke-width="1.2"/><text font-size="13" x="49" y="102" class="t-math dim" text-anchor="end">3</text><line x1="52" y1="59.3" x2="56" y2="59.3" class="s-line" stroke-width="1.2"/><text font-size="13" x="49" y="63.8" class="t-math dim" text-anchor="end">4</text><text font-size="13" x="49" y="216.5" class="t-math dim" text-anchor="end">0</text><path d="M64 212 L65.4 212 L66.8 212 L68.2 212 L69.7 212 L71.1 211.9 L72.5 211.9 L73.9 211.9 L75.3 211.8 L76.8 211.8 L78.2 211.7 L79.6 211.7 L81 211.6 L82.4 211.5 L83.8 211.4 L85.2 211.4 L86.7 211.3 L88.1 211.2 L89.5 211.1 L90.9 211 L92.3 211 L93.8 210.9 L95.2 210.8 L96.6 210.7 L98 210.6 L99.4 210.6 L100.8 210.5 L102.2 210.4 L103.7 210.4 L105.1 210.3 L106.5 210.3 L107.9 210.2 L109.3 210.2 L110.8 210.2 L112.2 210.2 L113.6 210.2 L115 210.2 L116.4 210.2 L117.8 210.3 L119.2 210.3 L120.7 210.4 L122.1 210.4 L123.5 210.5 L124.9 210.6 L126.3 210.7 L127.8 210.8 L129.2 210.9 L130.6 211 L132 211.1 L133.4 211.2 L134.8 211.3 L136.2 211.4 L137.7 211.5 L139.1 211.6 L140.5 211.7 L141.9 211.8 L143.3 211.9 L144.8 211.9 L146.2 212 L147.6 212 L149 212 L150.4 212 L151.8 212 L153.2 211.9 L154.7 211.8 L156.1 211.7 L157.5 211.5 L158.9 211.4 L160.3 211.1 L161.8 210.9 L163.2 210.6 L164.6 210.3 L166 209.9 L167.4 209.5 L168.8 209.1 L170.2 208.6 L171.7 208 L173.1 207.5 L174.5 206.8 L175.9 206.2 L177.3 205.5 L178.8 204.7 L180.2 204 L181.6 203.1 L183 202.3 L184.4 201.4 L185.8 200.5 L187.2 199.5 L188.7 198.5 L190.1 197.5 L191.5 196.5 L192.9 195.5 L194.3 194.4 L195.8 193.4 L197.2 192.3 L198.6 191.2 L200 190.1 L201.4 189.1 L202.8 188 L204.2 186.9 L205.7 185.9 L207.1 184.9 L208.5 183.9 L209.9 182.9 L211.3 182 L212.8 181.1 L214.2 180.2 L215.6 179.4 L217 178.6 L218.4 177.9 L219.8 177.2 L221.2 176.6 L222.7 176 L224.1 175.5 L225.5 175.1 L226.9 174.7 L228.3 174.4 L229.8 174.1 L231.2 174 L232.6 173.9 L234 173.8 L235.4 173.9 L236.8 174 L238.3 174.1 L239.7 174.4 L241.1 174.7 L242.5 175.1 L243.9 175.5 L245.3 176 L246.8 176.6 L248.2 177.2 L249.6 177.9 L251 178.6 L252.4 179.4 L253.8 180.2 L255.2 181.1 L256.7 182 L258.1 182.9 L259.5 183.9 L260.9 184.9 L262.3 185.9 L263.8 186.9 L265.2 188 L266.6 189.1 L268 190.1 L269.4 191.2 L270.8 192.3 L272.2 193.4 L273.7 194.4 L275.1 195.5 L276.5 196.5 L277.9 197.5 L279.3 198.5 L280.8 199.5 L282.2 200.5 L283.6 201.4 L285 202.3 L286.4 203.1 L287.8 204 L289.2 204.7 L290.7 205.5 L292.1 206.2 L293.5 206.8 L294.9 207.5 L296.3 208 L297.8 208.6 L299.2 209.1 L300.6 209.5 L302 209.9 L303.4 210.3 L304.8 210.6 L306.2 210.9 L307.7 211.1 L309.1 211.4 L310.5 211.5 L311.9 211.7 L313.3 211.8 L314.8 211.9 L316.2 212 L317.6 212 L319 212 L320.4 212 L321.8 212 L323.2 211.9 L324.7 211.9 L326.1 211.8 L327.5 211.7 L328.9 211.6 L330.3 211.5 L331.7 211.4 L333.2 211.3 L334.6 211.2 L336 211.1 L337.4 211 L338.8 210.9 L340.2 210.8 L341.7 210.7 L343.1 210.6 L344.5 210.5 L345.9 210.4 L347.3 210.4 L348.8 210.3 L350.2 210.3 L351.6 210.2 L353 210.2 L354.4 210.2 L355.8 210.2 L357.2 210.2 L358.7 210.2 L360.1 210.2 L361.5 210.3 L362.9 210.3 L364.3 210.4 L365.7 210.4 L367.2 210.5 L368.6 210.6 L370 210.6 L371.4 210.7 L372.8 210.8 L374.2 210.9 L375.7 211 L377.1 211 L378.5 211.1 L379.9 211.2 L381.3 211.3 L382.8 211.4 L384.2 211.4 L385.6 211.5 L387 211.6 L388.4 211.7 L389.8 211.7 L391.2 211.8 L392.7 211.8 L394.1 211.9 L395.5 211.9 L396.9 211.9 L398.3 212 L399.8 212 L401.2 212 L402.6 212 L404 212" class="s-acc" fill="none" stroke-width="2.2"/><path d="M64 212 L65.4 212 L66.8 212 L68.2 211.9 L69.7 211.8 L71.1 211.7 L72.5 211.6 L73.9 211.5 L75.3 211.4 L76.8 211.3 L78.2 211.1 L79.6 211 L81 210.9 L82.4 210.8 L83.8 210.8 L85.2 210.7 L86.7 210.7 L88.1 210.7 L89.5 210.8 L90.9 210.9 L92.3 211 L93.8 211.1 L95.2 211.2 L96.6 211.3 L98 211.5 L99.4 211.6 L100.8 211.7 L102.2 211.8 L103.7 211.9 L105.1 212 L106.5 212 L107.9 212 L109.3 211.9 L110.8 211.8 L112.2 211.7 L113.6 211.5 L115 211.3 L116.4 211.1 L117.8 210.9 L119.2 210.6 L120.7 210.4 L122.1 210.1 L123.5 209.9 L124.9 209.8 L126.3 209.6 L127.8 209.5 L129.2 209.5 L130.6 209.5 L132 209.6 L133.4 209.7 L134.8 209.9 L136.2 210.1 L137.7 210.3 L139.1 210.6 L140.5 210.9 L141.9 211.2 L143.3 211.4 L144.8 211.7 L146.2 211.8 L147.6 212 L149 212 L150.4 212 L151.8 211.8 L153.2 211.6 L154.7 211.3 L156.1 210.8 L157.5 210.3 L158.9 209.8 L160.3 209.2 L161.8 208.5 L163.2 207.8 L164.6 207.2 L166 206.5 L167.4 206 L168.8 205.5 L170.2 205.1 L171.7 204.9 L173.1 204.8 L174.5 204.9 L175.9 205.1 L177.3 205.5 L178.8 206 L180.2 206.7 L181.6 207.4 L183 208.3 L184.4 209.2 L185.8 210 L187.2 210.8 L188.7 211.4 L190.1 211.8 L191.5 212 L192.9 211.8 L194.3 211.2 L195.8 210.2 L197.2 208.6 L198.6 206.4 L200 203.6 L201.4 200.2 L202.8 196.1 L204.2 191.3 L205.7 185.9 L207.1 179.8 L208.5 173.1 L209.9 165.9 L211.3 158.2 L212.8 150.1 L214.2 141.7 L215.6 133.2 L217 124.5 L218.4 115.9 L219.8 107.5 L221.2 99.5 L222.7 91.8 L224.1 84.7 L225.5 78.3 L226.9 72.7 L228.3 68 L229.8 64.2 L231.2 61.5 L232.6 59.8 L234 59.3 L235.4 59.8 L236.8 61.5 L238.3 64.2 L239.7 68 L241.1 72.7 L242.5 78.3 L243.9 84.7 L245.3 91.8 L246.8 99.5 L248.2 107.5 L249.6 115.9 L251 124.5 L252.4 133.2 L253.8 141.7 L255.2 150.1 L256.7 158.2 L258.1 165.9 L259.5 173.1 L260.9 179.8 L262.3 185.9 L263.8 191.3 L265.2 196.1 L266.6 200.2 L268 203.6 L269.4 206.4 L270.8 208.6 L272.2 210.2 L273.7 211.2 L275.1 211.8 L276.5 212 L277.9 211.8 L279.3 211.4 L280.8 210.8 L282.2 210 L283.6 209.2 L285 208.3 L286.4 207.4 L287.8 206.7 L289.2 206 L290.7 205.5 L292.1 205.1 L293.5 204.9 L294.9 204.8 L296.3 204.9 L297.8 205.1 L299.2 205.5 L300.6 206 L302 206.5 L303.4 207.2 L304.8 207.8 L306.2 208.5 L307.7 209.2 L309.1 209.8 L310.5 210.3 L311.9 210.8 L313.3 211.3 L314.8 211.6 L316.2 211.8 L317.6 212 L319 212 L320.4 212 L321.8 211.8 L323.2 211.7 L324.7 211.4 L326.1 211.2 L327.5 210.9 L328.9 210.6 L330.3 210.3 L331.7 210.1 L333.2 209.9 L334.6 209.7 L336 209.6 L337.4 209.5 L338.8 209.5 L340.2 209.5 L341.7 209.6 L343.1 209.8 L344.5 209.9 L345.9 210.1 L347.3 210.4 L348.8 210.6 L350.2 210.9 L351.6 211.1 L353 211.3 L354.4 211.5 L355.8 211.7 L357.2 211.8 L358.7 211.9 L360.1 212 L361.5 212 L362.9 212 L364.3 211.9 L365.7 211.8 L367.2 211.7 L368.6 211.6 L370 211.5 L371.4 211.3 L372.8 211.2 L374.2 211.1 L375.7 211 L377.1 210.9 L378.5 210.8 L379.9 210.7 L381.3 210.7 L382.8 210.7 L384.2 210.8 L385.6 210.8 L387 210.9 L388.4 211 L389.8 211.1 L391.2 211.3 L392.7 211.4 L394.1 211.5 L395.5 211.6 L396.9 211.7 L398.3 211.8 L399.8 211.9 L401.2 212 L402.6 212 L404 212" class="s-acc2" fill="none" stroke-width="2.2"/><text font-size="14" x="422" y="252" class="t-math dim" text-anchor="end"><tspan font-style="italic">ω</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">fi</tspan></tspan><tspan font-style="italic"> T</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><text font-size="14" x="64" y="28" class="t-math dim" text-anchor="start"><tspan font-style="italic">P</tspan> / (|<tspan font-style="italic">v</tspan>|<tspan font-style="italic">T</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>/ħ)<tspan baseline-shift="super" font-size="72%">2</tspan></text><line x1="300" y1="70" x2="322" y2="70" class="s-acc" stroke-width="2.2"/><text font-size="14" x="328" y="75" class="t-math acc" text-anchor="start"><tspan font-style="italic">T</tspan> = <tspan font-style="italic">T</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text><line x1="300" y1="94" x2="322" y2="94" class="s-acc2" stroke-width="2.2"/><text font-size="14" x="328" y="99" class="t-math acc2" text-anchor="start"><tspan font-style="italic">T</tspan> = 2<tspan font-style="italic">T</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan></text></svg><!--/fig:20-1--></div>
+      <figcaption><b>그림 20-1.</b> 식 <a class="ref" href="#eq-pulse-transition"></a>의 전이 확률을 펄스 길이 \(T_0\)와 \(2T_0\)에 대해 같은 눈금으로 그렸다. 시간이 두 배가 되면 공명 봉우리는 네 배 높아지고 첫 영점까지의 거리 \(2\pi/T\)는 절반이 된다. 곡선 아래 넓이는 \(T\)에 비례해 두 배가 된다. 이 사실이 20.2절의 황금률로 이어진다.</figcaption>
     </figure>
+    <p>봉우리의 폭에도 뜻이 있다. 섭동을 켜 둔 시간 \(T\)가 짧으면 \(\hbar\omega_{fi}\)가 \(2\pi\hbar/T\) 정도 어긋난 상태로도 전이가 일어난다. 짧은 시간 동안의 섭동은 에너지 차이를 그보다 정밀하게 가려내지 못한다. <a href="ch09.html#s4">9장의 에너지–시간 관계</a>가 전이 확률에 드러난 모습이다.</p>
+    <div class="callout warn"><strong>1차 결과는 확률이 작을 때만 믿는다</strong><p>공명에서 \(|v|^2T^2/\hbar^2\)는 끝없이 자라 언젠가 1을 넘는다. 두 고립된 준위를 공명으로 계속 구동하면 실제 확률은 <a href="ch16.html#thm-rabi-probability">16장의 라비 진동</a>처럼 \(\sin^2(|v|T/\hbar)\)로 0과 1 사이를 오간다. 이 식을 전개한 첫 항이 1차 결과 \(|v|^2T^2/\hbar^2\)이다. 1차 섭동론은 \(P\ll1\)인 동안만 맞는다.</p></div>
+    <div class="box ex" id="ex-kicked-oscillator"><div class="box-h">가우스 펄스를 받는 진동자</div>
+      <p>질량 \(m\), 진동수 \(\omega\)인 대전 진동자가 바닥 상태에 있다. 여기에 공간적으로 균일한 힘 \(F(t)=F_0e^{-t^2/\tau^2}\)을 가하면 섭동은 \(\hat V(t)=-F(t)\,\hat x\)이다. 펄스가 \(t=-\infty\)에서 \(+\infty\)까지 이어지므로 적분 구간도 그렇게 잡는다. <a href="ch08.html#eq-x-matrix">8장</a>에서 \(\hat x\)는 \(|n\rangle\)을 \(|n\pm1\rangle\)과만 잇고 \(\langle1|\hat x|0\rangle=\sqrt{\hbar/2m\omega}\)이므로, 1차에서 갈 수 있는 상태는 \(|1\rangle\)뿐이다. 가우스 적분 \(\int_{-\infty}^{\infty}e^{-t^2/\tau^2+i\omega t}dt=\sqrt\pi\,\tau\,e^{-\omega^2\tau^2/4}\)을 쓰면</p>
+      <div class="formula" id="eq-kicked-amplitude">\[ \begin{aligned}
+        c_1^{(1)}&amp;=\frac{i}{\hbar}\sqrt{\frac{\hbar}{2m\omega}}\int_{-\infty}^{\infty}\!F(t)\,e^{i\omega t}dt
+\\
+          &amp;=iF_0\tau\sqrt{\frac{\pi}{2m\hbar\omega}}\,e^{-\omega^2\tau^2/4},\\
+        P_{0\to1}&amp;\simeq\frac{\pi F_0^2\tau^2}{2m\hbar\omega}\,e^{-\omega^2\tau^2/2}.
+      \end{aligned} \]</div>
+      <p>두 극한에서 뜻이 분명하다. 펄스가 주는 충격량 \(I=\int F\,dt=\sqrt\pi F_0\tau\)를 고정하고 보자. \(\omega\tau\ll1\)이면 지수 인자가 1이 되어 \(P_{0\to1}\simeq(I^2/2m)/\hbar\omega\)이다. 순간적인 충격이 진동자에 준 고전 운동 에너지를 한 양자 \(\hbar\omega\)로 나눈 값이다. 반대로 \(\omega\tau\gg1\)이면 \(e^{-\omega^2\tau^2/2}\)가 확률을 급격히 줄인다. 천천히 가한 힘에서는 진동자가 힘 때문에 옮겨 간 평형점을 따라 움직였다가, 힘이 사라지면 처음 상태로 돌아온다. 이 두 극한이 20.5절의 급격 근사와 단열 정리다.</p>
+    </div>
+    <div class="callout tip"><strong>정확한 답과 비교하기</strong><p>이 예제는 정확히 풀린다. 상호작용 묘사에서 \(\hat V_I(t)=-F(t)\sqrt{\hbar/2m\omega}\,(\hat ae^{-i\omega t}+\hat a^\dagger e^{i\omega t})\)이고, 서로 다른 시각의 \(\hat V_I\)끼리의 교환자는 연산자가 아닌 숫자다. 그래서 <a href="ch10.html#s4-time-order">10장</a>에서 본 시간 순서의 문제가 전체 위상 하나로 줄고, 시간 변화 연산자는 <a href="ch08.html#prob-displacement">8장의 변위 연산자</a> \(\hat D(\alpha)\)에 위상을 곱한 것이 된다. 여기서 \(\alpha=c_1^{(1)}\)이다. 끝 상태는 <a href="ch08.html#def-coherent">결맞음 상태</a> \(|\alpha\rangle\)이고, 정확한 확률은 <a href="ch08.html#eq-poisson">포아송 분포</a> \(P_{0\to n}=e^{-|\alpha|^2}|\alpha|^{2n}/n!\)이다. 1차 결과 \(|\alpha|^2\)는 정확한 값 \(|\alpha|^2e^{-|\alpha|^2}\)을 전개한 첫 항이다. \(|\alpha|^2=0.1\)이면 정확한 값 0.0905보다 약 10% 크다. \(|\alpha|^2\ll1\)이 1차 섭동론을 믿을 수 있는 조건이다. 2차 진폭이 \(P_{0\to2}\)의 첫 항을 주는 것은 <a class="ref" href="#prob-oscillator-second-order"></a>에서 확인한다.</p></div>
   </section>
 
   <section id="s2">
-    <h2>페르미 황금률</h2>
-    <p>식 <a class="ref" href="#eq-pulse-transition"></a>에서는 한 최종 상태의 확률이 공명 근처에서 \(T^2\)처럼 자란다. 최종 상태가 거의 연속인 경우에는 시간이 길수록 공명 봉우리가 좁아지고 그 안에 들어오는 상태를 더해야 한다. 에너지당 최종 상태 수를 \(\rho(E)\)라 정의하자. \(\lambda v\)의 크기가 에너지에 따라 완만히 변한다고 가정하면</p>
-    <div class="formula" id="eq-continuum-probability">\[
-      P_{\rm cont}(T)\simeq
-      \int dE\,\rho(E)\,
-        \frac{4\lambda^2|V_{Ei}|^2}
-             {(E-E_i)^2}
-        \sin^2\!\left(\frac{(E-E_i)T}{2\hbar}\right).
-    \]</div>
-    <p>핵심은 \(T\)가 커질 때 봉우리의 폭이 \(\hbar/T\)로 좁아지지만 높이는 \(T^2\)로 커진다는 점이다. 따라서 봉우리 아래 넓이는 \(T\)에 비례한다. \(\rho(E)|V_{Ei}|^2\)가 그 폭 안에서 거의 일정하면 \(E_i\)에서의 값으로 빼낼 수 있고, \(u=(E-E_i)T/(2\hbar)\)로 바꾸어 다음 적분을 얻는다.</p>
-    <div class="formula" id="eq-sinc-integral">\[
-      \int_{-\infty}^{\infty}
-        \frac{4\sin^2[(E-E_i)T/(2\hbar)]}{(E-E_i)^2}\,dE
-        =\frac{2T}{\hbar}
-          \int_{-\infty}^{\infty}\frac{\sin^2u}{u^2}\,du
-        =\frac{2\pi T}{\hbar}.
-    \]</div>
-    <div class="box math" id="math-sinc-area"><div class="box-h">sinc 제곱의 넓이</div>
-      <p>\(\int_{-\infty}^{\infty}\sin^2u/u^2\,du=\pi\)는 <a href="ch03.html#math-fourier">3장의 푸리에 변환</a>으로 확인할 수 있다. \(g(t)=1\) (\(|t|\le1\)), 그 밖에서는 0이라 두면 \(G(u)=\int_{-1}^{1}e^{-iut}dt=2\sin u/u\)다. 파르세발 관계를 적용하면 \(2=\int|g|^2dt=(1/2\pi)\int|G|^2du=(2/\pi)\int\sin^2u/u^2du\)다.</p>
+    <h2>페르미 황금률과 지수 붕괴</h2>
+    <p>앞 절에서 한 끝 상태로 가는 확률은 공명에서 \(T^2\)로 자라다가 결국 라비 진동처럼 오르내렸다. 그런데 들뜬 원자가 빛을 내며 붕괴하거나 빛을 흡수한 원자가 이온화되는 과정에서는 확률이 시간에 비례해 늘어 일정한 <span class="term">전이율</span> <span class="en">(transition rate)</span>을 갖는다. 차이는 끝 상태에 있다. 광자의 방향과 진동수, 튀어나간 전자의 운동량처럼 끝 상태가 에너지에 대해 연속적으로 퍼져 있으면, 각 상태로 가는 확률은 작아도 모두 더한 값은 꾸준히 늘어난다.</p>
+
+    <h3 id="s2-rate">연속 상태로 가는 비율</h3>
+    <p>시각 0에 켜서 그대로 두는 섭동 \(\hat V\)를 생각하자. 끝 상태들의 에너지가 촘촘해서 \(E\)와 \(E+dE\) 사이에 \(\rho(E)\,dE\)개가 있다고 하자. \(\rho(E)\)를 <span class="term">상태 밀도</span> <span class="en">(density of states)</span>라 한다. 식 <a class="ref" href="#eq-pulse-transition"></a>에서 \(T\)를 \(t\)로, \(\hbar\omega_{fi}\)를 \(E-E_i\)로 바꾼 확률을 이 상태들에 대해 모두 더하면</p>
+    <div class="formula" id="eq-continuum-probability">\[ \begin{aligned}
+      P(t)=\int\!dE\,\rho(E)\,&amp;|V_{Ei}|^2\\
+      &amp;\times\frac{4\sin^2[(E-E_i)t/2\hbar]}{(E-E_i)^2}
+    \end{aligned} \]</div>
+    <p>이다. \(V_{Ei}\)는 에너지 \(E\)인 끝 상태와의 행렬 원소이고, 같은 에너지의 끝 상태가 여럿이면 \(\rho|V_{Ei}|^2\)를 그 상태들에 대한 합으로 읽는다. 적분 안의 마지막 인자는 그림 20-1의 봉우리다. \(E=E_i\)에서 높이가 \(t^2/\hbar^2\)이고 첫 영점까지의 폭이 \(2\pi\hbar/t\)이므로, 시간이 길수록 좁고 높아진다. 넓이를 계산하자. \(u=(E-E_i)t/2\hbar\)로 바꾸면 \(dE=(2\hbar/t)\,du\)이고 \((E-E_i)^2=4\hbar^2u^2/t^2\)이므로</p>
+    <div class="formula" id="eq-sinc-integral">\[ \begin{aligned}
+      &amp;\int_{-\infty}^{\infty}\!\frac{4\sin^2[(E-E_i)t/2\hbar]}{(E-E_i)^2}\,dE\\
+      &amp;\qquad=\frac{2t}{\hbar}\int_{-\infty}^{\infty}\!\frac{\sin^2u}{u^2}\,du=\frac{2\pi t}{\hbar}.
+    \end{aligned} \]</div>
+    <div class="box math" id="math-sinc-area"><div class="box-h">\(\sin^2u/u^2\)의 넓이</div>
+      <p>\(\int_{-\infty}^{\infty}\sin^2u/u^2\,du=\pi\)는 푸리에 변환으로 구할 수 있다. 함수 \(g(s)\)를 \(|s|\le1\)에서 1, 그 밖에서 0으로 두자. 대칭 관례의 푸리에 변환은 \(G(u)=(2\pi)^{-1/2}\int_{-1}^{1}e^{-ius}ds=\sqrt{2/\pi}\,\sin u/u\)이다. <a href="ch03.html#eq-parseval">3장의 파스발 정리</a>(\(\hbar\)를 1로 둔 같은 관례)에 따르면 \(\int|g|^2ds=\int|G|^2du\)이다. 왼쪽은 2, 오른쪽은 \((2/\pi)\int\sin^2u/u^2\,du\)이므로 적분값은 \(\pi\)다.</p>
     </div>
+    <p>봉우리의 넓이가 \(t\)에 비례한다는 것이 핵심이다. \(t\)가 충분히 길어 봉우리 폭 \(2\pi\hbar/t\) 안에서 \(\rho(E)|V_{Ei}|^2\)가 거의 변하지 않으면, 그 값을 \(E=E_i\)에서 적분 밖으로 꺼내고 식 <a class="ref" href="#eq-sinc-integral"></a>을 쓸 수 있다. 그러면 \(P(t)=(2\pi/\hbar)\rho|V|^2\,t\)로 시간에 비례한다.</p>
     <div class="box thm" id="thm-fermi-golden-rule"><div class="box-h">페르미 황금률</div>
-      <div class="formula" id="eq-fermi-golden-rule">\[
-        \Gamma_{i\to{\rm cont}}
-          \equiv\frac{P_{\rm cont}(T)}{T}
-          \simeq\frac{2\pi}{\hbar}
-                 \lambda^2|V_{E_i i}|^2\rho(E_i).
-      \]</div>
-      <p>\(\rho\)의 단위가 에너지의 역수이므로 \(\Gamma\)의 단위는 시간의 역수다. 한 개의 고립된 최종 준위에 이 식을 그대로 쓰지 않는다. 여러 독립적인 연속 채널이 있으면 각각의 \(|V|^2\rho\)를 더한다.</p>
+      <p>일정한 섭동이 처음 상태 \(|i\rangle\)를 연속 상태로 옮기는 시간당 확률은</p>
+      <div class="formula" id="eq-fermi-golden-rule">\[ w_{i\to f}=\frac{dP}{dt}=\frac{2\pi}{\hbar}\,|V_{fi}|^2\,\rho(E_f)\Big|_{E_f=E_i} \]</div>
+      <p>이다. 같은 내용을 끝 상태 하나하나에 대해 쓰면 \(w_{i\to f}=(2\pi/\hbar)|V_{fi}|^2\delta(E_f-E_i)\)이고, 이것을 끝 상태에 대해 더하거나 적분해서 쓴다.</p>
     </div>
-    <div class="callout warn"><strong>유효한 시간 구간</strong><p>시간 \(T\)는 봉우리 폭 \(\hbar/T\)가 \(\rho(E)|V_{Ei}|^2\)의 변화 눈금보다 좁을 만큼 길어야 한다. 동시에 \(P_{\rm cont}(T)\simeq\Gamma T\ll1\)이어야 초기 상태가 거의 고갈되지 않는다. 황금률의 일정한 전이율은 이 두 조건이 함께 성립하는 중간 시간의 결과다.</p></div>
-    <div class="box ex" id="ex-flat-continuum"><div class="box-h">상태 밀도가 일정한 연속체</div>
-      <p>\(\hbar=1\)인 단위에서 \(\lambda=1\), \(|V_{Ei}|=0.02\), \(\rho(E_i)=10\)이라면 \(\Gamma=2\pi(0.02)^2(10)=0.008\pi\simeq0.0251\)이다. \(\rho|V|^2\)의 변화 에너지 눈금이 \(E_c=100\)이라면 \(T=1\)은 \(1/E_c\ll T\ll1/\Gamma\)를 만족한다. 이때 1차 전이 확률은 약 \(0.025\)다.</p>
+    <p>델타 함수 꼴은 식 <a class="ref" href="#eq-sinc-integral"></a>에서 바로 나온다. 넓이가 \(2\pi t/\hbar\)이고 폭이 0으로 줄어드는 봉우리는 긴 시간에서 \((2\pi t/\hbar)\,\delta(E-E_i)\)처럼 행동한다. 에너지가 보존되는 끝 상태로만 전이가 일어나는 것은 섭동을 오래 켜 두어 봉우리가 좁아졌기 때문이다. \(\rho\)의 단위가 에너지의 역수이므로 \(w\)의 단위는 시간의 역수다. 이 장에서는 시간당 비율을 \(w\)로 쓰고, 에너지 폭은 <a href="ch09.html#eq-lorentz">9장</a>처럼 \(\Gamma\)로 써서 구별한다.</p>
+    <p>섭동이 진동수 \(\omega\)로 진동하는 \(\hat V(t)=\hat We^{-i\omega t}+\hat W^\dagger e^{i\omega t}\)라면 식 <a class="ref" href="#eq-first-order-transition"></a>의 적분이 두 항으로 나뉜다.</p>
+    <div class="formula" id="eq-harmonic-amplitude">\[ \begin{aligned}
+      c_f^{(1)}(t)=-\frac{i}{\hbar}\Big[&amp;W_{fi}\int_0^t\!e^{i(\omega_{fi}-\omega)t'}dt'\\
+      &amp;+(W^\dagger)_{fi}\int_0^t\!e^{i(\omega_{fi}+\omega)t'}dt'\Big].
+    \end{aligned} \]</div>
+    <p>첫 항은 \(\omega_{fi}=\omega\), 곧 \(E_f=E_i+\hbar\omega\) 근처에서 커지고 둘째 항은 \(E_f=E_i-\hbar\omega\) 근처에서 커진다. \(t\gg1/\omega\)이면 두 봉우리가 겹치지 않으므로 교차항을 버리고 각 항에 앞의 계산을 그대로 적용한다.</p>
+    <div class="formula" id="eq-harmonic-golden-rule">\[ \begin{aligned}
+      w_{i\to f}=\frac{2\pi}{\hbar}\Big[&amp;|W_{fi}|^2\,\delta(E_f-E_i-\hbar\omega)\\
+      &amp;+|(W^\dagger)_{fi}|^2\,\delta(E_f-E_i+\hbar\omega)\Big].
+    \end{aligned} \]</div>
+    <p>첫 항은 섭동에서 에너지 \(\hbar\omega\)를 받아 올라가는 전이, 둘째 항은 \(\hbar\omega\)를 내주며 내려가는 전이다. 20.3절에서 이 둘을 빛의 흡수와 유도 방출로 읽는다.</p>
+    <div class="callout warn"><strong>황금률이 맞는 시간</strong><p>\(\rho|V|^2\)가 눈에 띄게 변하는 에너지 폭을 \(\varepsilon_c\)라 하자. 황금률에는 두 조건이 필요하다. 봉우리 폭 \(2\pi\hbar/t\)가 \(\varepsilon_c\)보다 좁아야 \(\rho|V|^2\)를 상수로 꺼낼 수 있으므로 \(t\gg\hbar/\varepsilon_c\)여야 한다. 또 1차 섭동론을 썼으므로 \(P=wt\ll1\), 곧 \(t\ll1/w\)여야 한다. 둘째 조건은 다음 소절에서 없앤다.</p></div>
+
+    <h3 id="s2-decay">지수 붕괴와 선폭</h3>
+    <p>들뜬 원자는 결국 거의 확실히 붕괴하므로 \(wt\ll1\)에서 멈출 수 없다. 처음 상태가 비어 가는 효과를 넣어 바이스코프와 위그너(1930)의 계산을 따라가 보자. 처음 상태 \(|i\rangle\)가 연속 상태 \(|f\rangle\)들과만 결합하고, 연속 상태끼리는 섭동으로 결합하지 않으며, \(V_{ii}=0\)이라 하자. 그러면 식 <a class="ref" href="#eq-coefficient-equations"></a>는 정확히 다음 두 식이 된다.</p>
+    <div class="formula" id="eq-ww-equations">\[ \begin{gathered}
+      i\hbar\,\dot c_i=\sum_fV_{if}\,e^{-i\omega_{fi}t}c_f,\\
+      i\hbar\,\dot c_f=V_{fi}\,e^{i\omega_{fi}t}c_i.
+    \end{gathered} \]</div>
+    <p>둘째 식을 \(c_f(0)=0\)에서 적분한 \(c_f(t)=-(i/\hbar)\int_0^tV_{fi}e^{i\omega_{fi}t'}c_i(t')\,dt'\)을 첫째 식에 넣고 \(V_{if}V_{fi}=|V_{fi}|^2\)을 쓰면 \(c_i\) 하나에 대한 식이 남는다.</p>
+    <div class="formula" id="eq-ww-memory">\[ \begin{gathered}
+      \dot c_i(t)=-\frac1{\hbar^2}\int_0^t\!dt'\,K(t-t')\,c_i(t'),\\
+      \begin{aligned}K(s)&amp;\equiv\sum_f|V_{fi}|^2e^{-i\omega_{fi}s}\\
+      &amp;=\int\!dE\,\rho(E)|V_{Ei}|^2e^{-i(E-E_i)s/\hbar}.\end{aligned}
+    \end{gathered} \]</div>
+    <p>지금의 변화율이 과거의 \(c_i(t')\)에 무게 \(K(t-t')\)를 주어 더한 값으로 정해진다. \(\rho|V|^2\)가 \(E_i\) 근처의 넓은 폭 \(\varepsilon_c\)에 걸쳐 거의 일정하면, \(K(s)\)는 \(|s|\lesssim\hbar/\varepsilon_c\)에서만 크고 그보다 긴 시간에서는 서로 다른 에너지의 위상이 어긋나 상쇄된다. 이 짧은 시간 동안 \(c_i\)는 거의 변하지 않으므로 \(c_i(t')\simeq c_i(t)\)로 꺼낼 수 있고, \(t\gg\hbar/\varepsilon_c\)에서 \(\int_0^tK(t-t')\,dt'=\int_0^tK(s)\,ds\simeq\int_0^\infty K(s)\,ds\)이다. 남은 시간 적분은 수렴 인자 \(e^{-\epsilon s}\)을 붙여 계산한다(\(x=E-E_i\)).</p>
+    <div class="formula" id="eq-ww-time-integral">\[ \begin{aligned}
+      \int_0^\infty\!e^{-ixs/\hbar-\epsilon s}ds&amp;=\frac{\hbar}{\hbar\epsilon+ix}\\
+      &amp;=\frac{\hbar^2\epsilon}{\hbar^2\epsilon^2+x^2}-\frac{i\hbar x}{\hbar^2\epsilon^2+x^2}.
+    \end{aligned} \]</div>
+    <p>\(\epsilon\to0\)에서 실수부는 넓이가 \(\pi\hbar\)이고 폭이 0으로 줄어드는 봉우리, 곧 \(\pi\hbar\,\delta(x)\)이다. 허수부는 \(x=0\) 근처를 대칭으로 잘라 낸 \(-\hbar/x\)이다. 먼저 \(\rho|V|^2\)가 \(E_i\)의 양쪽으로 대칭인 경우를 보면 허수부의 적분은 0이고 \(\int_0^\infty K\,ds=\pi\hbar\rho|V|^2\)이다. 따라서</p>
+    <div class="box thm" id="thm-exponential-decay"><div class="box-h">지수 붕괴와 로렌츠 분포</div>
+      <div class="formula" id="eq-ww-decay">\[ \begin{gathered}
+        \dot c_i=-\frac{\pi\rho|V|^2}{\hbar}\,c_i=-\frac w2\,c_i,\\
+        |c_i(t)|^2=e^{-wt}.
+      \end{gathered} \]</div>
+      <p>여기서 \(w=2\pi\rho|V|^2/\hbar\)는 식 <a class="ref" href="#eq-fermi-golden-rule"></a>의 황금률 비율이다. 붕괴한 확률은 끝 상태들에</p>
+      <div class="formula" id="eq-final-lorentz">\[ |c_f(\infty)|^2=\frac{|V_{fi}|^2}{(E_f-E_i)^2+(\hbar w/2)^2} \]</div>
+      <p>로 나뉜다. 에너지 분포 \(\rho|c_f(\infty)|^2\)은 반치폭 \(\Gamma=\hbar w\)인 로렌츠 분포다.</p>
     </div>
+    <p>식 <a class="ref" href="#eq-final-lorentz"></a>은 \(c_i=e^{-wt/2}\)를 \(c_f\)의 적분에 넣어 얻는다. \(c_f(t)=-(i/\hbar)V_{fi}\int_0^te^{(i\omega_{fi}-w/2)t'}dt'=-(i/\hbar)V_{fi}\,[e^{(i\omega_{fi}-w/2)t}-1]/(i\omega_{fi}-w/2)\)에서 \(t\to\infty\)이면 지수 항이 사라져 \(c_f(\infty)=V_{fi}/(E_f-E_i+i\hbar w/2)\)이다. \(\rho|V|^2=\hbar w/2\pi\)를 쓰면 \(\rho|c_f(\infty)|^2=(1/2\pi)\,\Gamma/[(E_f-E_i)^2+\Gamma^2/4]\)으로, <a href="ch09.html#eq-lorentz">9장의 로렌츠 분포</a>와 같고 적분하면 1이다.</p>
+    <p>황금률의 비율 \(w\)가 짧은 시간의 \(P\simeq wt\)만이 아니라 붕괴 전체를 정한다. 처음 상태에 남을 확률은 \(e^{-wt}\)로 줄고 평균 수명은 \(\tau=1/w\)다. <a href="ch09.html#s4-width">9장</a>에서는 지수 붕괴를 가정하고 그 에너지 분포가 로렌츠 꼴이며 \(\Gamma\tau=\hbar\)임을 보였다. 여기서는 그 둘을 섭동론에서 함께 얻었다. 붕괴하는 상태가 내는 광자의 에너지가 폭 \(\Gamma\)로 퍼지는 자연 선폭이 이것이다.</p>
+    <figure class="diagram" id="fig-decay">
+      <div class="fig-row"><!--fig:20-2a--><svg viewBox="0 0 280 250" role="img" aria-label="연속 상태와 결합한 처음 상태에 남아 있을 확률을 시간에 따라 그렸다. 행렬을 대각화해 구한 점들이 지수 곡선 e의 마이너스 wt 승 위에 놓인다. 1차 결과인 직선 1 빼기 wt는 짧은 시간에만 맞는다"><defs><marker id="f202a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f202a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f202a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(가) 처음 상태에 남을 확률</text><line x1="40" y1="210" x2="262" y2="210" class="s-line" stroke-width="1.2" marker-end="url(#f202a-dim)"/><line x1="40" y1="210" x2="40" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f202a-dim)"/><line x1="82.4" y1="210" x2="82.4" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="82.4" y="228" class="t-math dim" text-anchor="middle">1</text><line x1="124.8" y1="210" x2="124.8" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="124.8" y="228" class="t-math dim" text-anchor="middle">2</text><line x1="167.2" y1="210" x2="167.2" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="167.2" y="228" class="t-math dim" text-anchor="middle">3</text><line x1="209.6" y1="210" x2="209.6" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="209.6" y="228" class="t-math dim" text-anchor="middle">4</text><line x1="252" y1="210" x2="252" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="252" y="228" class="t-math dim" text-anchor="middle">5</text><text font-size="13" x="40" y="228" class="t-math dim" text-anchor="middle">0</text><line x1="36" y1="46" x2="40" y2="46" class="s-line" stroke-width="1.2"/><text font-size="13" x="33" y="50.5" class="t-math dim" text-anchor="end">1</text><line x1="36" y1="149.7" x2="40" y2="149.7" class="s-line" stroke-width="1.2"/><text font-size="13" x="33" y="154.2" class="t-math dim" text-anchor="end">1/e</text><line x1="40" y1="149.7" x2="82.4" y2="149.7" class="s-grid" stroke-dasharray="4 3"/><line x1="82.4" y1="210" x2="82.4" y2="149.7" class="s-grid" stroke-dasharray="4 3"/><path d="M40 46 L42.1 54 L44.2 61.6 L46.4 68.8 L48.5 75.7 L50.6 82.3 L52.7 88.5 L54.8 94.4 L57 100.1 L59.1 105.4 L61.2 110.5 L63.3 115.4 L65.4 120 L67.6 124.4 L69.7 128.6 L71.8 132.5 L73.9 136.3 L76 139.9 L78.2 143.3 L80.3 146.6 L82.4 149.7 L84.5 152.6 L86.6 155.4 L88.8 158.1 L90.9 160.6 L93 163 L95.1 165.3 L97.2 167.5 L99.4 169.6 L101.5 171.5 L103.6 173.4 L105.7 175.2 L107.8 176.9 L110 178.5 L112.1 180 L114.2 181.5 L116.3 182.9 L118.4 184.2 L120.6 185.5 L122.7 186.7 L124.8 187.8 L126.9 188.9 L129 189.9 L131.2 190.9 L133.3 191.8 L135.4 192.7 L137.5 193.6 L139.6 194.4 L141.8 195.1 L143.9 195.8 L146 196.5 L148.1 197.2 L150.2 197.8 L152.4 198.4 L154.5 199 L156.6 199.5 L158.7 200 L160.8 200.5 L163 201 L165.1 201.4 L167.2 201.8 L169.3 202.2 L171.4 202.6 L173.6 203 L175.7 203.3 L177.8 203.6 L179.9 204 L182 204.2 L184.2 204.5 L186.3 204.8 L188.4 205 L190.5 205.3 L192.6 205.5 L194.8 205.7 L196.9 205.9 L199 206.1 L201.1 206.3 L203.2 206.5 L205.4 206.7 L207.5 206.8 L209.6 207 L211.7 207.1 L213.8 207.3 L216 207.4 L218.1 207.5 L220.2 207.7 L222.3 207.8 L224.4 207.9 L226.6 208 L228.7 208.1 L230.8 208.2 L232.9 208.3 L235 208.4 L237.2 208.4 L239.3 208.5 L241.4 208.6 L243.5 208.7 L245.6 208.7 L247.8 208.8 L249.9 208.8 L252 208.9" class="s-acc2" fill="none" stroke-width="2"/><path d="M40 46 L82.4 210" class="s-line" fill="none" stroke-width="1.5" stroke-dasharray="6 4"/><circle cx="40" cy="46" r="2.8" class="f-acc"/><circle cx="48.5" cy="73.5" r="2.8" class="f-acc"/><circle cx="57" cy="98.7" r="2.8" class="f-acc"/><circle cx="65.4" cy="119.1" r="2.8" class="f-acc"/><circle cx="73.9" cy="135.6" r="2.8" class="f-acc"/><circle cx="82.4" cy="149.2" r="2.8" class="f-acc"/><circle cx="90.9" cy="160.3" r="2.8" class="f-acc"/><circle cx="99.4" cy="169.4" r="2.8" class="f-acc"/><circle cx="107.8" cy="176.8" r="2.8" class="f-acc"/><circle cx="116.3" cy="182.8" r="2.8" class="f-acc"/><circle cx="124.8" cy="187.8" r="2.8" class="f-acc"/><circle cx="133.3" cy="191.9" r="2.8" class="f-acc"/><circle cx="141.8" cy="195.2" r="2.8" class="f-acc"/><circle cx="150.2" cy="197.9" r="2.8" class="f-acc"/><circle cx="158.7" cy="200.1" r="2.8" class="f-acc"/><circle cx="167.2" cy="201.9" r="2.8" class="f-acc"/><circle cx="175.7" cy="203.4" r="2.8" class="f-acc"/><circle cx="184.2" cy="204.6" r="2.8" class="f-acc"/><circle cx="192.6" cy="205.6" r="2.8" class="f-acc"/><circle cx="201.1" cy="206.4" r="2.8" class="f-acc"/><circle cx="209.6" cy="207" r="2.8" class="f-acc"/><circle cx="218.1" cy="207.6" r="2.8" class="f-acc"/><circle cx="226.6" cy="208" r="2.8" class="f-acc"/><circle cx="235" cy="208.4" r="2.8" class="f-acc"/><circle cx="243.5" cy="208.7" r="2.8" class="f-acc"/><circle cx="252" cy="208.9" r="2.8" class="f-acc"/><text font-size="14" x="262" y="244" class="t-math dim" text-anchor="end"><tspan font-style="italic">w</tspan><tspan font-style="italic">t</tspan></text><text font-size="14" x="105.7" y="163.2" class="t-math acc2" text-anchor="start"><tspan font-style="italic">e</tspan><tspan baseline-shift="super" font-size="72%">−<tspan font-style="italic">wt</tspan></tspan></text><text font-size="14" x="85.8" y="204.3" class="t-math dim" text-anchor="start">1 − <tspan font-style="italic">w</tspan><tspan font-style="italic">t</tspan></text><circle cx="167.2" cy="78.8" r="2.8" class="f-acc"/><text font-size="13" x="175.2" y="83.3" class="t-dim" text-anchor="start">수치 계산</text></svg><!--/fig:20-2a--><!--fig:20-2b--><svg viewBox="0 0 280 250" role="img" aria-label="붕괴가 끝난 뒤 연속 상태들에 남은 확률을 에너지에 따라 그렸다. 수치 계산 점들이 반치폭 ħw인 로렌츠 곡선 위에 놓인다"><defs><marker id="f202b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f202b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f202b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(나) 끝 상태의 에너지 분포</text><line x1="18" y1="210" x2="266" y2="210" class="s-line" stroke-width="1.2" marker-end="url(#f202b-dim)"/><line x1="139" y1="210" x2="139" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f202b-dim)"/><line x1="26" y1="210" x2="26" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="26" y="228" class="t-math dim" text-anchor="middle">−4</text><line x1="82.5" y1="210" x2="82.5" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="82.5" y="228" class="t-math dim" text-anchor="middle">−2</text><line x1="195.5" y1="210" x2="195.5" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="195.5" y="228" class="t-math dim" text-anchor="middle">2</text><line x1="252" y1="210" x2="252" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="252" y="228" class="t-math dim" text-anchor="middle">4</text><text font-size="13" x="139" y="228" class="t-math dim" text-anchor="middle">0</text><path d="M26 207.8 L27.1 207.7 L28.3 207.7 L29.4 207.6 L30.5 207.6 L31.7 207.5 L32.8 207.5 L33.9 207.4 L35 207.4 L36.2 207.3 L37.3 207.2 L38.4 207.2 L39.6 207.1 L40.7 207.1 L41.8 207 L43 206.9 L44.1 206.8 L45.2 206.8 L46.3 206.7 L47.5 206.6 L48.6 206.5 L49.7 206.4 L50.9 206.4 L52 206.3 L53.1 206.2 L54.2 206.1 L55.4 206 L56.5 205.9 L57.6 205.7 L58.8 205.6 L59.9 205.5 L61 205.4 L62.2 205.2 L63.3 205.1 L64.4 205 L65.6 204.8 L66.7 204.7 L67.8 204.5 L68.9 204.3 L70.1 204.1 L71.2 203.9 L72.3 203.7 L73.5 203.5 L74.6 203.3 L75.7 203.1 L76.8 202.9 L78 202.6 L79.1 202.3 L80.2 202.1 L81.4 201.8 L82.5 201.4 L83.6 201.1 L84.8 200.8 L85.9 200.4 L87 200 L88.2 199.6 L89.3 199.1 L90.4 198.7 L91.5 198.2 L92.7 197.6 L93.8 197.1 L94.9 196.4 L96.1 195.8 L97.2 195.1 L98.3 194.3 L99.5 193.5 L100.6 192.7 L101.7 191.7 L102.8 190.7 L104 189.6 L105.1 188.5 L106.2 187.2 L107.4 185.8 L108.5 184.3 L109.6 182.7 L110.8 180.9 L111.9 178.9 L113 176.8 L114.1 174.5 L115.3 171.9 L116.4 169.1 L117.5 166 L118.7 162.7 L119.8 158.9 L120.9 154.8 L122 150.4 L123.2 145.5 L124.3 140.1 L125.4 134.3 L126.6 128 L127.7 121.3 L128.8 114.2 L130 106.8 L131.1 99.2 L132.2 91.7 L133.3 84.6 L134.5 78 L135.6 72.4 L136.7 68.1 L137.9 65.4 L139 64.5 L140.1 65.4 L141.3 68.1 L142.4 72.4 L143.5 78 L144.7 84.6 L145.8 91.7 L146.9 99.2 L148 106.8 L149.2 114.2 L150.3 121.3 L151.4 128 L152.6 134.3 L153.7 140.1 L154.8 145.5 L156 150.4 L157.1 154.8 L158.2 158.9 L159.3 162.7 L160.5 166 L161.6 169.1 L162.7 171.9 L163.9 174.5 L165 176.8 L166.1 178.9 L167.2 180.9 L168.4 182.7 L169.5 184.3 L170.6 185.8 L171.8 187.2 L172.9 188.5 L174 189.6 L175.2 190.7 L176.3 191.7 L177.4 192.7 L178.6 193.5 L179.7 194.3 L180.8 195.1 L181.9 195.8 L183.1 196.4 L184.2 197.1 L185.3 197.6 L186.5 198.2 L187.6 198.7 L188.7 199.1 L189.8 199.6 L191 200 L192.1 200.4 L193.2 200.8 L194.4 201.1 L195.5 201.4 L196.6 201.8 L197.8 202.1 L198.9 202.3 L200 202.6 L201.2 202.9 L202.3 203.1 L203.4 203.3 L204.5 203.5 L205.7 203.7 L206.8 203.9 L207.9 204.1 L209.1 204.3 L210.2 204.5 L211.3 204.7 L212.5 204.8 L213.6 205 L214.7 205.1 L215.8 205.2 L217 205.4 L218.1 205.5 L219.2 205.6 L220.4 205.7 L221.5 205.9 L222.6 206 L223.8 206.1 L224.9 206.2 L226 206.3 L227.1 206.4 L228.3 206.4 L229.4 206.5 L230.5 206.6 L231.7 206.7 L232.8 206.8 L233.9 206.8 L235.1 206.9 L236.2 207 L237.3 207.1 L238.4 207.1 L239.6 207.2 L240.7 207.2 L241.8 207.3 L243 207.4 L244.1 207.4 L245.2 207.5 L246.3 207.5 L247.5 207.6 L248.6 207.6 L249.7 207.7 L250.9 207.7 L252 207.8" class="s-acc2" fill="none" stroke-width="2"/><circle cx="26" cy="207.7" r="2.4" class="f-acc"/><circle cx="30.5" cy="207.5" r="2.4" class="f-acc"/><circle cx="35" cy="207.3" r="2.4" class="f-acc"/><circle cx="39.6" cy="207.1" r="2.4" class="f-acc"/><circle cx="44.1" cy="206.8" r="2.4" class="f-acc"/><circle cx="48.6" cy="206.5" r="2.4" class="f-acc"/><circle cx="53.1" cy="206.1" r="2.4" class="f-acc"/><circle cx="57.6" cy="205.7" r="2.4" class="f-acc"/><circle cx="62.2" cy="205.2" r="2.4" class="f-acc"/><circle cx="66.7" cy="204.6" r="2.4" class="f-acc"/><circle cx="71.2" cy="203.9" r="2.4" class="f-acc"/><circle cx="75.7" cy="203" r="2.4" class="f-acc"/><circle cx="80.2" cy="201.9" r="2.4" class="f-acc"/><circle cx="84.8" cy="200.6" r="2.4" class="f-acc"/><circle cx="89.3" cy="199" r="2.4" class="f-acc"/><circle cx="93.8" cy="196.9" r="2.4" class="f-acc"/><circle cx="98.3" cy="194.1" r="2.4" class="f-acc"/><circle cx="102.8" cy="190.5" r="2.4" class="f-acc"/><circle cx="107.4" cy="185.5" r="2.4" class="f-acc"/><circle cx="111.9" cy="178.6" r="2.4" class="f-acc"/><circle cx="116.4" cy="168.7" r="2.4" class="f-acc"/><circle cx="120.9" cy="154.3" r="2.4" class="f-acc"/><circle cx="125.4" cy="133.7" r="2.4" class="f-acc"/><circle cx="130" cy="106.3" r="2.4" class="f-acc"/><circle cx="134.5" cy="77.8" r="2.4" class="f-acc"/><circle cx="139" cy="64.5" r="2.4" class="f-acc"/><circle cx="143.5" cy="77.8" r="2.4" class="f-acc"/><circle cx="148" cy="106.3" r="2.4" class="f-acc"/><circle cx="152.6" cy="133.7" r="2.4" class="f-acc"/><circle cx="157.1" cy="154.3" r="2.4" class="f-acc"/><circle cx="161.6" cy="168.7" r="2.4" class="f-acc"/><circle cx="166.1" cy="178.6" r="2.4" class="f-acc"/><circle cx="170.6" cy="185.5" r="2.4" class="f-acc"/><circle cx="175.2" cy="190.5" r="2.4" class="f-acc"/><circle cx="179.7" cy="194.1" r="2.4" class="f-acc"/><circle cx="184.2" cy="196.9" r="2.4" class="f-acc"/><circle cx="188.7" cy="199" r="2.4" class="f-acc"/><circle cx="193.2" cy="200.6" r="2.4" class="f-acc"/><circle cx="197.8" cy="201.9" r="2.4" class="f-acc"/><circle cx="202.3" cy="203" r="2.4" class="f-acc"/><circle cx="206.8" cy="203.9" r="2.4" class="f-acc"/><circle cx="211.3" cy="204.6" r="2.4" class="f-acc"/><circle cx="215.8" cy="205.2" r="2.4" class="f-acc"/><circle cx="220.4" cy="205.7" r="2.4" class="f-acc"/><circle cx="224.9" cy="206.1" r="2.4" class="f-acc"/><circle cx="229.4" cy="206.5" r="2.4" class="f-acc"/><circle cx="233.9" cy="206.8" r="2.4" class="f-acc"/><circle cx="238.4" cy="207.1" r="2.4" class="f-acc"/><circle cx="243" cy="207.3" r="2.4" class="f-acc"/><circle cx="247.5" cy="207.5" r="2.4" class="f-acc"/><circle cx="252" cy="207.7" r="2.4" class="f-acc"/><line x1="123.9" y1="137.2" x2="154.1" y2="137.2" class="s-acc2" stroke-width="1.3" marker-start="url(#f202b-acc2)" marker-end="url(#f202b-acc2)"/><text font-size="14" x="168.7" y="142.2" class="t-math acc2" text-anchor="start">ħ<tspan font-style="italic">w</tspan></text><text font-size="14" x="266" y="244" class="t-math dim" text-anchor="end">(<tspan font-style="italic">E</tspan> − <tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%"><tspan font-style="italic">i</tspan></tspan>)/ħ<tspan font-style="italic">w</tspan></text></svg><!--/fig:20-2b--></div>
+      <figcaption><b>그림 20-2.</b> 처음 상태 하나가 간격 \(\delta\)로 놓인 4001개의 끝 상태와 같은 세기 \(v\)로 결합한 모형을 대각화해 정확히 풀었다. 단위는 \(\hbar=1\)이고 \(w=2\pi v^2/\delta=1\), \(\delta=0.02\), 끝 상태의 에너지 범위는 \(E_i\pm40\)이다. (가) 처음 상태에 남을 확률(점)은 \(e^{-wt}\)(실선)를 따른다. 1차 결과 \(1-wt\)(점선)는 \(wt\ll1\)에서만 맞는다. (나) \(t=40/w\)에 끝 상태들에 있을 확률을 \(\delta\)로 나눈 값(점)과 식 <a class="ref" href="#eq-final-lorentz"></a>의 로렌츠 곡선(실선). 둘의 차이는 2% 이내다.</figcaption>
+    </figure>
+    <div class="callout deep"><strong>붕괴하는 준위는 조금 옮겨 간다</strong><p>\(\rho|V|^2\)가 \(E_i\)의 양쪽으로 대칭이 아니면 식 <a class="ref" href="#eq-ww-time-integral"></a>의 허수부도 남는다. 그 결과는 \(c_i(t)=e^{-wt/2}e^{-i\Delta t/\hbar}\)이고 \(\Delta=\mathcal P\!\int dE\,\rho(E)|V_{Ei}|^2/(E_i-E)\)이다. \(\mathcal P\)는 \(E=E_i\) 근처를 대칭으로 잘라 내고 적분한다는 뜻이다. 이것은 <a href="ch19.html#eq-nondegenerate-results">19장의 2차 에너지 보정</a> \(\sum_k|V_{kn}|^2/(E_n-E_k)\)을 연속 상태에 쓴 것과 같다. 붕괴하는 준위의 에너지는 2차 섭동만큼 옮겨 가고, 폭 \(\hbar w\)만큼 퍼진다. 수소의 램 이동은 전자가 양자화된 전자기장의 연속 모드와 결합해 생기는 이런 이동이다.</p></div>
   </section>
 
   <section id="s3">
     <h2>빛의 흡수와 방출</h2>
-    <p>원자의 크기보다 빛의 파장이 훨씬 길면 원자 전체에서 전기장이 거의 같다. 이 <span class="term">전기 쌍극자 근사</span> <span class="en">(electric dipole approximation)</span>에서 전자의 전기 쌍극자 모멘트는 \(\hat{\boldsymbol d}=-e\hat{\boldsymbol r}\)이고, 외부 고전 전기장이 \(\boldsymbol{\mathcal E}(t)=\mathcal E_0\boldsymbol\epsilon\cos\omega t\)일 때 \(e&gt;0\)를 써서</p>
+    <p>원자와 빛의 상호작용은 이 장의 방법이 가장 많이 쓰이는 곳이다. 빛은 진동하는 고전 전자기장으로 두고, 원자의 전자만 양자역학으로 다루자. 라이먼 알파 선(\(2p\to1s\))의 파장은 121.6 nm이고 수소 원자의 크기는 \(a_0=0.0529\) nm이다. 파수 \(k=2\pi/\lambda\)로 \(ka_0=2.7\times10^{-3}\)이므로 원자가 있는 곳에서 전기장의 공간 변화를 무시할 수 있다. 수소의 전이 에너지는 뤼드베리 에너지 \(\alpha^2m_ec^2/2\) 정도이므로 이 비는 미세 구조 상수 \(\alpha\approx1/137\) 정도다. 라이먼 알파에서는 정확히 \(ka_0=3\alpha/8\)이다.</p>
+    <p>이 <span class="term">전기 쌍극자 근사</span> <span class="en">(electric dipole approximation)</span>에서 전기장은 원자 위치의 값 \(\boldsymbol{\mathcal E}(t)\)로 공간에 대해 일정하다. 균일한 전기장 속 전하 \(q\)의 퍼텐셜 에너지는 \(-q\boldsymbol{\mathcal E}\cdot\boldsymbol r\)이므로 전자(\(q=-e\), \(e&gt;0\))에게는 \(e\boldsymbol{\mathcal E}\cdot\hat{\boldsymbol r}\)이다. 빛의 자기장이 전자에 주는 힘은 전기장이 주는 힘의 \(v/c\) 정도라 무시한다.</p>
     <div class="box def" id="def-dipole-driving"><div class="box-h">고전 빛의 쌍극자 상호작용</div>
-      <div class="formula" id="eq-dipole-driving">\[
-        \hat V(t)=-\hat{\boldsymbol d}\cdot\boldsymbol{\mathcal E}(t)
-          =e\mathcal E_0(\boldsymbol\epsilon\cdot\hat{\boldsymbol r})\cos\omega t
-          =\hat W e^{-i\omega t}+\hat W^\dagger e^{i\omega t},
-        \qquad
-        \hat W=\frac{e\mathcal E_0}{2}\,
-                  \boldsymbol\epsilon\cdot\hat{\boldsymbol r}
-      \]</div>
-      <p>마지막 식은 실수 편광 \(\boldsymbol\epsilon\)에서 \(\hat W^\dagger=\hat W\)인 경우다. 이 책은 SI 단위를 쓰므로 전기장 \(\mathcal E_0\)의 단위는 V/m이며, \(e\mathcal E_0r\)는 에너지다.</p>
+      <div class="formula" id="eq-dipole-driving">\[ \begin{aligned}
+        \hat V(t)&amp;=-\hat{\boldsymbol d}\cdot\boldsymbol{\mathcal E}(t)=e\mathcal E_0\,(\boldsymbol\epsilon\cdot\hat{\boldsymbol r})\cos\omega t\\
+          &amp;=\hat We^{-i\omega t}+\hat W^\dagger e^{i\omega t},\qquad
+        \hat W=\frac{e\mathcal E_0}{2}\,\boldsymbol\epsilon\cdot\hat{\boldsymbol r}.
+      \end{aligned} \]</div>
+      <p>\(\hat{\boldsymbol d}=-e\hat{\boldsymbol r}\)은 전자의 전기 쌍극자 모멘트, \(\boldsymbol\epsilon\)은 편광 방향의 단위 벡터다. 실수 \(\boldsymbol\epsilon\)이면 \(\hat W^\dagger=\hat W\)이다. 단위는 SI이므로 \(\mathcal E_0\)는 V/m이고 \(e\mathcal E_0r\)는 에너지다.</p>
     </div>
-    <p>\(\cos\omega t=(e^{i\omega t}+e^{-i\omega t})/2\)를 식 <a class="ref" href="#eq-first-order-transition"></a>에 넣으면 진폭에는 \(\omega_{fi}-\omega\)와 \(\omega_{fi}+\omega\) 두 주파수가 나타난다.</p>
-    <div class="formula" id="eq-light-two-terms">\[
-      c_f^{(1)}(T)=-\frac{i\lambda}{\hbar}\!
-        \left[
-          W_{fi}\int_0^T\!e^{i(\omega_{fi}-\omega)t}dt
-          +W_{if}^{*}\int_0^T\!e^{i(\omega_{fi}+\omega)t}dt
-        \right].
-    \]</div>
-    <p>\(E_f&gt;E_i\)라면 \(\omega_{fi}\simeq\omega\)인 첫 항이 <span class="term">흡수</span>를 일으킨다. \(E_f&lt;E_i\)라면 \(\omega_{fi}\simeq-\omega\)인 둘째 항이 <span class="term">유도 방출</span>을 일으킨다. 공명 항만 남기는 <span class="term">회전파 근사</span> <span class="en">(rotating-wave approximation)</span>는 다른 항의 빠른 진동이 평균되어 작다는 조건에서 쓴다.</p>
-    <p>최종 상태가 연속이고 공명 근처의 행렬 원소와 상태 밀도가 완만하면 식 <a class="ref" href="#eq-fermi-golden-rule"></a>을 각각의 공명 에너지에 적용할 수 있다. 예를 들어 흡수율은</p>
-    <div class="formula" id="eq-light-golden-rule">\[
-      \Gamma_{\rm abs}\simeq\frac{2\pi\lambda^2}{\hbar}
-        |W_{E_i+\hbar\omega,\,i}|^2
-        \rho(E_i+\hbar\omega).
-    \]</div>
-    <p>유도 방출은 \(E_i-\hbar\omega\)에 있는 최종 상태와 \(\hat W^\dagger\)의 행렬 원소를 사용한다. 두 경우 모두 앞 절의 약한 결합과 중간 시간 조건이 필요하다.</p>
+    <p>이것은 앞 절의 조화 섭동이다. 식 <a class="ref" href="#eq-harmonic-golden-rule"></a>의 첫 항이 \(E_f=E_i+\hbar\omega\)인 <span class="term">흡수</span> <span class="en">(absorption)</span>, 둘째 항이 \(E_f=E_i-\hbar\omega\)인 <span class="term">유도 방출</span> <span class="en">(stimulated emission)</span>이다. 공명에 가까운 항 하나만 남기는 것은 <a href="ch10.html#s4-spin">10장의 회전파 근사</a>와 같다. 흡수에서는 \(W_{fi}\), 유도 방출에서는 \((W^\dagger)_{fi}\)가 들어가는데, 실수 편광에서 둘 다 \((e\mathcal E_0/2)\langle f|\boldsymbol\epsilon\cdot\hat{\boldsymbol r}|i\rangle\)이다. 위로 가는 전이와 아래로 가는 전이의 행렬 원소는 서로 켤레이므로 절댓값이 같다.</p>
+    <div class="box ex" id="ex-resonant-light"><div class="box-h">두 준위를 단색광으로 구동할 때</div>
+      <p>\(E_f-E_i=\hbar\omega&gt;0\)이고 \(\boldsymbol\epsilon=\boldsymbol e_z\), \(z_{fi}=\langle f|\hat z|i\rangle\)라 하자. 공명 항만 남기면 \(W_{fi}=e\mathcal E_0z_{fi}/2\)가 일정한 결합이 되므로 식 <a class="ref" href="#eq-pulse-transition"></a>의 공명 극한에서 \(v=W_{fi}\)로 두어</p>
+      <div class="formula" id="eq-resonant-light">\[ P_{i\to f}(t)\simeq\left(\frac{e\mathcal E_0|z_{fi}|\,t}{2\hbar}\right)^{2}\qquad\left(\frac{e\mathcal E_0|z_{fi}|\,t}{2\hbar}\ll1\right). \]</div>
+      <p>회전파 근사 안에서 정확한 답은 <a href="ch16.html#thm-rabi-probability">16장의 라비 공식</a>에서 \(\Omega_1\)을 \(\Omega_R=e\mathcal E_0|z_{fi}|/\hbar\)로 바꾼 \(\sin^2(\Omega_Rt/2)\)이고, 식 <a class="ref" href="#eq-resonant-light"></a>은 그 첫 항이다. 단색광은 고립된 두 준위 사이에 일정한 전이율을 만들지 않는다.</p>
+    </div>
+
+    <h3 id="s3-incoherent">여러 진동수가 섞인 빛</h3>
+    <p>전등이나 별빛 같은 보통의 빛은 넓은 범위의 진동수가 무작위 위상으로 섞여 있다. 진동수 \(\omega\)와 \(\omega+d\omega\) 사이 성분의 에너지 밀도를 \(u(\omega)\,d\omega\)라 하자. 진폭 \(\mathcal E_0\)인 단색 평면파의 평균 에너지 밀도는 전기와 자기 부분을 합해 \(\varepsilon_0\mathcal E_0^2/2\)이므로, 이 성분은 \(\mathcal E_0^2=2u(\omega)\,d\omega/\varepsilon_0\)인 단색파처럼 행동한다. 전이 진동수를 \(\omega_0=\omega_{fi}\)라 하고 흡수 항만 남기면, 한 성분이 시간 \(t\) 동안 주는 확률은 식 <a class="ref" href="#eq-pulse-transition"></a>에서 \(v=W_{fi}\), \(\omega_{fi}\to\omega_0-\omega\)로 바꾼 \((e\mathcal E_0|\boldsymbol\epsilon\cdot\boldsymbol r_{fi}|/\hbar)^2\sin^2[(\omega_0-\omega)t/2]/(\omega_0-\omega)^2\)이다. 위상이 무작위인 성분들은 서로 간섭하지 않으므로 확률을 그대로 더한다.</p>
+    <div class="formula" id="eq-incoherent-sum">\[ \begin{aligned}
+      P(t)=\frac{2e^2|\boldsymbol\epsilon\cdot\boldsymbol r_{fi}|^2}{\varepsilon_0\hbar^2}&amp;\\
+      \times\int\!d\omega\,u(\omega)&amp;\,\frac{\sin^2[(\omega_0-\omega)t/2]}{(\omega_0-\omega)^2}.
+    \end{aligned} \]</div>
+    <p>식 <a class="ref" href="#eq-sinc-integral"></a>에서 \(E-E_i=\hbar x\)로 바꾸면 \(\int\sin^2(xt/2)/x^2\,dx=\pi t/2\)이다. 봉우리 폭 안에서 \(u(\omega)\)가 거의 일정하면 \(u(\omega_0)\)를 꺼내어 \(P(t)=(\pi e^2|\boldsymbol\epsilon\cdot\boldsymbol r_{fi}|^2/\varepsilon_0\hbar^2)\,u(\omega_0)\,t\)를 얻는다. 단색광과 달리 시간에 비례한다. 빛이 모든 방향에서 오고 편광도 고르게 섞여 있으면 \(|\boldsymbol\epsilon\cdot\boldsymbol r_{fi}|^2\)의 평균은 \(|\boldsymbol r_{fi}|^2/3\)이다. 여기서 \(|\boldsymbol r_{fi}|^2=|x_{fi}|^2+|y_{fi}|^2+|z_{fi}|^2\)이고, 1/3은 무작위 단위 벡터의 세 성분이 \(\overline{\epsilon_j\epsilon_k}=\delta_{jk}/3\)을 만족하기 때문이다.</p>
+    <div class="formula" id="eq-einstein-b">\[ R_{i\to f}=B\,u(\omega_0),\qquad B=\frac{\pi e^2|\boldsymbol r_{fi}|^2}{3\varepsilon_0\hbar^2}. \]</div>
+    <p>유도 방출도 같은 계산이고 \(|\boldsymbol r_{if}|=|\boldsymbol r_{fi}|\)이므로 같은 \(B\)를 준다. 같은 세기의 빛 속에서 원자 하나가 위로 올라갈 확률과 아래로 내려갈 확률은 같다.</p>
+
+    <h3 id="s3-spontaneous">자발 방출: 아인슈타인의 논증</h3>
+    <p>빛이 전혀 없으면 \(u=0\)이므로 이 계산은 들뜬 원자가 그대로 머문다고 답한다. 그러나 실제 들뜬 원자는 빛이 없어도 광자를 내고 아래 상태로 내려간다. 이것이 <span class="term">자발 방출</span> <span class="en">(spontaneous emission)</span>이다. 고전 전기장으로는 이 과정을 계산할 수 없지만, 아인슈타인(1917)은 열평형 조건만으로 그 비율을 구했다.</p>
+    <p>에너지 \(E_1&lt;E_2\)인 두 상태의 원자들이 온도 \(T\)의 흑체 복사와 함께 상자에 있다고 하자. 두 상태의 원자 수를 \(N_1,N_2\), 자발 방출의 비율을 \(A\)라 하면 그림 20-3의 세 과정이 일어난다. 평형에서는 올라가는 횟수와 내려가는 횟수가 같아야 한다.</p>
+    <div class="formula" id="eq-detailed-balance">\[ \begin{gathered}
+      B\,u(\omega_0)\,N_1=\big[A+B\,u(\omega_0)\big]N_2,\\
+      \frac{N_2}{N_1}=e^{-\hbar\omega_0/k_BT}.
+    \end{gathered} \]</div>
+    <p>둘째 식은 볼츠만 분포다. 첫 식을 \(u\)에 대해 풀고 둘째 식을 넣으면 \(u(\omega_0)=(A/B)/(e^{\hbar\omega_0/k_BT}-1)\)이다. 한편 <a href="ch05.html#eq-planck">5장의 플랑크 분포</a> \(u(\nu)\)를 \(u(\omega)\,d\omega=u(\nu)\,d\nu\), \(\nu=\omega/2\pi\)로 바꾸면 \(u(\omega)=(\hbar\omega^3/\pi^2c^3)/(e^{\hbar\omega/k_BT}-1)\)이다. 두 식이 모든 온도에서 같으려면 \(A/B=\hbar\omega_0^3/\pi^2c^3\)이어야 한다.</p>
+    <div class="box thm" id="thm-einstein-a"><div class="box-h">자발 방출률</div>
+      <div class="formula" id="eq-einstein-a">\[ \begin{aligned}
+        A_{i\to f}=\frac{\hbar\omega_0^3}{\pi^2c^3}\,B&amp;=\frac{\omega_0^3e^2|\boldsymbol r_{fi}|^2}{3\pi\varepsilon_0\hbar c^3}\\
+        &amp;=\frac{4\alpha\,\omega_0^3|\boldsymbol r_{fi}|^2}{3c^2}.
+      \end{aligned} \]</div>
+      <p>위 상태 \(|i\rangle\)가 아래 상태 \(|f\rangle\)로 광자 하나를 내며 내려가는 시간당 확률이다(\(\omega_0=\omega_{if}&gt;0\)). 마지막 꼴은 \(\alpha=e^2/4\pi\varepsilon_0\hbar c\)를 쓴 것이다. 아래에 상태가 여럿이면 한 상태의 전체 붕괴율은 이 값을 아래 상태들에 대해 더한 것이고, 수명은 그 역수다.</p>
+    </div>
     <figure class="diagram" id="fig-light-transitions">
-      <div class="fig-narrow"><svg viewBox="0 0 440 250" role="img" aria-label="빛의 흡수는 낮은 준위에서 높은 준위로, 유도 방출은 빛을 받아 높은 준위에서 낮은 준위로 향한다">
-        <text x="80" y="28" class="t-b">흡수</text><text x="277" y="28" class="t-b">유도 방출</text>
-        <line x1="45" y1="75" x2="171" y2="75" class="s-line" stroke-width="3"/>
-        <line x1="45" y1="195" x2="171" y2="195" class="s-line" stroke-width="3"/>
-        <line x1="251" y1="75" x2="377" y2="75" class="s-line" stroke-width="3"/>
-        <line x1="251" y1="195" x2="377" y2="195" class="s-line" stroke-width="3"/>
-        <path d="M108 183 V88 m-7 10 7-10 7 10" class="s-acc" stroke-width="2.7"/>
-        <path d="M314 87 V182 m-7-10 7 10 7-10" class="s-acc2" stroke-width="2.7"/>
-        <text x="42" y="65" class="t-dim">E 높은 상태</text><text x="42" y="218" class="t-dim">E 낮은 상태</text>
-        <text x="250" y="65" class="t-dim">E 높은 상태</text><text x="250" y="218" class="t-dim">E 낮은 상태</text>
-        <text x="125" y="141" class="t-acc">+ℏω</text><text x="328" y="141" class="t-acc">−ℏω</text>
-      </svg></div>
-      <figcaption><b>그림 20-2.</b> 고전적인 진동 전기장이 유도하는 두 공명 전이. 흡수는 원자 에너지를 \(\hbar\omega\) 높이고, 유도 방출은 그만큼 낮춘다.</figcaption>
+      <div class="fig-narrow"><!--fig:20-3--><svg viewBox="0 0 440 236" role="img" aria-label="두 준위 원자와 빛의 세 과정. 흡수는 광자 하나가 사라지며 원자가 위로 올라가고, 유도 방출은 들어온 광자가 같은 광자를 하나 더 만들며 원자가 내려가고, 자발 방출은 광자 없이도 원자가 내려가며 광자 하나를 낸다. 각 과정의 비율은 B u N1, B u N2, A N2이다"><defs><marker id="f203-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f203-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f203-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="80" y="24" class="t-b" text-anchor="middle">흡수</text><line x1="60" y1="78" x2="136" y2="78" class="s-line" stroke-width="2.6"/><line x1="60" y1="168" x2="136" y2="168" class="s-line" stroke-width="2.6"/><text font-size="13" x="140" y="83" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text font-size="13" x="140" y="173" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="220" y="24" class="t-b" text-anchor="middle">유도 방출</text><line x1="200" y1="78" x2="276" y2="78" class="s-line" stroke-width="2.6"/><line x1="200" y1="168" x2="276" y2="168" class="s-line" stroke-width="2.6"/><text font-size="13" x="280" y="83" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text font-size="13" x="280" y="173" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text x="360" y="24" class="t-b" text-anchor="middle">자발 방출</text><line x1="340" y1="78" x2="416" y2="78" class="s-line" stroke-width="2.6"/><line x1="340" y1="168" x2="416" y2="168" class="s-line" stroke-width="2.6"/><text font-size="13" x="420" y="83" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text font-size="13" x="420" y="173" class="t-math dim" text-anchor="start"><tspan font-style="italic">E</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><path d="M22 123 L23.3 125.5 L24.6 127.3 L25.8 128 L27.1 127.3 L28.4 125.5 L29.7 123 L30.9 120.5 L32.2 118.7 L33.5 118 L34.8 118.7 L36.1 120.5 L37.3 123 L38.6 125.5 L39.9 127.3 L41.2 128 L42.4 127.3 L43.7 125.5 L45 123 L46.3 120.5 L47.6 118.7 L48.8 118 L50.1 118.7 L51.4 120.5 L52.7 123 L53.9 125.5 L55.2 127.3 L56.5 128 L57.8 127.3 L59.1 125.5 L60.3 123 L61.6 120.5 L62.9 118.7 L64.2 118 L65.4 118.7 L66.7 120.5 L68 123" class="s-acc" fill="none" stroke-width="1.8" marker-end="url(#f203-acc)"/><line x1="100" y1="162" x2="100" y2="86" class="s-acc" stroke-width="2.4" marker-end="url(#f203-acc)"/><circle cx="100" cy="168" r="5" class="f-acc"/><path d="M162 123 L163.2 125.5 L164.4 127.3 L165.7 128 L166.9 127.3 L168.1 125.5 L169.3 123 L170.6 120.5 L171.8 118.7 L173 118 L174.2 118.7 L175.4 120.5 L176.7 123 L177.9 125.5 L179.1 127.3 L180.3 128 L181.6 127.3 L182.8 125.5 L184 123 L185.2 120.5 L186.4 118.7 L187.7 118 L188.9 118.7 L190.1 120.5 L191.3 123 L192.6 125.5 L193.8 127.3 L195 128 L196.2 127.3 L197.4 125.5 L198.7 123 L199.9 120.5 L201.1 118.7 L202.3 118 L203.6 118.7 L204.8 120.5 L206 123" class="s-acc" fill="none" stroke-width="1.8" marker-end="url(#f203-acc)"/><line x1="232" y1="84" x2="232" y2="160" class="s-acc2" stroke-width="2.4" marker-end="url(#f203-acc2)"/><circle cx="232" cy="78" r="5" class="f-acc2"/><path d="M244 112 L245.2 114.5 L246.4 116.3 L247.7 117 L248.9 116.3 L250.1 114.5 L251.3 112 L252.6 109.5 L253.8 107.7 L255 107 L256.2 107.7 L257.4 109.5 L258.7 112 L259.9 114.5 L261.1 116.3 L262.3 117 L263.6 116.3 L264.8 114.5 L266 112 L267.2 109.5 L268.4 107.7 L269.7 107 L270.9 107.7 L272.1 109.5 L273.3 112 L274.6 114.5 L275.8 116.3 L277 117 L278.2 116.3 L279.4 114.5 L280.7 112 L281.9 109.5 L283.1 107.7 L284.3 107 L285.6 107.7 L286.8 109.5 L288 112" class="s-acc" fill="none" stroke-width="1.8" marker-end="url(#f203-acc)"/><path d="M244 134 L245.2 136.5 L246.4 138.3 L247.7 139 L248.9 138.3 L250.1 136.5 L251.3 134 L252.6 131.5 L253.8 129.7 L255 129 L256.2 129.7 L257.4 131.5 L258.7 134 L259.9 136.5 L261.1 138.3 L262.3 139 L263.6 138.3 L264.8 136.5 L266 134 L267.2 131.5 L268.4 129.7 L269.7 129 L270.9 129.7 L272.1 131.5 L273.3 134 L274.6 136.5 L275.8 138.3 L277 139 L278.2 138.3 L279.4 136.5 L280.7 134 L281.9 131.5 L283.1 129.7 L284.3 129 L285.6 129.7 L286.8 131.5 L288 134" class="s-acc" fill="none" stroke-width="1.8" marker-end="url(#f203-acc)"/><line x1="372" y1="84" x2="372" y2="160" class="s-acc2" stroke-width="2.4" marker-end="url(#f203-acc2)"/><circle cx="372" cy="78" r="5" class="f-acc2"/><path d="M384 123 L385.2 125.5 L386.4 127.3 L387.7 128 L388.9 127.3 L390.1 125.5 L391.3 123 L392.6 120.5 L393.8 118.7 L395 118 L396.2 118.7 L397.4 120.5 L398.7 123 L399.9 125.5 L401.1 127.3 L402.3 128 L403.6 127.3 L404.8 125.5 L406 123 L407.2 120.5 L408.4 118.7 L409.7 118 L410.9 118.7 L412.1 120.5 L413.3 123 L414.6 125.5 L415.8 127.3 L417 128 L418.2 127.3 L419.4 125.5 L420.7 123 L421.9 120.5 L423.1 118.7 L424.3 118 L425.6 118.7 L426.8 120.5 L428 123" class="s-acc" fill="none" stroke-width="1.8" marker-end="url(#f203-acc)"/><text font-size="14" x="92" y="212" class="t-math dim" text-anchor="middle"><tspan font-style="italic">B</tspan> <tspan font-style="italic">u</tspan>(<tspan font-style="italic">ω</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>) <tspan font-style="italic">N</tspan><tspan baseline-shift="sub" font-size="72%">1</tspan></text><text font-size="14" x="232" y="212" class="t-math dim" text-anchor="middle"><tspan font-style="italic">B</tspan> <tspan font-style="italic">u</tspan>(<tspan font-style="italic">ω</tspan><tspan baseline-shift="sub" font-size="72%">0</tspan>) <tspan font-style="italic">N</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text font-size="14" x="372" y="212" class="t-math dim" text-anchor="middle"><tspan font-style="italic">A</tspan> <tspan font-style="italic">N</tspan><tspan baseline-shift="sub" font-size="72%">2</tspan></text><text font-size="12" x="220" y="232" class="t-dim" text-anchor="middle">초당 일어나는 횟수</text></svg><!--/fig:20-3--></div>
+      <figcaption><b>그림 20-3.</b> 두 준위 원자와 빛 사이의 세 과정과 각각의 초당 횟수. \(N_1,N_2\)는 두 상태의 원자 수, \(u(\omega_0)\)는 공명 진동수에서 빛의 에너지 밀도다. 흡수와 유도 방출은 같은 계수 \(B\)를 갖는다. 유도 방출로 생긴 광자는 들어온 광자와 같은 진동수와 방향으로 나가며, 이것이 레이저의 원리다.</figcaption>
     </figure>
-    <div class="box ex" id="ex-resonant-light"><div class="box-h">두 준위의 약한 공명 구동</div>
-      <p>\(E_f-E_i=\hbar\omega&gt;0\), \(\boldsymbol\epsilon=\boldsymbol e_z\)이고 \(z_{fi}=\langle f|\hat z|i\rangle\)라 하자. 빠르게 진동하는 반공명 항을 버리고 \(\lambda=1\)로 두면 \(W_{fi}=e\mathcal E_0 z_{fi}/2\)이므로</p>
-      <div class="formula" id="eq-resonant-light">\[
-        P_{i\to f}(T)\simeq
-        \left(\frac{e\mathcal E_0|z_{fi}|T}{2\hbar}\right)^2
-        \qquad\left(\frac{e\mathcal E_0|z_{fi}|T}{2\hbar}\ll1\right).
-      \]</div>
-      <p>시간이 충분히 길어 이 확률이 1에 가까워지면 1차 섭동론은 실패한다. 두 준위 문제에서는 그때 전이와 되돌아옴을 함께 풀어야 한다.</p>
-    </div>
-    <div class="callout tip"><strong>자발 방출은 다른 문제</strong><p>외부 빛이 전혀 없는 진공에서도 들뜬 원자가 빛을 내는 <span class="term">자발 방출</span>은 고전 전기장 \(\mathcal E(t)=0\)을 식 <a class="ref" href="#eq-dipole-driving"></a>에 넣어 얻을 수 없다. 전자기장을 양자화해야 그 진공 상태와의 결합을 설명할 수 있다. 여기서는 흡수와 유도 방출만 계산한다.</p></div>
+    <p>\(A\)는 진동수의 세제곱에 비례한다. 행렬 원소가 같아도 에너지 간격이 작은 전이는 자발 방출이 훨씬 느리다. 또 \(A/[Bu(\omega_0)]=e^{\hbar\omega_0/k_BT}-1\)이므로 어느 쪽이 우세한지는 \(\hbar\omega_0\)와 \(k_BT\)의 비로 정해진다. 실온(300 K)에서 파장 500 nm인 가시광은 \(\hbar\omega_0/k_BT=96\)이어서 자발 방출이 유도 방출보다 \(10^{41}\)배 넘게 많다. 수소의 21 cm 선은 \(\hbar\omega_0/k_BT=2.3\times10^{-4}\)이어서 거꾸로 유도 방출이 4000배 이상 많다.</p>
+    <div class="callout deep"><strong>고전 복사와의 대응</strong><p>식 <a class="ref" href="#eq-einstein-a"></a>는 고전 전자기학으로도 짐작할 수 있다. <a href="ch05.html#eq-larmor">5장의 라머 공식</a>에서 \(qa\)를 쌍극자의 2계 도함수 \(\ddot p\)로 바꾸면, 진폭 \(p_0\)로 진동하는 쌍극자 \(p_0\cos\omega t\)는 \(\overline{\ddot p^2}=\omega^4p_0^2/2\)이므로 평균 일률 \(\omega^4p_0^2/12\pi\varepsilon_0c^3\)으로 복사한다. 고전 진동 \(p_0\cos\omega t\)의 진동수 \(\omega\) 성분은 \(p_0/2\)이고, 하이젠베르크는 이것을 양자역학의 행렬 원소 \(e|\boldsymbol r_{fi}|\)에 대응시켰다. \(p_0=2e|\boldsymbol r_{fi}|\)를 넣고 일률을 광자 하나의 에너지 \(\hbar\omega\)로 나누면 정확히 \(A\)가 된다. <a href="ch06.html#s6-general">6장</a>에서 본, 두 에너지 상태의 겹침에서 진동하는 전하 분포가 이 고전 쌍극자에 해당한다.</p></div>
+    <div class="callout tip"><strong>자발 방출은 어디서 오는가</strong><p>아인슈타인의 논증은 \(A\)의 값을 주지만 원인은 말하지 않는다. 전자기장을 양자화하면 각 모드가 하나의 조화 진동자가 되고, 빛이 없는 상태에도 <a href="ch08.html#ex-ground">바닥 상태</a>의 영점 요동이 남는다. 들뜬 원자는 이 진공의 연속 모드와 결합해 광자를 낸다. 이것을 황금률로 계산한 비율은 식 <a class="ref" href="#eq-einstein-a"></a>와 정확히 같다. 이 계산은 심화 양자역학(2권)에서 한다.</p></div>
   </section>
 
   <section id="s4">
     <h2>선택 규칙</h2>
-    <p>빛의 주파수가 두 준위의 차이에 맞아도 \(\langle f|\boldsymbol\epsilon\cdot\hat{\boldsymbol r}|i\rangle=0\)이면 전기 쌍극자 전이는 나타나지 않는다. 이 행렬 원소가 0인지 대칭성만으로 먼저 판정하는 규칙을 <span class="term">선택 규칙</span> <span class="en">(selection rule)</span>이라 한다. 중심 퍼텐셜의 공간 상태 \(|n\ell m\rangle\)에 대해 <a href="ch13.html#s4">13장의 공간 반전</a>에서 짝홀성은 \((-1)^\ell\), 위치 연산자 \(\boldsymbol r\)는 홀성이다. 따라서 \(\ell_f+\ell_i\)가 짝수이면 쌍극자 행렬 원소는 0이다.</p>
-    <p>짝홀성만으로는 \(\ell\)이 1, 3, 5만큼 바뀌는 경우까지 남는다. 위치 벡터의 각도 부분은 각운동량 1의 구면 조화 함수다(<a href="ch17.html#eq-position-spherical">17장</a>). 구체적으로 \(z=r\cos\theta\)를 작용시키면 <a href="ch14.html#eq-low-spherical-harmonics">구면 조화 함수</a> 사이에</p>
-    <div class="formula" id="eq-cosine-harmonic">\[
-      \cos\theta\,Y_\ell^m
-        =\sqrt{\frac{(\ell+1)^2-m^2}
-                     {(2\ell+1)(2\ell+3)}}\,Y_{\ell+1}^{m}
-         +\sqrt{\frac{\ell^2-m^2}
-                     {(2\ell-1)(2\ell+1)}}\,Y_{\ell-1}^{m}
-        \qquad(\ell\ge1).
-    \]</div>
-    <p>\(\ell=0\)에서는 마지막 항이 없다. 각도 적분의 직교성을 쓰면 \(z\) 편광은 \(\Delta\ell=\pm1,\Delta m=0\)만 남긴다. \(x\pm iy=r\sin\theta\,e^{\pm i\phi}\)는 \(\Delta m=\pm1\)을 주고, 마찬가지로 \(\Delta\ell=\pm1\)이다.</p>
+    <p>흡수율 \(B\)와 자발 방출률 \(A\)는 모두 \(|\boldsymbol r_{fi}|^2\)에 비례한다. 진동수가 맞아도 이 행렬 원소가 0이면 전기 쌍극자 전이는 일어나지 않는다. 적분을 계산하기 전에 대칭만으로 0인지 판정하는 규칙을 <span class="term">선택 규칙</span> <span class="en">(selection rule)</span>이라 한다. 중심 퍼텐셜의 상태 \(|n\ell m\rangle\)에 대해 세 가지를 차례로 보자.</p>
+    <p><b>짝홀성.</b> \(\hat{\boldsymbol r}\)은 공간 반전에서 부호가 바뀌는 홀수 연산자이므로 <a href="ch13.html#thm-parity-selection">13장의 짝홀성 선택 규칙</a>에 따라 두 상태의 짝홀성이 반대여야 한다. \(|n\ell m\rangle\)의 짝홀성은 \((-1)^\ell\)이므로 \(\ell_f+\ell_i\)가 홀수여야 한다.</p>
+    <p><b>자기 양자수.</b> \(\hat L_z=\hat x\hat p_y-\hat y\hat p_x\)와 위치 성분의 교환자는 \([\hat L_z,\hat x]=-\hat y[\hat p_x,\hat x]=i\hbar\hat y\), \([\hat L_z,\hat y]=\hat x[\hat p_y,\hat y]=-i\hbar\hat x\), \([\hat L_z,\hat z]=0\)이다. 이것을 묶으면 \([\hat L_z,\hat x\pm i\hat y]=\pm\hbar(\hat x\pm i\hat y)\)이다. 교환자를 \(\langle n_f\ell_fm_f|\)와 \(|n_i\ell_im_i\rangle\) 사이에 넣고 \(\hat L_z\)를 양쪽 고유상태에 작용시키면</p>
+    <div class="formula" id="eq-dm-rules">\[ \begin{gathered}
+      (m_f-m_i)\,\langle f|\hat z|i\rangle=0,\\
+      (m_f-m_i\mp1)\,\langle f|\hat x\pm i\hat y|i\rangle=0.
+    \end{gathered} \]</div>
+    <p>따라서 \(\hat z\)의 행렬 원소는 \(m_f=m_i\)일 때만, \(\hat x\pm i\hat y\)의 행렬 원소는 \(m_f=m_i\pm1\)일 때만 0이 아닐 수 있다.</p>
+    <p><b>궤도 양자수.</b> \(\hat r_q=\sqrt{4\pi/3}\,rY_1^q\)는 각운동량 1의 텐서 연산자다(<a href="ch17.html#eq-position-spherical">17장</a>). <a href="ch17.html#eq-selection-rules">17장의 선택 규칙</a>에 따라 \(|\ell_i-1|\le\ell_f\le\ell_i+1\)이어야 한다. 이 셋 가운데 \(\ell_f=\ell_i\)는 짝홀성이 같아 빠지므로 \(\ell_f=\ell_i\pm1\)만 남는다.</p>
     <div class="box thm" id="thm-electric-dipole-rules"><div class="box-h">중심 퍼텐셜의 전기 쌍극자 선택 규칙</div>
-      <div class="formula" id="eq-dipole-selection">\[
-        \Delta\ell=\ell_f-\ell_i=\pm1,\qquad
-        \begin{cases}
-          \Delta m=0 &amp; (z\text{ 방향 선형 편광}),\\
-          \Delta m=+1 &amp; (x+iy\text{ 성분}),\\
-          \Delta m=-1 &amp; (x-iy\text{ 성분}).
+      <div class="formula" id="eq-dipole-selection">\[ \begin{gathered}
+        \Delta\ell=\ell_f-\ell_i=\pm1,\\
+        \Delta m=\begin{cases}
+          0 &amp; (\hat z\text{ 성분}),\\
+          +1 &amp; (\hat x+i\hat y\text{ 성분}),\\
+          -1 &amp; (\hat x-i\hat y\text{ 성분}).
         \end{cases}
-      \]</div>
-      <p>이들은 행렬 원소가 0이 아닐 <em>필요조건</em>이다. 실제 크기는 지름 적분에도 달려 있다. 쌍극자 연산자는 스핀에 작용하지 않으므로 이 근사에서 스핀 자체도 바뀌지 않는다.</p>
+      \end{gathered} \]</div>
+      <p>이들은 행렬 원소가 0이 아니기 위한 <em>필요조건</em>이고, 실제 크기는 지름 적분에 달려 있다. 쌍극자 연산자는 스핀에 작용하지 않으므로 이 근사에서 \(m_s\)도 바뀌지 않는다.</p>
     </div>
+    <p>같은 생각을 조화 진동자에 쓰면 <a href="ch08.html#eq-x-matrix">8장</a>의 \(\langle m|\hat x|n\rangle\)이 \(m=n\pm1\)에서만 0이 아니므로 \(\Delta n=\pm1\)이다. 진동자는 한 번에 한 칸씩만 오르내리고, 진동수 \(\omega\)인 빛만 흡수하고 낸다.</p>
+    <div class="callout deep"><strong>미세 구조를 분해해 볼 때</strong><p>스핀–궤도 결합을 포함한 \(|n\ell jm_j\rangle\) 기저에서는 전기 쌍극자 연산자가 각운동량 1의 텐서이므로 <a href="ch17.html#thm-wigner-eckart">위그너–에카르트 정리</a>에 따라 \(\Delta j=0,\pm1\)이 가능하되 \(j=0\leftrightarrow j'=0\)은 금지된다. 짝홀성이 바뀌어야 하므로 \(\Delta\ell=\pm1\)도 그대로 필요하다.</p></div>
+
+    <h3 id="s4-hydrogen">수소의 행렬 원소와 수명</h3>
     <div class="box ex" id="ex-hydrogen-dipole"><div class="box-h">\(1s\to2p_0\)은 허용되고 \(1s\to2s\)는 금지된다</div>
-      <p>\(1s\)와 \(2s\)는 모두 \(\ell=0\)이어서 짝홀성만으로 \(z\) 행렬 원소가 0이다. 반면 \(2p_0\)은 \(\ell=1,m=0\)이므로 \(z\) 편광에서 허용된다. <a href="ch15.html#eq-low-radial">15장의 지름 함수</a>와 핵 질량을 무한대로 둔 \(a_0\)를 사용하면</p>
-      <div class="formula" id="eq-one-s-two-p-dipole">\[
-        \begin{aligned}
+      <p>\(1s\)와 \(2s\)는 모두 \(\ell=0\)이어서 짝홀성만으로 쌍극자 행렬 원소가 0이다. 반면 \(2p_0\)은 \(\ell=1,m=0\)이므로 \(\hat z\) 성분이 허용된다. <a href="ch15.html#eq-low-radial">15장의 지름 함수</a>에서 \(R_{10}R_{21}=r\,e^{-3r/2a}/(\sqrt6\,a^4)\)이고, \(\int_0^\infty r^4e^{-br}dr=4!/b^5\)에 \(b=3/2a\)를 넣으면 지름 적분은 \((1/\sqrt6\,a^4)\cdot24\,(2a/3)^5=256a/(81\sqrt6)\)이다. 각도 적분 \(\int Y_1^{0*}\cos\theta\,Y_0^0\,d\Omega=1/\sqrt3\)을 곱하면</p>
+      <div class="formula" id="eq-one-s-two-p-dipole">\[ \begin{aligned}
         \langle2p_0|\hat z|1s\rangle
-          &amp;=\left(\int Y_1^{0*}\cos\theta\,Y_0^0\,d\Omega\right)
-             \left(\int_0^\infty r^3R_{21}R_{10}\,dr\right)\\
-          &amp;=\frac1{\sqrt3}\,
-             \frac{a_0}{\sqrt6}
-             \int_0^\infty u^4e^{-3u/2}\,du
-           =\frac{256}{243\sqrt2}\,a_0,\qquad u=r/a_0.
-        \end{aligned}
-      \]</div>
-      <p>부호는 파동함수의 전체 위상 관례에 따라 달라질 수 있다. 전이 확률은 이 값의 절댓값 제곱을 쓰므로 위상 관례와 무관하다.</p>
+          &amp;=\int Y_1^{0*}\cos\theta\,Y_0^0\,d\Omega\int_0^\infty r^3R_{21}R_{10}\,dr\\
+          &amp;=\frac1{\sqrt3}\cdot\frac{256a}{81\sqrt6}=\frac{256}{243\sqrt2}\,a\\
+          &amp;\simeq0.745\,a.
+      \end{aligned} \]</div>
+      <p>\(a\)는 환산 질량의 보어 반지름으로 \(a_0\)와 0.05% 다르다. 부호는 파동함수의 위상 관례에 따라 달라질 수 있지만 전이율은 절댓값 제곱만 쓴다. \(2p_{\pm1}\)에서는 \(\hat z\) 성분이 0인 대신 \(\hat x,\hat y\) 성분이 각각 \(D/\sqrt2\) 크기를 가져(\(D\)는 위 값), 세 상태 모두 \(|\boldsymbol r_{fi}|^2=D^2=2^{15}a^2/3^{10}\simeq0.555\,a^2\)이다(<a class="ref" href="#prob-angular-sum"></a>). 회전 대칭을 생각하면 당연한 결과다.</p>
     </div>
-    <div class="callout deep"><strong>미세 구조를 분해해 볼 때</strong><p>스핀–궤도 결합을 포함한 \(|n\ell jm_j\rangle\) 기저에서는 전기 쌍극자 연산자가 각운동량 1의 벡터이므로 <a href="ch17.html#thm-wigner-eckart">위그너–에카르트 정리</a>에 따라 \(\Delta j=0,\pm1\)이 가능하되 \(j=0\leftrightarrow j'=0\)은 금지된다. 짝홀성 변화도 필요하다. 앞의 \(\ell,m\) 규칙은 스핀을 분리해 표시한 기저에서 읽은 것이다.</p></div>
+    <div class="box ex" id="ex-2p-lifetime"><div class="box-h">수소 \(2p\) 상태의 수명</div>
+      <p>\(2p\)에서 갈 수 있는 아래 상태는 \(1s\) 하나다. 식 <a class="ref" href="#eq-einstein-a"></a>의 마지막 꼴에 \(\hbar\omega_0=\tfrac34\cdot\tfrac12\alpha^2m_ec^2\), \(|\boldsymbol r_{fi}|^2=(2^{15}/3^{10})a_0^2\), \(a_0=\hbar/m_ec\alpha\)를 넣자. 수 인자는 \(\tfrac43\cdot(\tfrac38)^3\cdot2^{15}/3^{10}=2^8/3^8\)이고, 차원을 가진 양은 \(\alpha\cdot\alpha^6(m_ec^2/\hbar)^3\cdot(\hbar/m_ec\alpha)^2/c^2=\alpha^5m_ec^2/\hbar\)로 모인다.</p>
+      <div class="formula" id="eq-2p-rate">\[ \begin{gathered}
+        A_{2p\to1s}=\Big(\frac23\Big)^{8}\alpha^5\,\frac{m_ec^2}{\hbar}=6.27\times10^{8}\ \mathrm{s^{-1}},\\
+        \tau_{2p}=1/A_{2p\to1s}=1.60\ \mathrm{ns}.
+      \end{gathered} \]</div>
+      <p><a href="ch15.html#s3">15장</a>과 <a href="ch09.html#ex-linewidth">9장</a>에서 쓴 \(2p\)의 수명이 이것이다. 자연 선폭은 \(A/2\pi=100\) MHz다. 한편 \(2s\)는 \(1s\)로 가는 한 광자 전이가 금지된다. \(2p_{1/2}\)로 내려가는 전이는 허용되지만 간격이 <a href="ch19.html#s5">램 이동</a> 1.06 GHz뿐이라 \(\omega^3\) 인자 때문에 사실상 일어나지 않는다. 남은 길은 2차 진폭 식 <a class="ref" href="#eq-second-order-transition"></a>로 광자 두 개를 동시에 내는 과정이며, 그 비율은 \(8.2\ \mathrm{s^{-1}}\), 수명은 0.12 s다.</p>
+    </div>
+    <p>더 높은 상태에서는 아래 상태가 여럿이다. 아래 상태의 \(m_f\)에 대해 더한 \(|\boldsymbol r_{fi}|^2\)은 지름 적분 \(R_{fi}=\int_0^\infty r^3R_{n_f\ell_f}R_{n_i\ell_i}dr\)의 제곱에 각도 인자를 곱한 것이다.</p>
+    <div class="formula" id="eq-angular-sum">\[ \begin{gathered}
+      \sum_{m_f}|\langle n_f\ell_fm_f|\hat{\boldsymbol r}|n_i\ell_im_i\rangle|^2=R_{fi}^2\,\frac{\ell_&gt;}{2\ell_i+1},\\
+      \ell_&gt;=\max(\ell_i,\ell_f).
+    \end{gathered} \]</div>
+    <details class="proof"><summary>각도 인자의 유도</summary>
+      <p>\(\hat{\boldsymbol r}=r\hat{\boldsymbol n}\), \(\hat{\boldsymbol n}=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)\)로 쓰면 행렬 원소는 지름 적분 \(R_{fi}\)와 각도 적분 \(\langle\ell_fm_f|n_k|\ell_im_i\rangle\)의 곱이다. \(S(\ell_i\to\ell_f)\equiv\sum_{m_f}\sum_k|\langle\ell_fm_f|n_k|\ell_im_i\rangle|^2\)을 구하면 된다.</p>
+      <p>(1) \(S\)는 \(m_i\)에 의존하지 않는다. 회전 대칭 때문에 처음 상태의 방향을 바꾸어도 모든 방향 성분과 모든 끝 상태에 대해 더한 값은 같기 때문이다. (2) \(m_i\)에 대해서도 더하면 \((2\ell_i+1)S(\ell_i\to\ell_f)\)이고, \(n_k\)가 실수 함수라서 \(|\langle f|n_k|i\rangle|=|\langle i|n_k|f\rangle|\)이므로 이 합은 \(i\)와 \(f\)를 바꾸어도 같다. 따라서 \((2\ell_i+1)S(\ell_i\to\ell_f)=(2\ell_f+1)S(\ell_f\to\ell_i)\)이다. (3) 끝 상태를 모든 \(\ell_f\)에 대해 더하면 완비성에 의해 \(\sum_k\langle n_kn_k\rangle=\langle\hat{\boldsymbol n}\cdot\hat{\boldsymbol n}\rangle=1\)이고, 선택 규칙 때문에 \(\ell_f=\ell_i\pm1\)만 기여하므로 \(S(\ell\to\ell+1)+S(\ell\to\ell-1)=1\)이다.</p>
+      <p>\(\ell=0\)에서는 \(\ell-1\)이 없으므로 \(S(0\to1)=1\)이다. \(S(\ell\to\ell+1)=(\ell+1)/(2\ell+1)\)이라 하면 (2)에서 \(S(\ell+1\to\ell)=(\ell+1)/(2\ell+3)\)이고, (3)에서 \(S(\ell+1\to\ell+2)=1-(\ell+1)/(2\ell+3)=(\ell+2)/(2\ell+3)\)이다. 귀납법으로 \(S(\ell\to\ell+1)=(\ell+1)/(2\ell+1)\), \(S(\ell\to\ell-1)=\ell/(2\ell+1)\)이 모든 \(\ell\)에서 성립한다. 두 경우 모두 분자는 \(\ell_i,\ell_f\) 가운데 큰 값이다.</p>
+    </details>
+    <p>식 <a class="ref" href="#eq-einstein-a"></a>와 <a class="ref" href="#eq-angular-sum"></a>로 수소 \(n=3\) 상태들의 수명을 계산한 결과가 다음 표다. 지름 적분은 15장의 지름 함수로 정확히 계산했고, 에너지는 \(E_n=-13.6\ \mathrm{eV}/n^2\)를 썼다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>전이</th><th>\(R_{fi}/a_0\)</th><th>각도</th><th>\(A\)<br>(\(10^6\,\mathrm{s^{-1}}\))</th><th>수명<br>(ns)</th></tr></thead>
+      <tbody>
+        <tr><td>\(2p\to1s\)</td><td>1.290</td><td>1/3</td><td>627</td><td>1.60</td></tr>
+        <tr><td>\(3s\to2p\)</td><td>0.938</td><td>1</td><td>6.32</td><td>158</td></tr>
+        <tr><td>\(3p\to1s\)</td><td>0.517</td><td>1/3</td><td>167</td><td rowspan="2">5.27</td></tr>
+        <tr><td>\(3p\to2s\)</td><td>3.065</td><td>1/3</td><td>22.5</td></tr>
+        <tr><td>\(3d\to2p\)</td><td>4.748</td><td>2/5</td><td>64.7</td><td>15.5</td></tr>
+      </tbody>
+    </table></div>
+    <p>같은 \(n=3\)이어도 수명이 30배까지 차이 난다. \(3s\)는 선택 규칙 때문에 \(2p\)로만 갈 수 있고, 그 전이의 에너지(1.89 eV)가 작아 \(\omega^3\) 인자가 작다. \(3p\)는 에너지 12.1 eV의 \(1s\)로 곧바로 갈 수 있어 빨리 붕괴한다. \(3p\to2s\)의 지름 적분이 \(3p\to1s\)보다 여섯 배 크지만, 진동수의 세제곱이 약 260배 작아 갈래 비는 88% 대 12%다.</p>
   </section>
 
   <section id="s5">
-    <h2>단열 정리와 베리 위상</h2>
-    <p>앞 절까지는 약하지만 비교적 빠른 섭동이 다른 준위로 전이를 일으키는 경우를 살폈다. 이번에는 \(\hat H(\boldsymbol R(t))\)의 매개변수 \(\boldsymbol R\)가 천천히 변하는 상황을 보자. 매 시각의 <span class="term">순간 고유상태</span>는 \(\hat H(t)|n(t)\rangle=E_n(t)|n(t)\rangle\)을 만족하지만, 그 자체가 곧 시간 의존 슈뢰딩거 방정식의 해는 아니다.</p>
-    <p>정규직교 순간 기저로 정확한 상태를 전개하자. 빨리 변하는 에너지 위상을 미리 빼면</p>
-    <div class="formula" id="eq-instantaneous-expansion">\[
-      |\Psi(t)\rangle
-        =\sum_n b_n(t)\,
-           e^{-\frac{i}{\hbar}\int_0^t E_n(t')dt'}|n(t)\rangle .
-    \]</div>
-    <p>식 <a class="ref" href="#eq-instantaneous-expansion"></a>에 나타난 상태를 슈뢰딩거 방정식에 대입하고 \(\langle m(t)|\)를 곱하면 에너지 항이 서로 지워진다. 남는 것은 기저 자체가 움직이는 속도다.</p>
-    <div class="formula" id="eq-adiabatic-coupling">\[
-      \dot b_m=-\sum_n b_n\langle m|\dot n\rangle
-        \exp\!\left[\frac{i}{\hbar}
-          \int_0^t(E_m-E_n)\,dt'\right].
-    \]</div>
-    <p>\(m\ne n\)인 항은 에너지 간격이 0이 아니고 매개변수가 충분히 천천히 변하면 빠른 위상 때문에 누적되기 어렵다. 고유값 방정식을 미분해 \(\langle m|\)를 곱하면 \(\langle m|\dot n\rangle=\langle m|\dot H|n\rangle/(E_n-E_m)\)이다. 따라서 실제로 확인할 수 있는 작은 매개변수는</p>
-    <div class="formula" id="eq-adiabatic-condition">\[
-      \eta_{mn}(t)=
-        \frac{\hbar|\langle m(t)|\dot H(t)|n(t)\rangle|}
-             {|E_m(t)-E_n(t)|^2}\ll1
-        \qquad(m\ne n).
-    \]</div>
-    <div class="box thm" id="thm-adiabatic-evolution"><div class="box-h">간격이 열린 비축퇴 준위의 단열 진화</div>
-      <div class="formula" id="eq-adiabatic-state">\[
-        |\Psi(0)\rangle=|n(0)\rangle
-        \quad\Longrightarrow\quad
-        |\Psi(t)\rangle\simeq
-          e^{-\frac{i}{\hbar}\int_0^t E_n(t')dt'}
-          e^{i\gamma_n(t)}|n(t)\rangle,\qquad
+    <h2>급격한 변화와 단열 변화</h2>
+    <p>지금까지는 섭동이 작다고 가정했다. 섭동이 크더라도 그것이 아주 빠르게 또는 아주 느리게 변하면 다른 근사가 성립한다. 기준이 되는 시간은 계의 에너지 간격 \(\Delta E\)로 정해지는 \(\hbar/\Delta E\)다. <a class="ref" href="#ex-kicked-oscillator"></a>에서 \(\omega\tau\)가 작을 때와 클 때 본 두 극한이 그것이다.</p>
+
+    <h3 id="s5-sudden">급격 근사</h3>
+    <p>해밀토니안이 시간 \(\tau\) 동안 \(\hat H_{\rm a}\)에서 \(\hat H_{\rm b}\)로 바뀐다고 하자. 그동안의 시간 변화 연산자를 <a href="ch10.html#eq-dyson-two">다이슨 급수</a>로 쓰면 첫 항은 \(I\)이고, 나머지 항은 \(\tau\hat H/\hbar\)의 거듭제곱 정도의 크기다. 에너지의 기준을 옮기면 전체 위상만 달라지므로, 크기를 정하는 것은 관련된 상태들 사이의 에너지 차 \(\Delta E\)다. \(\tau\Delta E/\hbar\ll1\)이면 시간 변화 연산자는 전체 위상을 빼고 \(I\)와 같아 상태가 바뀔 틈이 없다.</p>
+    <div class="box thm" id="thm-sudden"><div class="box-h">급격 근사</div>
+      <p>변화가 \(\hbar/\Delta E\)보다 훨씬 빠르면 변화 직후의 상태는 변화 직전의 상태와 같다. 처음 \(\hat H_{\rm a}\)의 고유상태 \(|a\rangle\)에 있던 계를 새 해밀토니안 \(\hat H_{\rm b}\)의 고유상태 \(|b\rangle\)에서 발견할 확률은</p>
+      <div class="formula" id="eq-sudden">\[ P_{a\to b}=|\langle b|a\rangle|^2. \]</div>
+    </div>
+    <div class="box ex" id="ex-tritium"><div class="box-h">삼중수소의 베타 붕괴</div>
+      <p>삼중수소 \(^3\)H의 핵이 베타 붕괴하면 핵의 전하가 1에서 2로 바뀌어 원자는 He\(^+\) 이온이 된다. 튀어나가는 전자의 평균 운동 에너지는 약 5.7 keV로 \(v\approx0.15c\)이고, 원자 크기 \(a_0\)를 지나는 데 약 \(1\times10^{-18}\) s가 걸린다. He\(^+\)의 \(1s\)–\(2s\) 간격 40.8 eV로 정한 \(\hbar/\Delta E\approx1.6\times10^{-17}\) s보다 한 자리 이상 짧으므로 급격 근사를 쓸 수 있다. 전하 \(Z\)의 수소꼴 \(1s\) 파동함수는 \(\sqrt{Z^3/\pi a^3}\,e^{-Zr/a}\)이고 \(\int_0^\infty r^2e^{-br}dr=2/b^3\)이므로</p>
+      <div class="formula" id="eq-tritium">\[ \begin{gathered}
+        \langle1s_{Z_2}|1s_{Z_1}\rangle=\frac{(Z_1Z_2)^{3/2}}{\pi a^3}\,4\pi\,\frac{2a^3}{(Z_1+Z_2)^3}\\
+        =\frac{8(Z_1Z_2)^{3/2}}{(Z_1+Z_2)^3},\\[2pt]
+        P_{1s\to1s}=\Big(\frac{16\sqrt2}{27}\Big)^{2}=\frac{512}{729}\simeq0.702.
+      \end{gathered} \]</div>
+      <p>\(Z_1=1\), \(Z_2=2\)를 넣었다. He\(^+\)의 \(2s\)로 갈 확률은 1/4이다(<a class="ref" href="#prob-tritium-2s"></a>). 속박 상태를 모두 더하면 약 97.4%이므로 나머지 약 2.6%는 궤도 전자마저 떨어져 나간다. \(2p\)처럼 \(\ell\ne0\)인 상태로는 가지 않는다. 처음 상태와 핵 전하의 변화가 모두 구대칭이어서 각운동량이 보존되기 때문이다. <a href="ch08.html#prob-sudden-spring">8장</a>에서 용수철 상수를 갑자기 바꾼 진동자도 같은 계산이다.</p>
+    </div>
+
+    <h3 id="s5-adiabatic">단열 정리</h3>
+    <p>반대 극한에서 해밀토니안 \(\hat H(t)\)가 아주 천천히 바뀐다고 하자. 매 순간의 고유값 문제 \(\hat H(t)|n(t)\rangle=E_n(t)|n(t)\rangle\)의 해를 <span class="term">순간 고유상태</span> <span class="en">(instantaneous eigenstate)</span>라 한다. 각 순간에 \(\{|n(t)\rangle\}\)는 정규 직교 기저이고, 준위들은 축퇴되지 않으며 서로 교차하지 않는다고 가정한다. 순간 고유상태 자체는 시간 의존 슈뢰딩거 방정식의 해가 아니다. 정확한 상태를 이 기저로 전개하되, 에너지가 주는 빠른 위상을 미리 떼어 내자.</p>
+    <div class="formula" id="eq-instantaneous-expansion">\[ \begin{gathered}
+      |\Psi(t)\rangle=\sum_nb_n(t)\,e^{i\theta_n(t)}|n(t)\rangle,\\
+      \theta_n(t)=-\frac1\hbar\int_0^tE_n(t')\,dt'.
+    \end{gathered} \]</div>
+    <p>이것을 \(i\hbar\,d|\Psi\rangle/dt=\hat H|\Psi\rangle\)에 넣자. 왼쪽을 곱의 미분으로 풀면 \(\dot b_n\), \(\dot\theta_n\), \(|\dot n\rangle\)의 세 항이 나온다.</p>
+    <div class="formula" id="eq-adiabatic-substitution">\[ \begin{aligned}
+      i\hbar\sum_n\big(\dot b_n+i\dot\theta_nb_n\big)e^{i\theta_n}|n\rangle&amp;\\
+      +\,i\hbar\sum_nb_ne^{i\theta_n}|\dot n\rangle&amp;=\sum_nb_ne^{i\theta_n}E_n|n\rangle.
+    \end{aligned} \]</div>
+    <p>\(i\hbar\cdot i\dot\theta_n=-\hbar\dot\theta_n=E_n\)이므로 \(\dot\theta_n\) 항이 오른쪽과 같아 지워진다. 남은 \(\sum_n\dot b_ne^{i\theta_n}|n\rangle=-\sum_nb_ne^{i\theta_n}|\dot n\rangle\)에 \(\langle m(t)|\)를 곱하면</p>
+    <div class="formula" id="eq-adiabatic-coupling">\[ \begin{gathered}
+      \dot b_m=-\sum_nb_n\,\langle m|\dot n\rangle\,e^{i(\theta_n-\theta_m)},\\
+      \theta_n-\theta_m=\frac1\hbar\int_0^t(E_m-E_n)\,dt'.
+    \end{gathered} \]</div>
+    <p>기저가 움직이는 속도 \(\langle m|\dot n\rangle\)을 해밀토니안으로 바꾸자. 고유값 방정식을 시간으로 미분하면 \(\dot{\hat H}|n\rangle+\hat H|\dot n\rangle=\dot E_n|n\rangle+E_n|\dot n\rangle\)이다. \(m\ne n\)인 \(\langle m|\)를 곱하면 \(\langle m|n\rangle=0\), \(\langle m|\hat H=E_m\langle m|\)이므로</p>
+    <div class="formula" id="eq-adiabatic-derivative">\[ \langle m|\dot n\rangle=\frac{\langle m|\dot{\hat H}|n\rangle}{E_n-E_m}\qquad(m\ne n). \]</div>
+    <p>처음에 \(b_n(0)=1\)이고 나머지는 0이라 하자. 다른 상태의 진폭 \(b_m\)은 작으므로 식 <a class="ref" href="#eq-adiabatic-coupling"></a>의 오른쪽에서 \(n\) 항만 남기면 \(b_m(t)\simeq-\int_0^t\langle m|\dot n\rangle e^{i(\theta_n-\theta_m)}dt'\)이다. 위상 \(\theta_n-\theta_m\)은 진동수 \((E_m-E_n)/\hbar\)로 돌고, 해밀토니안이 천천히 변하면 그동안 \(\langle m|\dot n\rangle\)은 거의 변하지 않는다. 부분 적분으로 \(\int fe^{i\varphi}dt=fe^{i\varphi}/(i\dot\varphi)-\int(d/dt)[f/(i\dot\varphi)]e^{i\varphi}dt\)라 쓰면, 남는 적분은 \(f\)와 \(\dot\varphi\)의 변화율만큼 작다. 따라서 \(b_m\)은 쌓이지 않고 첫 항의 크기 \(|f/\dot\varphi|=\hbar|\langle m|\dot n\rangle|/|E_m-E_n|\)에 머문다. 식 <a class="ref" href="#eq-adiabatic-derivative"></a>를 넣으면 이 크기는</p>
+    <div class="formula" id="eq-adiabatic-condition">\[ \eta_{mn}(t)=\frac{\hbar\,|\langle m(t)|\dot{\hat H}(t)|n(t)\rangle|}{\big(E_m(t)-E_n(t)\big)^2}\ll1 \]</div>
+    <p>이다(\(m\ne n\)). \(\eta\)는 한 번의 진동 주기 \(\hbar/|E_m-E_n|\) 동안 해밀토니안이 바뀌는 양을 에너지 간격과 비교한 값이다.</p>
+    <div class="box thm" id="thm-adiabatic-evolution"><div class="box-h">단열 정리</div>
+      <p>준위들이 축퇴되지 않고 모든 \(m\ne n\)에 대해 \(\eta_{mn}\ll1\)이면, 순간 고유상태에서 출발한 계는 그 순간 고유상태를 따라간다.</p>
+      <div class="formula" id="eq-adiabatic-state">\[ \begin{gathered}
+        |\Psi(0)\rangle=|n(0)\rangle\quad\Longrightarrow\\
+        |\Psi(t)\rangle\simeq e^{i\theta_n(t)}e^{i\gamma_n(t)}|n(t)\rangle,\\
         \gamma_n(t)=i\int_0^t\langle n(t')|\dot n(t')\rangle\,dt'.
-      \]</div>
-      <p>첫 지수는 에너지와 걸린 시간에 따른 <span class="term">동역학적 위상</span>, 둘째는 고유상태가 따라간 경로에 따른 <span class="term">기하학적 위상</span>이다. 준위가 교차하거나 가까워져 식 <a class="ref" href="#eq-adiabatic-condition"></a>이 커지면 다른 상태로의 전이를 무시할 수 없다. 이 조건은 매끄럽고 충분히 느린 변화에서 쓰는 실용적인 판정이다.</p>
+      \end{gathered} \]</div>
+      <p>\(\theta_n\)은 에너지와 걸린 시간에 따른 <span class="term">동역학적 위상</span>, \(\gamma_n\)은 20.6절에서 볼 <span class="term">기하학적 위상</span>이다.</p>
     </div>
-    <h3 id="s5-berry">닫힌 경로의 베리 위상</h3>
-    <p>\(\boldsymbol R(T)=\boldsymbol R(0)\)인 순환 과정을 생각하자. \(|n(\boldsymbol R)\rangle\)의 위상을 경로를 따라 매끄럽게 택하고 시작과 끝에서 같은 상태 벡터가 되도록 하자. <span class="term">베리 접속</span> \(\boldsymbol{\mathcal A}_n(\boldsymbol R)=i\langle n|\boldsymbol\nabla_{\!R}n\rangle\)을 정의하면</p>
-    <div class="box def" id="def-berry-phase"><div class="box-h">베리 위상</div>
-      <div class="formula" id="eq-berry-phase">\[
-        \gamma_n[C]=\oint_C\boldsymbol{\mathcal A}_n(\boldsymbol R)
-                              \cdot d\boldsymbol R
-        \pmod{2\pi},\qquad
-        \boldsymbol{\mathcal A}_n
-          =i\langle n(\boldsymbol R)|
-                 \boldsymbol\nabla_{\!R}n(\boldsymbol R)\rangle .
-      \]</div>
-      <p>이 위상은 같은 경로를 얼마나 빨리 지났는지가 아니라 경로 자체에 달려 있다. \(|n\rangle\to e^{i\chi(\boldsymbol R)}|n\rangle\)로 기저 위상을 바꾸면 \(\boldsymbol{\mathcal A}_n\to\boldsymbol{\mathcal A}_n-\boldsymbol\nabla_{\!R}\chi\)이지만, 닫힌 경로의 \(\gamma_n\)은 \(2\pi\)를 법으로 같은 물리적 값이다.</p>
+    <p>\(\gamma_n\)은 식 <a class="ref" href="#eq-adiabatic-coupling"></a>의 \(m=n\) 항에서 나온다. 다른 항을 버리면 \(\dot b_n=-\langle n|\dot n\rangle b_n\)이므로 \(b_n=e^{i\gamma_n}\)이다. \(\langle n|n\rangle=1\)을 미분하면 \(\langle\dot n|n\rangle+\langle n|\dot n\rangle=2\,\mathrm{Re}\langle n|\dot n\rangle=0\)이므로 \(\langle n|\dot n\rangle\)은 순허수이고 \(\gamma_n\)은 실수다.</p>
+
+    <h3 id="s5-landau-zener">란다우–제너 전이</h3>
+    <p>단열 조건이 가장 쉽게 깨지는 곳은 두 준위가 가까워지는 곳이다. <a href="ch19.html#ex-two-level-perturbation">19장의 두 준위 모형</a>에서 대각 간격 \(\Delta\)를 시간에 비례해 바꾸어 보자.</p>
+    <div class="formula" id="eq-lz-hamiltonian">\[ \begin{gathered}
+      \hat H(t)=\begin{pmatrix}\Delta(t)/2&amp;v\\v&amp;-\Delta(t)/2\end{pmatrix},\\
+      \Delta(t)=\alpha t,\qquad\alpha,v&gt;0.
+    \end{gathered} \]</div>
+    <p>결합이 없으면 두 기저 상태 \(|1\rangle,|2\rangle\)의 에너지 \(\pm\alpha t/2\)가 \(t=0\)에서 교차한다. 이 두 상태를 <span class="term">투열 상태</span> <span class="en">(diabatic state)</span>라 한다. 결합 \(v\)가 있으면 순간 고유값은 \(\pm\tfrac12\sqrt{\alpha^2t^2+4v^2}\)이고, <a href="ch19.html#fig-avoided-crossing">그림 19-1</a>처럼 \(t=0\)에서 최소 간격 \(2v\)를 두고 비켜 간다. 그 순간의 순간 고유상태는 \((|1\rangle\pm|2\rangle)/\sqrt2\)이고 \(\dot{\hat H}=(\alpha/2)\sigma_z\)가 둘을 잇는 행렬 원소는 \(\alpha/2\)이므로, 교차점의 단열 매개변수는 \(\eta_0=\hbar(\alpha/2)/(2v)^2=\hbar\alpha/8v^2\)이다.</p>
+    <div class="box thm" id="thm-landau-zener"><div class="box-h">란다우–제너 공식</div>
+      <p>\(t=-\infty\)에 아래 순간 고유상태에 있던 계가 \(t=+\infty\)에 위 순간 고유상태로 넘어가 있을 확률은</p>
+      <div class="formula" id="eq-landau-zener">\[ P_{\rm LZ}=\exp\!\Big(-\frac{2\pi v^2}{\hbar\alpha}\Big)=\exp\!\Big(-\frac{\pi}{4\eta_0}\Big). \]</div>
     </div>
-    <div class="box ex" id="ex-spin-berry"><div class="box-h">천천히 회전하는 자기장 속 스핀 \(1/2\)</div>
-      <p>\(\hat H=\mu_BB\,\boldsymbol n\cdot\boldsymbol\sigma\)에서 \(B&gt;0\)을 고정하고 방향 \(\boldsymbol n\)만 극각 \(\theta\)를 유지하며 방위각 \(\phi:0\to2\pi\)로 돌리자. \(\boldsymbol n\cdot\boldsymbol\sigma\)의 \(+1\) 고유상태는 <a href="ch16.html#eq-spin-direction">16장의 스피너</a> \(|+\boldsymbol n\rangle=(\cos\frac\theta2,e^{i\phi}\sin\frac\theta2)^{\mathsf T}\)다. 따라서</p>
-      <div class="formula" id="eq-spin-berry">\[
-        \mathcal A_\phi
-          =i\langle+\boldsymbol n|\partial_\phi|+\boldsymbol n\rangle
-          =-\sin^2\frac\theta2,\qquad
-        \gamma_+=-2\pi\sin^2\frac\theta2
-                 =-\frac{\Omega}{2},\quad
-        \Omega=2\pi(1-\cos\theta).
-      \]</div>
-      <p>\(\theta=60^\circ\)이면 \(\Omega=\pi\)이고 \(\gamma_+=-\pi/2\)다. 반대 고유상태의 기하학적 위상은 \(+\Omega/2\)이다. 자기장이 너무 빨리 돌면 스핀은 순간 고유상태를 계속 따라가지 못하고 이 결과를 적용할 수 없다.</p>
+    <p>이 결과는 슈뢰딩거 방정식의 정확한 풀이에서 나온다(란다우, 제너, 1932). 그 풀이에는 포물선 원기둥 함수라는 특수 함수가 필요하므로 여기서는 결과만 쓰고 그림 20-4에서 수치 풀이와 비교한다. \(\eta_0\ll1\)이면 지수가 아주 커서 \(P_{\rm LZ}\)는 0에 가깝다. 계는 아래 순간 고유상태를 따라가고, 교차점을 지나며 성격이 \(|1\rangle\)에서 \(|2\rangle\)로 바뀐다. 이것을 <span class="term">단열 통과</span>라 한다. 반대로 \(\eta_0\gg1\)이면 \(P_{\rm LZ}\approx1\)이고 계는 처음 투열 상태 \(|1\rangle\)에 그대로 머문다. 전이 확률이 \(\eta_0\)의 거듭제곱이 아닌 \(e^{-\pi/4\eta_0}\)로 줄어드므로, 느린 변화에서 단열 정리는 아주 정확하다.</p>
+    <figure class="diagram" id="fig-landau-zener">
+      <div class="fig-row"><!--fig:20-4a--><svg viewBox="0 0 280 250" role="img" aria-label="준위 간격을 일정한 빠르기로 쓸어 지날 때 위쪽 순간 고유상태에 있을 확률을 시간에 따라 그렸다. 빠르게 쓸면 교차점에서 확률이 크게 뛰어 0.73 근처에 머물고, 느리게 쓸수록 뛰는 양이 작아져 0.28, 0.02로 줄어든다"><defs><marker id="f204a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f204a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f204a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(가) 위 준위로 넘어간 확률</text><line x1="40" y1="210" x2="262" y2="210" class="s-line" stroke-width="1.2" marker-end="url(#f204a-dim)"/><line x1="40" y1="210" x2="40" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f204a-dim)"/><line x1="48" y1="210" x2="48" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="48" y="228" class="t-math dim" text-anchor="middle">−10</text><line x1="98" y1="210" x2="98" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="98" y="228" class="t-math dim" text-anchor="middle">−5</text><line x1="198" y1="210" x2="198" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="198" y="228" class="t-math dim" text-anchor="middle">5</text><line x1="248" y1="210" x2="248" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="248" y="228" class="t-math dim" text-anchor="middle">10</text><line x1="148" y1="210" x2="148" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="148" y="228" class="t-math dim" text-anchor="middle">0</text><line x1="36" y1="46" x2="40" y2="46" class="s-line" stroke-width="1.2"/><text font-size="13" x="33" y="50.5" class="t-math dim" text-anchor="end">1</text><line x1="36" y1="128" x2="40" y2="128" class="s-line" stroke-width="1.2"/><text font-size="13" x="33" y="132.5" class="t-math dim" text-anchor="end">0.5</text><text font-size="13" x="33" y="214.5" class="t-math dim" text-anchor="end">0</text><line x1="148" y1="210" x2="148" y2="40" class="s-grid" stroke-dasharray="2 4"/><path d="M48 210 L49 210 L50 210 L51 210 L52 210 L53 209.9 L54 209.9 L55 209.9 L56 209.9 L57 209.9 L58 209.9 L59 209.9 L60 209.9 L61 209.9 L62 209.9 L63 209.9 L64 209.9 L65 209.9 L66 209.9 L67 209.9 L68 209.9 L69 209.9 L70 209.9 L71 209.9 L72 209.9 L73 209.8 L74 209.8 L75 209.8 L76 209.8 L77 209.8 L78 209.8 L79 209.8 L80 209.8 L81 209.8 L82 209.7 L83 209.7 L84 209.7 L85 209.7 L86 209.7 L87 209.6 L88 209.6 L89 209.6 L90 209.6 L91 209.5 L92 209.5 L93 209.5 L94 209.4 L95 209.4 L96 209.3 L97 209.3 L98 209.2 L99 209.2 L100 209.1 L101 209.1 L102 209 L103 208.9 L104 208.8 L105 208.7 L106 208.6 L107 208.5 L108 208.4 L109 208.3 L110 208.1 L111 208 L112 207.8 L113 207.6 L114 207.4 L115 207.2 L116 207 L117 206.7 L118 206.4 L119 206.1 L120 205.8 L121 205.4 L122 204.9 L123 204.5 L124 204 L125 203.4 L126 202.8 L127 202.1 L128 201.3 L129 200.4 L130 199.5 L131 198.5 L132 197.3 L133 196.1 L134 194.7 L135 193.1 L136 191.5 L137 189.7 L138 187.7 L139 185.5 L140 183.2 L141 180.7 L142 178.1 L143 175.2 L144 172.2 L145 169.1 L146 165.8 L147 162.5 L148 159 L149 155.4 L150 151.9 L151 148.3 L152 144.7 L153 141.2 L154 137.8 L155 134.4 L156 131.2 L157 128.1 L158 125.1 L159 122.2 L160 119.5 L161 116.9 L162 114.5 L163 112.2 L164 110.1 L165 108.1 L166 106.2 L167 104.4 L168 102.8 L169 101.3 L170 99.8 L171 98.5 L172 97.3 L173 96.1 L174 95.1 L175 94.1 L176 93.2 L177 92.3 L178 91.5 L179 90.8 L180 90.1 L181 89.5 L182 88.9 L183 88.4 L184 87.9 L185 87.5 L186 87.1 L187 86.7 L188 86.3 L189 86 L190 85.7 L191 85.5 L192 85.3 L193 85.1 L194 84.9 L195 84.7 L196 84.6 L197 84.5 L198 84.4 L199 84.3 L200 84.2 L201 84.2 L202 84.2 L203 84.1 L204 84.1 L205 84.1 L206 84.2 L207 84.2 L208 84.2 L209 84.3 L210 84.4 L211 84.4 L212 84.5 L213 84.6 L214 84.7 L215 84.8 L216 84.9 L217 85.1 L218 85.2 L219 85.3 L220 85.4 L221 85.6 L222 85.7 L223 85.9 L224 86 L225 86.2 L226 86.4 L227 86.5 L228 86.7 L229 86.8 L230 87 L231 87.2 L232 87.3 L233 87.5 L234 87.7 L235 87.9 L236 88 L237 88.2 L238 88.4 L239 88.5 L240 88.7 L241 88.8 L242 89 L243 89.2 L244 89.3 L245 89.5 L246 89.6 L247 89.7" class="s-acc" fill="none" stroke-width="2"/><text font-size="13" x="258" y="69" class="t-math acc" text-anchor="end"><tspan font-style="italic">v</tspan><tspan baseline-shift="super" font-size="72%">2</tspan>/ħ<tspan font-style="italic">α</tspan> = 0.05</text><path d="M48 210 L49 210 L50 210 L51 210 L52 210 L53 210 L54 210 L55 210 L56 210 L57 210 L58 210 L59 210 L60 210 L61 210 L62 210 L63 210 L64 210 L65 210 L66 210 L67 210 L68 210 L69 210 L70 210 L71 210 L72 210 L73 210 L74 210 L75 210 L76 210 L77 210 L78 210 L79 210 L80 210 L81 210 L82 210 L83 210 L84 210 L85 210 L86 210 L87 210 L88 209.9 L89 209.9 L90 209.9 L91 209.9 L92 209.9 L93 209.9 L94 209.9 L95 209.9 L96 209.9 L97 209.9 L98 209.9 L99 209.9 L100 209.8 L101 209.8 L102 209.8 L103 209.8 L104 209.8 L105 209.8 L106 209.7 L107 209.7 L108 209.7 L109 209.6 L110 209.6 L111 209.6 L112 209.5 L113 209.5 L114 209.4 L115 209.3 L116 209.2 L117 209.2 L118 209.1 L119 208.9 L120 208.8 L121 208.7 L122 208.5 L123 208.3 L124 208.1 L125 207.9 L126 207.6 L127 207.3 L128 207 L129 206.6 L130 206.2 L131 205.7 L132 205.2 L133 204.6 L134 203.9 L135 203.1 L136 202.2 L137 201.3 L138 200.2 L139 199 L140 197.7 L141 196.3 L142 194.8 L143 193.1 L144 191.3 L145 189.4 L146 187.4 L147 185.3 L148 183.2 L149 181 L150 178.7 L151 176.4 L152 174.2 L153 172 L154 169.8 L155 167.8 L156 165.8 L157 163.9 L158 162.1 L159 160.4 L160 158.9 L161 157.5 L162 156.3 L163 155.1 L164 154.1 L165 153.3 L166 152.6 L167 152 L168 151.5 L169 151.1 L170 150.9 L171 150.7 L172 150.7 L173 150.7 L174 150.8 L175 151 L176 151.3 L177 151.6 L178 152.1 L179 152.5 L180 153 L181 153.6 L182 154.2 L183 154.8 L184 155.4 L185 156.1 L186 156.8 L187 157.5 L188 158.2 L189 158.9 L190 159.5 L191 160.2 L192 160.9 L193 161.5 L194 162.1 L195 162.7 L196 163.2 L197 163.7 L198 164.1 L199 164.5 L200 164.9 L201 165.2 L202 165.5 L203 165.7 L204 165.8 L205 165.9 L206 166 L207 166 L208 165.9 L209 165.9 L210 165.7 L211 165.6 L212 165.4 L213 165.1 L214 164.9 L215 164.6 L216 164.3 L217 164.1 L218 163.8 L219 163.5 L220 163.2 L221 163 L222 162.8 L223 162.6 L224 162.4 L225 162.3 L226 162.2 L227 162.1 L228 162.1 L229 162.1 L230 162.1 L231 162.2 L232 162.3 L233 162.5 L234 162.6 L235 162.8 L236 162.9 L237 163.1 L238 163.3 L239 163.5 L240 163.6 L241 163.8 L242 163.9 L243 164 L244 164 L245 164 L246 164 L247 164" class="s-acc2" fill="none" stroke-width="2"/><text font-size="13" x="258" y="139.5" class="t-math acc2" text-anchor="end"><tspan font-style="italic">v</tspan><tspan baseline-shift="super" font-size="72%">2</tspan>/ħ<tspan font-style="italic">α</tspan> = 0.2</text><path d="M48 210 L49 210 L50 210 L51 210 L52 210 L53 210 L54 210 L55 210 L56 210 L57 210 L58 210 L59 210 L60 210 L61 210 L62 210 L63 210 L64 210 L65 210 L66 210 L67 210 L68 210 L69 210 L70 210 L71 210 L72 210 L73 210 L74 210 L75 210 L76 210 L77 210 L78 210 L79 210 L80 210 L81 210 L82 210 L83 210 L84 210 L85 210 L86 210 L87 210 L88 210 L89 210 L90 210 L91 210 L92 210 L93 210 L94 210 L95 210 L96 210 L97 210 L98 210 L99 210 L100 210 L101 210 L102 210 L103 210 L104 210 L105 210 L106 210 L107 210 L108 209.9 L109 209.9 L110 209.9 L111 209.9 L112 209.9 L113 209.9 L114 209.9 L115 209.9 L116 209.9 L117 209.8 L118 209.8 L119 209.8 L120 209.8 L121 209.7 L122 209.7 L123 209.7 L124 209.6 L125 209.5 L126 209.5 L127 209.4 L128 209.3 L129 209.2 L130 209.1 L131 208.9 L132 208.8 L133 208.6 L134 208.4 L135 208.2 L136 207.9 L137 207.6 L138 207.3 L139 206.9 L140 206.5 L141 206 L142 205.5 L143 204.9 L144 204.4 L145 203.8 L146 203.2 L147 202.5 L148 201.9 L149 201.3 L150 200.7 L151 200.2 L152 199.7 L153 199.3 L154 198.9 L155 198.7 L156 198.6 L157 198.5 L158 198.6 L159 198.8 L160 199.1 L161 199.4 L162 199.9 L163 200.4 L164 201 L165 201.7 L166 202.4 L167 203.1 L168 203.7 L169 204.4 L170 205.1 L171 205.7 L172 206.2 L173 206.6 L174 207 L175 207.3 L176 207.5 L177 207.6 L178 207.6 L179 207.6 L180 207.4 L181 207.2 L182 207 L183 206.7 L184 206.5 L185 206.2 L186 205.9 L187 205.7 L188 205.6 L189 205.5 L190 205.4 L191 205.4 L192 205.5 L193 205.7 L194 205.8 L195 206 L196 206.2 L197 206.4 L198 206.5 L199 206.6 L200 206.7 L201 206.6 L202 206.6 L203 206.5 L204 206.4 L205 206.2 L206 206.1 L207 206 L208 205.9 L209 205.9 L210 205.9 L211 206 L212 206.1 L213 206.2 L214 206.3 L215 206.4 L216 206.4 L217 206.4 L218 206.4 L219 206.3 L220 206.3 L221 206.2 L222 206.1 L223 206.1 L224 206.1 L225 206.1 L226 206.1 L227 206.2 L228 206.3 L229 206.3 L230 206.4 L231 206.3 L232 206.3 L233 206.2 L234 206.2 L235 206.1 L236 206.1 L237 206.1 L238 206.2 L239 206.2 L240 206.3 L241 206.3 L242 206.3 L243 206.3 L244 206.2 L245 206.2 L246 206.2 L247 206.1" class="s-line" fill="none" stroke-width="2"/><text font-size="13" x="258" y="190.3" class="t-math dim" text-anchor="end"><tspan font-style="italic">v</tspan><tspan baseline-shift="super" font-size="72%">2</tspan>/ħ<tspan font-style="italic">α</tspan> = 0.6</text><text font-size="14" x="262" y="244" class="t-math dim" text-anchor="end">Δ(<tspan font-style="italic">t</tspan>)/<tspan font-style="italic">v</tspan> = <tspan font-style="italic">α</tspan><tspan font-style="italic">t</tspan>/<tspan font-style="italic">v</tspan></text></svg><!--/fig:20-4a--><!--fig:20-4b--><svg viewBox="0 0 280 250" role="img" aria-label="쓸어 지난 뒤 위쪽 순간 고유상태로 넘어간 최종 확률을 결합의 제곱을 쓸기 빠르기로 나눈 값에 대해 그렸다. 수치 풀이 점들이 란다우-제너 공식 e의 마이너스 2파이 v제곱 나누기 ħ알파 승 곡선 위에 놓인다"><defs><marker id="f204b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f204b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f204b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(나) 최종 확률과 공식</text><line x1="40" y1="210" x2="262" y2="210" class="s-line" stroke-width="1.2" marker-end="url(#f204b-dim)"/><line x1="40" y1="210" x2="40" y2="32" class="s-line" stroke-width="1.2" marker-end="url(#f204b-dim)"/><line x1="92.5" y1="210" x2="92.5" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="92.5" y="228" class="t-math dim" text-anchor="middle">0.2</text><line x1="145" y1="210" x2="145" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="145" y="228" class="t-math dim" text-anchor="middle">0.4</text><line x1="197.5" y1="210" x2="197.5" y2="214" class="s-line" stroke-width="1.2"/><text font-size="13" x="197.5" y="228" class="t-math dim" text-anchor="middle">0.6</text><text font-size="13" x="40" y="228" class="t-math dim" text-anchor="middle">0</text><line x1="36" y1="46" x2="40" y2="46" class="s-line" stroke-width="1.2"/><text font-size="13" x="33" y="50.5" class="t-math dim" text-anchor="end">1</text><line x1="36" y1="128" x2="40" y2="128" class="s-line" stroke-width="1.2"/><text font-size="13" x="33" y="132.5" class="t-math dim" text-anchor="end">0.5</text><path d="M40 46 L42.1 54 L44.2 61.7 L46.3 69 L48.4 75.9 L50.5 82.4 L52.6 88.7 L54.7 94.6 L56.8 100.3 L58.9 105.7 L61 110.8 L63.1 115.7 L65.2 120.3 L67.3 124.7 L69.4 128.9 L71.5 132.8 L73.6 136.6 L75.7 140.2 L77.8 143.6 L79.9 146.9 L82 150 L84.1 152.9 L86.2 155.7 L88.3 158.4 L90.4 160.9 L92.5 163.3 L94.6 165.6 L96.7 167.8 L98.8 169.9 L100.9 171.8 L103 173.7 L105.1 175.5 L107.2 177.2 L109.3 178.8 L111.4 180.3 L113.5 181.8 L115.6 183.1 L117.7 184.5 L119.8 185.7 L121.9 186.9 L124 188 L126.1 189.1 L128.2 190.1 L130.3 191.1 L132.4 192 L134.5 192.9 L136.6 193.8 L138.7 194.6 L140.8 195.3 L142.9 196 L145 196.7 L147.1 197.4 L149.2 198 L151.3 198.6 L153.4 199.1 L155.5 199.7 L157.6 200.2 L159.7 200.7 L161.8 201.1 L163.9 201.5 L166 202 L168.1 202.4 L170.2 202.7 L172.3 203.1 L174.4 203.4 L176.5 203.7 L178.6 204.1 L180.7 204.3 L182.8 204.6 L184.9 204.9 L187 205.1 L189.1 205.4 L191.2 205.6 L193.3 205.8 L195.4 206 L197.5 206.2 L199.6 206.4 L201.7 206.6 L203.8 206.7 L205.9 206.9 L208 207.1 L210.1 207.2 L212.2 207.3 L214.3 207.5 L216.4 207.6 L218.5 207.7 L220.6 207.8 L222.7 207.9 L224.8 208 L226.9 208.1 L229 208.2 L231.1 208.3 L233.2 208.4 L235.3 208.5 L237.4 208.5 L239.5 208.6 L241.6 208.7 L243.7 208.7 L245.8 208.8 L247.9 208.9 L250 208.9" class="s-acc2" fill="none" stroke-width="2"/><circle cx="46.6" cy="69.8" r="3" class="f-acc"/><circle cx="53.1" cy="90.2" r="3" class="f-acc"/><circle cx="66.2" cy="122.5" r="3" class="f-acc"/><circle cx="79.4" cy="146.1" r="3" class="f-acc"/><circle cx="92.5" cy="163.3" r="3" class="f-acc"/><circle cx="118.8" cy="185.1" r="3" class="f-acc"/><circle cx="145" cy="196.7" r="3" class="f-acc"/><circle cx="171.2" cy="202.9" r="3" class="f-acc"/><circle cx="197.5" cy="206.2" r="3" class="f-acc"/><circle cx="236.9" cy="208.5" r="3" class="f-acc"/><text font-size="14" x="84.6" y="145.6" class="t-math acc2" text-anchor="start"><tspan font-style="italic">e</tspan><tspan baseline-shift="super" font-size="72%">−2π<tspan font-style="italic">v</tspan>²/ħ<tspan font-style="italic">α</tspan></tspan></text><text font-size="14" x="262" y="244" class="t-math dim" text-anchor="end"><tspan font-style="italic">v</tspan><tspan baseline-shift="super" font-size="72%">2</tspan>/ħ<tspan font-style="italic">α</tspan></text></svg><!--/fig:20-4b--></div>
+      <figcaption><b>그림 20-4.</b> 식 <a class="ref" href="#eq-lz-hamiltonian"></a>의 시간 변화를 짧은 시간 칸마다 정확한 \(2\times2\) 전파 연산자로 풀었다. 시작과 끝은 \(|\alpha t/v|=60\)이고, 두 시각에 순간 고유상태로 사영했다. (가) 위 순간 고유상태에 있을 확률. 전이는 교차점 근처 \(|\Delta|\lesssim\) 몇 \(v\)에서 일어나고, 그 뒤에는 작게 진동하며 최종값으로 다가간다. (나) 최종 확률(점)과 식 <a class="ref" href="#eq-landau-zener"></a>(실선). 열 개의 점 모두 공식과 세 자리 이상 일치한다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-adiabatic-passage"><div class="box-h">자기 공명의 단열 반전</div>
+      <p><a href="ch16.html#eq-rotating-frame">16장의 회전 좌표계</a>에서 스핀의 해밀토니안은 \(\tfrac\hbar2[(\omega_0-\omega)\sigma_z+\Omega_1\sigma_x]\)로 식 <a class="ref" href="#eq-lz-hamiltonian"></a>과 같은 꼴이다. \(\Delta(t)=\hbar(\omega_0-\omega(t))\), \(v=\hbar\Omega_1/2\)이다. 구동장의 진동수를 일정한 빠르기로 바꾸어 \(d(\omega_0-\omega)/dt=r\)이면 \(\alpha=\hbar r\)이므로 \(P_{\rm LZ}=\exp(-\pi\Omega_1^2/2r)\)이다. 공명에서 멀리 떨어진 곳에서 출발하면 스핀은 처음에 \(z\)축 방향의 순간 고유상태에 있고, 공명을 반대쪽으로 지나면 그 순간 고유상태는 \(-z\) 방향을 가리킨다.</p>
+      <p>\(\Omega_1/2\pi=1\) kHz인 구동장에서 비공명을 100 kHz 쓸어 지나는 데 1 ms를 들이면 \(r=2\pi\times10^8\ \mathrm{s^{-2}}\)이고 지수는 0.099, \(P_{\rm LZ}=0.91\)이다. 스핀은 거의 뒤집히지 않는다. 같은 범위를 100 ms에 쓸면 지수가 9.87이고 \(P_{\rm LZ}=5\times10^{-5}\)이어서 스핀이 99.995% 뒤집힌다. 구동장의 세기와 펄스 길이를 정확히 맞추어야 하는 <a href="ch16.html#ex-pi-pulse">\(\pi\) 펄스</a>와 달리 이 방법은 둘이 조금 틀려도 결과가 거의 같다. 그래서 핵자기 공명에서 널리 쓴다.</p>
+    </div>
+  </section>
+
+  <section id="s6">
+    <h2>베리 위상</h2>
+    <p>단열 진화의 위상 \(\gamma_n\)은 오랫동안 순간 고유상태의 위상을 다시 정하면 없앨 수 있는 군더더기로 여겨졌다. 1984년 베리는 해밀토니안이 닫힌 경로를 돌아 처음으로 돌아오면 이 위상을 없앨 수 없고 측정할 수 있음을 보였다.</p>
+    <p>해밀토니안이 외부 매개변수 \(\boldsymbol R\)를 통해 시간에 의존한다고 하자. 예를 들어 \(\boldsymbol R\)는 자기장 벡터다. 순간 고유상태는 \(|n(\boldsymbol R(t))\rangle\)이고 연쇄 법칙으로 \(|\dot n\rangle=(\boldsymbol\nabla_{\!R}|n\rangle)\cdot\dot{\boldsymbol R}\)이다. 그러면 \(\gamma_n=i\int\langle n|\boldsymbol\nabla_{\!R}n\rangle\cdot\dot{\boldsymbol R}\,dt=i\int\langle n|\boldsymbol\nabla_{\!R}n\rangle\cdot d\boldsymbol R\)로 시간이 사라진다.</p>
+    <div class="box def" id="def-berry-phase"><div class="box-h">베리 접속과 베리 위상</div>
+      <div class="formula" id="eq-berry-phase">\[ \begin{gathered}
+        \boldsymbol{\mathcal A}_n(\boldsymbol R)=i\langle n(\boldsymbol R)|\boldsymbol\nabla_{\!R}\,n(\boldsymbol R)\rangle,\\
+        \gamma_n[C]=\oint_C\boldsymbol{\mathcal A}_n\cdot d\boldsymbol R.
+      \end{gathered} \]</div>
+      <p>\(\boldsymbol{\mathcal A}_n\)을 <span class="term">베리 접속</span> <span class="en">(Berry connection)</span>, 닫힌 경로 \(C\)를 따라 적분한 \(\gamma_n[C]\)를 <span class="term">베리 위상</span> <span class="en">(Berry phase)</span>이라 한다. 순간 고유상태의 위상은 경로를 따라 매끄럽게 택하고, 경로의 시작과 끝에서 같은 상태 벡터가 되도록 한다.</p>
+    </div>
+    <p>경로를 지나는 빠르기는 식에서 사라졌다. 같은 경로를 두 배 천천히 돌면 동역학적 위상 \(\theta_n\)은 두 배가 되지만 \(\gamma_n\)은 그대로다. 순간 고유상태의 위상을 \(|n\rangle\to e^{i\chi(\boldsymbol R)}|n\rangle\)로 다시 정하면 \(i\langle n|e^{-i\chi}\boldsymbol\nabla_{\!R}(e^{i\chi}n)\rangle=i\langle n|\boldsymbol\nabla_{\!R}n\rangle-\boldsymbol\nabla_{\!R}\chi\)이므로 \(\boldsymbol{\mathcal A}_n\to\boldsymbol{\mathcal A}_n-\boldsymbol\nabla_{\!R}\chi\)로 바뀐다. 그러나 닫힌 경로에서 \(\oint\boldsymbol\nabla_{\!R}\chi\cdot d\boldsymbol R\)는 \(\chi\)가 한 바퀴 돌며 바뀐 양이다. 상태 벡터가 한 값으로 정해지려면 이것은 \(2\pi\)의 정수배여야 하므로, \(\gamma_n[C]\)는 \(2\pi\)를 법으로 위상 선택과 무관한 물리량이다.</p>
+    <div class="box ex" id="ex-spin-berry"><div class="box-h">천천히 회전하는 자기장 속 스핀 1/2</div>
+      <p>전자 스핀의 해밀토니안 \(\hat H=\mu_BB\,\boldsymbol n\cdot\boldsymbol\sigma\)에서 자기장의 세기 \(B\)는 고정하고, 방향 \(\boldsymbol n\)이 극각 \(\theta\)를 유지하며 방위각 \(\phi:0\to2\pi\)로 한 바퀴 천천히 돈다고 하자. \(\boldsymbol n\cdot\boldsymbol\sigma\)의 \(+1\) 고유상태는 <a href="ch16.html#eq-spin-direction">16장의 스피너</a> \(|{+}\boldsymbol n\rangle=\cos\frac\theta2|{\uparrow}\rangle+e^{i\phi}\sin\frac\theta2|{\downarrow}\rangle\)이다. \(\partial_\phi\)는 아래 성분에 \(i\)를 곱하므로</p>
+      <div class="formula" id="eq-spin-berry">\[ \begin{gathered}
+        \mathcal A_\phi=i\langle{+}\boldsymbol n|\partial_\phi|{+}\boldsymbol n\rangle=i\cdot i\sin^2\frac\theta2=-\sin^2\frac\theta2,\\
+        \gamma_+=\int_0^{2\pi}\!\mathcal A_\phi\,d\phi=-2\pi\sin^2\frac\theta2\\
+        =-\pi(1-\cos\theta)=-\frac\Omega2.
+      \end{gathered} \]</div>
+      <p>\(\Omega=2\pi(1-\cos\theta)\)는 고리가 북극 쪽으로 둘러싼 구면 조각의 입체각이다. \(\theta=60^\circ\)이면 \(\Omega=\pi\)이고 \(\gamma_+=-\pi/2\)다. 반대 고유상태 \(|{-}\boldsymbol n\rangle\)의 베리 위상은 \(+\Omega/2\)이다. 자기장이 너무 빨리 돌면 스핀은 순간 고유상태를 따라가지 못하고 이 결과를 쓸 수 없다.</p>
     </div>
     <figure class="diagram" id="fig-berry-loop">
-      <div class="fig-narrow"><svg viewBox="0 0 440 250" role="img" aria-label="고정된 극각 60도로 자기장 방향이 한 바퀴 돌 때 베리 위상이 방위각에 비례해 마이너스 파이 2분의 1에 도달한다">
-        <circle cx="106" cy="125" r="77" class="s-line"/>
-        <line x1="106" y1="40" x2="106" y2="212" class="s-faint" stroke-dasharray="4 4"/>
-        <ellipse cx="106" cy="88" rx="67" ry="20" class="s-acc" stroke-width="2.5"/>
-        <text x="87" y="32" class="t-dim">z</text>
-        <text x="35" y="231" class="t-dim">자기장 방향의 닫힌 경로</text>
-        <text x="144" y="65" class="t-acc">θ = 60°</text>
-        <line x1="252" y1="190" x2="406" y2="190" class="s-line"/>
-        <line x1="252" y1="190" x2="252" y2="62" class="s-line"/>
-        <line x1="252" y1="82" x2="390" y2="164" class="s-acc2" stroke-width="2.7"/>
-        <circle cx="252" cy="82" r="4" class="f-acc2"/><circle cx="390" cy="164" r="4" class="f-acc2"/>
-        <text x="238" y="75" class="t-dim">0</text><text x="368" y="184" class="t-dim">−π/2</text>
-        <text x="245" y="210" class="t-dim">0</text><text x="373" y="210" class="t-dim">2π</text>
-        <text x="306" y="227" class="t-dim">방위각 φ</text>
-        <text x="260" y="55" class="t-dim">기하학적 위상 γ₊</text>
-      </svg></div>
-      <figcaption><b>그림 20-3.</b> \(\theta=60^\circ\)인 경로의 입체각은 \(\Omega=\pi\)다. 오른쪽 직선은 식 <a class="ref" href="#eq-spin-berry"></a>에서 \(0\le\phi\le2\pi\)까지 계산한 \(\gamma_+(\phi)=-\phi/4\)이며, 한 바퀴 뒤 \(-\pi/2\)가 된다.</figcaption>
+      <div class="fig-row"><!--fig:20-5a--><svg viewBox="0 0 280 250" role="img" aria-label="자기장 방향을 나타내는 단위 구 위에서 극각 60도를 유지하며 방위각이 한 바퀴 도는 고리를 그렸다. 고리가 북극 쪽으로 둘러싼 구면 조각의 입체각이 파이이다"><defs><marker id="f205a-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f205a-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f205a-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(가) 자기장 방향의 고리</text><circle cx="140" cy="136" r="86" class="s-line" fill="none" stroke-width="1.3"/><path d="M66.8 90.8 L66.4 91.7 L66 92.6 L65.7 93.5 L65.6 94.4 L65.5 95.3 L65.6 96.2 L65.8 97.1 L66.1 98 L66.5 98.8 L67 99.7 L67.7 100.6 L68.4 101.5 L69.3 102.3 L70.3 103.2 L71.3 104 L72.5 104.8 L73.8 105.7 L75.2 106.4 L76.7 107.2 L78.2 108 L79.9 108.7 L81.7 109.4 L83.5 110.1 L85.5 110.8 L87.5 111.4 L89.6 112.1 L91.8 112.7 L94.1 113.2 L96.4 113.8 L98.8 114.3 L101.2 114.8 L103.8 115.2 L106.3 115.6 L108.9 116 L111.6 116.4 L114.3 116.7 L117.1 117 L119.9 117.3 L122.7 117.5 L125.5 117.7 L128.4 117.8 L131.3 118 L134.2 118 L137.1 118.1 L140 118.1 L142.9 118.1 L145.8 118 L148.7 118 L151.6 117.8 L154.5 117.7 L157.3 117.5 L160.1 117.3 L162.9 117 L165.7 116.7 L168.4 116.4 L171.1 116 L173.7 115.6 L176.2 115.2 L178.8 114.8 L181.2 114.3 L183.6 113.8 L185.9 113.2 L188.2 112.7 L190.4 112.1 L192.5 111.4 L194.5 110.8 L196.5 110.1 L198.3 109.4 L200.1 108.7 L201.8 108 L203.3 107.2 L204.8 106.4 L206.2 105.7 L207.5 104.8 L208.7 104 L209.7 103.2 L210.7 102.3 L211.6 101.5 L212.3 100.6 L213 99.7 L213.5 98.8 L213.9 98 L214.2 97.1 L214.4 96.2 L214.5 95.3 L214.4 94.4 L214.3 93.5 L214 92.6 L213.6 91.7 L213.2 90.8 A 86 86 0 0 0 66.8 90.8 Z" class="f-acc" fill-opacity="0.16" stroke="none"/><path d="M225.9 134.8 L225.7 133.7 L225.3 132.5 L224.7 131.4 L224 130.2 L223.1 129.1 L222 128 L220.8 126.9 L219.5 125.8 L217.9 124.8 L216.3 123.7 L214.5 122.7 L212.5 121.7 L210.4 120.8 L208.2 119.8 L205.9 118.9 L203.4 118 L200.8 117.2 L198.1 116.4 L195.3 115.6 L192.4 114.9 L189.3 114.2 L186.2 113.6 L183 113 L179.7 112.4 L176.3 111.9 L172.9 111.4 L169.4 111 L165.9 110.7 L162.3 110.3 L158.6 110.1 L154.9 109.8 L151.2 109.7 L147.5 109.5 L143.8 109.4 L140 109.4 L136.2 109.4 L132.5 109.5 L128.8 109.7 L125.1 109.8 L121.4 110.1 L117.7 110.3 L114.1 110.7 L110.6 111 L107.1 111.4 L103.7 111.9 L100.3 112.4 L97 113 L93.8 113.6 L90.7 114.2 L87.6 114.9 L84.7 115.6 L81.9 116.4 L79.2 117.2 L76.6 118 L74.1 118.9 L71.8 119.8 L69.6 120.8 L67.5 121.7 L65.5 122.7 L63.7 123.7 L62.1 124.8 L60.5 125.8 L59.2 126.9 L58 128 L56.9 129.1 L56 130.2 L55.3 131.4 L54.7 132.5 L54.3 133.7 L54.1 134.8 L54 136" class="s-faint" fill="none" stroke-width="1" stroke-dasharray="3 3"/><path d="M54.1 137.2 L54.3 138.3 L54.7 139.5 L55.3 140.6 L56 141.8 L56.9 142.9 L58 144 L59.2 145.1 L60.5 146.2 L62.1 147.2 L63.7 148.3 L65.5 149.3 L67.5 150.3 L69.6 151.2 L71.8 152.2 L74.1 153.1 L76.6 154 L79.2 154.8 L81.9 155.6 L84.7 156.4 L87.6 157.1 L90.7 157.8 L93.8 158.4 L97 159 L100.3 159.6 L103.7 160.1 L107.1 160.6 L110.6 161 L114.1 161.3 L117.7 161.7 L121.4 161.9 L125.1 162.2 L128.8 162.3 L132.5 162.5 L136.2 162.6 L140 162.6 L143.8 162.6 L147.5 162.5 L151.2 162.3 L154.9 162.2 L158.6 161.9 L162.3 161.7 L165.9 161.3 L169.4 161 L172.9 160.6 L176.3 160.1 L179.7 159.6 L183 159 L186.2 158.4 L189.3 157.8 L192.4 157.1 L195.3 156.4 L198.1 155.6 L200.8 154.8 L203.4 154 L205.9 153.1 L208.2 152.2 L210.4 151.2 L212.5 150.3 L214.5 149.3 L216.3 148.3 L217.9 147.2 L219.5 146.2 L220.8 145.1 L222 144 L223.1 142.9 L224 141.8 L224.7 140.6 L225.3 139.5 L225.7 138.3 L225.9 137.2 L226 136" class="s-faint" fill="none" stroke-width="1"/><path d="M212.7 90.1 L211.9 89.1 L211 88.2 L210 87.2 L208.8 86.3 L207.5 85.4 L206.1 84.5 L204.5 83.6 L202.8 82.7 L201 81.9 L199.1 81.1 L197.1 80.3 L194.9 79.6 L192.7 78.8 L190.3 78.1 L187.9 77.5 L185.3 76.8 L182.7 76.3 L180 75.7 L177.2 75.2 L174.4 74.7 L171.5 74.2 L168.5 73.8 L165.5 73.5 L162.4 73.2 L159.3 72.9 L156.1 72.6 L152.9 72.4 L149.7 72.3 L146.5 72.2 L143.2 72.1 L140 72.1 L136.8 72.1 L133.5 72.2 L130.3 72.3 L127.1 72.4 L123.9 72.6 L120.7 72.9 L117.6 73.2 L114.5 73.5 L111.5 73.8 L108.5 74.2 L105.6 74.7 L102.8 75.2 L100 75.7 L97.3 76.3 L94.7 76.8 L92.1 77.5 L89.7 78.1 L87.3 78.8 L85.1 79.6 L82.9 80.3 L80.9 81.1 L79 81.9 L77.2 82.7 L75.5 83.6 L73.9 84.5 L72.5 85.4 L71.2 86.3 L70 87.2 L69 88.2 L68.1 89.1 L67.3 90.1" class="s-acc" fill="none" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M214.5 95.1 L214.4 94.1 L214.2 93.1 L213.8 92.1 L213.3 91.1" class="s-acc" fill="none" stroke-width="2.4"/><path d="M66.7 91.1 L66.2 92.1 L65.8 93.1 L65.6 94.1 L65.5 95.1 L65.6 96.1 L65.8 97.1 L66.2 98.1 L66.7 99.1 L67.3 100.1 L68.1 101.1 L69 102 L70 103 L71.2 103.9 L72.5 104.8 L73.9 105.7 L75.5 106.6 L77.2 107.5 L79 108.3 L80.9 109.1 L82.9 109.9 L85.1 110.7 L87.3 111.4 L89.7 112.1 L92.1 112.7 L94.7 113.4 L97.3 114 L100 114.5 L102.8 115 L105.6 115.5 L108.5 116 L111.5 116.4 L114.5 116.7 L117.6 117.1 L120.7 117.3 L123.9 117.6 L127.1 117.8 L130.3 117.9 L133.5 118 L136.8 118.1 L140 118.1 L143.2 118.1 L146.5 118 L149.7 117.9 L152.9 117.8 L156.1 117.6 L159.3 117.3 L162.4 117.1 L165.5 116.7 L168.5 116.4 L171.5 116 L174.4 115.5 L177.2 115 L180 114.5 L182.7 114 L185.3 113.4 L187.9 112.7 L190.3 112.1 L192.7 111.4 L194.9 110.7 L197.1 109.9 L199.1 109.1 L201 108.3 L202.8 107.5 L204.5 106.6 L206.1 105.7 L207.5 104.8 L208.8 103.9 L210 103 L211 102 L211.9 101.1 L212.7 100.1 L213.3 99.1 L213.8 98.1 L214.2 97.1 L214.4 96.1 L214.5 95.1" class="s-acc" fill="none" stroke-width="2.4"/><line x1="140" y1="136" x2="140" y2="31.3" class="s-line" stroke-width="1.2" marker-end="url(#f205a-dim)"/><text font-size="14" x="146" y="35.3" class="t-math dim" text-anchor="start"><tspan font-style="italic">z</tspan></text><line x1="140" y1="136" x2="175" y2="115.4" class="s-acc2" stroke-width="2.2" marker-end="url(#f205a-acc2)"/><text font-size="15" x="181" y="129.4" class="t-math acc2" text-anchor="start"><tspan font-weight="bold">n</tspan></text><path d="M140 109.8 L140.5 110.1 L140.9 110.4 L141.4 110.8 L141.9 111.2 L142.3 111.6 L142.8 112.1 L143.2 112.5 L143.7 113.1 L144.1 113.6 L144.6 114.2 L145 114.8 L145.4 115.4 L145.8 116.1 L146.3 116.7 L146.7 117.4 L147.1 118.2 L147.4 118.9 L147.8 119.7 L148.2 120.5 L148.5 121.3 L148.9 122.2 L149.2 123 L149.5 123.9 L149.8 124.8 L150.1 125.7 L150.4 126.6 L150.7 127.5 L150.9 128.5 L151.2 129.4" class="s-line" fill="none" stroke-width="1.1"/><text font-size="13" x="151.5" y="113.2" class="t-math dim" text-anchor="start"><tspan font-style="italic">θ</tspan></text><text font-size="15" x="100" y="100" class="t-math acc" text-anchor="middle">Ω = π</text><line x1="210" y1="103" x2="213.3" y2="91.1" class="s-acc" stroke-width="2.4" marker-end="url(#f205a-acc)"/><text font-size="13" x="140" y="244" class="t-dim" text-anchor="middle">θ = 60°</text></svg><!--/fig:20-5a--><!--fig:20-5b--><svg viewBox="0 0 280 250" role="img" aria-label="고리를 한 바퀴 도는 데 걸린 시간을 늘려 가며 정확한 시간 변화에서 동역학적 위상을 뺀 위상을 로그 눈금 위에 그렸다. 극각 60도 고리는 마이너스 파이 2분의 1로, 90도 고리는 마이너스 파이로 다가간다"><defs><marker id="f205b-dim" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker><marker id="f205b-acc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker><marker id="f205b-acc2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc2"/></marker></defs><text x="12" y="22" class="t-b" text-anchor="start">(나) 동역학적 위상을 뺀 위상</text><line x1="46" y1="206" x2="262" y2="206" class="s-line" stroke-width="1.2" marker-end="url(#f205b-dim)"/><line x1="46" y1="206" x2="46" y2="36" class="s-line" stroke-width="1.2"/><line x1="46" y1="206" x2="46" y2="210" class="s-line" stroke-width="1.2"/><text font-size="13" x="46" y="224" class="t-math dim" text-anchor="middle">2</text><line x1="148" y1="206" x2="148" y2="210" class="s-line" stroke-width="1.2"/><text font-size="13" x="148" y="224" class="t-math dim" text-anchor="middle">20</text><line x1="250" y1="206" x2="250" y2="210" class="s-line" stroke-width="1.2"/><text font-size="13" x="250" y="224" class="t-math dim" text-anchor="middle">200</text><line x1="86.6" y1="206" x2="86.6" y2="209" class="s-line" stroke-width="1"/><line x1="117.3" y1="206" x2="117.3" y2="209" class="s-line" stroke-width="1"/><line x1="188.6" y1="206" x2="188.6" y2="209" class="s-line" stroke-width="1"/><line x1="219.3" y1="206" x2="219.3" y2="209" class="s-line" stroke-width="1"/><line x1="42" y1="48.1" x2="46" y2="48.1" class="s-line" stroke-width="1.2"/><text font-size="13" x="39" y="52.6" class="t-math dim" text-anchor="end">0</text><line x1="42" y1="111.8" x2="46" y2="111.8" class="s-line" stroke-width="1.2"/><text font-size="13" x="39" y="116.3" class="t-math dim" text-anchor="end">−π/2</text><line x1="46" y1="111.8" x2="250" y2="111.8" class="s-grid" stroke-dasharray="4 3"/><line x1="42" y1="175.6" x2="46" y2="175.6" class="s-line" stroke-width="1.2"/><text font-size="13" x="39" y="180.1" class="t-math dim" text-anchor="end">−π</text><line x1="46" y1="175.6" x2="250" y2="175.6" class="s-grid" stroke-dasharray="4 3"/><path d="M46 144.3 L47.7 142.6 L49.4 140.6 L51.1 138.4 L52.9 136.2 L54.6 134.3 L56.3 132.9 L58 132 L59.7 131.6 L61.4 131.6 L63.1 131.5 L64.9 131.1 L66.6 130.1 L68.3 128.8 L70 127.5 L71.7 126.4 L73.4 125.8 L75.1 125.7 L76.9 125.7 L78.6 125.2 L80.3 124.3 L82 123.4 L83.7 122.7 L85.4 122.6 L87.1 122.5 L88.9 122.1 L90.6 121.3 L92.3 120.7 L94 120.6 L95.7 120.5 L97.4 120 L99.1 119.4 L100.9 119.2 L102.6 119.1 L104.3 118.7 L106 118.3 L107.7 118.2 L109.4 118 L111.1 117.5 L112.9 117.5 L114.6 117.2 L116.3 116.9 L118 116.9 L119.7 116.5 L121.4 116.4 L123.1 116.2 L124.9 116 L126.6 115.9 L128.3 115.7 L130 115.6 L131.7 115.4 L133.4 115.3 L135.1 115.1 L136.9 115 L138.6 114.9 L140.3 114.7 L142 114.7 L143.7 114.6 L145.4 114.4 L147.1 114.3 L148.9 114.3 L150.6 114.2 L152.3 114.1 L154 114 L155.7 113.9 L157.4 113.8 L159.1 113.7 L160.9 113.7 L162.6 113.6 L164.3 113.5 L166 113.5 L167.7 113.4 L169.4 113.3 L171.1 113.3 L172.9 113.2 L174.6 113.2 L176.3 113.1 L178 113.1 L179.7 113 L181.4 113 L183.1 112.9 L184.9 112.9 L186.6 112.9 L188.3 112.8 L190 112.8 L191.7 112.7 L193.4 112.7 L195.1 112.7 L196.9 112.6 L198.6 112.6 L200.3 112.6 L202 112.6 L203.7 112.5 L205.4 112.5 L207.1 112.5 L208.9 112.5 L210.6 112.4 L212.3 112.4 L214 112.4 L215.7 112.4 L217.4 112.3 L219.1 112.3 L220.9 112.3 L222.6 112.3 L224.3 112.3 L226 112.3 L227.7 112.2 L229.4 112.2 L231.1 112.2 L232.9 112.2 L234.6 112.2 L236.3 112.2 L238 112.2 L239.7 112.1 L241.4 112.1 L243.1 112.1 L244.9 112.1 L246.6 112.1 L248.3 112.1 L250 112.1" class="s-acc" fill="none" stroke-width="2"/><path d="M46 203.4 L47.7 202.6 L49.4 202.2 L51.1 202.2 L52.9 202.2 L54.6 202 L56.3 201.4 L58 200.3 L59.7 198.9 L61.4 197.4 L63.1 195.9 L64.9 194.9 L66.6 194.3 L68.3 194.2 L70 194.1 L71.7 193.8 L73.4 193 L75.1 191.9 L76.9 190.8 L78.6 190.1 L80.3 189.9 L82 189.9 L83.7 189.5 L85.4 188.6 L87.1 187.7 L88.9 187.3 L90.6 187.3 L92.3 187 L94 186.3 L95.7 185.6 L97.4 185.4 L99.1 185.3 L100.9 184.8 L102.6 184.2 L104.3 184.1 L106 183.9 L107.7 183.3 L109.4 183.1 L111.1 183 L112.9 182.5 L114.6 182.3 L116.3 182.2 L118 181.7 L119.7 181.6 L121.4 181.4 L123.1 181.1 L124.9 181 L126.6 180.7 L128.3 180.6 L130 180.3 L131.7 180.2 L133.4 180 L135.1 179.8 L136.9 179.7 L138.6 179.5 L140.3 179.4 L142 179.2 L143.7 179.1 L145.4 179 L147.1 178.8 L148.9 178.7 L150.6 178.6 L152.3 178.5 L154 178.4 L155.7 178.3 L157.4 178.2 L159.1 178.1 L160.9 178 L162.6 177.9 L164.3 177.8 L166 177.7 L167.7 177.6 L169.4 177.5 L171.1 177.5 L172.9 177.4 L174.6 177.3 L176.3 177.3 L178 177.2 L179.7 177.1 L181.4 177.1 L183.1 177 L184.9 177 L186.6 176.9 L188.3 176.9 L190 176.8 L191.7 176.8 L193.4 176.7 L195.1 176.7 L196.9 176.6 L198.6 176.6 L200.3 176.5 L202 176.5 L203.7 176.5 L205.4 176.4 L207.1 176.4 L208.9 176.4 L210.6 176.3 L212.3 176.3 L214 176.3 L215.7 176.3 L217.4 176.2 L219.1 176.2 L220.9 176.2 L222.6 176.2 L224.3 176.1 L226 176.1 L227.7 176.1 L229.4 176.1 L231.1 176.1 L232.9 176 L234.6 176 L236.3 176 L238 176 L239.7 176 L241.4 176 L243.1 175.9 L244.9 175.9 L246.6 175.9 L248.3 175.9 L250 175.9" class="s-acc2" fill="none" stroke-width="2"/><text font-size="13" x="248" y="103.8" class="t-math acc" text-anchor="end"><tspan font-style="italic">θ</tspan> = 60°</text><text font-size="13" x="248" y="167.6" class="t-math acc2" text-anchor="end"><tspan font-style="italic">θ</tspan> = 90°</text><text font-size="14" x="262" y="240" class="t-math dim" text-anchor="end"><tspan font-style="italic">T</tspan> / <tspan font-style="italic">T</tspan><tspan baseline-shift="sub" font-size="72%">L</tspan></text></svg><!--/fig:20-5b--></div>
+      <figcaption><b>그림 20-5.</b> (가) 극각 \(60^\circ\)의 고리가 둘러싼 구면 조각(색칠한 부분)의 입체각은 \(\Omega=2\pi(1-\cos60^\circ)=\pi\)다. (나) 자기장 방향을 한 바퀴 돌리는 데 걸린 시간 \(T\)를 라머 주기 \(T_{\rm L}=\pi\hbar/\mu_BB\)의 배수로 늘려 가며, 처음 상태 \(|{+}\boldsymbol n\rangle\)의 정확한 시간 변화(회전 좌표계에서 풀었다)에서 동역학적 위상 \(-\mu_BBT/\hbar\)를 뺀 위상. 천천히 돌릴수록 \(-\Omega/2\)로 다가가며, 남은 차이는 \(T\)에 반비례해 줄어든다.</figcaption>
     </figure>
+    <p>베리 위상이 왜 입체각인지는 스토크스 정리로 경로 적분을 넓이 적분으로 바꾸면 보인다. 매개변수 공간을 자기장 벡터 \(\boldsymbol B\)의 3차원 공간으로 보자. 구면 좌표에서 기울기의 \(\phi\) 성분은 \((1/B\sin\theta)\,\partial_\phi\)이므로 베리 접속은 \(\boldsymbol{\mathcal A}_+=-\sin^2(\theta/2)/(B\sin\theta)\,\hat{\boldsymbol\phi}\)이다. 구면 좌표의 회전 공식에서 \(\phi\) 성분만 있는 벡터의 \(B\) 방향 성분은 \((1/B\sin\theta)\,\partial_\theta(\sin\theta\,\mathcal A_\phi)\)이고, 나머지 두 성분은 \(\mathcal A_\phi\)가 \(\phi\)에 의존하지 않고 \(B\mathcal A_\phi\)가 \(B\)에 의존하지 않아 0이다.</p>
+    <div class="formula" id="eq-berry-curvature">\[ \begin{aligned}
+      \boldsymbol\nabla_{\!B}\times\boldsymbol{\mathcal A}_+
+        &amp;=\frac{\hat{\boldsymbol B}}{B\sin\theta}\,\partial_\theta\Big(-\frac{\sin^2(\theta/2)}{B}\Big)\\
+        &amp;=-\frac{\hat{\boldsymbol B}}{B^2\sin\theta}\sin\frac\theta2\cos\frac\theta2
+         =-\frac{\hat{\boldsymbol B}}{2B^2}.
+    \end{aligned} \]</div>
+    <p>이것은 원점 \(\boldsymbol B=0\)에 놓인 크기 \(-1/2\)의 "홀극"이 만드는 쿨롱 장 꼴이다. 고리가 둘러싼 구면 조각을 지나는 선속은 \(-\tfrac1{2B^2}\cdot B^2\Omega=-\Omega/2\)이고, 이것이 \(\gamma_+\)이다. 원점은 두 준위 \(\pm\mu_BB\)가 축퇴되는 점이다. 베리 위상은 경로가 축퇴점에 대해 이루는 입체각으로 정해진다. 이 위상 선택에서 \(\boldsymbol{\mathcal A}_+\)는 \(\theta=\pi\)에서 정의되지 않으므로, 스토크스 정리의 넓이는 남극 방향을 포함하지 않는 북쪽 조각으로 잡았다.</p>
+    <p>베리 위상은 두 상태의 상대 위상으로 측정한다. 스핀을 \(|{+}\boldsymbol n\rangle\)과 \(|{-}\boldsymbol n\rangle\)의 겹침으로 준비하면 한 바퀴 뒤 두 성분의 상대 위상에 동역학적 부분과 함께 \(\gamma_+-\gamma_-=-\Omega\)가 더해진다. 1987년에 중성자 스핀을 천천히 회전하는 자기장에 통과시킨 실험이 이 입체각 의존성을 확인했다.</p>
+    <div class="callout deep"><strong>아하로노프–봄 효과도 베리 위상이다</strong><p>전하 \(q\)인 입자를 작은 상자에 가두고, 자기 선속 \(\Phi\)가 지나는 가는 관 둘레로 상자를 천천히 한 바퀴 옮겨 보자. 입자가 지나는 곳에는 자기장이 없어도 상태는 베리 위상 \(q\Phi/\hbar\)를 얻는다(베리, 1984). 자기장은 0이지만 벡터 퍼텐셜은 0이 아닌 곳에서 위상이 생기는 아하로노프–봄 효과를 단열 진화로 다시 본 것이다. 게이지 퍼텐셜과 함께 심화 양자역학(2권)에서 다룬다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li>상호작용 묘사에서는 자유 진화를 분리하여 \(i\hbar\,d|\psi_I\rangle/dt=\lambda V_I|\psi_I\rangle\)로 상태 변화를 계산한다.</li>
-      <li>1차 전이 진폭은 \(e^{i\omega_{fi}t}V_{fi}(t)\)의 시간 적분이고, 다이슨 전개에서는 나중 시각의 연산자가 왼쪽에 놓인다.</li>
-      <li>유한 시간 펄스의 전이 확률은 공명 근처에서 sinc 제곱 모양이며, 시간이 길어질수록 높아지고 좁아진다.</li>
-      <li>연속 최종 상태에 대해 약한 결합과 중간 시간 조건이 맞으면 \(\Gamma=(2\pi/\hbar)\lambda^2|V|^2\rho\)이다.</li>
-      <li>고전적인 진동 전기장은 쌍극자 상호작용을 통해 흡수와 유도 방출을 계산하게 하지만 자발 방출에는 양자화된 전자기장이 필요하다.</li>
-      <li>중심 퍼텐셜의 전기 쌍극자 전이는 \(\Delta\ell=\pm1\), 편광에 따라 \(\Delta m=0,\pm1\)을 만족해야 한다.</li>
-      <li>느린 변화에서 고립된 순간 고유상태를 따라가며 동역학적 위상과 경로에 의존하는 베리 위상을 함께 얻는다.</li>
+      <li>계수 방정식 \(i\hbar\dot c_f=\sum_nV_{fn}e^{i\omega_{fn}t}c_n\)은 정확하고, 차례로 적분하면 다이슨 급수의 각 차수가 된다. 1차 진폭은 섭동의 진동수 \(\omega_{fi}\) 성분이며, 처음 상태의 확률은 2차에서 새어 나간 만큼 줄어 전체 확률이 보존된다.</li>
+      <li>길이 \(T\)인 펄스의 전이 확률은 높이가 \(T^2\), 폭이 \(1/T\)에 비례하는 봉우리다. 가우스 펄스를 받은 진동자의 확률은 \(e^{-\omega^2\tau^2/2}\)로 줄어, 섭동에 계의 진동수 성분이 없으면 전이가 일어나지 않는다.</li>
+      <li>연속 상태로의 전이에서는 봉우리의 넓이가 시간에 비례하여 페르미 황금률 \(w=(2\pi/\hbar)|V_{fi}|^2\rho(E_i)\)가 나온다. \(t\gg\hbar/\varepsilon_c\)여야 한다.</li>
+      <li>처음 상태가 비는 효과까지 넣으면 붕괴는 \(e^{-wt}\)이고 끝 상태의 에너지 분포는 반치폭 \(\Gamma=\hbar w\)인 로렌츠 분포다. 준위의 이동은 19장의 2차 에너지다.</li>
+      <li>전기 쌍극자 근사에서 흡수와 유도 방출의 계수 \(B\)는 같고, 열평형과 플랑크 분포에서 자발 방출률 \(A=4\alpha\omega^3|\boldsymbol r_{fi}|^2/3c^2\)이 나온다.</li>
+      <li>쌍극자 선택 규칙은 \(\Delta\ell=\pm1\), \(\Delta m=0,\pm1\), \(\Delta m_s=0\)이다. 수소 \(2p\)의 수명은 \(1.60\) ns이고, \(2s\)는 한 광자 붕괴가 금지되어 0.12 s 산다.</li>
+      <li>변화가 \(\hbar/\Delta E\)보다 빠르면 상태가 그대로 남고(급격 근사), 느리면 순간 고유상태를 따라간다(단열 정리). 단열 조건이 깨지는 정도는 란다우–제너 공식 \(e^{-\pi/4\eta_0}\)로 잰다.</li>
+      <li>닫힌 경로의 베리 위상은 빠르기와 무관한 경로의 기하학이다. 스핀 1/2에서는 경로가 축퇴점에 대해 이루는 입체각의 절반 \(-\Omega/2\)이다.</li>
     </ol>
   </section>
 
@@ -335,51 +435,53 @@
     <h2>확인 퀴즈</h2>
     <p class="quiz-score"></p>
     <div class="quiz">
-      <div class="quiz-q"><p>1. 다이슨 전개의 2차 항에서 \(t_1&gt;t_2\)일 때 연산자의 순서는?</p><div class="opts">
-        <button class="opt" data-correct>\(V_I(t_1)V_I(t_2)\)</button><button class="opt">\(V_I(t_2)V_I(t_1)\)</button><button class="opt">항상 순서와 무관하다</button>
-      </div><div class="quiz-exp">나중 시각의 연산자가 왼쪽에 놓인다.</div></div>
-      <div class="quiz-q"><p>2. 페르미 황금률을 그대로 적용할 수 있는 최종 상태는?</p><div class="opts">
-        <button class="opt">단 하나의 고립된 준위</button><button class="opt" data-correct>공명 근처에 많은 연속 상태가 있는 경우</button><button class="opt">처음 상태와 완전히 같은 상태만</button>
-      </div><div class="quiz-exp">연속 상태의 확률을 상태 밀도로 적분할 때 일정한 전이율이 나온다.</div></div>
-      <div class="quiz-q"><p>3. \(E_f&gt;E_i\)인 원자가 진동수 \(\omega\)의 빛을 흡수할 때의 공명 조건은?</p><div class="opts">
-        <button class="opt" data-correct>\(E_f-E_i\simeq\hbar\omega\)</button><button class="opt">\(E_f+E_i\simeq\hbar\omega\)</button><button class="opt">\(E_f-E_i\simeq-\hbar\omega\)</button>
-      </div><div class="quiz-exp">흡수는 원자의 에너지를 광자 에너지 \(\hbar\omega\)만큼 높인다.</div></div>
-      <div class="quiz-q"><p>4. 외부 고전 전기장을 0으로 놓은 이 장의 쌍극자 섭동으로 직접 계산할 수 없는 과정은?</p><div class="opts">
-        <button class="opt">흡수</button><button class="opt">유도 방출</button><button class="opt" data-correct>자발 방출</button>
-      </div><div class="quiz-exp">자발 방출에는 양자화된 전자기장의 진공 상태가 필요하다.</div></div>
-      <div class="quiz-q"><p>5. \(z\) 방향 전기 쌍극자 전이에서 \(1s\to2s\)가 금지되는 가장 직접적인 이유는?</p><div class="opts">
-        <button class="opt">에너지 차이가 0이라서</button><button class="opt" data-correct>두 상태의 짝홀성이 같아서</button><button class="opt">스핀이 반드시 바뀌어서</button>
-      </div><div class="quiz-exp">홀성인 \(z\)를 사이에 둔 두 짝성 상태의 적분은 0이다.</div></div>
-      <div class="quiz-q"><p>6. \(\hat H=\mu_BB\,\boldsymbol n\cdot\boldsymbol\sigma\)의 \(+\) 상태에서 \(\theta=60^\circ\)로 자기장 방향을 한 바퀴 돌리면 베리 위상은?</p><div class="opts">
-        <button class="opt">\(+\pi/2\)</button><button class="opt" data-correct>\(-\pi/2\) (mod \(2\pi\))</button><button class="opt">언제나 0</button>
-      </div><div class="quiz-exp">입체각 \(\Omega=2\pi(1-\cos60^\circ)=\pi\)이고 \(\gamma_+=-\Omega/2\)다.</div></div>
+      <div class="quiz-q"><p>1. 일정한 결합을 켜 두는 시간을 두 배로 늘리면 그림 20-1의 공명 봉우리 아래 넓이는?</p><div class="opts">
+        <button class="opt">그대로다</button><button class="opt" data-correct>두 배가 된다</button><button class="opt">네 배가 된다</button>
+      </div><div class="quiz-exp">높이는 네 배, 폭은 절반이 되어 넓이는 시간에 비례한다. 이것이 황금률의 일정한 전이율이 된다.</div></div>
+      <div class="quiz-q"><p>2. 황금률 비율이 \(w\)인 상태가 넓은 연속 상태로 붕괴할 때 옳은 것은?</p><div class="opts">
+        <button class="opt">처음 상태에 남을 확률은 \(1-wt\)로 줄어 \(t=1/w\)에 0이 된다</button><button class="opt" data-correct>남을 확률은 \(e^{-wt}\)이고 끝 상태의 에너지는 반치폭 \(\hbar w\)로 퍼진다</button><button class="opt">끝 상태의 에너지는 정확히 \(E_i\) 하나다</button>
+      </div><div class="quiz-exp">바이스코프–위그너 계산에서 \(c_i=e^{-wt/2}\)이고 끝 상태의 분포는 로렌츠 꼴이다.</div></div>
+      <div class="quiz-q"><p>3. 쌍극자 행렬 원소가 같은 두 전이가 있다. 한 전이의 진동수가 다른 전이의 1/10이면 자발 방출률은 몇 배인가?</p><div class="opts">
+        <button class="opt">1/10</button><button class="opt">1/100</button><button class="opt" data-correct>1/1000</button>
+      </div><div class="quiz-exp">\(A\propto\omega^3|\boldsymbol r_{fi}|^2\)이다.</div></div>
+      <div class="quiz-q"><p>4. 수소에서 \(1s\to2s\) 전기 쌍극자 전이가 금지되는 가장 직접적인 이유는?</p><div class="opts">
+        <button class="opt">에너지 차이가 0이라서</button><button class="opt" data-correct>두 상태의 짝홀성이 같아서</button><button class="opt">스핀이 바뀌어야 해서</button>
+      </div><div class="quiz-exp">홀수 연산자 \(\hat{\boldsymbol r}\)을 사이에 둔 두 짝수 상태의 적분은 0이다.</div></div>
+      <div class="quiz-q"><p>5. 란다우–제너 모형에서 대각 간격을 쓸어 지나는 빠르기 \(\alpha\)를 줄이면 위 순간 고유상태로 넘어갈 확률은?</p><div class="opts">
+        <button class="opt" data-correct>\(e^{-2\pi v^2/\hbar\alpha}\)로 지수적으로 작아진다</button><button class="opt">\(\alpha\)에 비례해 작아진다</button><button class="opt">1에 가까워진다</button>
+      </div><div class="quiz-exp">느릴수록 단열 정리에 가까워지고, 어긋나는 확률은 \(\eta_0\)의 어떤 거듭제곱보다도 빨리 줄어든다.</div></div>
+      <div class="quiz-q"><p>6. 자기장 방향을 같은 고리를 따라 두 배 천천히 돌리면 스핀의 베리 위상은?</p><div class="opts">
+        <button class="opt">두 배가 된다</button><button class="opt">절반이 된다</button><button class="opt" data-correct>그대로다</button>
+      </div><div class="quiz-exp">베리 위상은 경로가 둘러싼 입체각으로만 정해진다. 두 배가 되는 것은 동역학적 위상이다.</div></div>
     </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <div class="prob" id="prob-decaying-pulse" data-level="2"><p>\(t\ge0\)에서 \(V_{fi}(t)=v e^{-t/\tau}\), \(\tau&gt;0\)이고 그 전에는 0이다. \(t\to\infty\)일 때 \(c_f^{(1)}\)과 전이 확률을 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-first-order-transition"></a>에서 \(\int_0^\infty e^{-(1/\tau-i\omega_{fi})t}dt=\tau/(1-i\omega_{fi}\tau)\)다. 따라서 \(c_f^{(1)}=-i\lambda v\tau/[\hbar(1-i\omega_{fi}\tau)]\), \(P\simeq\lambda^2|v|^2\tau^2/[\hbar^2(1+\omega_{fi}^2\tau^2)]\)이다.</p></details></div>
-    <div class="prob" id="prob-pulse-zeros" data-level="1"><p>식 <a class="ref" href="#eq-pulse-transition"></a>의 확률이 0이 되는 0이 아닌 \(\omega_{fi}T\) 값을 가장 작은 절댓값부터 네 개 쓰라. 펄스 시간이 두 배가 되면 공명 봉우리의 폭은 어떻게 되는가?</p>
-      <details class="sol"><summary>풀이</summary><p>\(\sin(\omega_{fi}T/2)=0\)이므로 가장 가까운 네 값은 \(\omega_{fi}T=\pm2\pi,\pm4\pi\)다. 첫 영점까지의 주파수 거리는 \(2\pi/T\)이고, \(T\)를 두 배로 하면 폭은 절반이 된다.</p></details></div>
-    <div class="prob" id="prob-second-order-path" data-level="2"><p>처음 \(|i\rangle\)에서 \(|f\rangle\)로 가는 직접 행렬 원소 \(V_{fi}(t)\)는 항상 0이지만, 중간 상태 \(|m\rangle\)을 통하는 \(V_{mi},V_{fm}\)은 0이 아니라고 하자. 다이슨 전개에서 처음 나타나는 \(i\to f\) 진폭을 시간 순서를 보이며 쓰라.</p>
-      <details class="sol"><summary>풀이</summary><div class="formula">\[c_f^{(2)}(t)=(-i\lambda/\hbar)^2\int_0^t dt_1\int_0^{t_1}dt_2\,\langle f|V_I(t_1)|m\rangle\langle m|V_I(t_2)|i\rangle.\]</div><p>먼저 \(t_2\)에 \(i\to m\), 나중 \(t_1\)에 \(m\to f\)로 옮겨 간다.</p></details></div>
-    <div class="prob" id="prob-golden-number" data-level="1"><p>\(\hbar=\lambda=1\), \(|V_{E_i i}|=0.03\), \(\rho(E_i)=4\)인 연속체에서 황금률 전이율을 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-fermi-golden-rule"></a>에 대입하면 \(\Gamma=2\pi(0.03)^2(4)=0.0072\pi\simeq0.0226\)이다. 단위는 선택한 시간 단위의 역수다.</p></details></div>
-    <div class="prob" id="prob-golden-window" data-level="2"><p>어떤 연속체에서 \(\rho(E)|V_{Ei}|^2\)가 에너지 폭 \(E_c\)에 걸쳐 거의 일정하고 황금률 전이율은 \(\Gamma\)다. 황금률 근사가 성립할 수 있는 시간 범위를 부등식으로 쓰고, 두 경계가 왜 필요한지 설명하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\hbar/E_c\ll T\ll1/\Gamma\)가 필요하다. 왼쪽은 공명 폭 \(\hbar/T\)가 \(E_c\)보다 작게 하여 상태 밀도와 행렬 원소를 상수로 빼기 위함이다. 오른쪽은 \(\Gamma T\ll1\)로 초기 상태의 고갈을 막는다.</p></details></div>
-    <div class="prob" id="prob-light-resonance" data-level="2"><p>\(z_{fi}=0.5a_0\)인 두 준위를 \(z\) 편광 빛으로 공명 구동한다. \(\Omega=e\mathcal E_0a_0/\hbar\)로 정의할 때, 회전파 근사와 1차 섭동론에서 \(P_{i\to f}(T)\)를 \(\Omega T\)로 쓰라.</p>
-      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-resonant-light"></a>에 \(|z_{fi}|=a_0/2\)를 넣으면 \(P\simeq(e\mathcal E_0a_0T/(4\hbar))^2=(\Omega T/4)^2\)다. \(\Omega T/4\ll1\)이어야 한다.</p></details></div>
-    <div class="prob" id="prob-selection-cases" data-level="2"><p>스핀을 무시하고 \(z\) 편광 전기 쌍극자 전이를 본다. \(1s\to2s\), \(1s\to2p_0\), \(2p_0\to3d_0\), \(2p_1\to3d_2\) 가운데 선택 규칙으로 금지되는 것을 고르라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(1s\to2s\)는 \(\Delta\ell=0\)이라 금지된다. \(2p_1\to3d_2\)는 \(z\) 편광에 필요한 \(\Delta m=0\)을 어겨 금지된다. 나머지 두 전이는 \(\Delta\ell=+1,\Delta m=0\)을 만족하여 선택 규칙상 허용된다.</p></details></div>
-    <div class="prob" id="prob-hydrogen-matrix" data-level="3"><p><a href="ch15.html#eq-low-radial">수소의 \(R_{10},R_{21}\)</a>과 구면 조화 함수를 이용해 식 <a class="ref" href="#eq-one-s-two-p-dipole"></a>의 \(\langle2p_0|z|1s\rangle\)를 다시 계산하라.</p>
-      <details class="sol"><summary>풀이</summary><p>각도 적분은 \(1/\sqrt3\)이다. 지름 적분은 \(a_0/\sqrt6\int_0^\infty u^4e^{-3u/2}du=(a_0/\sqrt6)\,4!/(3/2)^5=256a_0/(81\sqrt6)\)다. 곱하면 \(256a_0/(243\sqrt2)\)가 된다.</p></details></div>
-    <div class="prob" id="prob-adiabatic-gap" data-level="2"><p>\(\hat H(t)=\frac{\Delta}{2}\sigma_z+g(t)\sigma_x\), \(\Delta&gt;0\)인 두 준위계를 생각하자. \(g=0\)인 순간에 식 <a class="ref" href="#eq-adiabatic-condition"></a>의 \(\eta_{+-}\)를 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>그 순간 간격은 \(\Delta\), \(\dot H=\dot g\,\sigma_x\), 두 \(\sigma_z\) 고유상태 사이의 \(|\langle-|\sigma_x|+\rangle|=1\)이다. 따라서 \(\eta_{+-}=\hbar|\dot g|/\Delta^2\)다.</p></details></div>
-    <div class="prob" id="prob-berry-angles" data-level="1"><p>식 <a class="ref" href="#eq-spin-berry"></a>의 스핀 \(+\) 상태에 대해 \(\theta=0^\circ,60^\circ,90^\circ\)인 세 고리의 베리 위상을 각각 구하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(\gamma_+=-\pi(1-\cos\theta)\)이므로 차례로 \(0,-\pi/2,-\pi\)다. 위상은 \(2\pi\)의 정수배만큼 차이가 나도 같다.</p></details></div>
-    <div class="prob" id="prob-berry-gauge" data-level="3"><p>순간 고유상태를 \(|n(\boldsymbol R)\rangle\to e^{i\chi(\boldsymbol R)}|n(\boldsymbol R)\rangle\)로 다시 정의하자. 베리 접속의 변환을 직접 계산하고, 닫힌 경로에서 베리 위상이 어떻게 되는지 설명하라.</p>
-      <details class="sol"><summary>풀이</summary><p>\(i\langle e^{i\chi}n|\boldsymbol\nabla_R(e^{i\chi}n)\rangle=i\langle n|\boldsymbol\nabla_R n\rangle-\boldsymbol\nabla_R\chi\)다. 따라서 \(\gamma'_n[C]=\gamma_n[C]-\oint_C d\chi\)이고, 매끄럽고 한 값인 위상 선택에서는 차이가 0, 일반적인 허용 위상 감김에서는 \(2\pi\)의 정수배다.</p></details></div>
+    <div class="prob" id="prob-decaying-pulse" data-level="2"><p>\(t\ge0\)에서 \(V_{fi}(t)=v\,e^{-t/\tau}\) (\(\tau&gt;0\))이고 그 전에는 0이다. \(t\to\infty\)일 때 \(c_f^{(1)}\)과 전이 확률을 구하라. \(\tau\to\infty\)이면 섭동이 아주 느리게 줄어드는데도 확률이 0이 되지 않는다. 그 까닭을 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>식 <a class="ref" href="#eq-first-order-transition"></a>에서 \(\int_0^\infty e^{(i\omega_{fi}-1/\tau)t}dt=\tau/(1-i\omega_{fi}\tau)\)이므로 \(c_f^{(1)}=-iv\tau/[\hbar(1-i\omega_{fi}\tau)]\), \(P=|v|^2\tau^2/[\hbar^2(1+\omega_{fi}^2\tau^2)]\)이다. \(\tau\to\infty\)이면 \(P\to|v|^2/(\hbar\omega_{fi})^2\)이다. 섭동이 \(t=0\)에 갑자기 켜졌기 때문이다. 켜는 순간은 급격한 변화이고, 그 뒤 천천히 줄어드는 부분은 거의 기여하지 않는다. 켤 때도 천천히 켜면 확률이 0으로 간다.</p></details></div>
+    <div class="prob" id="prob-oscillator-second-order" data-level="3"><p><a class="ref" href="#ex-kicked-oscillator"></a>의 진동자에서 \(|2\rangle\)로 가는 진폭의 가장 낮은 차수 \(c_2^{(2)}\)를 식 <a class="ref" href="#eq-second-order-transition"></a>로 구하라. \(\alpha=c_1^{(1)}\)로 나타내고, 정확한 포아송 분포의 \(P_{0\to2}\)와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(|0\rangle\)에서 \(|2\rangle\)로 가는 경로는 \(m=1\)을 거치는 것뿐이다. \(g(t)\equiv-F(t)\sqrt{\hbar/2m\omega}\,e^{i\omega t}\)라 두면 \(\langle1|\hat V_I|0\rangle=g\), \(\langle2|\hat V_I|1\rangle=\sqrt2\,g\)이므로 \(c_2^{(2)}=\sqrt2(-i/\hbar)^2\int dt_1\int^{t_1}dt_2\,g(t_1)g(t_2)\)이다. 피적분 함수가 \(t_1,t_2\)에 대해 대칭이므로 삼각형 위의 적분은 정사각형 위 적분의 절반, 곧 \(\tfrac12(\int g\,dt)^2\)이다. 따라서 \(c_2^{(2)}=\tfrac{\sqrt2}2[(-i/\hbar)\int g\,dt]^2=\alpha^2/\sqrt2\)이고 \(|c_2^{(2)}|^2=|\alpha|^4/2\)이다. 정확한 값 \(e^{-|\alpha|^2}|\alpha|^4/2\)의 첫 항과 같다.</p></details></div>
+    <div class="prob" id="prob-golden-window" data-level="2"><p>어떤 연속체에서 \(\rho(E)|V_{Ei}|^2\)가 에너지 폭 \(\varepsilon_c\)에 걸쳐 거의 일정하고 황금률 비율은 \(w\)다. 1차 섭동론의 \(P\simeq wt\)가 맞는 시간 범위를 부등식으로 쓰고, 두 경계가 왜 필요한지 설명하라. 바이스코프–위그너 계산에서는 두 경계 가운데 어느 것이 사라지는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\hbar/\varepsilon_c\ll t\ll1/w\)이다. 왼쪽은 봉우리 폭 \(2\pi\hbar/t\)가 \(\varepsilon_c\)보다 좁아 \(\rho|V|^2\)를 상수로 꺼내기 위해, 오른쪽은 처음 상태가 거의 비지 않아 1차 섭동론이 맞기 위해 필요하다. 바이스코프–위그너 계산은 처음 상태가 비는 것을 넣었으므로 오른쪽 경계가 사라지고, 모든 \(t\gg\hbar/\varepsilon_c\)에서 \(e^{-wt}\)가 맞는다. 왼쪽 경계는 남는다. \(t\lesssim\hbar/\varepsilon_c\)에서는 처음 상태의 확률이 \(1-(\sum_f|V_{fi}|^2/\hbar^2)\,t^2\)처럼 시간의 제곱으로 줄기 시작한다.</p></details></div>
+    <div class="prob" id="prob-lorentz-normalization" data-level="2"><p>식 <a class="ref" href="#eq-final-lorentz"></a>과 \(\rho|V|^2=\hbar w/2\pi\)를 써서 \(\int\rho(E)|c_E(\infty)|^2dE=1\)임을 보여라. 붕괴로 나온 끝 상태의 에너지가 \(E_i\pm\Gamma/2\) 안에 있을 확률은 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(x=E-E_i\)로 두면 \(\rho|c|^2=(\hbar w/2\pi)/(x^2+\Gamma^2/4)\)이고 \(\int dx/(x^2+\Gamma^2/4)=2\pi/\Gamma\)이므로 적분은 \(\hbar w/\Gamma=1\)이다. \(|x|&lt;\Gamma/2\)에서는 \(\int_{-\Gamma/2}^{\Gamma/2}dx/(x^2+\Gamma^2/4)=(2/\Gamma)[\arctan(2x/\Gamma)]_{-\Gamma/2}^{\Gamma/2}=\pi/\Gamma\)이므로 확률은 \(1/2\)이다.</p></details></div>
+    <div class="prob" id="prob-light-resonance" data-level="2"><p>\(|z_{fi}|=0.5a_0\)인 두 준위를 \(z\) 편광 단색광으로 공명 구동한다. \(\Omega\equiv e\mathcal E_0a_0/\hbar\)로 두고 1차 결과 식 <a class="ref" href="#eq-resonant-light"></a>과 라비 공식의 정확한 답을 \(\Omega t\)로 쓰라. 1차 결과가 정확한 값보다 10% 커지는 \(\Omega t\)는 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p>1차 결과는 \((\Omega t/4)^2\)이다. \(\Omega_R=e\mathcal E_0|z_{fi}|/\hbar=\Omega/2\)이므로 정확한 답은 \(\sin^2(\Omega t/4)\)이다. \(x=\Omega t/4\)로 두면 \(x^2/\sin^2x=1.1\), 곧 \(\sin x/x=0.953\)을 풀어 \(x\approx0.53\), \(\Omega t\approx2.1\)이다. 이때 확률은 약 0.26이다.</p></details></div>
+    <div class="prob" id="prob-einstein-ratio" data-level="1"><p>자발 방출과 유도 방출의 비 \(A/[Bu(\omega_0)]\)를 다음 경우에 구하라. (가) 파장 500 nm, 300 K의 흑체 복사 속. (나) 수소의 21 cm 선, 300 K. (다) 21 cm 선, 우주 배경 복사 2.725 K.</p>
+      <details class="sol"><summary>풀이</summary><p>\(A/Bu=e^{x}-1\), \(x=hc/\lambda k_BT\)이다. (가) \(x=95.9\)이므로 \(4.5\times10^{41}\)이다. (나) \(x=2.27\times10^{-4}\)이므로 \(2.3\times10^{-4}\)이다. 유도 방출이 4400배 많다. (다) \(x=0.0250\)이므로 0.025다. 우주 배경 복사만 있어도 21 cm 선에서는 유도 방출이 40배 많다.</p></details></div>
+    <div class="prob" id="prob-selection-cases" data-level="1"><p>스핀을 무시하고 \(\hat z\) 성분의 전기 쌍극자 전이를 본다. \(1s\to2s\), \(1s\to2p_0\), \(2p_0\to3d_0\), \(2p_1\to3d_2\), \(2p_0\to3p_0\) 가운데 선택 규칙으로 금지되는 것을 고르라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(1s\to2s\)와 \(2p_0\to3p_0\)은 \(\Delta\ell=0\)이라 금지된다. \(2p_1\to3d_2\)는 \(\hat z\) 성분에 필요한 \(\Delta m=0\)을 어겨 금지된다(\(\hat x+i\hat y\) 성분이라면 허용된다). 나머지 두 전이는 \(\Delta\ell=+1\), \(\Delta m=0\)을 만족한다.</p></details></div>
+    <div class="prob" id="prob-angular-sum" data-level="2"><p>\(Y_1^1=-\sqrt{3/8\pi}\,\sin\theta\,e^{i\phi}\)를 써서 각도 적분 \(\langle Y_0^0|\sin\theta\cos\phi|Y_1^1\rangle\)과 \(\langle Y_0^0|\sin\theta\sin\phi|Y_1^1\rangle\)을 구하라. \(2p_{+1}\)의 \(|\boldsymbol r_{fi}|^2\)이 \(2p_0\)과 같음을 보이고, 식 <a class="ref" href="#eq-angular-sum"></a>의 각도 인자 1/3과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\int_0^\pi\sin^3\theta\,d\theta=4/3\), \(\int_0^{2\pi}\cos\phi\,e^{i\phi}d\phi=\pi\), \(\int_0^{2\pi}\sin\phi\,e^{i\phi}d\phi=i\pi\)이다. 따라서 두 적분은 \(-\tfrac{1}{\sqrt{4\pi}}\sqrt{\tfrac{3}{8\pi}}\cdot\tfrac43\cdot\pi=-1/\sqrt6\)과 \(-i/\sqrt6\)이다. 절댓값 제곱의 합은 \(1/6+1/6=1/3\)으로 \(2p_0\)의 \(|1/\sqrt3|^2\)과 같고, \(\ell_&gt;/(2\ell_i+1)=1/3\)과 맞는다.</p></details></div>
+    <div class="prob" id="prob-3p-branching" data-level="2"><p>표의 값으로 \(3p\) 상태가 \(1s\)와 \(2s\)로 가는 갈래 비를 구하라. \(3p\)로 들뜬 원자 1000개가 모두 붕괴할 때 나오는 라이먼 베타(\(3p\to1s\))와 발머 알파(\(3p\to2s\)) 광자는 각각 몇 개인가? \(3p\to2s\)의 지름 적분이 더 큰데도 갈래 비가 작은 까닭을 \(A\)의 꼴로 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>전체 비율은 \(1.67\times10^8+2.25\times10^7=1.90\times10^8\ \mathrm{s^{-1}}\)이므로 갈래 비는 0.88과 0.12이다. 라이먼 베타 약 880개, 발머 알파 약 120개다. 지름 적분의 제곱 비는 \((3.065/0.517)^2=35\)이지만 진동수의 세제곱 비는 \((1.89/12.09)^3=1/262\)이어서, 곱하면 \(3p\to2s\)가 약 7.5배 느리다.</p></details></div>
+    <div class="prob" id="prob-tritium-2s" data-level="2"><p><a class="ref" href="#ex-tritium"></a>에서 궤도 전자가 He\(^+\)의 \(2s\)로 갈 확률을 구하라. 전하 \(Z\)의 \(2s\) 파동함수는 \(\psi_{2s}=(1/\sqrt{32\pi})(Z/a)^{3/2}(2-Zr/a)e^{-Zr/2a}\)이다.</p>
+      <details class="sol"><summary>풀이</summary><p>\(Z=2\)이면 \(\psi_{2s}=(1/\sqrt\pi a^{3/2})(1-r/a)e^{-r/a}\)이다(\(4\sqrt2/\sqrt{32}=1\)). 겹침은 \((1/\pi a^3)\,4\pi\int_0^\infty r^2(1-r/a)e^{-2r/a}dr\)이다. \(\int r^2e^{-2r/a}dr=a^3/4\), \(\int r^3e^{-2r/a}dr=3a^4/8\)이므로 겹침은 \(4(1/4-3/8)=-1/2\), 확률은 \(1/4\)이다.</p></details></div>
+    <div class="prob" id="prob-landau-zener-numbers" data-level="2"><p>최소 간격이 \(2v=h\times10\ \mathrm{MHz}\)인 두 준위에서 대각 간격을 \(\alpha=h\times1\ \mathrm{GHz/\mu s}\)의 빠르기로 쓸어 지난다. 교차점의 \(\eta_0\)와 \(P_{\rm LZ}\)를 구하라. 넘어가는 확률을 1% 아래로 줄이려면 쓸기 빠르기를 얼마 이하로 해야 하는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(v=h\times5\ \mathrm{MHz}\), \(\alpha=h\times10^{15}\ \mathrm{s^{-2}}\)이다. \(2\pi v^2/\hbar\alpha=4\pi^2v^2/h\alpha=4\pi^2(5\times10^6)^2/10^{15}=0.987\)이므로 \(P_{\rm LZ}=0.373\)이고 \(\eta_0=\pi/(4\times0.987)=0.80\)이다. \(P&lt;0.01\)이려면 지수가 \(\ln100=4.61\)보다 커야 하므로 빠르기를 \(0.987/4.61=0.21\)배, 곧 \(h\times0.21\ \mathrm{GHz/\mu s}\) 이하로 줄여야 한다.</p></details></div>
+    <div class="prob" id="prob-berry-gauge" data-level="3"><p><a class="ref" href="#ex-spin-berry"></a>의 스피너에 \(e^{-i\phi}\)를 곱한 \(|{+}\boldsymbol n\rangle'=e^{-i\phi}\cos\frac\theta2|{\uparrow}\rangle+\sin\frac\theta2|{\downarrow}\rangle\)를 쓰면 \(\mathcal A_\phi'\)과 \(\gamma_+'\)은 어떻게 되는가? 이 위상 선택은 어느 방향에서 정의되지 않으며, 결과가 \(2\pi\)를 법으로 같은 까닭을 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(\partial_\phi\)가 위 성분에 \(-i\)를 곱하므로 \(\mathcal A_\phi'=i\cdot(-i)\cos^2\frac\theta2=\cos^2\frac\theta2\)이고 \(\gamma_+'=2\pi\cos^2\frac\theta2=\pi(1+\cos\theta)\)이다. \(\gamma_+-\gamma_+'=-\pi(1-\cos\theta)-\pi(1+\cos\theta)=-2\pi\)이므로 \(2\pi\)를 법으로 같다. 이것은 \(\chi=-\phi\)로 위상을 바꾼 것이고 \(\oint d\chi=-2\pi\)이다. 새 스피너는 \(\theta=0\)(북극)에서 \(e^{-i\phi}\)가 \(\phi\)에 따라 달라져 한 값으로 정해지지 않는다. 원래 스피너는 남극에서 같은 문제가 있다.</p></details></div>
   </section>
 </main>
 </body>
