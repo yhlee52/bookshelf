@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>04 Instruction tuning과 대화 모델 · AgentBook</title>
-<meta name="description" content="base model의 응답과 instruction following · SFT와 선호 학습 · system·user 메시지의 역할 · 유용함과 정확함의 차이">
+<meta name="description" content="사전학습 모델이 지시를 따르지 못하는 이유, SFT의 마스크 손실과 보상 모델(Bradley–Terry), KL 정규화 최적 정책, system·user·assistant 메시지가 컨텍스트가 되는 방식과 멀티턴 토큰 비용, 그리고 보상 모델이 불완전할 때 best-of-N의 진짜 품질이 어떻게 달라지는지를 다룬다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,291 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch04">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">04</span></div>
     <h1 data-fill="chapter-title">Instruction tuning과 대화 모델</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">사전학습을 마친 모델에게 질문을 던지면 답이 아니라 비슷한 질문 목록이 이어질 수 있다. 모델이 한 일은 학습한 대로 그럴듯한 텍스트를 이어 쓴 것뿐이기 때문이다(1.4절). 우리가 쓰는 Claude 같은 대화 모델은 여기에 두 단계를 더 거친다. 사람이 쓴 모범 응답을 따라 쓰게 하는 지도 학습(SFT)과, 사람이 고른 선호를 보상으로 바꿔 모델을 다듬는 선호 학습이다. 이 장은 두 단계의 손실과 목적함수를 세우고, 그 결과물인 system·user·assistant 메시지 형식이 컨텍스트에서 어떻게 쓰이는지 본다. 마지막으로 '선호를 얻는 것'이 '정확한 것'과 어떻게 어긋날 수 있는지 작은 실험으로 확인한다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>base model이 질문에 답하지 않고 텍스트를 이어 쓰는 이유와, instruction tuning이 무엇을 바꾸는지 설명할 수 있다.</li>
+      <li>SFT의 마스크 손실과 보상 모델의 Bradley–Terry 손실을 손으로 계산할 수 있다.</li>
+      <li>KL 정규화된 보상 최대화의 최적 정책이 \(\pi_{\text{ref}}\,e^{r/\beta}\)에 비례함을 유도하고 \(\beta\)의 역할을 설명할 수 있다.</li>
+      <li>system·user·assistant 메시지가 하나의 토큰 시퀀스로 직렬화됨을 설명하고, 멀티턴 대화의 입력 토큰이 늘어나는 양을 계산할 수 있다.</li>
+      <li>보상 모델의 오차와 best-of-N으로 '선호 점수'와 '진짜 품질'이 어긋나는 조건을 설명하고, 이것이 에이전트의 '완료했다'는 말을 믿으면 안 되는 이유와 이어짐을 말할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch01.html">1장</a>(교차 엔트로피, 1.4절의 빈틈), <a href="ch03.html">3장</a>(사전학습, 학습과 in-context 적응의 차이)</p>
   </header>
+
+  <!-- ============================================================ 4.1 -->
   <section id="s1">
     <h2>base model의 응답과 instruction following</h2>
-    <p class="slot" data-slot="4.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>'대한민국의 수도는 어디인가?'라는 텍스트 뒤에 무엇이 올까? 사전학습한 모델은 학습 말뭉치에서 이런 문장 뒤에 흔히 오던 텍스트를 확률로 고른다. 시험 문제 모음이라면 다음 문제가, 게시판이라면 답글이나 광고가, 퀴즈 사이트라면 정답 목록이 이어진다. 질문한 사람이 답을 원한다는 사실은 모델에게 주어진 정보가 아니다. 사전학습만 마친 모델을 <span class="term">base model</span>이라 한다.</p>
+    <p>우리가 원하는 것은 지시가 요구하는 응답을 내는 모델이다. 이 능력을 <span class="term">instruction following</span>이라 하고, 이를 위해 사전학습한 모델에 추가로 하는 학습을 <span class="term">instruction tuning</span>이라 한다. 3장의 구분으로는 지시 학습은 <em>학습</em>이다. 파라미터가 바뀌며, 새 구조는 없다.</p>
+    <p>두 연구가 방향을 보였다. <a href="https://arxiv.org/abs/2109.01652">Wei 외(2021, FLAN)</a>는 여러 과제를 지시문 형태로 바꿔 미세조정하면 학습에 쓰지 않은 과제에서도 zero-shot 성능이 오른다고 보고했다. <a href="https://arxiv.org/abs/2203.02155">Ouyang 외(2022, InstructGPT)</a>는 사람의 시범 응답과 선호 비교를 이용한 세 단계 학습을 제안했고, 초록에서 파라미터가 1.3B인 InstructGPT의 출력이 175B GPT-3의 출력보다 평가자에게 선호된다고 보고했다. 모델 크기를 100배 키우는 것보다 방향을 정해 주는 학습이 더 큰 효과를 낼 수 있다는 뜻이다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 250" role="img" aria-label="지시 학습 파이프라인: 사전학습 모델을 시범 응답으로 SFT하고, 같은 모델이 만든 응답을 사람이 비교한 데이터로 보상 모델을 학습한 뒤, 보상을 높이되 SFT 모델에서 멀어지지 않게 정책을 최적화해 지시를 따르는 모델을 얻는다">
+  <defs>
+    <marker id="g41-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+    <marker id="g41-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+  </defs>
+  <rect class="f-surface" x="5" y="20" width="170" height="62" rx="8"/><text class="t-b" x="90" y="48" text-anchor="middle">사전학습 모델</text><text class="t-dim" x="90" y="68" text-anchor="middle">다음 토큰 예측 (3장)</text>
+  <rect class="f-surface" x="205" y="20" width="170" height="62" rx="8"/><text class="t-b" x="290" y="48" text-anchor="middle">SFT</text><text class="t-dim" x="290" y="68" text-anchor="middle">시범 응답을 따라 쓰기</text>
+  <rect class="f-acc-soft" x="405" y="20" width="170" height="62" rx="8"/><text class="t-b" x="490" y="48" text-anchor="middle">정책 최적화</text><text class="t-dim" x="490" y="68" text-anchor="middle">보상 ↑, π_ref와의 KL ↓</text>
+  <rect class="f-surface" x="605" y="20" width="170" height="62" rx="8"/><text class="t-b" x="690" y="48" text-anchor="middle">지시를 따르는 모델</text><text class="t-dim" x="690" y="68" text-anchor="middle">대화 모델 (assistant)</text>
+  <path d="M175 51 H201" class="s-line" marker-end="url(#g41-arr)"/><path d="M375 51 H401" class="s-line" marker-end="url(#g41-arr)"/><path d="M575 51 H601" class="s-line" marker-end="url(#g41-arr)"/>
+  <text class="t-dim" x="290" y="102" text-anchor="middle">데이터: (프롬프트, 사람이 쓴 시범 응답)</text>
+  <path d="M290 110 V150" class="s-line" stroke-dasharray="4 4" marker-end="url(#g41-arr)"/>
+  <text class="t-dim" x="282" y="132" text-anchor="end">응답을 여러 개 샘플링</text>
+  <rect class="f-surface" x="205" y="152" width="170" height="62" rx="8"/><text class="t-b" x="290" y="178" text-anchor="middle">비교 데이터</text><text class="t-dim" x="290" y="198" text-anchor="middle">(프롬프트, 선택, 거절)</text>
+  <rect class="f-surface" x="405" y="152" width="170" height="62" rx="8"/><text class="t-b" x="490" y="178" text-anchor="middle">보상 모델 r</text><text class="t-dim" x="490" y="198" text-anchor="middle">선호하는 응답에 높은 점수</text>
+  <path d="M375 183 H401" class="s-line" marker-end="url(#g41-arr)"/>
+  <path d="M490 152 V86" class="s-acc" marker-end="url(#g41-acc)"/>
+  <text class="t-acc" x="500" y="124">점수를 보상으로 쓴다</text>
+  <text class="t-dim" x="400" y="238" text-anchor="middle">π_ref는 SFT를 마친 모델이다. 정책이 π_ref에서 너무 멀어지지 않게 KL 항으로 묶는다.</text>
+</svg>
+      <figcaption><b>그림 4-1.</b> InstructGPT류의 학습 단계. 사전학습 모델에서 출발해 SFT와 정책 최적화를 거치고, 정책 최적화의 보상은 비교 데이터로 학습한 보상 모델이 준다. 구현의 세부는 모델마다 다르다.</figcaption>
+    </figure>
+    <div class="callout agent"><strong>에이전트가 쓰는 모델은 대개 이 단계를 거친다</strong>
+      <p>대화형 모델이 지시를 따르고, 정해진 형식으로 도구를 부르고, 적절한 곳에서 멈추는 행동은 사전학습만으로는 나오기 어렵다. 이런 행동은 이 장의 학습 단계에서 다듬어지는 것으로 알려져 있다. 다만 Claude의 학습 과정은 세부가 공개되어 있지 않으므로, 이 장은 공개된 연구의 일반적인 방법을 설명하며 Claude가 정확히 이렇게 학습되었다고 말하지 않는다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 4.2 -->
   <section id="s2">
     <h2>SFT와 선호 학습</h2>
-    <p class="slot" data-slot="4.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <h3 id="h-sft">지도 미세조정(SFT)</h3>
+    <p>가장 단순한 방법은 사람이 쓴 (프롬프트, 시범 응답) 쌍으로 학습하는 것이다. 이것을 <span class="term">SFT</span> <span class="en">(supervised fine-tuning)</span>라 한다. 손실은 1장의 교차 엔트로피와 같지만 응답 토큰에만 계산한다. 응답 토큰의 위치 집합을 \(R\)이라 하면 다음과 같다.</p>
+    <div class="formula" id="eq-sft">\[ L_{\text{SFT}}(\theta)=-\frac1{|R|}\sum_{t\in R}\log p_\theta(x_t\mid x_{\lt t}) \]<div class="where">프롬프트 토큰은 입력으로만 쓰고 손실에서 뺀다(loss masking).</div></div>
+    <div class="box ex" id="ex-mask"><div class="box-h">프롬프트를 마스크하는 이유</div>
+      <p>프롬프트 4토큰의 \(\log p\)가 각각 \(-2.0\)이고 응답 3토큰의 \(\log p\)가 \(-0.5,-1.2,-0.1\)이라 하자. 응답만 계산하면 \(L=(0.5+1.2+0.1)/3=0.6\)이고, 프롬프트까지 넣으면 \((8.0+1.8)/7=1.4\)이다. 프롬프트까지 넣으면 모델은 사용자의 질문을 그럴듯하게 쓰는 법도 배운다. 지시 학습의 목적은 질문 다음에 응답이 오게 하는 것이므로, 기울기를 응답에만 모은다.</p>
+    </div>
+    <p>SFT는 구현이 단순하고 효과가 크지만 한계가 있다. 시범 응답을 쓰는 데 사람의 시간이 들고, 모델은 시범을 쓴 사람의 수준을 넘기 어렵다. 또 '허용되는 응답이 여럿일 때 어느 쪽이 더 나은가'를 가르칠 수 없다. 반면 사람은 두 응답을 읽고 어느 쪽이 나은지 고르는 일을 응답을 직접 쓰는 것보다 쉽게 한다. 선호 학습은 이 비교를 이용한다.</p>
+
+    <h3 id="h-rm">보상 모델</h3>
+    <p>같은 프롬프트 \(x\)에 대한 두 응답에서 사람이 \(y_w\)를 \(y_l\)보다 낫다고 골랐다고 하자. 응답에 점수 \(r(x,y)\)를 매기는 <span class="term">보상 모델</span> <span class="en">(reward model)</span>을 만들려면, 점수의 차이가 선택 확률을 설명하게 하면 된다. 선택 확률을 점수 차이의 시그모이드로 두는 모형이 <span class="term">Bradley–Terry 모형</span>이다.</p>
+    <div class="formula" id="eq-bt">\[ P(y_w\succ y_l\mid x)=\sigma\bigl(r(x,y_w)-r(x,y_l)\bigr),\qquad \sigma(u)=\frac1{1+e^{-u}} \]</div>
+    <p>비교 데이터에 대해 이 확률의 음의 로그를 줄이도록 \(r\)을 학습한다.</p>
+    <div class="formula" id="eq-rm">\[ L_{\text{RM}}=-\log\sigma\bigl(r(x,y_w)-r(x,y_l)\bigr) \]</div>
+    <div class="box ex" id="ex-rm"><div class="box-h">비교 하나의 손실</div>
+      <p>\(r(x,y_w)=1.2\), \(r(x,y_l)=0.4\)이면 차이는 0.8이고 \(P=\sigma(0.8)=0.690\), 손실은 \(0.371\)이다. 점수가 거꾸로(\(y_w\)가 0.4, \(y_l\)이 1.2)이면 \(P=0.310\)이고 손실은 \(1.171\)로 커진다. 둘의 점수가 같으면 \(P=0.5\), 손실은 \(\ln2=0.693\)이다. 차이 \(\Delta\)에 대한 기울기는 \(-(1-\sigma(\Delta))\)이므로 틀린 쪽으로 멀수록 \(\Delta\)를 키우는 힘이 세진다.</p>
+    </div>
+    <p>식 <a class="ref" href="#eq-bt"></a>는 점수의 차이에만 달려 있어서 모든 응답의 점수에 같은 수를 더해도 확률이 같다. 보상 점수의 절대 크기에는 의미가 없고, 같은 프롬프트의 응답끼리 비교할 때만 의미가 있다.</p>
+
+    <h3 id="h-rl">보상을 높이되 멀어지지 않기</h3>
+    <p>보상 모델이 있으면 정책(모델) \(\pi\)가 보상이 높은 응답을 내도록 학습할 수 있다. 그런데 보상만 최대화하면 보상 모델의 약점을 파고드는 응답으로 쏠린다(4.4절). 그래서 SFT를 마친 기준 정책 \(\pi_{\text{ref}}\)에서 멀어지는 정도를 KL로 벌한다.</p>
+    <div class="formula" id="eq-rl">\[ \max_\pi\ \mathbb E_{y\sim\pi(\cdot\mid x)}\bigl[r(x,y)\bigr]-\beta\,D_{\mathrm{KL}}\bigl(\pi(\cdot\mid x)\,\big\|\,\pi_{\text{ref}}(\cdot\mid x)\bigr) \]<div class="where">\(\beta>0\)이 클수록 \(\pi_{\text{ref}}\)에 가깝게 묶는다.</div></div>
+    <div class="box thm" id="thm-opt"><div class="box-h">KL 정규화 목적함수의 최적 정책</div>
+      <p>식 <a class="ref" href="#eq-rl"></a>의 최댓값을 내는 \(\pi\)는 다음과 같다.</p>
+      <div class="formula" id="eq-opt">\[ \pi^*(y\mid x)=\frac1{Z(x)}\,\pi_{\text{ref}}(y\mid x)\,\exp\!\Bigl(\frac{r(x,y)}\beta\Bigr),\qquad Z(x)=\sum_y\pi_{\text{ref}}(y\mid x)\,e^{r(x,y)/\beta} \]</div>
+      <details class="proof"><summary>증명</summary>
+        <p>\(\pi^*\)를 위처럼 정의하면 \(\log\pi^*=\log\pi_{\text{ref}}+r/\beta-\log Z\)이다. 임의의 \(\pi\)에 대해 \(\mathbb E_\pi[r]-\beta D_{\mathrm{KL}}(\pi\|\pi_{\text{ref}})=\mathbb E_\pi\bigl[r-\beta\log\tfrac\pi{\pi_{\text{ref}}}\bigr]=\mathbb E_\pi\bigl[\beta\log\tfrac{\pi^*}{\pi}\bigr]+\beta\log Z=-\beta D_{\mathrm{KL}}(\pi\|\pi^*)+\beta\log Z\)이다. 마지막 식에서 \(\beta\log Z\)는 \(\pi\)와 무관하고 KL은 0 이상이며 \(\pi=\pi^*\)일 때만 0이므로, 목적함수의 최댓값은 \(\pi=\pi^*\)에서 얻는다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-opt"><div class="box-h">응답이 세 개일 때</div>
+      <p>\(\pi_{\text{ref}}=(0.5,0.3,0.2)\)이고 보상이 \(r=(0,1,2)\)라 하자. 기준 정책의 기대 보상은 0.7이다. \(\beta=1\)이면 \(\pi^*\propto(0.5,\,0.3e,\,0.2e^2)=(0.5,\,0.816,\,1.478)\)이고 정규화하면 \((0.179,\,0.292,\,0.529)\), 기대 보상은 1.35, \(\pi_{\text{ref}}\)와의 KL은 0.323이다. \(\beta=0.5\)이면 \((0.037,\,0.163,\,0.801)\), 기대 보상 1.76, KL 0.915다. \(\beta=100\)이면 \((0.497,\,0.301,\,0.203)\)으로 \(\pi_{\text{ref}}\)와 거의 같고, \(\beta=0.05\)이면 보상이 가장 큰 응답에 거의 모든 확률이 몰린다.</p>
+    </div>
+    <p>실제로는 응답 \(y\)가 토큰 시퀀스여서 합을 직접 계산할 수 없고, InstructGPT는 강화학습 알고리즘(PPO)으로 이 목적함수를 근사해서 최적화한다. <a href="https://arxiv.org/abs/2305.18290">Rafailov 외(2023, DPO)</a>는 식 <a class="ref" href="#eq-opt"></a>를 거꾸로 써서 보상이 \(\beta\log(\pi/\pi_{\text{ref}})\)로 표현됨을 이용해, 보상 모델과 강화학습 없이 비교 데이터에 대한 손실 하나로 같은 목적을 겨냥하는 방법을 제안했다. 선호의 출처도 사람만이 아니다. <a href="https://arxiv.org/abs/2212.08073">Bai 외(2022, Constitutional AI)</a>는 사람이 정한 원칙 목록을 바탕으로 AI가 응답을 비교·수정하게 하는 방법을 공개했다. 이 장은 이런 변형들의 차이를 다루지 않는다. 모두 '두 응답 중 낫다고 고른 신호를 모델의 파라미터에 반영한다'는 구조를 공유한다는 점이 이 장에서 중요하다.</p>
   </section>
+
+  <!-- ============================================================ 4.3 -->
   <section id="s3">
     <h2>system·user 메시지의 역할</h2>
-    <p class="slot" data-slot="4.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>대화 모델은 SFT와 선호 학습의 시범과 비교를 모두 <b>대화 형식</b>으로 보며 학습한다. 대화는 역할이 붙은 메시지의 목록이고, 모델은 이 목록을 하나의 토큰 시퀀스로 직렬화해서 읽는다. 1.1절에서 예고한, 차례를 나누는 special token이 여기서 쓰인다. 아래는 설명을 위한 형식이며 특정 모델의 실제 형식이 아니다.</p>
+<pre><code>&lt;|system|&gt; 당신은 코드 리뷰를 돕는 도우미다. &lt;|end|&gt;
+&lt;|user|&gt; 이 함수의 문제를 알려 줘. &lt;|end|&gt;
+&lt;|assistant|&gt; 입력이 비었을 때 오류가 난다. … &lt;|end|&gt;</code></pre>
+    <p>SFT에서는 식 <a class="ref" href="#eq-sft"></a>의 \(R\)이 assistant 메시지의 토큰이다. 모델은 system과 user 메시지를 읽기만 하고 assistant 차례의 토큰을 예측하도록 학습한다. 생성할 때는 직렬화된 대화 끝에 assistant 차례의 시작 표시를 붙이고 1장의 생성 루프를 돌린다. 끝 표시가 나오면 한 차례가 끝난다.</p>
+
+    <h3 id="h-roles">역할은 학습된 약속이다</h3>
+    <ul>
+      <li><b>system</b>: 대화 전체에 걸친 지시, 역할, 규칙을 둔다. Claude API에서는 <code>messages</code>와 별도의 <code>system</code> 매개변수로 넘긴다.</li>
+      <li><b>user</b>: 사용자의 요청이다. 에이전트에서는 도구의 실행 결과도 다음 요청의 user 메시지 안에 <code>tool_result</code> 블록으로 담아 돌려보낸다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">tool use 문서</a>, 2026년 11월 확인).</li>
+      <li><b>assistant</b>: 모델이 낸 이전 차례다. 대화 기록으로 다시 넣을 때 쓴다.</li>
+    </ul>
+    <p>2장에서 보았듯 attention은 컨텍스트의 모든 위치를 같은 방식으로 비교하고, 어느 부분이 '지시'이고 어느 부분이 '데이터'인지 가르는 장치가 없다. 역할 표시가 모델 동작에 영향을 주는 것은 학습이 그렇게 가르쳤기 때문이다. 모델은 system 지시를 user 요청보다 더 따르도록 학습되지만, 이것은 확률적인 경향이지 강제되는 규칙이 아니다. 이를 더 분명하게 가르치려는 연구도 있다(<a href="https://arxiv.org/abs/2404.13208">Wallace 외, instruction hierarchy</a>). 도구 결과나 웹 페이지 속에 지시처럼 보이는 문장이 있을 때 모델이 어느 쪽을 따를지는 이 학습에 달려 있고, 그래서 prompt injection이 문제가 된다(<a href="ch24.html">24장</a>).</p>
+
+    <h3 id="h-stateless">매번 전체 대화를 다시 보낸다</h3>
+    <p>Claude의 <a href="https://platform.claude.com/docs/en/build-with-claude/working-with-messages">Messages API 문서</a>는 이 API가 stateless라서 매번 전체 대화 기록을 보내야 한다고 설명한다(2026년 11월 확인). 모델은 호출과 호출 사이에 아무것도 기억하지 못하고, 이전 대화는 호출자가 다시 넣어 준 컨텍스트로만 존재한다(3.4절). 그러면 대화가 길어질수록 입력이 어떻게 늘어날까? 첫 호출의 입력이 system 500토큰과 user 메시지 300토큰이고, 이후 호출마다 앞의 응답과 새 user 메시지를 합쳐 입력이 300토큰씩 늘어난다고 가정하자.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">호출 번호 \(k\)</th><th class="num">그 호출의 입력 토큰</th><th class="num">지금까지 처리한 입력 토큰의 합</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td class="num">800</td><td class="num">800</td></tr>
+        <tr><td class="num">2</td><td class="num">1,100</td><td class="num">1,900</td></tr>
+        <tr><td class="num">5</td><td class="num">2,000</td><td class="num">7,000</td></tr>
+        <tr><td class="num">10</td><td class="num">3,500</td><td class="num">21,500</td></tr>
+      </tbody>
+    </table></div>
+    <p>10번째 호출의 컨텍스트는 3,500토큰인데, 열 번 호출하면서 처리한 입력 토큰의 합은 21,500으로 6배 이상이다. 호출 횟수에 대해 합이 제곱으로 늘어나기 때문이다(\(\sum_k(500+300k)=500\cdot10+300\cdot55\)). 2장의 prefill 비용이 호출마다 반복된다는 뜻이고, 앞부분이 같은 호출에서 계산을 재사용하는 prompt caching이 비용을 줄이는 이유다.</p>
+    <div class="callout agent"><strong>에이전트의 한 걸음은 한 번의 호출이다</strong>
+      <p>에이전트 루프는 도구를 한 번 부를 때마다 모델을 새로 호출한다(<a href="ch14.html">14장</a>). 매 호출에 system 지시와 앞의 대화, 도구 결과가 다시 들어가므로, 위 표는 에이전트의 비용 곡선이기도 하다. 무엇을 컨텍스트에 남기고 무엇을 요약하거나 버릴지는 <a href="ch20.html">20장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 4.4 -->
   <section id="s4">
     <h2>유용함과 정확함의 차이</h2>
-    <p class="slot" data-slot="4.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>지금까지의 학습 신호는 모두 사람의 판단에서 온다. 시범 응답을 쓰는 사람과 두 응답 중 낫다고 고르는 사람이다. 그런데 사람이 '낫다'고 고르는 것과 '정확하다'는 것은 같지 않다. 평가자는 답이 맞는지 검증할 시간이나 지식이 없을 수 있고, 그러면 자신 있고, 길고, 질문자의 생각에 맞장구치는 응답에 끌릴 수 있다. <a href="https://arxiv.org/abs/2310.13548">Sharma 외(2023)</a>는 여러 AI 비서가 사용자의 견해에 맞춰 답을 바꾸는 아첨(sycophancy) 경향을 보였고, 사람의 선호 비교 데이터와 이를 학습한 보상 모델이 일부 경우에 아첨하는 응답을 정확한 응답보다 더 선호한다고 보고했다.</p>
+    <p>보상 모델은 이런 사람의 선호를 근사한 <b>대리 지표</b>(proxy)이므로, 진짜 목적과 어긋나는 부분이 있다. 대리 지표를 세게 최적화할수록 어긋난 부분을 파고든다. 이를 <span class="term">reward overoptimization</span>이라 한다(Goodhart의 법칙과 같은 현상). <a href="https://arxiv.org/abs/2210.10760">Gao 외(2022)</a>는 보상 모델에 대한 최적화를 강하게 할수록 보상 모델의 점수는 계속 오르지만, 더 믿을 만한 기준으로 잰 점수는 어느 지점에서부터 오히려 내려간다고 보고했다.</p>
+    <p>이 현상을 가장 단순하게 볼 수 있는 방법이 <span class="term">best-of-N</span>이다. 프롬프트마다 응답을 \(N\)개 뽑아 보상 모델이 가장 높게 준 응답을 고른다. \(N\)이 클수록 대리 지표에 대한 최적화가 세다. 진짜 품질을 \(t\), 보상 모델의 점수를 \(p=t+e\)(\(e\)는 오차)라 하고, \(t\)가 \(\mathcal N(0,1)\)이며 오차도 \(\mathcal N(0,\sigma_e^2)\)일 때를 계산해 보자.</p>
+    <div class="box thm" id="thm-bon"><div class="box-h">가우스 오차에서 best-of-N의 진짜 품질</div>
+      <p>\(\sigma_p^2=1+\sigma_e^2\)이고 \(m_N\)을 표준정규분포 \(N\)개의 최댓값의 기댓값이라 하면, 점수가 가장 높은 응답의 진짜 품질의 기댓값은 다음과 같다.</p>
+      <div class="formula" id="eq-bon">\[ E\bigl[t_{\text{선택}}\bigr]=\frac{m_N}{\sigma_p},\qquad E\bigl[p_{\text{선택}}\bigr]=\sigma_p\,m_N \]</div>
+      <details class="proof"><summary>증명</summary>
+        <p>\((t,p)\)가 결합 가우스이므로 \(E[t\mid p]=\frac{\mathrm{Cov}(t,p)}{\sigma_p^2}p=\frac{p}{\sigma_p^2}\)이다. 선택은 \(p\)의 값에만 달려 있으므로 \(E[t_{\text{선택}}]=E\bigl[\frac{p_{\text{선택}}}{\sigma_p^2}\bigr]\)이다. \(p\)는 \(\mathcal N(0,\sigma_p^2)\)을 따르는 값 \(N\)개이므로 그 최댓값의 기댓값은 \(\sigma_pm_N\)이다. 따라서 \(E[t_{\text{선택}}]=m_N/\sigma_p\)이다.</p>
+      </details>
+    </div>
+    <p>\(m_N\)은 \(N\)이 커질수록 \(\sqrt{2\ln N}\) 정도로 천천히 늘어난다. 곧 오차가 가우스이면 진짜 품질도 계속 오르지만 증가폭이 점점 줄어든다. 그런데 오차가 가우스가 아니라 극단값이 자주 나오는 heavy-tailed 분포라면 어떨까? \(N\)이 커질수록 점수의 최댓값이 진짜 품질이 아니라 오차의 극단값으로 정해질 것이다. 그때는 점수가 아무리 높아도 진짜 품질에 대해 알려 주는 것이 거의 없다.</p>
+    <div class="callout agent"><strong>'완료했습니다'는 대리 지표다</strong>
+      <p>에이전트가 작업이 끝났다고 말하는 것도 모델이 낸 텍스트이고, 이 텍스트가 어떤 응답에 높은 점수를 주는 학습 신호 속에서 다듬어졌다면 '사람이 만족할 만한 말투'일 가능성이 있다. 작업이 실제로 끝났는지는 모델의 말이 아니라 테스트 통과, 산출물 확인 같은 모델 바깥의 검사로 확인해야 한다. 이 책의 검증자 분리(<a href="ch26.html">26장</a>)와 평가(<a href="ch31.html">31장</a>)가 이 원리 위에 서 있다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 같은 지시를 기본 모델과 지시 학습 모델에 주면 응답의 형식과 지시 준수율이 어떻게 다른가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 보상 모델이 틀릴 때 best-of-N의 진짜 품질</h2>
+    <p>슬롯에 적어 둔 질문('같은 지시를 base model과 instruction-tuned 모델에 주면 지시 준수율이 어떻게 다른가')은 실제 모델 쌍을 돌려야 답할 수 있어서 이 장에서는 실행하지 않았다. 지어낸 출력을 싣지 않으려는 선택이며, 설계 방법은 <a class="ref" href="#prob-design"></a>에 두었다. 대신 4.4절의 질문을 확인한다. <b>보상 모델에 오차가 있을 때 best-of-N의 \(N\)을 키우면 진짜 품질은 어떻게 되는가?</b></p>
+
+    <h3 id="h-design">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>설정</td><td>프롬프트 10,000개. 프롬프트마다 후보 응답 \(N\)개의 진짜 품질 \(t\sim\mathcal N(0,1)\). 보상 점수 \(p=t+e\). 오차 \(e\)는 서로 독립이다.</td></tr>
+        <tr><td>기준 설계</td><td>\(N=1\): 고르지 않고 후보 하나를 그대로 쓴다. 진짜 품질의 평균은 0이다.</td></tr>
+        <tr><td>바꾸는 것</td><td>\(N\in\{1,2,4,8,16,64,256,1024\}\) 하나. 오차의 분포는 두 경우를 따로 본다: 표준정규분포(\(\sigma_e=1\))와 자유도 2인 Student \(t\) 분포(분산이 무한대인 가장 단순한 heavy-tailed 선택이며, 다른 값은 시험하지 않았다).</td></tr>
+        <tr><td>고정하는 것</td><td>시드 0, 프롬프트 수, 진짜 품질의 분포</td></tr>
+        <tr><td>관측값</td><td>선택된 응답의 진짜 품질 평균(± 표준오차), 보상 점수 평균</td></tr>
+        <tr><td>예상 (이론에서)</td><td>가우스 오차에서는 식 <a class="ref" href="#eq-bon"></a>에 따라 진짜 품질이 \(m_N/\sqrt2\)로 \(N\)과 함께 계속 오르고 증가폭이 줄어든다. heavy-tailed 오차에서는 선택이 오차의 극단값에 좌우되므로 진짜 품질이 처음에는 오르다가 내려가고 \(N\to\infty\)에서 0(무작위로 고른 것과 같은 수준)으로 간다. 구체적인 정점의 위치는 예상하지 않았다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td>가우스 오차에서 측정값이 이론값에서 표준오차로 설명되지 않을 만큼 벗어나거나, heavy-tailed 오차에서 \(N=1024\)의 진짜 품질이 정점보다 낮아지지 않으면 틀린 것이다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code">코드</h3>
+    <p>Python 3.14와 NumPy 2.5.4에서 실행했다. 다른 NumPy 버전에서는 난수 열이 달라 마지막 자리가 바뀔 수 있지만, 이론값과의 차이는 표준오차 안에 머물러야 한다. 가우스 오차 줄 끝의 두 수는 식 <a class="ref" href="#eq-bon"></a>의 이론값(진짜 품질 / 보상 점수)이다.</p>
+<pre><code>import math
+import numpy as np
+
+rng = np.random.default_rng(0)
+P = 10000                                     # 프롬프트(과제) 수
+
+def expected_max(N):                          # 표준정규분포 N개의 최댓값의 기댓값 (수치 적분)
+    x = np.linspace(-8, 8, 160001)
+    Phi = 0.5 * (1 + np.array([math.erf(v / math.sqrt(2)) for v in x]))
+    pdf = np.exp(-x ** 2 / 2) / math.sqrt(2 * math.pi)
+    return np.trapezoid(N * x * pdf * Phi ** (N - 1), x)
+
+def best_of_n(N, noise):
+    t = rng.normal(size=(P, N))               # 후보 응답의 진짜 품질: 평균 0, 표준편차 1
+    p = t + noise((P, N))                     # 보상 모델의 점수 = 진짜 품질 + 오차
+    pick = p.argmax(axis=1)                   # 점수가 가장 높은 후보를 고른다 (best-of-N)
+    i = np.arange(P)
+    return t[i, pick], p[i, pick]
+
+noises = {"가우스 오차": lambda s: rng.normal(size=s),
+          "heavy-tailed 오차": lambda s: rng.standard_t(2, size=s)}   # 자유도 2: 분산이 무한대
+for name, noise in noises.items():
+    print(name)
+    for N in (1, 2, 4, 8, 16, 64, 256, 1024):
+        t, p = best_of_n(N, noise)
+        line = f"  N={N:4d}  진짜 품질 {t.mean():6.3f} ± {t.std() / math.sqrt(P):.3f}  보상 점수 {p.mean():7.3f}"
+        if name == "가우스 오차":
+            m = expected_max(N)
+            line += f"   이론: {m / math.sqrt(2):6.3f} / {m * math.sqrt(2):6.3f}"
+        print(line)</code></pre>
+
+    <h3 id="h-result">결과</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">\(N\)</th><th class="num">가우스: 진짜 품질 (이론)</th><th class="num">가우스: 보상 점수</th><th class="num">heavy-tailed: 진짜 품질</th><th class="num">heavy-tailed: 보상 점수</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td class="num">0.006 (0.000)</td><td class="num">0.009</td><td class="num">0.012</td><td class="num">0.037</td></tr>
+        <tr><td class="num">2</td><td class="num">0.410 (0.399)</td><td class="num">0.802</td><td class="num">0.315</td><td class="num">1.250</td></tr>
+        <tr><td class="num">4</td><td class="num">0.721 (0.728)</td><td class="num">1.457</td><td class="num">0.553</td><td class="num">2.437</td></tr>
+        <tr><td class="num">8</td><td class="num">1.008 (1.007)</td><td class="num">2.015</td><td class="num">0.677</td><td class="num">3.694</td></tr>
+        <tr><td class="num">16</td><td class="num">1.254 (1.249)</td><td class="num">2.501</td><td class="num">0.680</td><td class="num">5.141</td></tr>
+        <tr><td class="num">64</td><td class="num">1.656 (1.657)</td><td class="num">3.307</td><td class="num">0.474</td><td class="num">10.141</td></tr>
+        <tr><td class="num">256</td><td class="num">1.989 (1.999)</td><td class="num">3.994</td><td class="num">0.233</td><td class="num">19.934</td></tr>
+        <tr><td class="num">1024</td><td class="num">2.291 (2.297)</td><td class="num">4.594</td><td class="num">0.113</td><td class="num">40.723</td></tr>
+      </tbody>
+    </table></div>
+    <p>진짜 품질의 표준오차는 모든 칸에서 약 0.008~0.011이다.</p>
+
+    <h3 id="h-limits">해석과 한계</h3>
+    <ul>
+      <li><b>가우스 오차에서는 예상대로 증가폭이 줄며 계속 올랐다.</b> 모든 칸이 이론값에서 표준오차의 1.3배 이내다. \(N\)이 16에서 1024로 64배 늘 때 진짜 품질은 1.25에서 2.29로 늘어, 같은 비용으로 얻는 이득이 점점 줄어든다.</li>
+      <li><b>heavy-tailed 오차에서는 보상 점수는 계속 오르지만 진짜 품질은 내려갔다.</b> 진짜 품질은 \(N=8\sim16\)에서 0.68로 가장 높았고 \(N=1024\)에서 0.113으로, \(N=1\)의 0.012에 가까워졌다. 같은 구간에서 보상 점수는 3.7에서 40.7로 열 배 넘게 올랐다. 점수가 높다는 것이 품질이 높다는 뜻이 아닌 구간이 생긴 것이다. 정점 앞에서는 \(N\)을 키워 얻는 이득이 있었다는 점도 보아야 한다. 최적화를 하지 말라는 결론이 아니라, 어디까지 최적화할지 정해야 한다는 결론이다.</li>
+      <li><b>식 <a class="ref" href="#eq-rl"></a>의 KL 항은 이 문제를 겨냥한다.</b> \(\pi_{\text{ref}}\)에서 멀어지는 정도를 묶으면 극단값을 파고드는 응답으로 쏠리는 것을 막는다. 실제 모델에서 이런 패턴이 나타남은 Gao 외(2022)가 보고했다. 이 실험은 그 현상을 직접 재현한 것이 아니라 핵심 구조만 떼어 낸 장난감이다.</li>
+      <li><b>가정이 현실보다 단순하다.</b> 실제 보상 모델의 오차는 독립인 잡음이 아니라 응답의 길이나 어조 같은 특징과 얽혀 있을 수 있다. 진짜 품질도 정규분포가 아니고, 후보 응답은 서로 독립이 아니며, best-of-N은 실제로 쓰는 강화학습과 다른 최적화다. 이 실험의 수치를 실제 모델의 성능으로 옮길 수 없다. 옮겨지는 것은 구조다. 대리 지표의 오차가 가볍게 분포하면 최적화는 이득이고, 극단값이 있으면 어디선가 이득이 손실로 바뀐다.</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>base model은 학습 말뭉치에서 그럴듯한 텍스트를 이어 쓸 뿐 질문에 답해야 한다는 정보를 갖지 않는다. instruction tuning은 구조는 그대로 두고 파라미터를 바꿔 지시에 맞는 응답을 내게 한다.</li>
+      <li>SFT는 (프롬프트, 시범 응답)에 대해 응답 토큰에만 교차 엔트로피를 계산한다. 프롬프트를 마스크해야 기울기가 응답을 배우는 데 쓰인다.</li>
+      <li>보상 모델은 Bradley–Terry 모형 \(P(y_w\succ y_l)=\sigma(r_w-r_l)\)로 비교 데이터에서 학습한다. 점수는 차이만 의미가 있다.</li>
+      <li>KL 정규화된 보상 최대화의 최적 정책은 \(\pi^*\propto\pi_{\text{ref}}e^{r/\beta}\)이다. \(\beta\)가 크면 \(\pi_{\text{ref}}\)에 가깝고, 작으면 보상이 가장 큰 응답으로 쏠린다.</li>
+      <li>system·user·assistant 메시지는 special token으로 구분되어 하나의 시퀀스가 된다. 역할은 attention이 강제하는 규칙이 아니라 학습된 약속이어서 확률적으로만 지켜진다.</li>
+      <li>Messages API는 stateless라 매 호출에 전체 대화를 다시 보낸다. 대화가 길어지면 호출마다 입력이 늘고 처리한 입력의 합은 호출 수에 대해 제곱으로 늘어난다.</li>
+      <li>보상 모델은 사람의 선호를 근사한 대리 지표다. 선호는 정확함과 어긋날 수 있고(아첨), 대리 지표를 세게 최적화하면 어긋난 부분을 파고든다.</li>
+      <li>best-of-N에서 오차가 가우스이면 진짜 품질이 줄어드는 증가폭으로 계속 오르지만, 극단값이 있는 오차에서는 점수가 오르는 동안 진짜 품질이 내려갈 수 있다. 에이전트의 '완료했다'는 말은 이런 대리 지표이므로 모델 바깥의 검사로 확인한다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. base model이 질문 뒤에 다른 질문 목록을 이어 쓰기도 하는 이유는?</p><div class="opts">
+        <button class="opt">모델이 질문을 이해하지 못해서</button>
+        <button class="opt" data-correct>학습 목표가 말뭉치에서 이어질 법한 텍스트를 예측하는 것이어서, 질문 뒤에 질문이 이어지는 텍스트도 그럴듯하기 때문이다</button>
+        <button class="opt">컨텍스트 길이가 짧아서</button>
+      </div><div class="quiz-exp">1장의 목표는 말뭉치에서 이어진 토큰의 확률을 높이는 것이다. 답을 내야 한다는 신호는 사전학습에 없었다.</div></div>
+      <div class="quiz-q"><p>2. SFT 손실에서 프롬프트 토큰을 제외하는 이유는?</p><div class="opts">
+        <button class="opt">프롬프트가 짧아서</button>
+        <button class="opt" data-correct>기울기가 사용자의 질문을 쓰는 법이 아니라 응답을 배우는 데 쓰이게 하려고</button>
+        <button class="opt">프롬프트에는 로그 확률이 없어서</button>
+      </div><div class="quiz-exp"><a class="ref" href="#ex-mask"></a>처럼 프롬프트를 포함하면 손실의 큰 몫이 프롬프트를 맞히는 데 쓰인다.</div></div>
+      <div class="quiz-q"><p>3. 보상 모델이 비교의 두 응답에 같은 점수를 줬을 때 손실 \(-\log\sigma(r_w-r_l)\)은?</p><div class="opts">
+        <button class="opt">0</button>
+        <button class="opt" data-correct>\(\ln2\approx0.693\)</button>
+        <button class="opt">\(\infty\)</button>
+      </div><div class="quiz-exp">차이가 0이면 \(\sigma(0)=0.5\)이고 \(-\log0.5=\ln2\)이다.</div></div>
+      <div class="quiz-q"><p>4. 식 <a class="ref" href="#eq-rl"></a>에서 \(\beta\)를 매우 크게 하면 최적 정책은?</p><div class="opts">
+        <button class="opt" data-correct>기준 정책 \(\pi_{\text{ref}}\)에 가까워진다.</button>
+        <button class="opt">보상이 가장 큰 응답 하나에 확률이 몰린다.</button>
+        <button class="opt">균등 분포가 된다.</button>
+      </div><div class="quiz-exp">\(\beta\to\infty\)에서 \(e^{r/\beta}\to1\)이므로 \(\pi^*\to\pi_{\text{ref}}\)이다. 보상이 가장 큰 응답으로 쏠리는 것은 \(\beta\to0\)일 때다.</div></div>
+      <div class="quiz-q"><p>5. system 메시지에 쓴 규칙에 대한 설명으로 알맞은 것은?</p><div class="opts">
+        <button class="opt">attention이 system 위치를 항상 우선해서 읽으므로 반드시 지켜진다.</button>
+        <button class="opt" data-correct>모델이 system 지시를 더 따르도록 학습되어 있을 뿐이어서, 확률적으로 지켜지고 다른 컨텍스트의 영향을 받을 수 있다.</button>
+        <button class="opt">user 메시지와 구별되지 않는다.</button>
+      </div><div class="quiz-exp">역할은 학습된 약속이다. 중요한 제약은 system 지시에만 맡기지 말고 권한 설정 같은 바깥 장치로 건다(24장).</div></div>
+      <div class="quiz-q"><p>6. best-of-N에서 보상 모델의 오차가 극단값이 나오는 분포일 때 \(N\)을 매우 크게 하면?</p><div class="opts">
+        <button class="opt">진짜 품질이 계속 오른다.</button>
+        <button class="opt" data-correct>보상 점수는 계속 오르지만 진짜 품질은 정점 뒤로 내려갈 수 있다.</button>
+        <button class="opt">보상 점수도 내려간다.</button>
+      </div><div class="quiz-exp">선택이 오차의 극단값에 좌우되어 점수가 품질에 대해 알려 주는 것이 줄어든다. 실험에서 \(N=1024\)의 진짜 품질은 0.113이었다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-mask" data-level="1"><p>응답 토큰 3개의 \(\log p\)가 \(-0.5,-1.2,-0.1\)이고 프롬프트 토큰 4개가 각각 \(-2.0\)일 때, 응답만 계산한 SFT 손실과 프롬프트까지 포함한 손실을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>응답만: \((0.5+1.2+0.1)/3=0.6\). 포함: \((4\times2.0+1.8)/7=9.8/7=1.4\).</p></details></div>
+    <div class="prob" id="prob-rm" data-level="1"><p>보상 모델이 \(r(x,y_w)=0.4\), \(r(x,y_l)=1.2\)를 주었다. 이 비교에 대한 \(P(y_w\succ y_l)\)과 손실을 구하라. 모든 점수에 3을 더하면 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary><p>차이가 \(-0.8\)이므로 \(P=\sigma(-0.8)=0.310\), 손실은 \(-\ln0.310=1.171\)이다. 모든 점수에 3을 더해도 차이가 그대로여서 \(P\)와 손실이 같다. 보상 점수의 절대 크기는 의미가 없다.</p></details></div>
+    <div class="prob" id="prob-opt" data-level="2"><p>\(\pi_{\text{ref}}=(0.5,0.3,0.2)\), \(r=(0,1,2)\), \(\beta=0.5\)일 때 \(\pi^*\)와 기대 보상을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>가중치는 \((0.5,\,0.3e^{2},\,0.2e^{4})=(0.5,\,2.217,\,10.920)\)이고 합 13.637로 나누면 \(\pi^*=(0.037,\,0.163,\,0.801)\)이다. 기대 보상은 \(0.163+2\times0.801=1.76\)이다(기준 0.7).</p></details></div>
+    <div class="prob" id="prob-beta" data-level="2"><p>\(\beta\to\infty\)와 \(\beta\to0\)에서 식 <a class="ref" href="#eq-opt"></a>의 \(\pi^*\)가 어떻게 되는지 설명하라. 실제 학습에서 \(\beta\)를 너무 작게 잡으면 어떤 문제가 생기는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\beta\to\infty\)이면 \(e^{r/\beta}\to1\)이어서 \(\pi^*\to\pi_{\text{ref}}\)이다. \(\beta\to0\)이면 \(r\)이 가장 큰 응답의 가중치가 압도적으로 커져 그 응답에 확률이 모인다(최댓값이 여럿이면 그들이 \(\pi_{\text{ref}}\) 비율로 나눠 가진다). \(\beta\)가 너무 작으면 정책이 보상 모델의 약점을 파고드는 응답으로 쏠려 4.4절의 overoptimization이 나타난다.</p></details></div>
+    <div class="prob" id="prob-turns" data-level="1"><p>첫 호출의 입력이 system 500토큰과 user 300토큰이고 호출마다 입력이 300토큰씩 늘 때, 8번째 호출의 입력 토큰 수와 8번 호출하는 동안 처리한 입력 토큰의 합을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(k\)번째 호출의 입력은 \(500+300k\)이므로 \(k=8\)에서 2,900토큰이다. 합은 \(\sum_{k=1}^{8}(500+300k)=500\times8+300\times36=4{,}000+10{,}800=14{,}800\)이다.</p></details></div>
+    <div class="prob" id="prob-prefix" data-level="2"><p>위 문제에서 앞 호출과 같은 접두부의 계산을 재사용하는 prompt caching이 있다면 8번 호출에서 새로 계산해야 하는 입력 토큰은 대략 얼마인가? (각 호출에서 앞 호출의 입력 전체가 접두부로 재사용된다고 가정)</p>
+      <details class="sol"><summary>풀이</summary><p>첫 호출은 800토큰을 모두 새로 계산하고, 이후 호출은 앞 호출 입력(접두부)을 재사용하므로 새로 계산하는 것은 300토큰씩이다. 합은 \(800+7\times300=2{,}900\)으로, 마지막 호출의 입력 길이와 같다. 캐시가 없을 때의 14,800에 비해 약 1/5이다. 캐시를 읽는 것도 비용이 들고 접두부가 정확히 같아야 하므로 이 값은 최선의 경우다.</p></details></div>
+    <div class="prob" id="prob-bon" data-level="3"><p>\(t\sim\mathcal N(0,1)\), \(e\sim\mathcal N(0,1)\)일 때 <a class="ref" href="#thm-bon"></a>의 증명을 따라 \(N=8\)에서 \(E[t_{\text{선택}}]\)를 구하라. (\(m_8\approx1.4236\))</p>
+      <details class="sol"><summary>풀이</summary><p>\(\sigma_p=\sqrt2\)이고 \(E[t\mid p]=p/2\)이다. \(E[p_{\text{선택}}]=\sigma_pm_8=\sqrt2\times1.4236=2.013\)이므로 \(E[t_{\text{선택}}]=2.013/2=1.007\)이다. 실험 표의 1.008과 맞는다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="2"><p>공개된 모델 가운데 같은 계열의 base model과 instruction-tuned 모델을 골라 '같은 지시에서 지시 준수율이 어떻게 다른가'를 확인하는 실험을 설계하라. 무엇을 고정하고, 어떻게 채점하며, 무엇을 예상으로 적을지 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. 지시: 기계적으로 검사할 수 있는 제약이 있는 지시 50개(예: '정확히 세 문장으로', 'JSON으로만', '특정 단어를 쓰지 말 것'. <a href="https://arxiv.org/abs/2311.07911">IFEval</a>이 이런 방식이다). 고정: 같은 지시 집합, 같은 디코딩 설정과 최대 길이(1장), 지시마다 여러 번 반복(시드 고정). 공정한 비교를 위해 base model에는 3장의 few-shot 프롬프트도 따로 시도한다. 채점: 사람이 읽고 정하지 않고 코드로 제약을 검사한다. 관측값: 준수율, 응답이 EOS 토큰으로 끝났는지, 제약과 무관한 이어 쓰기(다음 질문 생성 등)가 나온 비율. 예상은 결과를 보기 전에 적는다. 예: instruction-tuned 모델의 준수율이 더 높고, base model은 zero-shot에서 이어 쓰기가 더 자주 나온다. 틀렸다고 볼 조건도 함께 적는다. 모델 이름과 버전, 실행 날짜를 기록한다.</p></details></div>
   </section>
 </main>
 </body>

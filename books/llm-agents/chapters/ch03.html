@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>03 사전학습과 in-context learning · AgentBook</title>
-<meta name="description" content="대규모 사전학습의 목표 · 파라미터에 남는 정보와 한계 · 예시를 컨텍스트에 넣는 방법 · 학습과 in-context 적응의 차이">
+<meta name="description" content="다음 토큰 예측으로 대규모 텍스트에서 학습하는 사전학습의 루프와 계산량(6ND), 파라미터에 남는 정보와 그 한계, few-shot 프롬프트와 토큰 비용, 그리고 학습과 in-context 적응이 무엇을 바꾸는지를 선형 회귀 실험에서 linear attention 한 층이 gradient descent 한 걸음과 같음을 보이며 비교한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,345 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch03">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">03</span></div>
     <h1 data-fill="chapter-title">사전학습과 in-context learning</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">1장은 다음 토큰의 확률을 정의했고 2장은 그 확률을 계산하는 구조를 세웠다. 남은 질문은 그 구조의 수십억~수천억 개 파라미터를 어떻게 정하느냐다. 답은 아주 큰 텍스트에서 1장의 손실을 줄이는 사전학습이다. 이 장은 사전학습이 하는 일과 드는 계산량을 세고, 그 결과로 파라미터에 무엇이 남고 무엇이 남지 못하는지 정리한다. 이어서 파라미터를 바꾸지 않고 컨텍스트에 예시를 넣는 것만으로 모델이 새 과제에 적응하는 in-context learning을 다루고, 이것이 학습과 어떻게 같고 다른지 작은 실험으로 확인한다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>사전학습의 학습 루프를 코드로 쓰고, 한 단계의 gradient 갱신을 손으로 계산할 수 있다.</li>
+      <li>학습 계산량을 \(C\approx6ND\)로 어림하고, 모델 크기와 데이터 양의 균형(compute-optimal)을 설명할 수 있다.</li>
+      <li>파라미터에 저장되는 정보와 그 한계를 구별하고, 부족한 정보를 컨텍스트나 도구로 보충해야 하는 이유를 말할 수 있다.</li>
+      <li>zero-shot, few-shot 프롬프트를 만들고 예시 수에 따른 토큰 비용을 계산할 수 있다.</li>
+      <li>학습과 in-context 적응이 각각 무엇을 바꾸는지 비교하고, 선형 회귀 과제에서 linear attention 한 층이 gradient descent 한 걸음과 같은 예측을 한다는 것을 보일 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch01.html">1장</a>(교차 엔트로피 손실, 소프트맥스), <a href="ch02.html">2장</a>(트랜스포머의 파라미터 수, attention)</p>
   </header>
+
+  <!-- ============================================================ 3.1 -->
   <section id="s1">
     <h2>대규모 사전학습의 목표</h2>
-    <p class="slot" data-slot="3.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>1장에서 모델의 학습 목표는 말뭉치의 실제 다음 토큰에 확률을 몰아주는 것이었다(<a href="ch01.html#eq-loss">식 (1.6)</a>). <span class="term">사전학습</span> <span class="en">(pretraining)</span>은 이 목표를 특정 과제 없이 아주 큰 텍스트 전체에 적용하는 첫 단계다. 번역, 요약, 코드 작성을 따로 가르치지 않고 다음 토큰만 맞히게 하는데, 다음 토큰을 잘 맞히려면 문법, 사실, 문체, 추론의 패턴이 모두 쓸모 있기 때문이다(1.4절). 사전학습을 마친 모델을 대화형으로 다듬는 일은 <a href="ch04.html">4장</a>에서 다룬다.</p>
+
+    <h3 id="h-loop">학습 루프</h3>
+    <p>사전학습의 한 단계는 다음과 같다. 말뭉치를 길이 \(T\)로 잘라 \(B\)개씩 묶고, 2장의 모델로 모든 위치의 로짓을 한 번에 계산해(teacher forcing) 손실을 구한 뒤, 기울기로 파라미터를 고친다.</p>
+<pre><code>for step in range(num_steps):
+    batch = next(data)                           # (B, T+1) 토큰 id
+    logits = model(batch[:, :-1])                # 모든 위치의 로짓 (2장)
+    loss = cross_entropy(logits, batch[:, 1:])   # 위치마다 실제 다음 토큰의 -log p의 평균 (식 1.6)
+    loss.backward()                              # 역전파: 모든 파라미터의 기울기
+    optimizer.step(lr=schedule(step))            # Adam 등으로 θ를 갱신</code></pre>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 210" role="img" aria-label="사전학습 루프: 말뭉치에서 토큰 id 배치를 만들고, 모델이 모든 위치의 로짓을 계산하고, 교차 엔트로피 손실과 기울기를 구해 optimizer가 파라미터를 갱신한 뒤 다음 배치로 돌아간다">
+  <defs>
+    <marker id="g31-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+    <marker id="g31-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+  </defs>
+  <rect class="f-surface" x="5" y="30" width="115" height="62" rx="8"/><text class="t-b" x="62" y="56" text-anchor="middle">말뭉치</text><text class="t-dim" x="62" y="75" text-anchor="middle">텍스트 → 토큰 id</text>
+  <rect class="f-surface" x="140" y="30" width="115" height="62" rx="8"/><text class="t-b" x="197" y="56" text-anchor="middle">배치</text><text class="t-mono" x="197" y="75" text-anchor="middle">B개 × 길이 T</text>
+  <rect class="f-acc-soft" x="275" y="30" width="115" height="62" rx="8"/><text class="t-b" x="332" y="56" text-anchor="middle">모델 θ</text><text class="t-dim" x="332" y="75" text-anchor="middle">모든 위치의 로짓</text>
+  <rect class="f-surface" x="410" y="30" width="115" height="62" rx="8"/><text class="t-b" x="467" y="56" text-anchor="middle">손실 L</text><text class="t-dim" x="467" y="75" text-anchor="middle">교차 엔트로피</text>
+  <rect class="f-surface" x="545" y="30" width="115" height="62" rx="8"/><text class="t-b" x="602" y="56" text-anchor="middle">기울기</text><text class="t-dim" x="602" y="75" text-anchor="middle">역전파로 ∇θ L</text>
+  <rect class="f-surface" x="680" y="30" width="115" height="62" rx="8"/><text class="t-b" x="737" y="56" text-anchor="middle">optimizer</text><text class="t-dim" x="737" y="75" text-anchor="middle">Adam, 학습률 η(t)</text>
+  <path d="M120 61 H136" class="s-line" marker-end="url(#g31-arr)"/><path d="M255 61 H271" class="s-line" marker-end="url(#g31-arr)"/><path d="M390 61 H406" class="s-line" marker-end="url(#g31-arr)"/>
+  <path d="M525 61 H541" class="s-line" marker-end="url(#g31-arr)"/><path d="M660 61 H676" class="s-line" marker-end="url(#g31-arr)"/>
+  <path d="M737 92 V150 H332 V96" class="s-acc" marker-end="url(#g31-acc)"/>
+  <text class="t-acc" x="535" y="142" text-anchor="middle">θ ← θ − (갱신량): 파라미터가 바뀐 모델로 다음 배치를 계산한다</text>
+  <text class="t-dim" x="400" y="190" text-anchor="middle">이 루프를 수만~수백만 번 되풀이한다. 학습이 끝나면 말뭉치는 버리고 θ만 남긴다.</text>
+</svg>
+      <figcaption><b>그림 3-1.</b> 사전학습 루프. 모델의 구조는 2장 그대로이고, 매 단계 달라지는 것은 파라미터 \(\theta\)뿐이다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-gradient"><div class="box-h">로짓 하나를 한 걸음 고치기</div>
+      <p>1장 소프트맥스 절의 기울기 \(\partial\ell/\partial z_i=p_i-\mathbf 1[i=y]\)를 써 보자. 로짓이 \(z=(2,1,0)\)이고 정답이 첫째 토큰(\(y=1\))이면 \(p=(0.665,\,0.245,\,0.090)\)이고 기울기는 \((-0.335,\,0.245,\,0.090)\)이다. 학습률 \(0.5\)로 \(z\leftarrow z-0.5\,\nabla\)를 하면 \(z=(2.167,\,0.878,\,-0.045)\)가 되고 확률은 \((0.722,\,0.199,\,0.079)\)로 바뀐다. 손실은 \(-\ln0.665=0.408\)에서 \(-\ln0.722=0.326\)으로 줄었다.</p>
+      <p>실제 모델에서는 로짓이 파라미터가 아니라 층들을 거친 결과이므로, 이 기울기가 역전파로 층을 거슬러 올라가 모든 파라미터의 기울기가 된다. 한 단계의 계산은 이 예와 같고, 이것을 배치마다 수만~수백만 번 되풀이한다.</p>
+    </div>
+    <p>학습률은 상수가 아니다. 대규모 학습에서는 처음에 학습률을 0에서 올리는 warmup 뒤 서서히 낮추는 스케줄을 흔히 쓴다. 아래 카드에서 여러 스케줄의 모양을 비교해 볼 수 있다.</p>
+    <div data-sim="lr-schedule"></div>
+
+    <h3 id="h-scale">계산량과 규모</h3>
+    <p>사전학습에 드는 계산을 어림해 보자. 2장에서 층 하나가 위치마다 하는 곱셈-덧셈은 \(24d^2\)이었고, 이는 층의 파라미터 \(12d^2\)의 두 배다. 컨텍스트가 \(d\)에 비해 짧으면 attention 몫은 작으므로, 토큰 하나를 순전파하는 비용은 파라미터 수 \(N\)의 약 2배(\(2N\))다. 역전파는 순전파의 약 2배이므로 토큰 하나를 학습하는 데 약 \(6N\), \(D\)개 토큰이면 다음과 같다.</p>
+    <div class="formula" id="eq-compute">\[ C\approx 6\,N\,D \]<div class="where">\(N\)은 파라미터 수, \(D\)는 학습에 쓴 토큰 수, \(C\)는 곱셈-덧셈 횟수(FLOPs)다. 임베딩과 attention 몫을 무시한 어림이다.</div></div>
+    <p><a href="https://arxiv.org/abs/2001.08361">Kaplan 외(2020)</a>는 모델 크기, 데이터 양, 계산량을 늘리면 테스트 손실이 거듭제곱 법칙을 따라 줄어든다고 보고했다. <a href="https://arxiv.org/abs/2203.15556">Hoffmann 외(2022)</a>는 계산량이 정해져 있을 때 모델 크기와 데이터 양을 같은 비율로 늘려야 하며, 대략 파라미터 하나당 토큰 20개 안팎이 알맞다고 제안했다. 이 규칙으로 가상의 세 모델의 학습 비용을 어림하면 다음과 같다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">파라미터 \(N\)</th><th class="num">토큰 \(D=20N\)</th><th class="num">계산량 \(6ND\)</th><th class="num">장치 시간</th><th class="num">장치 1,000개로</th></tr></thead>
+      <tbody>
+        <tr><td class="num">\(10^9\)</td><td class="num">\(2\times10^{10}\)</td><td class="num">\(1.2\times10^{20}\)</td><td class="num">278시간</td><td class="num">약 17분</td></tr>
+        <tr><td class="num">\(7\times10^9\)</td><td class="num">\(1.4\times10^{11}\)</td><td class="num">\(5.88\times10^{21}\)</td><td class="num">13,611시간</td><td class="num">약 13.6시간</td></tr>
+        <tr><td class="num">\(7\times10^{10}\)</td><td class="num">\(1.4\times10^{12}\)</td><td class="num">\(5.88\times10^{23}\)</td><td class="num">1,361,111시간</td><td class="num">약 57일</td></tr>
+      </tbody>
+    </table></div>
+    <p>장치 시간은 장치 하나가 실제로 내는 속도를 \(1.2\times10^{14}\) FLOP/s로 가정해 \(C\)를 나눈 값이다. 가상의 설정이며 실제 모델의 학습 비용이 아니다. 요지는 두 가지다. 계산량이 \(N\)과 \(D\) 둘 다에 비례하고 \(D\)를 \(N\)에 맞춰 늘리면 \(C\)가 \(N^2\)에 비례하므로, 모델이 10배가 되면 비용은 100배가 된다. 그리고 학습 비용은 한 번에 크게 든다. 추론은 반대로 호출마다, 생성하는 토큰마다 약 \(2N\)이 든다(2장). 서비스가 오래 쓰이면 추론 비용의 합이 학습 비용을 넘을 수 있어서, 추론 비용까지 고려해 compute-optimal보다 작은 모델을 더 오래 학습하는 선택도 흔하다.</p>
   </section>
+
+  <!-- ============================================================ 3.2 -->
   <section id="s2">
     <h2>파라미터에 남는 정보와 한계</h2>
-    <p class="slot" data-slot="3.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>학습이 끝나면 말뭉치는 버려지고 파라미터 \(\theta\)만 남는다. 모델이 아는 모든 것은 \(\theta\) 안에 있다. 언어의 규칙, 자주 나온 사실, 코드와 문서의 형식, 짧은 추론의 패턴이 그렇다. 2장에서 층 파라미터의 \(2/3\)가 MLP에 있음을 보았는데, MLP 층이 입력 패턴(key)과 출력 분포(value)를 짝지어 저장하는 메모리처럼 동작한다고 해석한 연구가 있다(<a href="https://arxiv.org/abs/2012.14913">Geva 외</a>). 다만 어떤 정보가 어디에 어떻게 저장되는지는 아직 잘 알려져 있지 않다.</p>
+    <p>파라미터에 정보를 맡기는 방식에는 다음과 같은 한계가 따른다.</p>
+    <ol>
+      <li><b>시점이 고정된다.</b> 학습이 끝난 뒤의 일은 모른다. 학습 데이터의 마지막 시점을 knowledge cutoff라 한다. 최신 정보가 필요한 질문에서 모델이 오래된 답을 자신 있게 내는 이유다.</li>
+      <li><b>드문 정보는 약하게 남는다.</b> 말뭉치에 자주 나온 사실은 다음 토큰 예측의 손실을 줄이는 데 많이 기여해 잘 남고, 한두 번 나온 사실은 잘 남지 않는다. 틀린 정보도 자주 나오면 잘 남는다.</li>
+      <li><b>압축되어 있다.</b> 가중치는 말뭉치보다 훨씬 작다. 파라미터 \(7\times10^9\)개를 16비트로 저장하면 14 GB이다. 반면 토큰 \(1.4\times10^{11}\)개는 1장 표의 비율(토큰당 한국어 3.5바이트, 영어 5.1바이트)로 490~714 GB, 곧 가중치의 35~51배다. 학습 데이터를 그대로 담을 공간이 없으므로 모델은 반복되는 패턴을 요약해 저장한다. 많이 반복된 글은 그대로 재현하기도 한다.</li>
+      <li><b>출처를 알 수 없다.</b> 모델이 어떤 사실을 말해도 그것이 어느 문서에서 왔는지, 맞는지를 파라미터에서 꺼내 확인할 방법이 없다. 1.4절의 '확신의 의미' 문제와 같다.</li>
+      <li><b>한 가지만 고치기 어렵다.</b> 틀린 사실 하나를 고치려면 다시 학습해야 하고, 그 과정에서 다른 능력이 바뀔 수 있다. 특정 사실만 안전하게 수정하는 일은 연구 주제로 남아 있다.</li>
+    </ol>
+    <div class="callout agent"><strong>모르는 것은 컨텍스트나 도구로 보충한다</strong>
+      <p>에이전트가 다루는 정보 대부분이 파라미터에 없다. 사용자의 코드베이스, 오늘의 날짜, 이번 주에 바뀐 문서가 그렇다. 이런 정보는 컨텍스트에 텍스트로 넣어 주거나(<a href="ch11.html">11</a>–<a href="ch12.html">12장</a>) 도구로 찾아 읽게 해야 하고(<a href="ch13.html">13장</a>), 읽은 결과가 맞는지는 모델의 확신이 아니라 출처와 검사로 확인한다. 이 책의 에이전트 구성요소 대부분은 '파라미터 밖의 정보를 컨텍스트로 가져오는 일'을 어떻게 다루느냐에 관한 것이다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 3.3 -->
   <section id="s3">
     <h2>예시를 컨텍스트에 넣는 방법</h2>
-    <p class="slot" data-slot="3.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>파라미터가 학습으로 고정된 뒤에도 모델을 새 과제에 쓸 수 있다. 과제를 설명하는 텍스트와 풀이 예시를 컨텍스트에 넣고, 이어질 텍스트로 답을 내게 하면 된다. <a href="https://arxiv.org/abs/2005.14165">Brown 외(2020)</a>는 파라미터가 1,750억 개인 GPT-3가 가중치를 갱신하지 않고 프롬프트의 예시만으로 다양한 과제를 푼다고 보였다. 이것을 <span class="term">in-context learning</span>이라 한다. 컨텍스트에 넣는 예시의 수에 따라 부르는 이름이 다르다.</p>
+    <ul>
+      <li><b>zero-shot</b>: 과제 설명만 있고 예시는 없다.</li>
+      <li><b>one-shot</b>: 예시가 하나다.</li>
+      <li><b>few-shot</b>: 예시가 둘 이상이다.</li>
+    </ul>
+    <p>1장의 관점으로 보면 프롬프트는 이어 쓸 텍스트의 앞부분일 뿐이다. 아래 프롬프트에서 모델이 하는 일은 '감정:' 다음 토큰의 분포를 계산해 '긍정'이나 '부정'이 오르게 하는 것이다. 과제를 푸는 별도의 장치는 없다.</p>
+<pre><code>다음 문장의 감정을 긍정 또는 부정으로 분류한다.
+
+문장: 배송이 빨라서 만족했다.
+감정: 긍정
+
+문장: 포장이 엉망이라 실망이다.
+감정: 부정
+
+문장: 생각보다 소리가 작아서 아쉽다.
+감정:</code></pre>
+
+    <h3 id="h-works">무엇이 모델에게 전달되는가</h3>
+    <p>예시가 정답을 가르쳐 주는 것일까? <a href="https://arxiv.org/abs/2202.12837">Min 외(2022)</a>는 예시의 정답을 무작위로 바꿔도 성능이 크게 떨어지지 않는 경우가 많다고 보고했다. 이 결과는 예시가 주는 정보 가운데 '이 입력의 정답'보다 <b>라벨의 후보</b>('긍정'과 '부정'뿐이다), <b>입력의 종류</b>(상품 후기 문장이다), <b>출력 형식</b>('감정: ' 다음에 한 단어)이 중요하다는 해석으로 이어졌다. 이 결과는 해당 연구의 모델과 과제에서 얻은 것이므로 모든 모델에 그대로 성립한다고 단정할 수 없다. 예시 선택, 순서, 형식을 바꿔 보며 확인해야 한다.</p>
+    <p>모델 안에서 이 일을 하는 회로의 하나로 <a href="https://arxiv.org/abs/2209.11895">Olsson 외(2022)</a>는 induction head를 제시했다. 컨텍스트에서 앞에 나온 '[A][B]'를 찾아 두고, 지금 '[A]'가 다시 나오면 '[B]'를 예측하게 하는 attention 패턴이다. 2장의 query·key·value로 보면 앞 토큰을 key에 담아 두고, 지금 토큰을 query로 같은 key를 찾아 그 다음 토큰의 value를 가져오는 구조다. 이 연구는 이 회로가 in-context learning의 중요한 메커니즘일 수 있다고 주장한다.</p>
+
+    <h3 id="h-cost">예시의 비용</h3>
+    <p>예시는 공짜가 아니다. 컨텍스트에 들어간 토큰은 2장의 prefill 비용을 늘리고 context window를 차지한다. 위 프롬프트로 예시 수를 0·1·4·8개로 바꾸며 1장의 토크나이저로 토큰 수를 세어 보자.</p>
+<pre><code>import tiktoken
+
+shots = [("배송이 빨라서 만족했다.", "긍정"), ("포장이 엉망이라 실망이다.", "부정"),
+         ("가격 대비 품질이 훌륭하다.", "긍정"), ("설명서가 불친절해서 쓰기 어렵다.", "부정"),
+         ("디자인이 마음에 들어서 또 사고 싶다.", "긍정"), ("사흘 만에 고장이 났다.", "부정"),
+         ("직원이 친절하게 응대해 주었다.", "긍정"), ("환불 요청을 계속 무시한다.", "부정")]
+query = "생각보다 소리가 작아서 아쉽다."
+
+def prompt(k):                                   # 예시 k개를 앞에 붙인 프롬프트
+    s = "다음 문장의 감정을 긍정 또는 부정으로 분류한다.\n\n"
+    for text, label in shots[:k]:
+        s += f"문장: {text}\n감정: {label}\n\n"
+    return s + f"문장: {query}\n감정:"
+
+for k in (0, 1, 4, 8):
+    print(k, [len(tiktoken.get_encoding(n).encode(prompt(k))) for n in ("o200k_base", "cl100k_base")])</code></pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">예시 수</th><th class="num">o200k_base</th><th class="num">cl100k_base</th></tr></thead>
+      <tbody>
+        <tr><td class="num">0</td><td class="num">33</td><td class="num">49</td></tr>
+        <tr><td class="num">1</td><td class="num">51</td><td class="num">77</td></tr>
+        <tr><td class="num">4</td><td class="num">112</td><td class="num">164</td></tr>
+        <tr><td class="num">8</td><td class="num">192</td><td class="num">275</td></tr>
+      </tbody>
+    </table></div>
+    <p>예시 하나가 o200k_base로 약 20토큰, cl100k_base로 약 28토큰이다. 짧은 예시라서 작지만, 실제 과제의 예시는 문서 단위라 훨씬 길 수 있고, 매 호출마다 같은 예시가 다시 들어간다. 앞부분이 같으면 계산을 재사용하는 prompt caching(2장)이 여기서 효과를 낸다. 또 예시를 어디에 두는지에 따라 모델이 읽는 정도가 달라질 수 있다. 긴 컨텍스트에서 정보의 위치가 미치는 영향은 <a href="ch12.html">12장</a>에서 다룬다.</p>
+    <div class="callout agent"><strong>에이전트의 지시와 절차도 컨텍스트에 쓰는 글이다</strong>
+      <p>에이전트가 따르는 지시문, 규칙 파일, 작업 절차는 모두 모델 입장에서는 컨텍스트에 들어온 텍스트다. 이 책 5부에서 볼 CLAUDE.md와 skill의 내용(<a href="ch18.html">18</a>, <a href="ch21.html">21장</a>)도 같은 방식으로 컨텍스트에 들어간다. 파라미터를 고치지 않고 행동을 바꾸는 방법이 이것뿐이므로, 어떤 텍스트를 언제 컨텍스트에 넣을지가 에이전트 설계의 중심이 된다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 3.4 -->
   <section id="s4">
     <h2>학습과 in-context 적응의 차이</h2>
-    <p class="slot" data-slot="3.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>두 방법 모두 모델을 새 과제에 맞추지만, 바뀌는 곳이 다르다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>학습 (사전학습·fine-tuning)</th><th>in-context 적응</th></tr></thead>
+      <tbody>
+        <tr><td>바뀌는 것</td><td>파라미터 \(\theta\)</td><td>컨텍스트(\(\theta\)는 그대로)</td></tr>
+        <tr><td>지속 시간</td><td>모델이 배포되는 동안 계속</td><td>그 컨텍스트가 있는 동안만</td></tr>
+        <tr><td>비용</td><td>한 번의 큰 계산(\(6ND\))</td><td>호출마다 예시 토큰의 prefill 비용</td></tr>
+        <tr><td>담을 수 있는 양</td><td>파라미터 수</td><td>context window의 크기</td></tr>
+        <tr><td>누가 할 수 있는가</td><td>모델을 학습시키는 쪽</td><td>프롬프트를 쓰는 누구나</td></tr>
+        <tr><td>안정성</td><td>한 번 정하면 동작이 일정하다</td><td>예시의 순서와 형식에 민감할 수 있다</td></tr>
+      </tbody>
+    </table></div>
+    <p>이렇게 보면 둘이 전혀 다른 일 같다. 그런데 어떤 단순한 경우에는 컨텍스트 안에서 일어나는 계산이 학습의 갱신 단계와 정확히 같다. 선형 회귀로 보자.</p>
+    <div class="box thm" id="thm-gd"><div class="box-h">linear attention 한 층은 gradient descent 한 걸음이다</div>
+      <p>컨텍스트에 예시 \((x_1,y_1),\ldots,(x_N,y_N)\)이 있고 선형 모델 \(\hat y=w\cdot x\)의 제곱 손실 \(L(w)=\tfrac12\sum_i(y_i-w\cdot x_i)^2\)을 생각하자. \(w_0=0\)에서 학습률 \(\eta\)로 gradient descent를 한 걸음 하면 \(w_1=\eta\sum_i y_ix_i\)이고, 질의 \(x_q\)에 대한 예측은 다음과 같다.</p>
+      <div class="formula" id="eq-gd">\[ w_1\cdot x_q=\eta\sum_{i=1}^{N}y_i\,(x_i\cdot x_q) \]</div>
+      <p>이것은 query \(=x_q\), key \(=x_i\), value \(=y_i\)이고 softmax가 없는 attention의 출력에 \(\eta\)를 곱한 것과 같다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>\(\nabla L(w)=-\sum_i(y_i-w\cdot x_i)x_i\)이므로 \(\nabla L(0)=-\sum_iy_ix_i\)이다. 한 걸음 갱신 \(w_1=0-\eta\nabla L(0)=\eta\sum_iy_ix_i\)에 \(x_q\)를 내적하면 식 <a class="ref" href="#eq-gd"></a>이다. 오른쪽은 가중치 \(x_i\cdot x_q\)로 value \(y_i\)를 더한 것, 곧 점수가 내적이고 정규화가 없는 attention이다.</p>
+      </details>
+    </div>
+    <p>학습에서는 갱신된 \(w_1\)이 파라미터로 남지만, 여기서는 \(w_1\)이 어디에도 저장되지 않고 이 컨텍스트의 순전파 안에서만 존재한다. 같은 계산이 파라미터 갱신 자리에서 순전파 안으로 옮겨 온 것이다. 그럼 사전학습은 무슨 일을 하는가? 이 구성에서 학습되는 것은 attention의 \(W_Q,W_K,W_V\)(위 식의 \(\eta\))이다. 여러 과제를 보며 이 가중치를 정해 두면, 새 과제의 예시가 컨텍스트에 들어왔을 때 순전파가 그 과제를 푸는 알고리즘이 된다. 이 대응은 <a href="https://arxiv.org/abs/2212.07677">von Oswald 외(2022)</a>가 트랜스포머가 in-context로 gradient descent를 구현할 수 있음을 보이면서 제시했고, <a href="https://arxiv.org/abs/2211.15661">Akyürek 외(2022)</a>는 선형 회귀 과제로 학습한 트랜스포머의 예측이 최소제곱 같은 알고리즘과 가깝다고 보고했다. 이는 사람이 손으로 만든 구성과 작은 모델에서 확인한 결과이며, 실제 LLM이 이렇게 동작한다는 증거는 아니다.</p>
+    <p>이 구성이 컨텍스트에서 얼마나 잘 학습하는지는 합에 곱하는 크기 \(\eta\)에 달려 있다. 예시 수 \(N\)이 달라지면 알맞은 크기도 달라지므로, 이 값을 사전학습이 정해 주어야 한다. 입력이 \(d\)차원 표준정규분포이고 잡음의 표준편차가 \(\sigma\)일 때, 합에 곱하는 계수 \(c\)(\(\eta=c/N\))에 따른 예측 오차를 계산할 수 있다.</p>
+    <div class="box thm" id="thm-mse"><div class="box-h">linear attention의 평균 제곱 오차</div>
+      <p>과제마다 \(w\sim\mathcal N(0,I_d)\), 예시와 질의의 입력이 \(\mathcal N(0,I_d)\), \(y_i=w\cdot x_i+\epsilon_i\), \(\epsilon_i\sim\mathcal N(0,\sigma^2)\)이면, 예측 \(\hat y=\frac cN\sum_iy_i(x_i\cdot x_q)\)의 \(E\bigl[(\hat y-w\cdot x_q)^2\bigr]\)는 다음과 같다.</p>
+      <div class="formula" id="eq-mse">\[ \mathrm{MSE}(c)=d\Bigl[c^2\Bigl(1+\frac{d+1+\sigma^2}{N}\Bigr)-2c+1\Bigr] \]</div>
+      <p>따라서 \(c=1\)이면 \(\dfrac{d(d+1)+\sigma^2d}{N}\)이고, 최적은 \(c^*=\dfrac{N}{N+d+1+\sigma^2}\)에서 \(\dfrac{d(d+1+\sigma^2)}{N+d+1+\sigma^2}\)이다. 예시가 없으면(\(N=0\)) 최적 값이 \(d\)로, 컨텍스트 없이 0을 내는 것과 같다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>\(S=\frac1N\sum_ix_ix_i^\top\), \(\nu=\frac1N\sum_i\epsilon_ix_i\)라 하면 \(\hat y=c\,x_q^\top(Sw+\nu)\)이다. 오차는 \(x_q^\top\bigl((cS-I)w+c\nu\bigr)\)이고 \(x_q\)에 대해 기댓값을 취하면 \(\|(cS-I)w+c\nu\|^2\)의 기댓값이 된다. \(\epsilon\)이 평균 0이고 독립이므로 교차항이 사라진다. \(E[S]=I\)이고, 서로 다른 \(i\ne j\)의 항은 독립이므로 \(E[S^2]=\frac{N-1}{N}I+\frac1N E\bigl[\|x\|^2xx^\top\bigr]\)이다. 가우스 입력에서 \(E\bigl[\|x\|^2xx^\top\bigr]=(d+2)I\)이므로 \(E[S^2]=\bigl(1+\frac{d+1}N\bigr)I\)이고, \(E\|(cS-I)w\|^2=d\bigl[c^2(1+\frac{d+1}N)-2c+1\bigr]\)이다. 잡음 항은 \(E\|c\nu\|^2=c^2\sigma^2d/N\)이다. 둘을 더하면 식 <a class="ref" href="#eq-mse"></a>이다. \(c\)에 대한 이차식의 최솟값은 \(c^*=1\big/\bigl(1+\frac{d+1+\sigma^2}N\bigr)\)에서 \(d(1-c^*)\)이다.</p>
+      </details>
+    </div>
+    <p>같은 데이터에서 최소제곱 해의 오차는 \(N>d+1\)일 때 \(\sigma^2d/(N-d-1)\)로 알려져 있다. 아래 실험은 이 이론값들을 직접 시뮬레이션과 비교한다.</p>
+    <div class="callout agent"><strong>에이전트는 세션 사이에 학습하지 않는다</strong>
+      <p>이 장의 구분은 에이전트의 '기억'을 이해하는 기준이다. 에이전트가 이번 대화에서 배운 것은 컨텍스트에만 있고 파라미터에는 남지 않는다. 새 세션이 시작되면 그 컨텍스트가 사라지므로, 다음에도 알아야 할 것은 파일에 적어 두었다가 새 컨텍스트에 다시 읽어 와야 한다(<a href="ch16.html">16</a>, <a href="ch18.html">18장</a>). '에이전트가 학습한다'는 말은 대개 파라미터 갱신이 아니라 이런 텍스트의 저장과 재주입을 뜻한다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 모델과 과제는 고정하고 컨텍스트에 넣는 예시의 수만 0·1·4·8개로 바꾸면 정답률이 어떻게 변하는가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 컨텍스트의 예시 수를 바꾸며 과제를 풀기</h2>
+    <p>이 장의 질문을 실험으로 확인해 보자. <b>가중치를 바꾸지 않은 채 컨텍스트에 넣는 예시의 수만 바꾸면 예측이 얼마나 좋아지는가?</b> 언어모델 대신 3.4절의 선형 회귀 과제를 쓰는 이유는 정답의 이론값을 미리 유도할 수 있기 때문이다. 정답률 대신 평균 제곱 오차(MSE)로 재며, 작을수록 좋다.</p>
+
+    <h3 id="h-design">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>과제</td><td>입력 차원 \(d=5\), 과제마다 \(w\sim\mathcal N(0,I_5)\)가 다르다. \(y=w\cdot x+\epsilon\), \(\sigma=0.5\). 컨텍스트의 예시로만 \(w\)를 알 수 있다.</td></tr>
+        <tr><td>기준 설계</td><td>zero-shot: 컨텍스트를 쓰지 않고 0을 낸다. \(w\)의 평균이 0이므로 컨텍스트 없이 낼 수 있는 최선이다.</td></tr>
+        <tr><td>바꾸는 것</td><td>컨텍스트의 예시 수 \(N\in\{0,1,4,8,16,64\}\) (하나만). 모델의 가중치(계수)는 \(N\)에 맞춘 값 외에는 같다.</td></tr>
+        <tr><td>비교하는 방법</td><td>① attention \(1/N\): 식 <a class="ref" href="#eq-gd"></a>에서 \(\eta=1/N\). ② attention 보정: \(c=c^*\), 곧 합에 \(1/(N+d+1+\sigma^2)\)을 곱한다. ③ 최소제곱: 컨텍스트로 얻을 수 있는 이상적인 해(\(N>d+1\)일 때만).</td></tr>
+        <tr><td>관측값</td><td>질의 하나의 예측과 \(w\cdot x_q\)의 제곱 오차를 20,000개 과제에서 평균한 MSE. 기울기 갱신을 직접 계산한 gradient descent 한 걸음의 예측과 ①의 최대 차이도 잰다.</td></tr>
+        <tr><td>예상 (이론에서)</td><td>식 <a class="ref" href="#eq-mse"></a>에 따라 ①은 \(31.25/N\), ②는 \(31.25/(N+6.25)\)이고, 최소제곱은 \(1.25/(N-6)\)이다. zero-shot은 \(d=5\)다. 곧 ①은 \(N\lt6.25\)에서 zero-shot보다 나쁘고, ②는 모든 \(N\)에서 zero-shot 이하이며 \(N\)에 대해 줄어든다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td>측정값이 이론값에서 표준오차로 설명되지 않을 만큼 벗어나거나, ②가 어떤 \(N\)에서 zero-shot보다 크거나, ①과 gradient descent 한 걸음의 예측이 다르면 틀린 것이다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code">코드</h3>
+    <p>Python 3.14와 NumPy 2.5.4에서 실행했고, 난수 시드는 0이다. 다른 NumPy 버전에서는 난수 열이 달라 마지막 자리가 바뀔 수 있으나, 이론값에서 벗어나는 정도는 표준오차 안에 머물러야 한다. 마지막 두 줄은 \(N\)마다 ①과 gradient descent 한 걸음의 차이를 출력한다.</p>
+<pre><code>import numpy as np
+
+d, sigma, T = 5, 0.5, 20000                 # 입력 차원, 잡음의 표준편차, 과제 수
+rng = np.random.default_rng(0)
+
+def run(N):
+    w = rng.normal(size=(T, d))             # 과제마다 정답 w가 다르다: 컨텍스트로만 알 수 있다
+    X = rng.normal(size=(T, N, d))          # 컨텍스트 속 예시의 입력 x_1..x_N
+    y = np.einsum("tnd,td-&gt;tn", X, w) + sigma * rng.normal(size=(T, N))   # 예시의 정답 y_i
+    xq = rng.normal(size=(T, d))            # 질의 x_q
+    truth = np.einsum("td,td-&gt;t", xq, w)    # 맞혀야 할 값 w·x_q
+    s = np.einsum("tnd,tn-&gt;td", X, y)       # sum_i y_i x_i
+    pred = {"zero-shot": np.zeros(T)}       # 컨텍스트를 안 쓰면 w를 모르므로 0이 최선이다
+    # linear attention 한 층: query=x_q, key=x_i, value=y_i, softmax 없음. 합에 곱하는 크기만 다르다
+    pred["attention 1/N"] = np.einsum("td,td-&gt;t", s, xq) / N if N else np.zeros(T)
+    pred["attention 보정"] = np.einsum("td,td-&gt;t", s, xq) / (N + d + 1 + sigma ** 2)
+    if N &gt; d + 1:                           # 최소제곱 해: 이 컨텍스트로 얻을 수 있는 이상적인 답
+        A = np.einsum("tnd,tne-&gt;tde", X, X)
+        pred["최소제곱"] = np.einsum("td,td-&gt;t", np.linalg.solve(A, s[..., None])[..., 0], xq)
+    if N:                                   # 같은 일을 gradient descent 한 걸음으로: w=0에서 η=1/N
+        grad = -np.einsum("tnd,tn-&gt;td", X, y - np.einsum("tnd,td-&gt;tn", X, np.zeros((T, d))))
+        pred["gd 한 걸음"] = np.einsum("td,td-&gt;t", 0 - grad / N, xq)
+    return {k: ((v - truth) ** 2).mean() for k, v in pred.items()}, pred
+
+theory = {                                  # 가우스 입력에서 유도한 이론값 (본문 3.4절)
+    "zero-shot": lambda N: d,
+    "attention 1/N": lambda N: (d * (d + 1) + sigma ** 2 * d) / N if N else d,
+    "attention 보정": lambda N: d * (d + 1 + sigma ** 2) / (N + d + 1 + sigma ** 2),
+    "최소제곱": lambda N: sigma ** 2 * d / (N - d - 1),
+}
+print(f"{'N':&gt;3} {'방법':&lt;14} {'측정':&gt;8} {'이론':&gt;8}")
+for N in (0, 1, 4, 8, 16, 64):
+    mse, pred = run(N)
+    for k in ("zero-shot", "attention 1/N", "attention 보정", "최소제곱"):
+        if k in mse:
+            print(f"{N:&gt;3} {k:&lt;14} {mse[k]:8.3f} {theory[k](N):8.3f}")
+    if N:
+        print(f"{'':&gt;3} attention 1/N과 gd 한 걸음 예측의 최대 차이: {np.abs(pred['attention 1/N'] - pred['gd 한 걸음']).max():.1e}")</code></pre>
+
+    <h3 id="h-result">결과</h3>
+    <p>괄호 안은 이론값이다. zero-shot의 이론값은 모든 \(N\)에서 5이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">예시 수 \(N\)</th><th class="num">zero-shot</th><th class="num">① attention \(1/N\)</th><th class="num">② attention 보정</th><th class="num">③ 최소제곱</th></tr></thead>
+      <tbody>
+        <tr><td class="num">0</td><td class="num">4.961</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td class="num">1</td><td class="num">5.045</td><td class="num">30.893 (31.250)</td><td class="num">4.325 (4.310)</td><td class="num">—</td></tr>
+        <tr><td class="num">4</td><td class="num">4.917</td><td class="num">7.528 (7.812)</td><td class="num">2.918 (3.049)</td><td class="num">—</td></tr>
+        <tr><td class="num">8</td><td class="num">4.930</td><td class="num">3.832 (3.906)</td><td class="num">2.158 (2.193)</td><td class="num">0.636 (0.625)</td></tr>
+        <tr><td class="num">16</td><td class="num">5.016</td><td class="num">1.932 (1.953)</td><td class="num">1.406 (1.404)</td><td class="num">0.124 (0.125)</td></tr>
+        <tr><td class="num">64</td><td class="num">4.958</td><td class="num">0.492 (0.488)</td><td class="num">0.448 (0.445)</td><td class="num">0.021 (0.022)</td></tr>
+      </tbody>
+    </table></div>
+    <p>모든 \(N\)에서 ①과 gradient descent 한 걸음의 예측은 최대 차이가 0.0이었다.</p>
+
+    <h3 id="h-limits">해석과 한계</h3>
+    <ul>
+      <li><b>예상은 맞았다.</b> ②는 \(N\)이 커질수록 5(\(N=0\))에서 단조롭게 줄었고, ①은 \(N=1,4\)에서 zero-shot(5)보다 나쁘다가 \(N=8\)부터 나아졌다. 예시 수를 0·1·4·8로 바꿀 때 ②의 오차는 4.96, 4.33, 2.92, 2.16으로 줄었다. 가중치(계수)는 \(N\)에 맞춘 값 하나씩만 달랐고 컨텍스트가 과제를 알려 주었다.</li>
+      <li><b>이론값과의 차이는 표본 요동으로 설명된다.</b> 가장 크게 벗어난 칸은 ②의 \(N=4\)(2.918 대 3.049)로, 이 칸의 표준오차(0.04)의 3.3배다. 오차가 heavy-tailed여서 20,000개 과제의 표준오차는 낙관적일 수 있다. 같은 설정을 다른 시드(123)로 과제 100만 개에 대해 다시 재면 \(N=4\)에서 ①이 7.803(이론 7.813), ②가 3.036(이론 3.049)으로 0.4% 안쪽에서 맞는다. 이 확인용 실행은 위 코드에 포함하지 않았다.</li>
+      <li><b>예시가 적을 때는 계수가 중요하다.</b> ①은 \(N=1\)에서 30.9로 zero-shot보다 여섯 배 나쁘다. 예시 하나로 \(w\)를 거의 다 믿었기 때문이다. 알맞은 계수 \(c^*\)는 \(N,d,\sigma\)에 따라 달라지고(\(N=1\)에서 0.14, \(N=64\)에서 0.91), 이 크기를 정하는 일이 사전학습에서 일어나는 일의 한 예다. 이 결과를 실제 LLM의 few-shot 성능에 그대로 대응시킬 수는 없다.</li>
+      <li><b>최소제곱이 훨씬 낫다.</b> \(N=64\)에서 ②는 0.448인데 최소제곱은 0.021이다. attention 한 층은 한 걸음의 gradient descent만 하므로 계수를 최적으로 골라도 한계가 있다. 여러 걸음을 쌓으면 최소제곱에 가까워지고, 여러 층을 쌓은 트랜스포머가 이를 흉내 낼 수 있다는 것이 위 연구들의 주장이다. 이 실험은 한 층만 확인했다.</li>
+      <li><b>이 실험이 보이지 않는 것.</b> 입력이 가우스 분포인 선형 회귀 과제이고 모델은 손으로 만든 한 층이다. 언어 과제에서 예시가 어떻게 쓰이는지, softmax attention이 어떻게 다른지, 실제 LLM이 이렇게 동작하는지는 말하지 않는다. 옮겨지는 것은 구조다. 파라미터를 바꾸지 않고도 컨텍스트가 과제를 정할 수 있고, 그 효과는 컨텍스트에 넣은 예시의 양에 따라 커진다.</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>사전학습은 과제 없이 아주 큰 텍스트에서 다음 토큰 예측 손실을 줄이는 학습이다. 한 단계는 배치 → 모든 위치의 로짓 → 손실 → 역전파 → optimizer의 갱신이다.</li>
+      <li>학습 계산량은 \(C\approx6ND\)로 어림한다. 순전파가 토큰당 약 \(2N\), 역전파가 그 두 배다. compute-optimal 규칙은 대략 파라미터 하나당 토큰 20개이고, 추론 비용까지 고려하면 더 오래 학습하기도 한다.</li>
+      <li>학습이 끝나면 말뭉치는 버려지고 파라미터만 남는다. 파라미터는 시점이 고정되고, 드문 정보는 약하며, 말뭉치보다 훨씬 작아 압축되어 있고, 출처를 확인할 수 없고, 한 가지만 고치기 어렵다.</li>
+      <li>그래서 파라미터에 없는 정보는 컨텍스트나 도구로 보충하고, 결과는 모델의 확신이 아니라 출처와 검사로 확인한다.</li>
+      <li>in-context learning은 파라미터를 바꾸지 않고 컨텍스트의 설명과 예시로 과제를 푸는 것이다. 예시가 전달하는 것은 정답만이 아니라 라벨의 후보, 입력의 종류, 출력 형식일 수 있다.</li>
+      <li>예시는 토큰이므로 prefill 비용과 context window를 쓴다. 예시 하나가 짧아도 매 호출마다 반복되므로 prompt caching과 함께 설계한다.</li>
+      <li>학습은 파라미터를, in-context 적응은 컨텍스트를 바꾼다. 선형 회귀에서 linear attention 한 층의 예측은 \(w=0\)에서 gradient descent 한 걸음의 예측과 같고, 갱신된 \(w\)는 순전파 안에서만 존재한다.</li>
+      <li>그 계수의 크기는 예시 수에 따라 달라져야 하며, 이를 정하는 것이 사전학습의 역할이다. 에이전트가 세션 사이에 '학습'한다는 말은 파라미터 갱신이 아니라 텍스트의 저장과 재주입이다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 사전학습이 최소화하는 것은?</p><div class="opts">
+        <button class="opt">과제별로 사람이 붙인 정답과의 차이</button>
+        <button class="opt" data-correct>말뭉치의 실제 다음 토큰에 대한 교차 엔트로피 손실</button>
+        <button class="opt">사람의 선호 점수</button>
+      </div><div class="quiz-exp">사전학습은 과제 라벨 없이 텍스트 자체에서 다음 토큰을 맞히게 한다. 사람의 선호를 반영하는 학습은 4장의 instruction tuning 이후 단계다.</div></div>
+      <div class="quiz-q"><p>2. 파라미터 \(10^9\)개 모델을 토큰 \(2\times10^{10}\)개로 학습할 때 계산량을 \(6ND\)로 어림하면?</p><div class="opts">
+        <button class="opt">\(2\times10^{19}\)</button>
+        <button class="opt" data-correct>\(1.2\times10^{20}\)</button>
+        <button class="opt">\(1.2\times10^{21}\)</button>
+      </div><div class="quiz-exp">\(6\times10^9\times2\times10^{10}=1.2\times10^{20}\)이다. 토큰당 순전파 \(2N\)에 역전파(순전파의 약 2배)를 합쳐 \(6N\)이다.</div></div>
+      <div class="quiz-q"><p>3. 학습이 끝난 모델이 오늘 일어난 일을 모르는 근본 이유는?</p><div class="opts">
+        <button class="opt">모델이 너무 작아서</button>
+        <button class="opt" data-correct>정보가 학습 때 파라미터에 담기고, 학습 뒤에는 파라미터가 바뀌지 않아서</button>
+        <button class="opt">토크나이저에 없는 단어여서</button>
+      </div><div class="quiz-exp">knowledge cutoff 이후의 정보는 컨텍스트에 넣거나 도구로 찾아 읽게 해야 한다.</div></div>
+      <div class="quiz-q"><p>4. few-shot 프롬프트에 예시를 넣을 때 모델의 파라미터는?</p><div class="opts">
+        <button class="opt">예시마다 한 번씩 갱신된다.</button>
+        <button class="opt" data-correct>갱신되지 않는다. 컨텍스트만 달라진다.</button>
+        <button class="opt">예시가 8개를 넘으면 갱신된다.</button>
+      </div><div class="quiz-exp">in-context learning은 순전파만으로 이루어진다. 예시는 입력 토큰일 뿐이다.</div></div>
+      <div class="quiz-q"><p>5. 3.3절의 감정 분류 프롬프트(o200k_base)에서 예시 4개를 넣으면 예시가 없을 때보다 토큰이 약 몇 개 늘어나는가?</p><div class="opts">
+        <button class="opt">약 20개</button>
+        <button class="opt" data-correct>약 79개</button>
+        <button class="opt">약 190개</button>
+      </div><div class="quiz-exp">표에서 \(112-33=79\)이다. 예시 하나가 약 20토큰이다.</div></div>
+      <div class="quiz-q"><p>6. \(w=0\)에서 시작한 gradient descent 한 걸음(학습률 \(\eta\))으로 구한 선형 회귀의 예측은 무엇과 같은가?</p><div class="opts">
+        <button class="opt">key를 query로 나눈 값</button>
+        <button class="opt" data-correct>softmax 없는 attention(query \(=x_q\), key \(=x_i\), value \(=y_i\))의 출력에 \(\eta\)를 곱한 것</button>
+        <button class="opt">최소제곱 해</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-gd"></a>이다. \(w_1\cdot x_q=\eta\sum_iy_i(x_i\cdot x_q)\)이다. 최소제곱 해는 여러 걸음을 거쳐 수렴한 해다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-grad" data-level="1"><p><a class="ref" href="#ex-gradient"></a>에서 정답이 둘째 토큰(\(y=2\))이라면, 같은 로짓 \(z=(2,1,0)\)과 학습률 0.5로 한 걸음 고친 뒤의 로짓과 정답 확률을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(p=(0.665,\,0.245,\,0.090)\)이고 기울기는 \(p-\mathbf 1[i=2]=(0.665,\,-0.755,\,0.090)\)이다. \(z\leftarrow z-0.5\nabla\)로 \(z=(1.667,\,1.378,\,-0.045)\)가 되고, 소프트맥스는 \((0.518,\,0.388,\,0.094)\)이다. 정답 확률은 0.245에서 0.388로 늘었고 손실은 1.408에서 0.947로 줄었다.</p></details></div>
+    <div class="prob" id="prob-flops" data-level="1"><p>\(N=3\times10^9\)이고 \(D=20N\)일 때 \(6ND\)와, 장치당 \(1.2\times10^{14}\) FLOP/s로 가정한 장치 시간을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(D=6\times10^{10}\)이므로 \(C=6\times3\times10^9\times6\times10^{10}=1.08\times10^{21}\)이다. \(1.08\times10^{21}/(1.2\times10^{14})=9\times10^6\)초이고 3,600으로 나누면 2,500시간이다.</p></details></div>
+    <div class="prob" id="prob-6n" data-level="2"><p>2장의 층당 곱셈-덧셈 \(24nd^2\)에서 출발해 순전파의 토큰당 비용이 약 \(2N\)임을 보여라. 어떤 항을 무시했는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(n\)개 토큰에 대한 층의 위치별 계산이 \(24nd^2\)이므로 토큰당 \(24d^2=2\times12d^2\)이다. \(12d^2\)은 층의 파라미터 수이므로 \(L\)개 층의 합은 \(2\times12Ld^2\approx2N\)이다. 무시한 것은 attention의 \(4n^2d\)(\(n\)이 \(6d\)보다 훨씬 작을 때 작다)와 임베딩·unembedding 행렬(\(|\mathcal V|d\))이다. 임베딩은 토큰 id를 행으로 조회하는 것이어서 곱셈이 거의 없지만, unembedding은 곱셈이 \(2|\mathcal V|d\)로 작지 않을 수 있다.</p></details></div>
+    <div class="prob" id="prob-ratio" data-level="2"><p>\(D=20N\)이고 토큰당 3.5바이트, 가중치 16비트일 때 학습 데이터의 바이트 수가 가중치 바이트 수의 몇 배인지 구하라. \(N\)에 따라 달라지는가?</p>
+      <details class="sol"><summary>풀이</summary><p>가중치는 \(2N\)바이트이고 데이터는 \(20N\times3.5=70N\)바이트이므로 비는 \(70N/2N=35\)배로 \(N\)과 무관하다. compute-optimal 규칙을 따르면 모델이 커져도 데이터와 가중치의 크기 비가 일정하다.</p></details></div>
+    <div class="prob" id="prob-budget" data-level="1"><p>3.3절의 표(o200k_base)에서 예시 한 개의 평균 토큰 수를 구하고, 예시에 500토큰까지 쓸 수 있다면 몇 개를 넣을 수 있는지 어림하라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 8개로 늘어난 토큰이 \(192-33=159\)이므로 평균 \(159/8\approx19.9\)토큰이다. \(500/19.9\approx25\)개다. 실제로는 예시의 길이가 달라 오차가 있으므로 가장 긴 예시 기준으로도 확인해야 한다.</p></details></div>
+    <div class="prob" id="prob-theory" data-level="2"><p>\(d=5\), \(\sigma=0.5\), \(N=20\)일 때 zero-shot, ① attention \(1/N\), ② attention 보정, ③ 최소제곱의 이론 MSE를 구하고 순서를 매겨라.</p>
+      <details class="sol"><summary>풀이</summary><p>zero-shot은 \(d=5\), ①은 \(31.25/20=1.5625\), ②는 \(5\times6.25/(20+6.25)=1.190\), ③은 \(1.25/(20-6)=0.0893\)이다. 오차가 작은 순서는 ③ \(\lt\) ② \(\lt\) ① \(\lt\) zero-shot이다. ②가 ①보다 나은 것은 \(c^*\)가 예시의 잡음과 \(N\)이 작을 때의 분산을 반영해 예측을 줄여 주기 때문이다.</p></details></div>
+    <div class="prob" id="prob-opt-c" data-level="3"><p>식 <a class="ref" href="#eq-mse"></a>의 \(\mathrm{MSE}(c)\)를 \(c\)에 대해 최소화해 \(c^*\)와 최솟값을 유도하라. \(N\to\infty\)일 때 \(c^*\)와 최솟값은 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\mathrm{MSE}(c)=d[ac^2-2c+1]\), \(a=1+(d+1+\sigma^2)/N\)이다. 미분해 \(2ac-2=0\)이므로 \(c^*=1/a=N/(N+d+1+\sigma^2)\)이고 최솟값은 \(d(1-1/a)=d(d+1+\sigma^2)/(N+d+1+\sigma^2)\)이다. \(N\to\infty\)이면 \(c^*\to1\), 최솟값은 \(0\)으로 간다. 예시가 충분하면 \(w\)를 정확히 알 수 있다는 뜻이다.</p></details></div>
+    <div class="prob" id="prob-gd2" data-level="3"><p>같은 설정에서 \(w_0=0\)에서 gradient descent를 두 걸음 하면(학습률 \(\eta\)) 예측이 \(\hat y=\eta\,x_q^\top\bigl(2I-\eta\sum_ix_ix_i^\top\bigr)\sum_iy_ix_i\)임을 보여라. 이것이 attention 한 층으로 표현되는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(A=\sum_ix_ix_i^\top\), \(b=\sum_iy_ix_i\)라 하면 \(\nabla L(w)=Aw-b\)이다. \(w_1=\eta b\)이고 \(w_2=w_1-\eta(Aw_1-b)=\eta b+\eta b-\eta^2Ab=\eta(2I-\eta A)b\)이다. 따라서 \(\hat y=x_q^\top w_2\)이다. 이 식에는 \(A\)와 \(b\)의 곱 \(Ab\)가 있어 key와 value를 한 번 섞은 결과를 다시 쓰는 구조여서, attention 한 층이 아니라 한 번 더 섞는 층이 필요하다. 그래서 gradient descent를 여러 걸음 구현하려면 층이 여러 개 있어야 한다는 것이 위 연구의 설명이다.</p></details></div>
   </section>
 </main>
 </body>
