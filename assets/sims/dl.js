@@ -5,6 +5,7 @@
    diffusion2d · overfit · lr-schedule
    charm-gating · charm-jepa (논문 리뷰 p01)
    tslm-tokens · flamingo-xattn · tslm-noise (논문 리뷰 p03)
+   bigram-decode (LLM에서 자율 에이전트까지 1장)
    ========================================================================== */
 (function () {
   "use strict";
@@ -1913,6 +1914,169 @@
       S.range({ label: "잡음 비율 α", min: 0, max: 0.7, step: 0.01, value: st.a, fmt: (v) => v.toFixed(2), onInput: (v) => { st.a = v; upd(); } });
       S.check({ label: "센서 고장 (입력 전체를 잡음으로)", value: false, onChange: (v) => { st.fail = v; upd(); } });
       S.button("잡음 다시 뽑기", () => { st.seed++; gen(); upd(); }, { primary: true });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     19. 바이그램 이어 쓰기 — 선택 규칙만 바꾸기 (LLM에서 자율 에이전트까지 1장 실험)
+     책의 파이썬 코드와 같은 말뭉치·같은 계산 순서·같은 난수(파이썬 random의 MT19937)를 쓴다.
+     그래서 시드 0–199의 판독값이 책의 결과 표와 같다.
+     ====================================================================== */
+  /** 파이썬 random.Random(seed).random()과 같은 수열 (0 ≤ seed < 2^32) */
+  function pyRandom(seed) {
+    const N = 624, M = 397, mt = new Uint32Array(N);
+    let mti = N + 1;
+    const mul = (a, b) => Math.imul(a, b) >>> 0;
+    mt[0] = 19650218;
+    for (mti = 1; mti < N; mti++) mt[mti] = (mul(1812433253, mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti) >>> 0;
+    // init_by_array([seed]): 파이썬이 정수 시드를 넣는 방식
+    let i = 1, j = 0;
+    for (let k = N; k; k--) {
+      mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1664525)) + (seed >>> 0) + j) >>> 0;
+      i++; j = 0;
+      if (i >= N) { mt[0] = mt[N - 1]; i = 1; }
+    }
+    for (let k = N - 1; k; k--) {
+      mt[i] = ((mt[i] ^ mul(mt[i - 1] ^ (mt[i - 1] >>> 30), 1566083941)) - i) >>> 0;
+      i++;
+      if (i >= N) { mt[0] = mt[N - 1]; i = 1; }
+    }
+    mt[0] = 0x80000000;
+    function next() {
+      let y;
+      if (mti >= N) {
+        let kk = 0;
+        for (; kk < N - M; kk++) { y = (mt[kk] & 0x80000000) | (mt[kk + 1] & 0x7fffffff); mt[kk] = mt[kk + M] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
+        for (; kk < N - 1; kk++) { y = (mt[kk] & 0x80000000) | (mt[kk + 1] & 0x7fffffff); mt[kk] = mt[kk + (M - N)] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0); }
+        y = (mt[N - 1] & 0x80000000) | (mt[0] & 0x7fffffff); mt[N - 1] = mt[M - 1] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0);
+        mti = 0;
+      }
+      y = mt[mti++];
+      y ^= y >>> 11; y ^= (y << 7) & 0x9d2c5680; y ^= (y << 15) & 0xefc60000; y ^= y >>> 18;
+      return y >>> 0;
+    }
+    return () => { const a = next() >>> 5, b = next() >>> 6; return (a * 67108864 + b) / 9007199254740992; };
+  }
+  const BIGRAM_CORPUS = [
+    "모델 은 다음 토큰 을 예측 한다 .", "모델 은 다음 토큰 을 고르고 그 토큰 을 문맥 에 붙인다 .", "모델 은 문맥 을 읽고 다음 토큰 을 고른다 .",
+    "모델 은 다음 토큰 의 확률 을 계산 한다 .", "모델 은 확률 이 높은 토큰 을 고르고 다음 토큰 을 고른다 .", "모델 은 문장 을 끝 까지 이어 쓴다 .",
+    "모델 은 사실 을 확인 하지 않는다 .", "토큰 을 고르고 다음 토큰 을 고르고 끝 토큰 이 나오면 멈춘다 .", "생성 은 토큰 을 고르고 문맥 에 붙이는 일 의 반복 이다 .",
+    "에이전트 는 도구 를 부르고 결과 를 읽는다 .", "에이전트 는 결과 를 읽고 다음 행동 을 고른다 .", "에이전트 는 목표 를 확인 하고 멈춘다 .",
+    "사람 은 결과 를 확인 한다 .", "사람 은 목표 를 정하고 에이전트 에게 맡긴다 .", "문맥 이 길어지면 비용 이 늘어난다 .",
+    "도구 는 결과 를 돌려준다 .", "결과 가 틀리면 에이전트 는 다시 시도 한다 .",
+  ];
+  Lab.register({
+    id: "bigram-decode", field: "dl", thumb: "bars", layout: "stack",
+    title: "이어 쓰기 — 선택 규칙만 바꾸기 (바이그램 모형)",
+    desc: "17문장으로 센 바이그램 모형에서 탐욕 선택·온도·top-p만 바꾸어 200번씩 이어 쓰고, 반복·다양성·본 적 없는 이어짐을 셉니다.",
+    tags: ["LLM", "디코딩", "샘플링", "바이그램", "온도", "top-p"],
+    note: "해볼 것: ① <b>탐욕 선택</b>을 고르면 여섯 줄이 모두 같은 반복에 빠집니다. 그래프에서 막대 하나만 남는 이유를 보세요. ② <b>샘플링</b>에서 온도를 1.5로 올리면 그래프 오른쪽 끝 ‘본 적 없는 이어짐’ 막대가 커지고, 출력에 주황색 토큰이 늘어납니다. ③ 그 상태에서 top-p를 0.9로 내리면 무엇이 잘려 나가는지 보세요. ④ 시작 문맥을 ‘에이전트 는’으로 바꾸면 탐욕 선택도 반복 없이 끝납니다. 판독값은 시드 0–199로 200번 이어 쓴 결과이며, 책의 파이썬 코드와 같은 수를 냅니다. 주황색은 말뭉치에 한 번도 없던 두 토큰 이어짐입니다.",
+    mount(S) {
+      const ALPHA = 0.002, MAXNEW = 30, RUNS = 200, SHOW = 6;
+      const sents = BIGRAM_CORPUS.map((l) => ["<s>", ...l.split(" "), "</s>"]);
+      const pairs = new Map(), ctxN = new Map(), V = new Set();
+      sents.forEach((s) => { for (let i = 0; i + 1 < s.length; i++) { const k = s[i] + "\u0001" + s[i + 1]; pairs.set(k, (pairs.get(k) || 0) + 1); ctxN.set(s[i], (ctxN.get(s[i]) || 0) + 1); V.add(s[i + 1]); } });
+      const vocab = [...V].sort();
+      const count = (a, b) => pairs.get(a + "\u0001" + b) || 0;
+      const probs = (prev) => { const z = (ctxN.get(prev) || 0) + ALPHA * vocab.length; return vocab.map((w) => (count(prev, w) + ALPHA) / z); };
+      const st = { greedy: false, T: 1, topP: 1, prompt: "모델 은", seed0: 0 };
+      // 온도로 바꾼 분포 qs와, 큰 것부터 누적 확률이 topP에 닿을 때까지 남긴 후보 keep
+      function transform(p) {
+        const q = p.map((v) => Math.pow(v, 1 / st.T)), s = q.reduce((a, b) => a + b, 0), qs = q.map((v) => v / s);
+        const order = qs.map((v, i) => i).sort((a, b) => qs[b] - qs[a]), keep = [];
+        let cum = 0;
+        for (const i of order) { if (cum >= st.topP) break; keep.push(i); cum += qs[i]; }
+        return { qs, keep, cum };
+      }
+      function choose(p, rng) {
+        if (st.greedy) { let b = 0; for (let i = 1; i < p.length; i++) if (p[i] > p[b]) b = i; return b; } // 동점이면 어휘 순서가 앞선 것
+        const { qs, keep, cum } = transform(p);
+        let r = rng() * cum;
+        for (const i of keep) { r -= qs[i]; if (r < 0) return i; }
+        return keep[keep.length - 1];
+      }
+      function generate(seed) {
+        const rng = pyRandom(seed), out = ["<s>", ...st.prompt.split(" ")];
+        for (let t = 0; t < MAXNEW; t++) { const w = vocab[choose(probs(out[out.length - 1]), rng)]; out.push(w); if (w === "</s>") break; }
+        return out;
+      }
+      const P0 = () => probs(st.prompt.split(" ").pop());
+      const cv = S.canvas({ aspect: 0.34, minHeight: 200, maxHeight: 260 }, (ctx, w, h) => {
+        const P = VZ.palette(), p = P0(), last = st.prompt.split(" ").pop();
+        const seen = p.map((v, i) => i).filter((i) => count(last, vocab[i]) > 0).sort((a, b) => p[b] - p[a]);
+        let q, kept;
+        if (st.greedy) { let b = 0; for (let i = 1; i < p.length; i++) if (p[i] > p[b]) b = i; q = p.map((v, i) => (i === b ? 1 : 0)); kept = new Set([b]); }
+        else { const t = transform(p); q = p.map((v, i) => (t.keep.includes(i) ? t.qs[i] / t.cum : 0)); kept = new Set(t.keep); }
+        const unseenIdx = p.map((v, i) => i).filter((i) => count(last, vocab[i]) === 0);
+        const bars = seen.slice(0, 9).map((i) => ({ label: vocab[i], p: p[i], q: q[i], kept: kept.has(i) }));
+        bars.push({ label: `본 적 없는 ${unseenIdx.length}개`, p: unseenIdx.reduce((s, i) => s + p[i], 0), q: unseenIdx.reduce((s, i) => s + q[i], 0), kept: unseenIdx.some((i) => kept.has(i)), tail: true });
+        const m = { l: 34, r: 10, t: 28, b: 34 }, bw = (w - m.l - m.r) / bars.length, ph = h - m.t - m.b;
+        const ymax = Math.max(0.35, ...bars.map((b) => Math.max(b.p, b.q))) * 1.08, Y = (v) => m.t + ph - (v / ymax) * ph;
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12.5, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(`‘${last}’ 다음 토큰의 확률 — 첫 걸음`, 8, 6);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(10.5, false); ctx.textAlign = "right";
+        ctx.fillText("막대: 규칙을 적용한 확률 · 점선: 원래 확률", w - m.r, 8);
+        ctx.strokeStyle = P.grid; ctx.fillStyle = P.dim; ctx.font = VZ.font(10); ctx.textBaseline = "middle";
+        const stepV = ymax > 0.6 ? 0.2 : 0.1;
+        for (let v = 0; v <= ymax + 1e-9; v += stepV) { ctx.beginPath(); ctx.moveTo(m.l, Y(v)); ctx.lineTo(w - m.r, Y(v)); ctx.stroke(); ctx.fillText(v.toFixed(1), m.l - 5, Y(v)); }
+        bars.forEach((b, k) => {
+          const x = m.l + k * bw + bw * 0.14, ww = bw * 0.72;
+          ctx.fillStyle = b.tail ? P.warn : b.kept ? P.accent : VZ.alpha(P.dim, 0.25);
+          if (b.q > 0) ctx.fillRect(x, Y(b.q), ww, Y(0) - Y(b.q));
+          ctx.strokeStyle = P.text; ctx.setLineDash([3, 3]); ctx.strokeRect(x, Y(b.p), ww, Y(0) - Y(b.p)); ctx.setLineDash([]);
+          ctx.fillStyle = b.tail ? P.warn : b.kept ? P.text : P.faint; ctx.font = VZ.font(b.tail ? 10 : 11, false, 600); ctx.textAlign = "center"; ctx.textBaseline = "top";
+          ctx.fillText(b.label, x + ww / 2, h - m.b + 5, bw - 2);
+          const show = b.q > 0.004 ? b.q : 0;
+          if (show) { ctx.font = VZ.font(10, true, 700); ctx.fillStyle = P.text; ctx.textBaseline = "bottom"; ctx.fillText((show * 100).toFixed(show < 0.1 ? 1 : 0) + "%", x + ww / 2, Y(show) - 2); }
+        });
+      });
+      const list = document.createElement("div");
+      list.style.cssText = "padding:10px 14px 14px;border-top:1px solid var(--border);display:grid;gap:7px;font-size:14px;line-height:1.55";
+      S.view.appendChild(list);
+      const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      function renderRun(r, seed) {
+        const end = r[r.length - 1] === "</s>";
+        const toks = r.slice(1).map((w, k) => {
+          const prev = r[k], un = !count(prev, w), isPrompt = k < st.prompt.split(" ").length;
+          if (w === "</s>") return `<span style="color:var(--text-faint);font-family:var(--mono);font-size:12px">${un ? `<span style="background:color-mix(in srgb,var(--warn) 28%,transparent);border-radius:4px;padding:0 3px">&lt;/s&gt;</span>` : "&lt;/s&gt;"}</span>`;
+          const style = isPrompt ? "color:var(--text-dim)" : un ? "background:color-mix(in srgb,var(--warn) 28%,transparent);border-radius:4px;padding:0 3px" : "";
+          return `<span style="${style}">${esc(w)}</span>`;
+        }).join(" ");
+        return `<div><span style="font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-right:8px">시드 ${seed}</span>${toks}${end ? "" : ` <span style="color:var(--bad);font-size:12px">… 새 토큰 ${MAXNEW}개에서 멈춤</span>`}</div>`;
+      }
+      const set = S.stats([
+        { k: "end", label: "끝맺음" }, { k: "dist", label: "서로 다른 출력" }, { k: "rep", label: "반복" },
+        { k: "un", label: "본 적 없는 이어짐" }, { k: "len", label: "평균 새 토큰" },
+      ]);
+      function upd() {
+        cv.redraw();
+        list.innerHTML = Array.from({ length: SHOW }, (_, k) => renderRun(generate(st.seed0 + k), st.seed0 + k)).join("");
+        let ended = 0, repeat = 0, unseen = 0, len = 0;
+        const distinct = new Set();
+        for (let seed = 0; seed < RUNS; seed++) {
+          const r = generate(seed), end = r[r.length - 1] === "</s>", bg = new Set();
+          let un = false;
+          for (let i = 0; i + 1 < r.length; i++) { bg.add(r[i] + "\u0001" + r[i + 1]); if (!count(r[i], r[i + 1])) un = true; }
+          ended += end; repeat += bg.size < r.length - 1; unseen += un; len += r.length - 1 - st.prompt.split(" ").length - (end ? 1 : 0);
+          distinct.add(r.join(" "));
+        }
+        const pc = (x) => (100 * x / RUNS).toFixed(1) + "<small>%</small>";
+        set("end", pc(ended)); set("dist", distinct.size + `<small>/ ${RUNS}</small>`); set("rep", pc(repeat)); set("un", pc(unseen)); set("len", (len / RUNS).toFixed(1));
+      }
+      let tCtl, pCtl;
+      const lock = () => { [tCtl, pCtl].forEach((c) => { c.el.disabled = st.greedy; c.el.closest(".ctrl").style.opacity = st.greedy ? 0.45 : 1; }); };
+      const ruleCtl = S.seg({ label: "선택 규칙", options: [["sample", "샘플링"], ["greedy", "탐욕 선택"]], value: "sample", onChange: (v) => { st.greedy = v === "greedy"; lock(); upd(); } });
+      tCtl = S.range({ label: "온도 T", min: 0.1, max: 2, step: 0.05, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.T = v; upd(); } });
+      pCtl = S.range({ label: "top-p (누적 확률)", min: 0.5, max: 1, step: 0.01, value: 1, fmt: (v) => v.toFixed(2), onInput: (v) => { st.topP = v; upd(); } });
+      const promptCtl = S.select({ label: "시작 문맥", options: [["모델 은", "모델 은"], ["사람 은", "사람 은"], ["에이전트 는", "에이전트 는"], ["토큰 을", "토큰 을"]], value: st.prompt, onChange: (v) => { st.prompt = v; upd(); } });
+      S.button("다음 시드 6개 보기", () => { st.seed0 = (st.seed0 + SHOW) % RUNS; upd(); }, { primary: true });
+      S.button("처음 설정으로", () => {
+        Object.assign(st, { greedy: false, T: 1, topP: 1, prompt: "모델 은", seed0: 0 });
+        ruleCtl.set("sample", false); tCtl.set(1, false); pCtl.set(1, false); promptCtl.set("모델 은", false);
+        lock(); upd();
+      });
+      lock();
       upd();
     },
   });

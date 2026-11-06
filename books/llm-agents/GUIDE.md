@@ -1,6 +1,6 @@
 # 『LLM에서 자율 에이전트까지』 집필 계획
 
-> 현재는 **기획안**입니다. 8부 43장의 제목, 절 제목, 실험 질문과 빈 페이지를 만들었으며, 본문·퀴즈·실험 구현은 없습니다. 목차의 기준은 [data/books.js](../../data/books.js)의 `llm-agents` 항목입니다.
+> 현재 **1장은 초고**(`draft`)이고, 나머지 42장은 제목·절 제목·실험 질문만 정한 빈 슬롯입니다. 목차의 기준은 [data/books.js](../../data/books.js)의 `llm-agents` 항목입니다.
 
 ## 1. 책의 질문과 독자
 
@@ -50,7 +50,7 @@
 | 42 프로그램으로 부르는 Codex | 28 |
 | 43 Codex의 장기 실행과 평가 | 29–31 |
 
-각 장의 네 절 제목은 [data/books.js](../../data/books.js)의 `chapters[].desc`와 동일합니다. 장 파일은 절 제목만 놓은 빈 슬롯입니다. 앞부분에서 재현이 어려운 대규모 학습은 작은 계산·행동 비교로 원리를 확인하고, 5부부터 Claude Code 실습으로 넘어갑니다.
+빈 슬롯인 장의 네 절 제목은 [data/books.js](../../data/books.js)의 `chapters[].desc`와 같고, 장 파일에는 절 제목만 놓여 있습니다. 장을 쓰면 `desc`를 내용 요약으로 바꿉니다. 앞부분에서 재현이 어려운 대규모 학습은 작은 계산·행동 비교로 원리를 확인하고, 5부부터 Claude Code 실습으로 넘어갑니다.
 
 ### 겹치기 쉬운 장의 경계
 
@@ -76,6 +76,17 @@
    - 5부(Claude의 구성요소)와 8부(Codex의 구성요소): **무엇인가 → 어떻게 작동하나**(언제 불러오고, 문맥에 무엇이 들어가며, 누가 결정하나) **→ 전체에서 맡는 일**(LLM의 어떤 한계를 메우나, 다른 구성요소와의 경계) **→ 작게 만들어 보기**. 예시는 마지막에 짧게 둡니다.
 3. 실험: 기준 설계와 바꿀 요소 한 가지, 관측값, 예산과 반복 수, 실패 조건을 먼저 정합니다. 장 파일의 ‘실험 계획’ 슬롯에는 무엇을 바꾸고 무엇을 관측하는지 드러나는 질문 한 문장을 둡니다. 8부 슬롯의 실험 질문은 집필할 때 정하고, 지금은 짝이 되는 Claude 장만 적어 둡니다.
 4. 핵심 정리, 설명이 있는 확인 퀴즈, 재현 가능한 연습문제.
+
+### 1장을 쓰며 정한 규칙
+
+- **문체:** 장 본문은 다른 이론서와 같이 '-다'체로 씁니다. 이 문서와 책 홈은 '-합니다'체입니다.
+- **에이전트 연결:** 원리가 에이전트에서 어떻게 드러나는지는 `<div class="callout agent">`(제목 앞에 '에이전트 ·'가 붙음)로 짧게 잇고, 자세한 설명은 해당 장으로 링크합니다. 1–4부에서는 장마다 두세 개를 넘기지 않습니다.
+- **실험의 재현:** 결과 표의 수는 본문에 실은 코드를 그대로 실행해 나와야 합니다. 코드에는 시드와 반복 수를 적고, 실행한 파이썬 버전을 본문에 밝힙니다. 실험 카드가 같은 실험을 브라우저에서 다시 돌릴 때는 같은 계산 순서와 같은 난수(파이썬 `random`과 같은 MT19937)를 써서 표와 같은 수를 내게 합니다. 같은 수를 낼 수 없으면 본문에 그렇게 밝힙니다.
+- **실험 설계 표:** 실험 절은 모형, 시작 조건, 바꾸는 것(하나), 고정하는 것, 관측값, 예산, 미리 적은 예상, 예상이 틀렸다고 볼 조건을 표로 먼저 적고, 결과와 해석·한계를 그 뒤에 씁니다.
+- **제품 기능:** Claude API·Claude Code의 동작이나 제한을 쓸 때는 공식 문서를 링크하고 확인한 달을 본문에 적습니다. 제품이 바뀌어도 원리 설명이 틀리지 않도록, 원리와 제품의 현재 동작을 다른 문단으로 나눕니다.
+- **숫자:** 본문·표·그림·퀴즈·연습문제의 수는 스크립트로 계산하거나 실제로 실행해 얻습니다. 검산 스크립트는 저장소에 넣지 않습니다.
+- **참조:** 번호는 `assets/js/book.js`가 붙입니다. `<a class="ref" href="#eq-…"></a>`는 식이면 '(1.3)'만 채우므로 앞에 '식'을 쓰고, 정의·정리·예제·문제는 '예제 1.2'처럼 종류 이름까지 채우므로 앞에 종류 이름을 쓰지 않습니다. 참조 바로 뒤에는 받침에 따라 바뀌지 않는 조사(의·에·에서)를 쓰면 실수가 줄어듭니다. 그림 번호(그림 1-1)는 손으로 씁니다.
+- **수식 속 부등호:** HTML 안의 수식에서 `<` 뒤에 글자가 오면(`x_{<t}`) 태그로 읽힐 수 있으므로 `\lt`를 씁니다.
 
 새 개념은 무엇이 부족해서 필요한지부터 설명합니다. 모델 내부에 접근할 수 없으면 출력과 실행 기록만 관측했다고 분명히 씁니다. 자료의 주장, 이 책의 설명, 실험에서 확인한 결과를 구분합니다. `status: "slot"`은 본문과 실험을 아직 작성하지 않았다는 뜻입니다. 장을 쓰고 검증한 뒤에만 `draft`로 바꾸며, `done`은 사용자 확인 뒤에 사용합니다. 구현되지 않은 실험 id는 `sims`에 넣지 않습니다.
 
@@ -105,7 +116,7 @@
 
 | 장 | 자료 |
 |---|---|
-| 01 | Sennrich 외, [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) (BPE) · Holtzman 외, [The Curious Case of Neural Text Degeneration](https://arxiv.org/abs/1904.09751) (샘플링) |
+| 01 | Sennrich 외, [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) (BPE) · Holtzman 외, [The Curious Case of Neural Text Degeneration](https://arxiv.org/abs/1904.09751) (샘플링) · Petrov 외, [Language Model Tokenizers Introduce Unfairness Between Languages](https://arxiv.org/abs/2305.15425) · [tiktoken](https://github.com/openai/tiktoken) 0.14.0 (그림 1-1과 토큰 수 표) · Claude, [Token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting) · [Claude Opus 5.5 migration guide](https://platform.claude.com/docs/en/models/opus-5-5/migration-guide) (샘플링 매개변수, 2026-11-06 확인) |
 | 02 | Vaswani 외, [Attention Is All You Need](https://arxiv.org/abs/1706.03762) |
 | 03 | Brown 외, [Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165) |
 | 04 | Ouyang 외, [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155) (InstructGPT) |
