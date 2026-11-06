@@ -1308,18 +1308,18 @@
      ====================================================================== */
   Lab.register({
     id: "lr-schedule", field: "dl", thumb: "curve",
-    title: "학습률 스케줄 — 워밍업과 코사인 감쇠",
-    desc: "상수, 계단, 지수, 코사인, 워밍업+코사인, 원사이클, 역제곱근(Transformer) 스케줄을 한 그래프에서 비교합니다.",
-    tags: ["학습률", "워밍업", "코사인", "최적화"],
-    note: "해볼 것: 워밍업 단계를 0으로 하면 학습 초반에 큰 학습률이 바로 걸립니다. 큰 배치나 Adam 계열에서 워밍업이 학습을 안정시키는 이유입니다. 그래프 위를 가리키면 그 단계의 학습률을 읽을 수 있습니다.",
+    title: "학습률 스케줄 — warmup과 cosine decay",
+    desc: "상수, 계단, 지수, cosine, warmup+cosine, 원사이클, 역제곱근(Transformer) 스케줄을 한 그래프에서 비교합니다.",
+    tags: ["학습률", "warmup", "cosine", "최적화"],
+    note: "해볼 것: warmup 단계를 0으로 하면 학습 초반에 큰 학습률이 바로 걸립니다. 큰 배치나 Adam 계열에서 warmup이 학습을 안정시키는 이유입니다. 그래프 위를 가리키면 그 단계의 학습률을 읽을 수 있습니다.",
     mount(S) {
       const st = { sel: "warmcos", total: 1000, warm: 100, base: 1e-3, min: 1e-5, probe: 300 };
       const SCH = {
         const: ["상수", (s) => st.base],
         step: ["계단 (×0.3 / 30%)", (s) => st.base * Math.pow(0.3, Math.floor(s / (st.total * 0.3)))],
         exp: ["지수 감쇠", (s) => st.base * Math.pow(Math.max(st.min, st.base * 1e-3) / st.base, s / st.total)],
-        cos: ["코사인", (s) => st.min + 0.5 * (st.base - st.min) * (1 + Math.cos((Math.PI * s) / st.total))],
-        warmcos: ["워밍업 + 코사인", (s) => (s < st.warm ? (st.base * (s + 1)) / Math.max(1, st.warm) : st.min + 0.5 * (st.base - st.min) * (1 + Math.cos((Math.PI * (s - st.warm)) / Math.max(1, st.total - st.warm))))],
+        cos: ["cosine", (s) => st.min + 0.5 * (st.base - st.min) * (1 + Math.cos((Math.PI * s) / st.total))],
+        warmcos: ["warmup + cosine", (s) => (s < st.warm ? (st.base * (s + 1)) / Math.max(1, st.warm) : st.min + 0.5 * (st.base - st.min) * (1 + Math.cos((Math.PI * (s - st.warm)) / Math.max(1, st.total - st.warm))))],
         onecycle: ["원사이클", (s) => { const p = st.total * 0.3; return s < p ? st.base / 25 + (st.base - st.base / 25) * (0.5 - 0.5 * Math.cos((Math.PI * s) / p)) : st.min + (st.base - st.min) * (0.5 + 0.5 * Math.cos((Math.PI * (s - p)) / (st.total - p))); }],
         noam: ["역제곱근 (Transformer)", (s) => { const w = Math.max(1, st.warm), k = st.base * Math.sqrt(w); return k * Math.min(Math.pow(s + 1, -0.5), (s + 1) * Math.pow(w, -1.5)); }],
       };
@@ -1344,7 +1344,7 @@
       }
       S.select({ label: "강조할 스케줄", options: Object.entries(SCH).map(([k, [n]]) => [k, n]), value: st.sel, onChange: (v) => { st.sel = v; upd(); } });
       S.range({ label: "전체 단계", min: 200, max: 5000, step: 100, value: st.total, onInput: (v) => { st.total = v; st.warm = Math.min(st.warm, v / 2); upd(); } });
-      S.range({ label: "워밍업 단계", min: 0, max: 1000, step: 10, value: st.warm, onInput: (v) => { st.warm = Math.min(v, st.total / 2); upd(); } });
+      S.range({ label: "warmup 단계", min: 0, max: 1000, step: 10, value: st.warm, onInput: (v) => { st.warm = Math.min(v, st.total / 2); upd(); } });
       S.range({ label: "최소 학습률 비율", min: 0, max: 0.5, step: 0.01, value: 0.01, fmt: (v) => v.toFixed(2), onInput: (v) => { st.min = st.base * v; upd(); } });
       const probe = (p) => { if (C) { st.probe = VZ.clamp(C.iX(p.x), 0, st.total); upd(); } };
       VZ.drag(cv.canvas, { hover: probe, down: probe, move: probe });
