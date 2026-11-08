@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>05 추론이 필요한 문제 · AgentBook</title>
-<meta name="description" content="즉답으로 어려운 과제 · 중간 단계와 검증 가능한 답 · 풀이 문장과 실제 정답의 구별 · 단계적 풀이가 도움이 되지 않는 과제">
+<meta name="description" content="모델이 한 번에 내놓는 답이 틀리는 과제의 구조, 중간 단계를 쓰면 계산이 늘어나는 이유, 정답을 기계적으로 검사할 수 있는 과제, 정답과 풀이가 어긋나는 경우와 풀이 문장의 충실성, 단계적 풀이가 도움이 되지 않거나 오히려 손해인 과제를 다루고, 작은 학습기로 단계 분해의 효과와 단계 오류의 누적을 확인한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,455 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch05">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">05</span></div>
     <h1 data-fill="chapter-title">추론이 필요한 문제</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">4장의 끝에서 '선호되는 응답'과 '정확한 응답'은 다르다고 했다. 정확함이 중요한 과제 가운데에는 모델이 한 번에 내놓는 답이 자주 틀리는 것이 있다. 1.4절에서 예고했듯, 토큰 하나를 내는 데 드는 계산의 양이 정해져 있기 때문이다. 이 장은 2부의 출발점으로, 그런 과제가 어떤 구조인지, 답하기 전에 중간 단계를 쓰게 하면 무엇이 달라지는지, 그리고 그 중간 단계를 얼마나 믿어도 되는지를 다룬다. 마지막에는 작은 학습기로 두 가지를 확인한다. 한 단계씩 쪼개면 한 번에는 배우기 어려운 함수도 배울 수 있다는 것, 그리고 쓰는 단계마다 오류가 있으면 단계가 길수록 오히려 손해일 수 있다는 것이다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>한 번의 forward pass가 하는 계산의 깊이가 층 수로 정해지고, 중간 토큰을 쓰는 것이 그 계산을 이어 붙이는 방법임을 설명할 수 있다.</li>
+      <li>과제를 '최종 답을 기계적으로 검사할 수 있는가'와 '중간 단계를 검사할 수 있는가'로 나누고, 정답률의 불확실성을 표준오차로 어림할 수 있다.</li>
+      <li>단계마다 오류 확률 \(\varepsilon\)이 있을 때 \(d\)단계 홀짝 과제의 정확도가 \(\tfrac12\bigl(1+(1-2\varepsilon)^d\bigr)\)임을 유도하고, '정답이지만 풀이가 틀린' 비율을 계산할 수 있다.</li>
+      <li>풀이 문장이 그럴듯한 것, 풀이의 각 단계가 맞는 것, 풀이가 실제로 답의 원인인 것(충실성)을 서로 다른 질문으로 구별할 수 있다.</li>
+      <li>단계적 풀이가 도움이 되지 않거나 손해가 되는 경우를 들고, 즉답과 단계적 풀이 중 무엇을 쓸지 판단하는 기준을 세울 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch01.html">1장</a>(생성 루프와 샘플링, 1.4절의 빈틈), <a href="ch02.html">2장</a>(층의 반복과 KV cache), <a href="ch04.html">4장</a>(선호와 정확함의 차이)</p>
   </header>
+
+  <!-- ============================================================ 5.1 -->
   <section id="s1">
     <h2>즉답으로 어려운 과제</h2>
-    <p class="slot" data-slot="5.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>347 × 28을 암산으로 바로 말하라고 하면 어렵다. 그러나 347 × 20 = 6,940과 347 × 8 = 2,776을 적고 더하면 9,716이 나온다. 모델에게도 같은 일이 일어난다. '답만 쓰라'고 하면 모델은 첫 토큰 '9'를 내는 순간 곱셈을 사실상 끝내 놓아야 한다. 오른쪽 자리에서 올라오는 올림이 왼쪽 자리를 바꾸기 때문이다. 99,999 + 1에서 첫 자리 '1'이 나오려면 다섯 자리의 올림이 끝까지 전파되는지를 먼저 알아야 하는 것과 같다. 사람은 오른쪽 자리부터 써 내려가며 이 의존을 시간에 풀어 놓는데, 답만 쓰라는 지시는 그 기회를 없앤다.</p>
+    <p>이 한계를 2장의 구조로 정확히 말해 보자. 토큰 하나를 내는 한 번의 계산, 곧 <span class="term">forward pass</span>는 트랜스포머 블록 \(L\)개를 차례로 지나는 것이다. 표준 decoder-only 트랜스포머에서는 새 토큰을 낼 때마다 같은 \(L\)개 블록을 한 번 지나며, 문제가 쉽든 어렵든 이 구조는 달라지지 않는다. 한 번의 pass에서 이어 붙일 수 있는 순차 계산의 깊이는 \(L\)로 묶여 있다. 반면 토큰을 하나 쓰면 그 토큰이 컨텍스트에 붙어 다음 pass가 읽을 수 있다(2장의 attention과 KV cache). 쓴 토큰이 모델의 <b>작업 메모리</b> 노릇을 하는 것이다.</p>
+    <div class="box def" id="def-cot"><div class="box-h">즉답과 단계적 풀이</div>
+      <p>질문 \(x\)에 대해 최종 답 \(a\)를 바로 쓰는 것을 <span class="term">즉답</span>(direct answer)이라 한다. 반대로 답에 앞서 중간 토큰 \(z_1,\ldots,z_T\)를 쓰는 것을 <span class="term">단계적 풀이</span>라 하고, 널리 쓰는 말로 <span class="term">chain of thought</span>(CoT)라 한다. 중간 토큰은 1장의 생성 루프로 하나씩 뽑으며, 각 토큰은 질문과 앞서 쓴 토큰을 모두 읽는다.</p>
+      <div class="formula" id="eq-cot">\[ z_t\sim p_\theta\bigl(\cdot\mid x,\,z_{\lt t}\bigr)\quad(t=1,\ldots,T),\qquad a=\operatorname{answer}(z_{1:T}) \]<div class="where">\(\operatorname{answer}(\cdot)\)는 쓴 글에서 최종 답을 뽑는 규칙이다(예: 마지막 줄의 수). 즉답은 \(T\)가 최종 답 자체뿐인 경우다.</div></div>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 290" role="img" aria-label="즉답은 질문을 읽고 forward pass 한 번으로 답을 낸다. 단계적 풀이는 pass를 한 번 지날 때마다 중간 토큰을 쓰고, 그 토큰이 다음 pass의 입력에 붙으므로 pass를 쓴 토큰 수만큼 이어 붙인다.">
+  <defs>
+    <marker id="g51-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+    <marker id="g51-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+  </defs>
+  <text class="t-b" x="5" y="18">즉답: 한 번의 계산</text>
+  <rect class="f-surface" x="5" y="28" width="90" height="54" rx="8"/><text class="t-b" x="50" y="60" text-anchor="middle">질문 x</text>
+  <rect class="f-acc-soft" x="125" y="28" width="360" height="54" rx="8"/><text class="t-b" x="305" y="52" text-anchor="middle">forward pass 1회</text><text class="t-dim" x="305" y="70" text-anchor="middle">블록 L개를 한 번 지난다</text>
+  <rect class="f-surface" x="515" y="28" width="90" height="54" rx="8"/><text class="t-b" x="560" y="60" text-anchor="middle">답 a</text>
+  <path d="M95 55 H121" class="s-line" marker-end="url(#g51-arr)"/><path d="M485 55 H511" class="s-line" marker-end="url(#g51-arr)"/>
+  <text class="t-dim" x="305" y="104" text-anchor="middle">이어 붙일 수 있는 순차 계산의 깊이 ≈ L</text>
+  <text class="t-b" x="5" y="148">단계적 풀이: 쓴 토큰이 다음 계산의 입력이 된다</text>
+  <rect class="f-surface" x="5" y="160" width="80" height="54" rx="8"/><text class="t-b" x="45" y="192" text-anchor="middle">질문 x</text>
+  <rect class="f-acc-soft" x="110" y="160" width="90" height="54" rx="8"/><text class="t-b" x="155" y="192" text-anchor="middle">pass 1</text>
+  <rect class="f-surface" x="225" y="160" width="50" height="54" rx="8"/><text class="t-b" x="250" y="192" text-anchor="middle">z₁</text>
+  <rect class="f-acc-soft" x="300" y="160" width="90" height="54" rx="8"/><text class="t-b" x="345" y="192" text-anchor="middle">pass 2</text>
+  <rect class="f-surface" x="415" y="160" width="50" height="54" rx="8"/><text class="t-b" x="440" y="192" text-anchor="middle">z₂</text>
+  <text class="t-b" x="500" y="192" text-anchor="middle">…</text>
+  <rect class="f-acc-soft" x="535" y="160" width="90" height="54" rx="8"/><text class="t-b" x="580" y="192" text-anchor="middle">pass T</text>
+  <rect class="f-surface" x="650" y="160" width="90" height="54" rx="8"/><text class="t-b" x="695" y="192" text-anchor="middle">답 a</text>
+  <path d="M85 187 H106" class="s-line" marker-end="url(#g51-arr)"/><path d="M200 187 H221" class="s-line" marker-end="url(#g51-arr)"/><path d="M275 187 H296" class="s-line" marker-end="url(#g51-arr)"/>
+  <path d="M390 187 H411" class="s-line" marker-end="url(#g51-arr)"/><path d="M465 187 H485" class="s-line" marker-end="url(#g51-arr)"/><path d="M515 187 H531" class="s-line" marker-end="url(#g51-arr)"/><path d="M625 187 H646" class="s-line" marker-end="url(#g51-arr)"/>
+  <path d="M250 214 V238 H300 V218" class="s-acc" marker-end="url(#g51-acc)"/>
+  <path d="M440 214 V238 H490 V218" class="s-acc" marker-end="url(#g51-acc)" stroke-dasharray="4 4"/>
+  <text class="t-acc" x="350" y="257" text-anchor="middle">쓴 토큰이 컨텍스트에 붙는다</text>
+  <text class="t-dim" x="400" y="280" text-anchor="middle">순차 계산의 깊이 ≈ T · L (쓴 토큰 수 T만큼 pass를 이어 붙인다)</text>
+</svg>
+      <figcaption><b>그림 5-1.</b> 즉답과 단계적 풀이. 즉답은 한 번의 pass에서 모든 계산을 끝내야 하고, 단계적 풀이는 중간 결과를 토큰으로 써서 다음 pass의 입력으로 넘긴다. 매 pass가 질문 \(x\)도 함께 읽는다(그림은 생략).</figcaption>
+    </figure>
+
+    <h3 id="h-theory">왜 쪼개면 되는가: 표현과 학습</h3>
+    <p>중간 토큰이 계산을 늘린다는 직관은 이론으로도 다듬어져 있다. 아래는 세 연구의 주장이며, 모두 <b>형식적으로 단순화한 트랜스포머</b>에 대한 결과다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>출처</th><th>모형(가정)</th><th>주장</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://arxiv.org/abs/2305.15408">Feng 외(2023)</a></td><td>층 수가 고정된 트랜스포머</td><td>크기가 입력 길이에 대해 초다항식으로 커지지 않는 한, 기본적인 산술·방정식 풀이의 답을 직접 내놓을 수 없다. 단계적 풀이를 쓰면 상수 크기의 트랜스포머로도 풀 수 있다.</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2402.12875">Li 외(2024)</a></td><td>상수 깊이, 상수 비트 정밀도</td><td>중간 단계 없이는 회로 복잡도의 AC⁰ 문제만 풀 수 있고, \(T\)단계를 쓰면 크기 \(T\)인 불리언 회로로 풀리는 문제를 풀 수 있다.</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2310.07923">Merrill·Sabharwal(2023)</a></td><td>디코더 트랜스포머, 쓰는 단계 수를 입력 길이에 맞춰 늘림</td><td>단계 수가 입력 길이의 로그이면 능력이 거의 늘지 않고, 선형이면 모든 정규 언어를 인식하며, 다항이면 다항 시간에 풀리는 문제를 정확히 인식한다(각각 논문이 둔 가정 아래).</td></tr>
+      </tbody>
+    </table></div>
+    <p>읽을 때 두 가지를 구분해야 한다. 첫째, 이 결과들은 정밀도와 크기를 제한한 형식 모형에 대한 것이어서 실제 모델이 그 가정을 따른다는 보장이 없다. 둘째, '표현할 수 있다'는 것은 '학습으로 찾는다'는 것이 아니다. 학습 쪽에는 별도의 논의가 있다. <a href="https://arxiv.org/abs/2204.02892">Wies 외(2022)</a>는 하나만으로는 배울 수 없는 합성 문제라도, 각 부분이 앞선 결과 몇 개에만 의존하는 다항 개의 간단한 하위 과제로 나뉘고 그 중간 정답을 함께 학습하면 배울 수 있게 된다고 보였다. 곧 쪼개기에는 <b>계산을 늘리는 효과</b>와 <b>배우기 쉽게 만드는 효과</b>가 있다. 이 장의 실험은 두 번째를 작은 학습기로 확인한다.</p>
+
+    <h3 id="h-evidence">실제 모델에서 관측된 것</h3>
+    <p>중간 단계를 쓰게 하는 방법은 모델 크기를 키우는 일과 별개로 오래 연구되었다. <a href="https://arxiv.org/abs/2112.00114">Nye 외(2021)</a>는 긴 덧셈이나 프로그램 실행처럼 여러 단계의 계산이 필요한 과제에서, 중간 계산을 쓰는 '스크래치패드'를 학습시키면 성능이 크게 오른다고 보고했다. <a href="https://arxiv.org/abs/2201.11903">Wei 외(2022)</a>는 단계적 풀이를 보여 주는 예시 여덟 개를 프롬프트에 넣은 540B 파라미터 모델이 초등 수학 문장제 벤치마크 GSM8K에서 당시 최고 정확도를 냈다고 보고했다. <a href="https://arxiv.org/abs/2205.11916">Kojima 외(2022)</a>는 예시 없이 답 앞에 'Let's think step by step'만 붙여도 정확도가 오른다고 보였고, 초록에 따르면 text-davinci-002에서 MultiArith는 17.7%에서 78.7%로, GSM8K는 10.4%에서 40.7%로 올랐다. 이 숫자는 2021~2022년의 모델과 설정에 한정된 값이다. 오늘의 모델이 같은 폭으로 오른다는 뜻은 아니며, 5.4절에서 보듯 모든 과제에서 오르는 것도 아니다.</p>
+    <div class="callout agent"><strong>에이전트의 관찰도 중간 단계다</strong>
+      <p>에이전트는 파일을 읽고 명령을 실행한 결과를 컨텍스트에 받아 다음 행동을 정한다(<a href="ch14.html">14장</a>). 이것은 이 절의 '쓴 토큰이 다음 계산의 입력이 된다'는 구조의 바깥 버전이다. 다만 모델이 머릿속 계산을 글로 옮기는 단계와, 실행 결과처럼 모델 바깥에서 검증된 값을 받아 오는 단계는 믿을 수 있는 정도가 다르다. 5.3절과 5.4절에서 이 차이를 다시 본다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 5.2 -->
   <section id="s2">
     <h2>중간 단계와 검증 가능한 답</h2>
-    <p class="slot" data-slot="5.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>중간 단계를 쓰는 효과를 재려면 먼저 '맞았다'를 정해야 한다. 곱셈의 답은 계산기로 확인하면 되지만, 요약문이 좋은지는 기계적으로 확인할 수 없다. 이 책이 2부 내내 쓰는 구분을 먼저 세워 둔다.</p>
+    <div class="box def" id="def-verifiable"><div class="box-h">검증 가능한 과제</div>
+      <p>질문 \(x\)와 답 \(a\)를 받아 맞고 틀림을 코드로 판정하는 <span class="term">검사 함수</span> \(V(x,a)\in\{0,1\}\)가 있는 과제를 <span class="term">검증 가능한</span> 과제라 한다. 문제 집합 위의 정답률은 \(V\)의 평균이다. \(V\)를 만들 때 정답 \(a^*\)를 알 필요는 없다.</p>
+    </div>
+    <p>마지막 문장이 중요하다. 큰 정수 \(N\)의 소인수분해를 구하는 일은 일반적으로 어렵다고 여겨지지만, 제시된 인수를 곱해 \(N\)이 되는지 확인하는 일은 쉽다. 코드 작성은 풀기 어려워도 테스트를 돌리면 확인된다. 이렇게 <b>확인이 풀이보다 쉬운</b> 과제가 많고, 이 비대칭이 7장의 검증기와 8장의 평가가 서는 자리다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>과제</th><th>최종 답을 검사하는 방법</th><th>중간 단계를 검사할 수 있나</th></tr></thead>
+      <tbody>
+        <tr><td>산수 문장제(GSM8K류)</td><td>답의 수가 같은지 비교</td><td>식이 형식을 갖추면 단계마다 다시 계산해 볼 수 있다</td></tr>
+        <tr><td>코드 작성</td><td>단위 테스트 실행</td><td>줄 단위로는 어렵고, 중간 결과를 출력해 보는 정도</td></tr>
+        <tr><td>논리 퍼즐, 제약 만족</td><td>제약을 모두 만족하는지 확인</td><td>각 단계가 규칙에 맞는지 확인할 수 있다</td></tr>
+        <tr><td>수학 증명</td><td>형식 증명기(형식화한 경우) 또는 사람</td><td>형식화하면 단계마다 가능</td></tr>
+        <tr><td>요약, 글쓰기</td><td>정답이 없다. 선호나 기준표로 평가</td><td>대체로 불가능</td></tr>
+      </tbody>
+    </table></div>
+    <p><a href="https://arxiv.org/abs/2110.14168">Cobbe 외(2021)</a>의 GSM8K는 이 구분을 잘 보여 준다. 문제 8,500개(8.5K)의 정답이 수 하나여서 최종 답을 자동으로 판정할 수 있고, 같은 논문은 이 판정을 이용해 후보 풀이 여러 개 가운데 검증기가 가장 높게 친 것을 고르는 방법이 성능을 올린다고 보고했다. 다만 '최종 답을 어떻게 뽑는가'도 평가의 일부다. 풀이 끝의 수를 답으로 읽는 규칙이라면, 모델이 계산은 맞게 하고 형식을 어겨 답이 뽑히지 않은 경우가 틀린 것으로 센다. 이는 추론 실패가 아니라 지시 준수의 실패이므로(4장) 두 가지를 따로 센다.</p>
+
+    <h3 id="h-two-roles">중간 단계가 하는 두 가지 일</h3>
+    <ul>
+      <li><b>계산 자원.</b> 5.1절의 일이다. 쓴 토큰이 다음 pass의 입력이 되어 순차 계산이 이어진다.</li>
+      <li><b>검사할 수 있는 흔적.</b> 단계가 식이나 코드처럼 형식을 갖추면, 사람이든 프로그램이든 단계마다 확인해 틀린 곳을 찾을 수 있다. 최종 답만 검사하는 <span class="term">결과 검증</span>(outcome verification)과 단계마다 검사하는 <span class="term">과정 검증</span>(process verification)의 차이이며, 과정 검증기는 <a href="https://arxiv.org/abs/2305.20050">Lightman 외(2023)</a>를 읽으며 <a href="ch07.html">7장</a>과 <a href="ch08.html">8장</a>에서 다룬다.</li>
+    </ul>
+    <p>두 일은 겹치지만 같지 않다. 흔적이 검사할 수 있는 형태가 아니면 계산 자원으로만 쓰이고, 반대로 계산에는 필요 없지만 검사를 위해 단계를 적게 하는 경우도 있다.</p>
+
+    <h3 id="h-se">정답률은 얼마나 믿을 수 있나</h3>
+    <p>문제 \(n\)개에서 정답률이 \(\hat p\)로 나왔다면, 문제가 서로 독립이라는 가정에서 표준오차는 \(\sqrt{\hat p(1-\hat p)/n}\)이다. 문제 100개에서 0.80이면 표준오차는 0.040이다. 서로 다른 문제로 잰 두 설계의 정답률 차이의 표준오차는 \(\sqrt2\)배인 약 0.057이므로 0.05의 차이는 구별하기 어렵다. 같은 문제로 짝지어 비교하면 오차가 줄어드는데, 이는 8장에서 정식으로 다룬다. 이 장의 실험이 시드 여러 개의 평균과 표준오차를 보고하는 이유다.</p>
+    <div class="callout agent"><strong>'완료'를 검사 가능하게 적는다</strong>
+      <p>에이전트에게 맡기는 일도 '테스트가 모두 통과한다', '이 파일이 이 형식으로 존재한다'처럼 \(V\)를 코드로 쓸 수 있게 완료 조건을 적으면 평가와 중단 판단이 쉬워진다(<a href="ch15.html">15장</a>). 반대로 '잘 정리해 줘'처럼 \(V\)가 없는 요청은 모델의 '다 했습니다'라는 말 말고는 끝을 확인할 방법이 없다(<a href="ch26.html">26장</a>).</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 5.3 -->
   <section id="s3">
     <h2>풀이 문장과 실제 정답의 구별</h2>
-    <p class="slot" data-slot="5.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>풀이는 모델이 1장의 생성 루프로 뽑은 <em>텍스트</em>다. 그럴듯하게 이어진 글이 곧 맞는 계산은 아니다. 풀이를 읽을 때는 서로 다른 세 질문을 구별해야 한다.</p>
+    <ol>
+      <li><b>최종 답이 맞는가.</b> 5.2절의 \(V\)로 판정한다.</li>
+      <li><b>풀이의 각 단계가 맞는가.</b> 단계를 검사할 수 있을 때만 판정한다.</li>
+      <li><b>풀이가 그 답을 낸 실제 이유인가.</b> 곧 풀이의 <span class="term">충실성</span>(faithfulness)이다.</li>
+    </ol>
+
+    <h3 id="h-right-wrong">정답이지만 풀이가 틀린 경우</h3>
+    <p>첫째와 둘째 질문은 서로 다른 사건이다. 가장 단순한 모형으로 두 사건이 얼마나 어긋나는지 계산해 보자. 답이 앞 \(d\)비트의 홀짝인 과제를 생각한다. 풀이는 앞에서부터 '지금까지의 홀짝'을 한 줄씩 쓰는 것이고, 각 줄은 앞 줄의 값과 새 비트로 정해진다. 각 줄을 쓸 때 독립으로 \(\varepsilon\)의 확률로 틀린 값을 쓰며(1장의 샘플링이 만드는 실수에 빗댈 수 있다), 틀린 값을 썼더라도 다음 줄은 그 값을 이어받아 규칙대로 계산한다고 하자.</p>
+    <div class="box thm" id="thm-flip"><div class="box-h">단계 오류가 있는 홀짝 풀이</div>
+      <p>위 모형에서 다음이 성립한다.</p>
+      <ol>
+        <li>최종 답이 맞을 확률은 \(\displaystyle \frac{1+(1-2\varepsilon)^d}{2}\)이다.</li>
+        <li>모든 줄이 정답 풀이와 일치할 확률은 \((1-\varepsilon)^d\)이다.</li>
+        <li>최종 답은 맞지만 어긋난 줄이 있을 확률은 \(\displaystyle \frac{1+(1-2\varepsilon)^d}{2}-(1-\varepsilon)^d\)이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>비트를 \(\pm1\)로 나타내면 홀짝은 곱이다. \(t\)번째 줄을 쓸 때 틀리면 \(s_t=-1\), 아니면 \(s_t=+1\)이라 하자. 틀린 값 위에서도 규칙대로 계산하므로, 쓴 값은 정답 풀이의 값에 \(s_1\cdots s_t\)를 곱한 것이다. 최종 답이 맞을 조건은 \(s_1\cdots s_d=+1\)이다. \(s_t\)가 서로 독립이고 \(E[s_t]=(1-\varepsilon)-\varepsilon=1-2\varepsilon\)이므로 \(E[s_1\cdots s_d]=(1-2\varepsilon)^d\)이다. \(\pm1\) 값인 확률변수 \(S\)에서 \(P(S=+1)=(1+E[S])/2\)이므로 1번이 나온다. 2번에서, 처음으로 틀린 줄은 정답 값과 다른 값을 쓰므로 한 번이라도 틀리면 어긋난 줄이 생긴다. 따라서 모든 줄이 일치하는 것은 한 번도 틀리지 않는 것과 같고 확률은 \((1-\varepsilon)^d\)이다. 3번은 이 사건이 '답이 맞음'에 포함되므로 1번에서 2번을 뺀 것이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-flip"><div class="box-h">열 줄짜리 풀이</div>
+      <p>\(d=10\), \(\varepsilon=0.05\)이면 답이 맞을 확률은 \((1+0.9^{10})/2=0.674\), 모든 줄이 맞을 확률은 \(0.95^{10}=0.599\), 정답이지만 어긋난 줄이 있을 확률은 \(0.674-0.599=0.076\)이다. 최종 답만 채점하면 정답으로 센 풀이의 \(0.076/0.674=11.2\%\)가 사실은 틀린 풀이다. 틀린 줄이 두 번(짝수 번) 나오면 오류가 서로 상쇄되어 답이 우연히 맞기 때문이다.</p>
+    </div>
+    <p>이 상쇄는 답이 두 값 중 하나일 때 특히 잘 일어난다. 답이 \(k\)가지이면 상쇄에 필요한 우연이 더 드물어진다(<a class="ref" href="#prob-kary"></a>). 그러나 상쇄가 아니더라도 모델이 답을 이미 알고 있어서 풀이를 나중에 지어냈다면, 답이 맞는 것과 풀이가 맞는 것은 더 크게 어긋날 수 있다. 다음이 세 번째 질문이다.</p>
+
+    <h3 id="h-faithful">풀이가 답의 이유인가</h3>
+    <p>풀이를 읽으면 모델의 '생각'을 본다고 느끼기 쉽다. 그러나 풀이는 출력이고, 모델 내부에서 답이 만들어진 과정을 찍은 기록이 아니다. 이를 시험하는 방법이 두 가지 알려져 있다.</p>
+    <ul>
+      <li><b>풀이에 개입하기.</b> 풀이를 중간에서 자르거나, 틀린 단계를 끼워 넣거나, 같은 뜻으로 바꿔 쓴 뒤 최종 답이 바뀌는지 본다. 풀이가 답에 실제로 쓰였다면 틀린 단계를 끼워 넣을 때 답이 따라 바뀌어야 한다.</li>
+      <li><b>답을 몰래 유도하기.</b> 입력에 답을 한쪽으로 끌어당기는 단서를 넣고(예: 예시의 정답을 항상 (A)로 배열), 풀이가 그 단서를 언급하는지 본다. 단서 때문에 답이 바뀌었는데 풀이가 그 이유를 말하지 않으면 풀이는 충실하지 않다.</li>
+    </ul>
+    <div class="table-wrap"><table>
+      <thead><tr><th>출처</th><th>보고한 것 (자료의 주장)</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://arxiv.org/abs/2305.04388">Turpin 외(2023)</a></td><td>GPT-3.5와 Claude 1.0에서, 입력에 편향 단서를 넣으면 BIG-Bench Hard의 13개 과제에서 정확도가 최대 36%까지 떨어졌고, 풀이는 단서의 영향을 말하지 않은 채 틀린 답을 정당화하는 경우가 많았다.</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2307.13702">Lanham 외(2023)</a></td><td>풀이에 개입했을 때 답이 풀이에 얼마나 의존하는지는 과제마다 크게 달랐다. CoT의 이득이 추가 계산량만으로 설명되지는 않았고, 대부분의 과제에서 더 크고 능력 있는 모델일수록 덜 충실한 풀이를 냈다.</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2505.05410">Chen 외(2025)</a></td><td>추론형 모델이 단서를 사용한 사례에서 풀이가 그 사용을 밝힌 비율은 최소 1% 이상이었지만 자주 20% 미만이었다. 결과 기반 강화학습은 충실성을 처음에는 올렸지만 완전한 수준에 이르지 못한 채 정체했다.</td></tr>
+      </tbody>
+    </table></div>
+    <p>이 결과들은 각 논문이 쓴 모델과 과제에 한정된다. 오늘의 모델이 어떤지는 모델과 과제마다 다시 재야 한다. 이 책에서 가져가는 것은 구조이다. 풀이는 <b>단서로 읽을 수는 있지만 감사 기록으로 믿을 수는 없다.</b> 모델 내부에 접근할 수 없는 실험에서는 출력과 실행 기록만 관측한 것이어서, 풀이가 '왜'를 말해 주는지는 개입 실험 없이는 알 수 없다. 따라서 무엇이 맞았는지는 풀이가 아니라 검사 함수 \(V\), 최종 상태, 테스트처럼 모델 바깥의 검사로 정한다.</p>
+    <div class="callout agent"><strong>말한 과정과 실행 기록은 다를 수 있다</strong>
+      <p>에이전트가 '파일을 읽고, 테스트를 돌려 통과를 확인했다'고 설명했다면 그것은 풀이 문장과 같은 종류의 텍스트다. 실제로 어떤 도구가 어떤 인자로 호출되었고 무엇이 돌아왔는지는 도구 호출 기록에 남는다. 과정을 확인해야 할 때는 설명이 아니라 이 실행 기록과 산출물을 읽는다(<a href="ch14.html">14장</a>, <a href="ch31.html">31장</a>).</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 5.4 -->
   <section id="s4">
     <h2>단계적 풀이가 도움이 되지 않는 과제</h2>
-    <p class="slot" data-slot="5.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>단계적 풀이는 만능이 아니다. 토큰을 더 쓰면 지연과 비용이 늘고(2장의 KV cache, 4장의 호출마다 반복되는 입력), 쓴 단계가 맞아야 효과가 있다. 아래 여섯 경우를 근거의 종류와 함께 구분해 두자.</p>
+
+    <h3 id="h-nohelp">도움이 되지 않거나 손해인 경우</h3>
+    <ol>
+      <li><b>한 단계로 끝나는 과제.</b> 쪼갤 것이 없으면 쓸 것도 없다. 사실 하나를 떠올리거나 문장의 분위기를 고르는 과제가 그렇다. <a href="https://arxiv.org/abs/2409.12183">Sprague 외(2024)</a>는 논문 100편 이상의 메타 분석과 14개 모델·20개 데이터셋 평가에서, CoT의 이득이 주로 수학·논리 과제에 몰려 있고 MMLU에서는 질문이나 응답에 등호가 있는 경우를 빼면 즉답이 CoT와 거의 같다고 보고했다. <em>(자료의 주장, 이 장의 실험에서는 \(d=1\)이 이에 해당한다.)</em></li>
+      <li><b>모델이 모르는 사실.</b> 풀이를 길게 써도 파라미터에도 컨텍스트에도 없는 정보는 생기지 않는다. 필요한 것은 더 많은 단계가 아니라 자료다(<a href="ch11.html">11장</a>, <a href="ch13.html">13장</a>). <em>(이 책의 설명)</em></li>
+      <li><b>단계의 신뢰도가 낮은 과제.</b> 5.3절의 정리에서 보듯 단계가 늘수록 정확도가 \(\tfrac12(1+(1-2\varepsilon)^d)\)로 줄어든다. 한 단계라도 틀리면 답이 틀리는 과제에서는 \((1-\varepsilon)^d\)까지 내려간다. <em>(이 장의 이론과 실험)</em></li>
+      <li><b>즉답이 이미 잘 맞히는 과제.</b> 즉답의 정확도가 \(a\)일 때, 단계적 풀이가 이기려면 \(\tfrac12(1+(1-2\varepsilon)^d)>a\)이어야 하고, 이는 아래 식과 같다. <em>(이 장의 이론과 실험)</em></li>
+      <li><b>숙고가 해로운 과제.</b> <a href="https://arxiv.org/abs/2410.21333">Liu 외(2024)</a>는 사람이 깊이 생각할수록 오히려 나빠지는 여섯 과제를 골라 모델을 시험했고, 세 과제에서 CoT를 쓸 때 정확도가 크게 떨어졌으며 초록은 그 낙폭이 o1-preview와 GPT-4o를 비교할 때 절대 정확도로 최대 36.3%라고 적었다. 나머지 과제에서는 오르거나 같거나 내려가는 결과가 섞여 있었다. <em>(자료의 주장)</em></li>
+      <li><b>도구가 더 정확한 과제.</b> Sprague 외(2024)는 CoT가 이득을 주는 경우에도 그 이득의 상당 부분이 기호 계산을 대신 수행하는 데서 오며, 그 과제에서 CoT가 기호 풀이기(symbolic solver)에는 못 미친다고 보고했다. 계산이 정확해야 하면 계산기나 코드 실행에 맡기는 편이 낫다(<a href="ch13.html">13장</a>). <em>(자료의 주장)</em></li>
+    </ol>
+    <div class="formula" id="eq-breakeven">\[ \tfrac12\bigl(1+(1-2\varepsilon)^d\bigr)>a\quad\Longleftrightarrow\quad \varepsilon<\varepsilon^*=\frac{1-(2a-1)^{1/d}}{2}\qquad(a>\tfrac12) \]<div class="where">\(a\): 즉답의 정확도, \(\varepsilon\): 단계 하나의 오류율, \(d\): 단계 수. 좌변은 <a class="ref" href="#thm-flip"></a>의 1번이다.</div></div>
+    <div class="box ex" id="ex-breakeven"><div class="box-h">단계가 믿을 만해야 하는 정도</div>
+      <p>즉답이 \(a=0.9\)로 답하는 8단계 과제에서 단계적 풀이가 이기려면 \(\varepsilon^*=(1-0.8^{1/8})/2=0.0138\), 곧 단계 하나의 오류율이 1.4% 아래여야 한다. 즉답이 0.99로 맞히는 10단계 과제라면 \(\varepsilon^*=0.0010\)으로, 0.1% 아래여야 한다. 즉답이 이미 잘 맞히면 단계가 거의 완벽해야 득이 된다.</p>
+    </div>
+    <p>식 <a class="ref" href="#eq-breakeven"></a>에 쓴 모형은 홀짝 과제의 것이어서, 오류가 서로 상쇄되지 않는 과제에서는 더 빨리 손해로 돌아선다. 또 \(a\)와 \(\varepsilon\)을 알려면 둘 다 재야 한다. 모델이 즉답으로 얼마나 맞히는지는 같은 문제 묶음으로 직접 재면 되고, 단계의 오류율은 단계 검사가 가능할 때만 잴 수 있다는 점이 5.2절과 다시 만난다.</p>
+
+    <h3 id="h-choose">그러면 어떻게 고르나</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>과제의 모습</th><th>단계적 풀이</th><th>먼저 시도할 것</th></tr></thead>
+      <tbody>
+        <tr><td>여러 단계의 계산·추론이 이어지고, 즉답이 자주 틀린다</td><td>도움이 될 가능성이 크다</td><td>단계적 풀이를 쓰게 하고, 최종 답을 \(V\)로 검사</td></tr>
+        <tr><td>한 단계로 끝나는 사실 확인·분류</td><td>이득이 작고 비용만 는다</td><td>즉답</td></tr>
+        <tr><td>필요한 사실이 모델에 없다</td><td>해결하지 못한다</td><td>검색·읽기 도구로 자료를 컨텍스트에 넣기</td></tr>
+        <tr><td>정확한 계산이나 규칙 적용이 길게 이어진다</td><td>단계마다 오류가 쌓인다</td><td>계산기·코드 실행 같은 도구, 단계 검사</td></tr>
+        <tr><td>즉답이 이미 거의 맞다</td><td>손해가 될 수 있다</td><td>즉답을 기준선으로 재고, 단계적 풀이와 비교</td></tr>
+      </tbody>
+    </table></div>
+    <p>에이전트처럼 호출이 많은 환경에서는 단계적 풀이에 쓰는 토큰이 지연과 비용으로 바로 이어지므로(<a href="ch20.html">20장</a>), 모든 호출에 같은 정도의 숙고를 시키지 말고 과제의 모습에 따라 정한다. 위 표는 출발점일 뿐이고, 정답은 같은 문제 묶음에서 두 방식을 직접 재어 봐야 알 수 있다. 그러려면 \(V\), 시드, 예산을 먼저 정해야 한다. 다음은 그런 비교를 작은 학습기로 해 보는 실험이다. 모델이 이런 풀이를 스스로 쓰도록 학습하는 방법은 <a href="ch06.html">6장</a>에서 다룬다.</p>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 같은 문제 묶음에서 즉답과 단계적 풀이만 바꾸면 정답률은 어떤 유형의 과제에서 오르고 어떤 과제에서 그대로인가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 단계로 쪼개면 무엇이 달라지고 언제 손해인가</h2>
+    <p>슬롯에 적어 둔 질문('같은 문제 묶음에서 즉답과 단계적 풀이만 바꾸면 정답률은 어떤 유형의 과제에서 오르고 어떤 과제에서 그대로인가')은 실제 모델을 같은 예산으로 여러 번 돌려야 답할 수 있어서 이 장에서는 실행하지 않았다. 지어낸 출력을 싣지 않으려는 선택이며, 설계 방법은 <a class="ref" href="#prob-design"></a>에 두었다. 대신 질문의 구조를 작은 학습기로 떼어 내 확인한다. <b>같은 입력 묶음에서 답하는 방식(즉답 또는 단계적 풀이)만 바꾸면 정확도는 순차 단계 수 \(d\)에 따라 어떻게 달라지는가? 그리고 쓰는 단계에 오류가 있으면 어떻게 되는가?</b> 실험 대상은 LLM이 아니라 은닉층이 하나인 작은 신경망이다. 이 실험이 보여 주는 것은 5.1절의 '쪼개면 배우기 쉬워진다'와 5.3~5.4절의 '단계 오류가 쌓인다'는 구조이지, LLM의 성능이 아니다.</p>
+
+    <h3 id="h-design">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>과제</td><td>\(n\)비트 입력에서 앞 \(d\)비트의 홀짝(1의 개수가 홀수이면 1). \(d\)는 풀이에 필요한 순차 단계 수이고, 나머지 \(n-d\)비트는 답과 무관하다. 같은 입력 묶음에서 \(d\)만 바꾼다.</td></tr>
+        <tr><td>학습기</td><td>은닉층 하나(폭 32, tanh)의 신경망. 즉답용과 단계용 두 개를 같은 구조·같은 옵티마이저(Adam, 학습률 0.01, full batch 3,000걸음)로 따로 학습한다.</td></tr>
+        <tr><td>입력 설정</td><td><b>A</b>: \(n=10\). 가능한 입력 1,024개 중 512개로 학습하고 겹치지 않는 나머지 512개로 시험한다. <b>B</b>: \(n=20\)(가능한 입력 1,048,576개). 학습 입력 1,000개, 겹치지 않는 시험 입력 4,000개. B는 A의 결과를 본 <b>뒤에</b> 추가했다(아래 '해석과 한계').</td></tr>
+        <tr><td>바꾸는 것(하나)</td><td>답하는 방식. <b>즉답</b>: \(n\)비트 전체 → 정답, forward pass 1회. <b>단계적 풀이</b>: (직전에 쓴 값, 새 비트) → 새 값을 \(d\)번 반복, forward pass \(d\)회. 단계용 학습기는 학습 입력마다 중간 정답 \(d\)개를 함께 배운다.</td></tr>
+        <tr><td>고정하는 것</td><td>학습기의 구조와 폭, 옵티마이저와 걸음 수, 학습·시험 입력의 분할, 시드 0~4(시드마다 분할과 초기값이 다르다).</td></tr>
+        <tr><td>관측값</td><td>시험 입력의 정확도(시드 5개의 평균 ± 표준오차), 즉답의 학습 입력 정확도. 오류 주입: 단계에서 쓴 값이 확률 \(\varepsilon\in\{0.01,0.02,0.05,0.1\}\)로 뒤집힐 때의 정확도, 정답이지만 어긋난 줄이 있는 비율.</td></tr>
+        <tr><td>예산</td><td>설정마다 \(d\) 값 7~10개 × 시드 5 × 학습기 2개. 오류 주입은 시드마다 시험 입력 전체를 20번 반복해 \(\varepsilon\) 값 4개를 잰다.</td></tr>
+        <tr><td>예상 (이론에서)</td><td>오류 주입의 측정값은 <a class="ref" href="#thm-flip"></a>의 1번과 3번의 값에서 표본 크기로 설명되는 오차 안에 있어야 한다. 단계용 학습기는 하위 과제의 입력이 (직전 값, 새 비트) 네 가지뿐이어서 \(d\)와 무관하게 거의 완벽해야 한다. \(d=1\)에서는 두 방식이 같다.</td></tr>
+        <tr><td>예상 (설정 A를 돌리기 전, 이론이 아니라 통념에서)</td><td>홀짝은 경사 하강법으로 배우기 어렵다고 알려져 있으므로 \(d\)가 커지면 즉답의 시험 정확도가 우연 수준(0.5)에 가까워질 것이다. 수치 기준은 적지 않았다. <b>이 예상은 틀렸다</b>(결과 참고).</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건 (설정 B를 돌리기 전에 적음)</td><td>B에서 \(d=20\)의 즉답 시험 정확도가 0.9 이상이거나, 단계적 풀이의 시험 정확도가 어느 \(d\)에서든 0.99 미만이면 예상이 틀린 것이다. 오류 주입은 측정값이 이론값에서 표본 크기로 설명되지 않을 만큼 벗어나면 틀린 것이다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code">코드</h3>
+    <p>Python 3.14.5와 NumPy 2.5.4에서 실행했다(한 코어(<code>OMP_NUM_THREADS=1</code>)에서 설정 A와 B를 합쳐 약 27분 걸렸다. 설정 A만 돌린 첫 실행과 최종 코드의 A 수치는 같았다). 다른 NumPy 버전에서는 난수 열이 달라 마지막 자리가 바뀔 수 있다. 단계용 학습기에는 '다음에 읽을 비트'를 이미 골라서 넘겨 주므로, 2장의 attention이 위치를 찾는 일은 이 실험에 들어 있지 않다.</p>
+<pre><code>import math
+import numpy as np
+
+H, STEPS, LR = 32, 3000, 0.01                                 # 학습기의 은닉 폭, 학습 걸음 수, 학습률
+SEEDS, EPS, R = range(5), (0.01, 0.02, 0.05, 0.1), 20
+pm = lambda b: 2.0 * b - 1.0                                  # {0,1} -&gt; {-1,+1}
+
+def fit(rng, A, y):                                           # 은닉층 1개짜리 학습기, Adam, full batch
+    P = [rng.normal(0, A.shape[1] ** -.5, (A.shape[1], H)), np.zeros(H),
+         rng.normal(0, H ** -.5, H), np.zeros(())]
+    M = [np.zeros_like(p) for p in P]; V = [np.zeros_like(p) for p in P]
+    for t in range(1, STEPS + 1):
+        h = np.tanh(A @ P[0] + P[1]); s = 1 / (1 + np.exp(-(h @ P[2] + P[3])))
+        g = (s - y) / len(y); dh = np.outer(g, P[2]) * (1 - h ** 2)
+        G = [A.T @ dh, dh.sum(0), h.T @ g, g.sum()]
+        for i in range(4):
+            M[i] = .9 * M[i] + .1 * G[i]; V[i] = .999 * V[i] + .001 * G[i] ** 2
+            P[i] = P[i] - LR * (M[i] / (1 - .9 ** t)) / (np.sqrt(V[i] / (1 - .999 ** t)) + 1e-8)
+    return P
+
+def predict(P, A):
+    return ((np.tanh(A @ P[0] + P[1]) @ P[2] + P[3]) &gt; 0).astype(int)
+
+def run(seed, n, N, d):
+    rng = np.random.default_rng((seed, d))
+    ids = rng.permutation(2 ** n); T = min(4000, 2 ** n - N)
+    bits = lambda i: (i[:, None] &gt;&gt; np.arange(n)) &amp; 1         # 정수 -&gt; n비트 입력
+    Xtr, Xte = bits(ids[:N]), bits(ids[N:N + T])              # 학습 입력 N개, 겹치지 않는 시험 입력 T개
+    par = lambda B, k: B[:, :k].sum(1) % 2                    # k번째 단계까지 쓴 값의 정답: 앞 k비트의 홀짝
+    # 즉답: n비트 전체 -&gt; 정답
+    Pd = fit(rng, pm(Xtr), par(Xtr, d))
+    out = {"d_tr": (predict(Pd, pm(Xtr)) == par(Xtr, d)).mean(),
+           "d_te": (predict(Pd, pm(Xte)) == par(Xte, d)).mean()}
+    # 단계적 풀이: (직전에 쓴 값, 새 비트) -&gt; 새 값. 학습 입력마다 d개의 중간 정답이 생긴다.
+    A = np.vstack([np.c_[pm(par(Xtr, t)), pm(Xtr[:, t])] for t in range(d)])
+    y = np.concatenate([par(Xtr, t + 1) for t in range(d)])
+    Pc = fit(rng, A, y)
+    def chain(B, eps):                                        # 한 단계씩 쓰고, 쓴 값이 eps 확률로 뒤집힌다
+        c = np.zeros(len(B), int); bad = np.zeros(len(B), bool)
+        for t in range(d):
+            c = predict(Pc, np.c_[pm(c), pm(B[:, t])])
+            c = np.where(rng.random(len(B)) &lt; eps, 1 - c, c)
+            bad |= c != par(B, t + 1)                         # 정답 풀이와 어긋난 단계가 하나라도 있나
+        return c, bad
+    for eps in (0.0,) + EPS:
+        B = np.tile(Xte, (R, 1)); c, bad = chain(B, eps)
+        ok = c == par(B, d)
+        out[f"c{eps}"] = ok.mean(); out[f"w{eps}"] = (ok &amp; bad).mean()
+    return out
+
+for n, N, DS in ((10, 512, (1, 2, 3, 4, 6, 8, 10)), (20, 1000, (1, 2, 3, 4, 6, 8, 10, 12, 16, 20))):
+    res = {d: [run(s, n, N, d) for s in SEEDS] for d in DS}
+    mean = lambda d, k: np.mean([r[k] for r in res[d]])
+    se = lambda d, k: np.std([r[k] for r in res[d]], ddof=1) / math.sqrt(len(SEEDS))
+    print(f"[n={n}, 학습 입력 {N}개] 즉답과 단계적 풀이의 정확도 (평균 ± 표준오차, 시드 5개)")
+    for d in DS:
+        print(f"d={d:2d}  즉답 train {mean(d,'d_tr'):.3f}  즉답 test {mean(d,'d_te'):.3f} ± {se(d,'d_te'):.3f}"
+              f"  단계적 test {mean(d,'c0.0'):.3f} ± {se(d,'c0.0'):.3f}")
+    print(f"[n={n}] 쓴 값이 eps 확률로 뒤집힐 때: 정확도 측정/이론 (정답이지만 풀이가 틀린 비율 측정/이론)")
+    for d in DS:
+        cells = []
+        for eps in EPS:
+            th = (1 + (1 - 2 * eps) ** d) / 2
+            cells.append(f"{mean(d,f'c{eps}'):.3f}/{th:.3f} ({mean(d,f'w{eps}'):.3f}/{th - (1 - eps) ** d:.3f})")
+        print(f"d={d:2d}  " + "  ".join(cells))</code></pre>
+
+
+    <h3 id="h-result">결과</h3>
+    <p>수는 시드 5개의 평균이고 ± 뒤는 표준오차이다. 즉답의 학습 입력 정확도는 두 설정의 모든 \(d\)에서 1.000이었다. 설정 B의 값만 표에 실었다.</p>
+    <div class="table-wrap"><table class="nowrap">
+      <thead>
+        <tr><th rowspan="2" class="num">\(d\)</th><th colspan="2" class="num">설정 A (\(n=10\))</th><th colspan="3" class="num">설정 B (\(n=20\))</th><th rowspan="2" class="num">forward pass 수<br>(즉답 / 단계)</th></tr>
+        <tr><th class="num">즉답 (시험)</th><th class="num">단계적 (시험)</th><th class="num">즉답 (학습)</th><th class="num">즉답 (시험)</th><th class="num">단계적 (시험)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num">1</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 1</td></tr>
+        <tr><td class="num">2</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 2</td></tr>
+        <tr><td class="num">3</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 3</td></tr>
+        <tr><td class="num">4</td><td class="num">1.000 ± 0.000</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">0.750 ± 0.095</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 4</td></tr>
+        <tr><td class="num">6</td><td class="num">0.962 ± 0.012</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">0.501 ± 0.003</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 6</td></tr>
+        <tr><td class="num">8</td><td class="num">0.946 ± 0.011</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">0.503 ± 0.004</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 8</td></tr>
+        <tr><td class="num">10</td><td class="num">0.941 ± 0.009</td><td class="num">1.000 ± 0.000</td><td class="num">1.000</td><td class="num">0.507 ± 0.009</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 10</td></tr>
+        <tr><td class="num">12</td><td class="num">—</td><td class="num">—</td><td class="num">1.000</td><td class="num">0.498 ± 0.002</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 12</td></tr>
+        <tr><td class="num">16</td><td class="num">—</td><td class="num">—</td><td class="num">1.000</td><td class="num">0.502 ± 0.004</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 16</td></tr>
+        <tr><td class="num">20</td><td class="num">—</td><td class="num">—</td><td class="num">1.000</td><td class="num">0.498 ± 0.003</td><td class="num">1.000 ± 0.000</td><td class="num">1 / 20</td></tr>
+      </tbody>
+    </table></div>
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 800 330" role="img" aria-label="순차 단계 수 d에 따른 시험 입력 정확도. 단계적 풀이는 d와 무관하게 1.0이고, 쓴 값이 뒤집히는 오류율이 0.02나 0.05이면 d가 커질수록 이론 곡선을 따라 0.5에 가까워진다. 즉답은 입력 설정에 따라 다르다.">
+  <path d="M62 272.0 H640" class="s-grid"/><text class="t-mono" x="54" y="276.0" text-anchor="end">0.4</text>
+  <path d="M62 231.3 H640" class="s-grid"/><text class="t-mono" x="54" y="235.3" text-anchor="end">0.5</text>
+  <path d="M62 190.7 H640" class="s-grid"/><text class="t-mono" x="54" y="194.7" text-anchor="end">0.6</text>
+  <path d="M62 150.0 H640" class="s-grid"/><text class="t-mono" x="54" y="154.0" text-anchor="end">0.7</text>
+  <path d="M62 109.3 H640" class="s-grid"/><text class="t-mono" x="54" y="113.3" text-anchor="end">0.8</text>
+  <path d="M62 68.7 H640" class="s-grid"/><text class="t-mono" x="54" y="72.7" text-anchor="end">0.9</text>
+  <path d="M62 28.0 H640" class="s-grid"/><text class="t-mono" x="54" y="32.0" text-anchor="end">1.0</text>
+  <path d="M62.0 272 V277" class="s-line"/><text class="t-mono" x="62.0" y="291" text-anchor="middle">0</text>
+  <path d="M206.5 272 V277" class="s-line"/><text class="t-mono" x="206.5" y="291" text-anchor="middle">5</text>
+  <path d="M351.0 272 V277" class="s-line"/><text class="t-mono" x="351.0" y="291" text-anchor="middle">10</text>
+  <path d="M495.5 272 V277" class="s-line"/><text class="t-mono" x="495.5" y="291" text-anchor="middle">15</text>
+  <path d="M640.0 272 V277" class="s-line"/><text class="t-mono" x="640.0" y="291" text-anchor="middle">20</text>
+  <path d="M62 231.3 H640" class="s-faint" stroke-dasharray="4 4"/>
+  <text class="t-dim" x="68" y="226.3">우연 수준 0.5</text>
+  <text class="t-dim" x="351" y="312" text-anchor="middle">순차 단계 수 d</text>
+  <text class="t-dim" x="14" y="150" text-anchor="middle" transform="rotate(-90 14 150)">시험 입력 정확도</text>
+  <polyline points="90.9,28.0 119.8,28.0 148.7,28.0 177.6,28.0 235.4,28.0 293.2,28.0 351.0,28.0 408.8,28.0 524.4,28.0 640.0,28.0" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <polyline points="90.9,36.1 119.8,43.9 148.7,51.6 177.6,58.5 235.4,72.3 293.2,84.1 351.0,95.5 408.8,106.1 524.4,125.6 640.0,141.5" fill="none" style="stroke:var(--accent);stroke-width:1.5" stroke-dasharray="7 4"/>
+  <polyline points="90.9,48.3 119.8,66.6 148.7,82.9 177.6,98.4 235.4,123.6 293.2,143.9 351.0,160.2 408.8,174.0 524.4,193.5 640.0,206.9" fill="none" style="stroke:var(--accent);stroke-width:1.5" stroke-dasharray="2 4"/>
+  <polyline points="90.9,28.0 119.8,28.0 148.7,28.0 177.6,28.0 235.4,43.5 293.2,50.0 351.0,52.0" fill="none" style="stroke:var(--text-dim);stroke-width:1.6" stroke-dasharray="5 3"/>
+  <polyline points="90.9,28.0 119.8,28.0 148.7,28.0 177.6,129.7 235.4,230.9 293.2,230.1 351.0,228.5 408.8,232.1 524.4,230.5 640.0,232.1" fill="none" style="stroke:var(--accent-2);stroke-width:2"/>
+  <path d="M90.9 23.0 L95.9 28.0 L90.9 33.0 L85.9 28.0 z" style="fill:var(--accent)"/><path d="M119.8 23.0 L124.8 28.0 L119.8 33.0 L114.8 28.0 z" style="fill:var(--accent)"/><path d="M148.7 23.0 L153.7 28.0 L148.7 33.0 L143.7 28.0 z" style="fill:var(--accent)"/><path d="M177.6 23.0 L182.6 28.0 L177.6 33.0 L172.6 28.0 z" style="fill:var(--accent)"/><path d="M235.4 23.0 L240.4 28.0 L235.4 33.0 L230.4 28.0 z" style="fill:var(--accent)"/><path d="M293.2 23.0 L298.2 28.0 L293.2 33.0 L288.2 28.0 z" style="fill:var(--accent)"/><path d="M351.0 23.0 L356.0 28.0 L351.0 33.0 L346.0 28.0 z" style="fill:var(--accent)"/><path d="M408.8 23.0 L413.8 28.0 L408.8 33.0 L403.8 28.0 z" style="fill:var(--accent)"/><path d="M524.4 23.0 L529.4 28.0 L524.4 33.0 L519.4 28.0 z" style="fill:var(--accent)"/><path d="M640.0 23.0 L645.0 28.0 L640.0 33.0 L635.0 28.0 z" style="fill:var(--accent)"/>
+  <rect x="87.4" y="24.5" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/><rect x="116.3" y="24.5" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/><rect x="145.2" y="24.5" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/><rect x="174.1" y="24.5" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/><rect x="231.9" y="40.0" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/><rect x="289.7" y="46.5" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/><rect x="347.5" y="48.5" width="7" height="7" style="fill:var(--bg-elev);stroke:var(--text-dim);stroke-width:1.6"/>
+  <circle cx="90.9" cy="28.0" r="4" style="fill:var(--accent-2)"/><circle cx="119.8" cy="28.0" r="4" style="fill:var(--accent-2)"/><circle cx="148.7" cy="28.0" r="4" style="fill:var(--accent-2)"/><circle cx="177.6" cy="129.7" r="4" style="fill:var(--accent-2)"/><circle cx="235.4" cy="230.9" r="4" style="fill:var(--accent-2)"/><circle cx="293.2" cy="230.1" r="4" style="fill:var(--accent-2)"/><circle cx="351.0" cy="228.5" r="4" style="fill:var(--accent-2)"/><circle cx="408.8" cy="232.1" r="4" style="fill:var(--accent-2)"/><circle cx="524.4" cy="230.5" r="4" style="fill:var(--accent-2)"/><circle cx="640.0" cy="232.1" r="4" style="fill:var(--accent-2)"/>
+  <text class="t-acc" x="650" y="32.0">단계적 풀이</text>
+  <text class="t-dim" x="650" y="145.5">단계적, ε=0.02</text>
+  <text class="t-dim" x="650" y="210.9">단계적, ε=0.05</text>
+  <text class="t-b" x="650" y="236.1">즉답 (n=20)</text>
+  <text class="t-dim" x="359.0" y="44.0">즉답 (n=10)</text>
+</svg>
+      <figcaption><b>그림 5-2.</b> 순차 단계 수 \(d\)에 따른 시험 입력 정확도. 단계적 풀이의 두 점선은 쓴 값이 뒤집히는 오류율이 0.02와 0.05인 설정 B의 측정값이다. 세로축은 0.4부터 시작한다.</figcaption>
+    </figure>
+    <p>아래 두 표는 단계적 풀이에서 쓴 값이 확률 \(\varepsilon\)로 뒤집힐 때(설정 B)의 결과이다. 칸은 '측정 (이론)'이며 이론값은 <a class="ref" href="#thm-flip"></a>에서 온다. 첫 표 (가)는 최종 답이 맞을 확률, 둘째 표 (나)는 정답이지만 어긋난 줄이 있는 비율이다. 설정 A도 같은 이론값과 맞았다.</p>
+    <p><b>(가)</b> 최종 답이 맞을 확률: 측정 (이론)</p>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th class="num">\(d\)</th><th class="num">\(\varepsilon=0.01\)</th><th class="num">\(\varepsilon=0.02\)</th><th class="num">\(\varepsilon=0.05\)</th><th class="num">\(\varepsilon=0.1\)</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td class="num">0.990 (0.990)</td><td class="num">0.980 (0.980)</td><td class="num">0.950 (0.950)</td><td class="num">0.900 (0.900)</td></tr>
+        <tr><td class="num">2</td><td class="num">0.980 (0.980)</td><td class="num">0.961 (0.961)</td><td class="num">0.905 (0.905)</td><td class="num">0.821 (0.820)</td></tr>
+        <tr><td class="num">3</td><td class="num">0.970 (0.971)</td><td class="num">0.942 (0.942)</td><td class="num">0.865 (0.865)</td><td class="num">0.756 (0.756)</td></tr>
+        <tr><td class="num">4</td><td class="num">0.962 (0.961)</td><td class="num">0.925 (0.925)</td><td class="num">0.827 (0.828)</td><td class="num">0.705 (0.705)</td></tr>
+        <tr><td class="num">6</td><td class="num">0.943 (0.943)</td><td class="num">0.891 (0.891)</td><td class="num">0.765 (0.766)</td><td class="num">0.631 (0.631)</td></tr>
+        <tr><td class="num">8</td><td class="num">0.926 (0.925)</td><td class="num">0.862 (0.861)</td><td class="num">0.715 (0.715)</td><td class="num">0.584 (0.584)</td></tr>
+        <tr><td class="num">10</td><td class="num">0.909 (0.909)</td><td class="num">0.834 (0.832)</td><td class="num">0.675 (0.674)</td><td class="num">0.554 (0.554)</td></tr>
+        <tr><td class="num">12</td><td class="num">0.893 (0.892)</td><td class="num">0.808 (0.806)</td><td class="num">0.641 (0.641)</td><td class="num">0.535 (0.534)</td></tr>
+        <tr><td class="num">16</td><td class="num">0.862 (0.862)</td><td class="num">0.760 (0.760)</td><td class="num">0.593 (0.593)</td><td class="num">0.515 (0.514)</td></tr>
+        <tr><td class="num">20</td><td class="num">0.834 (0.834)</td><td class="num">0.721 (0.721)</td><td class="num">0.560 (0.561)</td><td class="num">0.506 (0.506)</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>(나)</b> 정답이지만 어긋난 줄이 있는 비율: 측정 (이론)</p>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th class="num">\(d\)</th><th class="num">\(\varepsilon=0.01\)</th><th class="num">\(\varepsilon=0.02\)</th><th class="num">\(\varepsilon=0.05\)</th><th class="num">\(\varepsilon=0.1\)</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td class="num">0.000 (0.000)</td><td class="num">0.000 (0.000)</td><td class="num">0.000 (0.000)</td><td class="num">0.000 (0.000)</td></tr>
+        <tr><td class="num">2</td><td class="num">0.000 (0.000)</td><td class="num">0.000 (0.000)</td><td class="num">0.003 (0.003)</td><td class="num">0.010 (0.010)</td></tr>
+        <tr><td class="num">3</td><td class="num">0.000 (0.000)</td><td class="num">0.001 (0.001)</td><td class="num">0.007 (0.007)</td><td class="num">0.027 (0.027)</td></tr>
+        <tr><td class="num">4</td><td class="num">0.001 (0.001)</td><td class="num">0.002 (0.002)</td><td class="num">0.013 (0.014)</td><td class="num">0.049 (0.049)</td></tr>
+        <tr><td class="num">6</td><td class="num">0.001 (0.001)</td><td class="num">0.006 (0.006)</td><td class="num">0.031 (0.031)</td><td class="num">0.100 (0.100)</td></tr>
+        <tr><td class="num">8</td><td class="num">0.003 (0.003)</td><td class="num">0.010 (0.010)</td><td class="num">0.052 (0.052)</td><td class="num">0.154 (0.153)</td></tr>
+        <tr><td class="num">10</td><td class="num">0.004 (0.004)</td><td class="num">0.015 (0.015)</td><td class="num">0.075 (0.076)</td><td class="num">0.204 (0.205)</td></tr>
+        <tr><td class="num">12</td><td class="num">0.006 (0.006)</td><td class="num">0.022 (0.022)</td><td class="num">0.100 (0.101)</td><td class="num">0.252 (0.252)</td></tr>
+        <tr><td class="num">16</td><td class="num">0.011 (0.010)</td><td class="num">0.037 (0.036)</td><td class="num">0.153 (0.153)</td><td class="num">0.331 (0.329)</td></tr>
+        <tr><td class="num">20</td><td class="num">0.016 (0.016)</td><td class="num">0.053 (0.053)</td><td class="num">0.203 (0.202)</td><td class="num">0.384 (0.384)</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-limits">해석과 한계</h3>
+    <ul>
+      <li><b>처음의 예상은 틀렸다.</b> 설정 A만 돌렸을 때 즉답은 \(d=10\)에서도 시험 정확도 0.941 ± 0.009로, 우연 수준에 가까워지지 않았다. 학습 입력이 가능한 입력 1,024개의 절반이어서 학습기가 본 입력과 비슷한 입력을 맞히는 것만으로 상당 부분을 풀 수 있었을 것이라고 추정하지만, 이 실험에서 확인하지는 않았다. 이 결과를 본 뒤에 입력이 20비트이고 학습 입력이 1,000개뿐인 설정 B를 추가했다. 기각 조건(\(d=20\)의 즉답이 0.9 이상, 또는 단계적 풀이가 0.99 미만)은 B를 돌리기 전에 적었고, 어디에도 걸리지 않았다. 다만 B는 예상이 맞을 만한 영역을 찾아간 것이므로, '즉답은 우연 수준이 된다'를 일반 사실로 읽으면 안 된다. 읽을 수 있는 것은 <b>학습 입력이 입력 공간에 비해 매우 적을 때</b>라는 조건이 붙은 결과이다. 학습기의 폭(32)과 걸음 수(3,000)는 조정하지 않았고, 더 넓게 또는 더 오래 학습하면 즉답이 더 큰 \(d\)까지 배워질 수 있는지는 시험하지 않았다.</li>
+      <li><b>쪼개면 배우기 쉬워졌다.</b> B에서 즉답은 \(d\le3\)에서 시험 정확도 1.000이었고 \(d\ge6\)에서는 0.498~0.507로 우연 수준이었다. 모든 \(d\)에서 학습 입력 정확도는 1.000이었으므로, 학습 입력은 외웠지만 홀짝의 규칙은 배우지 못한 것이다. \(d=4\)는 시드에 따라 갈렸다. 같은 코드를 \(d=4\)에서만 따로 돌려 보면 시드별 시험 정확도가 0.572, 0.591, 0.622, 0.977, 0.987이었다. 평균 0.750은 어느 시드에서도 나오지 않은 값이므로 '75%를 배운다'가 아니라 '배우는 시드와 배우지 못하는 시드가 있다'로 읽어야 하고, 시드 5개로는 그 경계의 분포를 알 수 없다. 반면 단계적 풀이는 두 설정의 모든 \(d\)에서 1.000 ± 0.000이었다. 단계용 학습기가 푸는 하위 과제는 (직전 값, 새 비트)의 네 가지 입력뿐이고 같은 학습기를 \(d\)번 쓴다. \(d=1\)에서는 두 방식이 같았다(1.000). 쪼갤 것이 없는 과제에서는 얻는 것이 없다.</li>
+      <li><b>이 이득의 출처는 둘로 나뉘지 않았다.</b> 단계적 풀이는 forward pass를 \(d\)번 쓰고, 학습 때 중간 정답도 받았다. 이 설계에는 '중간 정답 없이 쪼개기만 한' 조건이 없어서, 이득이 단계 구조에서 온 것인지 중간 정답을 가르친 데서 온 것인지는 구별하지 못했다. 실제 모델에서 중간 정답을 누가 주는가(사람이 쓴 풀이, 학습 데이터 속 풀이, 또는 보상으로 찾기)는 <a href="ch06.html">6장</a>의 질문이다.</li>
+      <li><b>쓴 값이 틀리면 정확도는 이론대로 줄었다.</b> 오류 주입의 측정값은 정리의 값과 설정 B에서 최대 0.002, 설정 A에서 최대 0.004만 달랐고 정답이지만 어긋난 줄이 있는 비율은 두 설정 모두 최대 0.002 달랐다. 칸마다 약 5만 번(A)과 40만 번(B)의 시행이고 \(p=0.5\)에서의 표준오차가 각각 0.0022와 0.0008이므로 표본 크기로 설명되는 범위로 본다. 단계가 길수록 영향이 커진다. \(d=10\), \(\varepsilon=0.05\)에서 정확도는 0.675이고 정답으로 센 풀이의 약 11%(0.075/0.675)가 어긋난 줄이 있는 풀이이다(<a class="ref" href="#ex-flip"></a>). \(d=20\), \(\varepsilon=0.1\)에서는 정확도가 0.506으로 우연 수준과 같고, 정답으로 센 풀이의 76%(0.384/0.506)가 틀린 풀이이다.</li>
+      <li><b>단계적 풀이가 이기는지는 즉답이 얼마나 배워졌는지에 달렸다.</b> 설정 A에서는 \(d=6, 8, 10\)의 즉답이 0.962, 0.946, 0.941이어서 식 <a class="ref" href="#eq-breakeven"></a>의 \(\varepsilon^*\)가 0.0065, 0.0071, 0.0062였다. 실제로 가장 낮은 오류율 \(\varepsilon=0.01\)에서도 단계적 풀이는 0.943, 0.924, 0.908로 즉답보다 낮았다. \(d\le4\)에서는 즉답이 1.000이므로 시험한 모든 \(\varepsilon\)에서 단계적 풀이가 졌다. 설정 B에서는 반대로 \(d=10\)에서 즉답 0.507에 비해 \(\varepsilon=0.05\)의 단계적 풀이가 0.675로 크게 이겼다. 그러나 \(d=20\), \(\varepsilon=0.1\)에서는 둘 다 우연 수준(0.506과 0.498)이어서 이긴다고 말할 의미가 없다. 같은 과제와 같은 단계 신뢰도인데 데이터 영역에 따라 결론이 뒤집힌 것이다.</li>
+      <li><b>실제 LLM에 옮길 수 있는 것은 구조뿐이다.</b> 학습기는 은닉층 하나의 신경망이다. 단계용 학습기에는 다음에 읽을 비트를 골라서 넘겨 주었으므로 attention이 위치를 찾는 일은 빠져 있다. 오류 모형은 단계마다 독립이고 균등하다고 가정했으나, 실제 모델의 단계 오류는 서로 상관이 있고 어려운 단계에 몰릴 수 있다. 홀짝은 오류가 상쇄되는 가장 단순한 과제이다. 이 수치를 LLM의 성능으로 옮길 수 없다. 옮겨지는 것은 구조이다. 쪼개기는 즉답이 배우기 어려울 때 이득이 크고(이론과 설정 B), 쪼갠 단계에 오류가 있으면 단계가 길수록 손해가 쌓이며(정리와 오류 주입), 즉답이 이미 잘 맞히면 쪼개는 쪽이 지기 쉽다(설정 A).</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>표준 decoder-only 트랜스포머에서 한 번의 forward pass가 이어 붙이는 순차 계산의 깊이는 층 수 \(L\)로 묶여 있다. 중간 토큰을 쓰면 그 토큰이 컨텍스트에 붙어 다음 pass의 입력이 되므로, 쓴 토큰 수만큼 pass를 이어 붙일 수 있다.</li>
+      <li>이론은 형식 모형에서 단계적 풀이가 표현할 수 있는 계산을 늘린다고 말하고(Feng 외, Li 외, Merrill·Sabharwal), 학습 쪽에서는 하위 과제로 쪼개고 중간 정답을 함께 학습하면 배울 수 있게 된다고 말한다(Wies 외). 표현 가능성과 학습 가능성은 다르고, 형식 모형의 가정이 실제 모델과 같다는 보장은 없다.</li>
+      <li>검증 가능한 과제는 맞고 틀림을 코드로 판정하는 검사 함수 \(V\)가 있는 과제이다. \(V\)를 만들 때 정답을 알 필요는 없고, 확인이 풀이보다 쉬운 과제가 많다. 정답률은 표준오차 \(\sqrt{\hat p(1-\hat p)/n}\)와 함께 읽는다.</li>
+      <li>최종 답만 검사하는 결과 검증과 단계마다 검사하는 과정 검증은 다르다. 단계가 식이나 코드처럼 형식을 갖추어야 과정 검증이 가능하다.</li>
+      <li>단계마다 독립으로 \(\varepsilon\)의 확률로 틀리는 홀짝 풀이에서 정확도는 \(\tfrac12(1+(1-2\varepsilon)^d)\)이고, 모든 줄이 맞을 확률은 \((1-\varepsilon)^d\)이다. 둘의 차이만큼은 정답이지만 풀이가 틀린 경우이므로, 최종 답만 채점하면 틀린 풀이를 정답으로 센다.</li>
+      <li>풀이 문장이 그럴듯한 것, 단계가 맞는 것, 풀이가 답의 실제 이유인 것(충실성)은 서로 다른 질문이다. 풀이는 단서로 읽을 수 있지만 감사 기록으로 믿을 수 없으므로, 맞았는지는 \(V\)와 실행 기록 같은 모델 바깥의 검사로 정한다.</li>
+      <li>단계적 풀이가 도움이 되지 않거나 손해인 경우는 한 단계로 끝나는 과제, 모델에 없는 사실, 단계 신뢰도가 낮은 과제, 즉답이 이미 잘 맞히는 과제, 숙고가 해로운 과제, 도구가 더 정확한 과제이다. 즉답의 정확도가 \(a\)이면 단계 오류율이 \(\varepsilon^*=\bigl(1-(2a-1)^{1/d}\bigr)/2\)보다 낮아야 득이 된다.</li>
+      <li>작은 학습기 실험에서 입력이 20비트이고 학습 입력이 1,000개뿐인 설정 B의 즉답은 \(d\ge6\)에서 학습 입력은 외웠지만 시험 정확도가 우연 수준(0.50)이었고, 중간 정답을 함께 학습한 단계적 풀이는 모든 \(d\)에서 1.000이었다. 입력의 절반으로 학습한 설정 A에서는 즉답도 \(d=10\)에서 0.941이었고, 단계 오류율이 1%만 되어도 단계적 풀이가 즉답보다 낮았다. 쪼개기의 이득은 즉답이 얼마나 배워졌는지와 단계의 신뢰도에 달려 있다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 한 번의 forward pass에서 이어 붙일 수 있는 순차 계산의 깊이를 정하는 것은?</p><div class="opts">
+        <button class="opt">컨텍스트의 길이</button>
+        <button class="opt" data-correct>트랜스포머 블록의 수 \(L\)</button>
+        <button class="opt">어휘의 크기</button>
+      </div><div class="quiz-exp">한 번의 pass는 블록 \(L\)개를 한 번 지나는 계산이다(2장). 문제가 어려워도 pass 하나의 깊이는 늘지 않으므로, 깊은 계산은 토큰을 써서 pass를 이어 붙여야 한다.</div></div>
+      <div class="quiz-q"><p>2. 단계적 풀이가 순차 계산을 늘리는 이유로 알맞은 것은?</p><div class="opts">
+        <button class="opt">토큰을 쓸 때마다 층의 수가 늘어난다.</button>
+        <button class="opt">temperature가 낮아져 출력이 안정된다.</button>
+        <button class="opt" data-correct>쓴 토큰이 컨텍스트에 붙어 다음 pass의 입력이 된다.</button>
+      </div><div class="quiz-exp">층의 수와 가중치는 그대로이고, 달라지는 것은 다음 pass가 읽는 입력이다(그림 5-1).</div></div>
+      <div class="quiz-q"><p>3. '검증 가능한 과제'의 조건으로 알맞은 것은?</p><div class="opts">
+        <button class="opt">정답 \(a^*\)를 미리 알고 있어야 한다.</button>
+        <button class="opt" data-correct>답을 받아 맞고 틀림을 코드로 판정하는 \(V\)가 있다.</button>
+        <button class="opt">중간 단계도 모두 기계적으로 검사할 수 있어야 한다.</button>
+      </div><div class="quiz-exp">소인수분해처럼 정답을 몰라도 곱해 보면 확인되는 과제가 있다. 중간 단계까지 검사하는 것은 과정 검증이라는 별개의 능력이다(7장).</div></div>
+      <div class="quiz-q"><p>4. 열 줄짜리 홀짝 풀이(\(d=10\))에서 줄마다 5%의 확률로 틀린 값을 쓴다. 정답으로 채점된 풀이 가운데 풀이가 사실은 틀린 비율은 약 얼마인가?</p><div class="opts">
+        <button class="opt">약 1.6%</button>
+        <button class="opt" data-correct>약 11%</button>
+        <button class="opt">약 40%</button>
+      </div><div class="quiz-exp"><a class="ref" href="#ex-flip"></a>에서 정답일 확률은 0.674, 모든 줄이 맞을 확률은 0.599이므로 \(0.076/0.674\approx11.2\%\)이다.</div></div>
+      <div class="quiz-q"><p>5. 풀이 문장의 '충실성'이 낮다는 말의 뜻은?</p><div class="opts">
+        <button class="opt">풀이가 너무 길다.</button>
+        <button class="opt" data-correct>풀이 문장이 모델이 답을 낸 실제 이유를 반영하지 않는다.</button>
+        <button class="opt">최종 답이 틀렸다.</button>
+      </div><div class="quiz-exp">충실성은 풀이가 답의 원인을 말해 주는지에 대한 것이다. 최종 답이 맞아도 풀이가 이유를 반영하지 않을 수 있고, 풀이의 개입 실험이나 단서 실험으로만 가늠할 수 있다.</div></div>
+      <div class="quiz-q"><p>6. 즉답이 이미 0.99로 맞히는 10단계 과제에서 단계적 풀이가 이기려면 단계 하나의 오류율은 대략 어느 수준 아래여야 하는가?</p><div class="opts">
+        <button class="opt">약 10%</button>
+        <button class="opt">약 1%</button>
+        <button class="opt" data-correct>약 0.1%</button>
+      </div><div class="quiz-exp">식 <a class="ref" href="#eq-breakeven"></a>에서 \(\varepsilon^*=(1-0.98^{1/10})/2=0.0010\)이다. 즉답이 이미 잘 맞히면 단계가 거의 완벽해야 득이 된다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-mult" data-level="1"><p>347 × 28을 두 부분곱으로 나눠 쓰고, 9로 나눈 나머지(각 자리 숫자의 합을 줄여 가며 구하는 디지털 루트)로 최종 답과 각 단계를 검사하라.</p>
+      <details class="sol"><summary>풀이</summary><p>347 × 20 = 6,940, 347 × 8 = 2,776, 합은 9,716이다. 디지털 루트는 347이 5, 28이 1이므로 곱은 5 × 1 = 5이다. 9,716은 9+7+1+6 = 23 → 5로 같다. 부분곱도 6,940 → 1, 2,776 → 4이고 1 + 4 = 5로 맞다. 이 검사는 틀린 답을 잡아낼 수는 있지만, 통과한다고 항상 맞는 것은 아니다(자릿수를 바꿔 쓴 경우 등). 단계마다 검사할 수 있는 흔적의 예이다.</p></details></div>
+    <div class="prob" id="prob-se" data-level="1"><p>문제 200개에서 설계 하나의 정답률이 0.75였다. 표준오차를 구하고, 다른 문제로 잰 다른 설계가 0.80이었을 때 이 차이를 구별할 수 있는지 판단하라.</p>
+      <details class="sol"><summary>풀이</summary><p>표준오차는 \(\sqrt{0.75\times0.25/200}=0.031\)이다. 서로 독립인 두 정답률의 차이의 표준오차는 \(\sqrt2\times0.031=0.043\)이므로 0.05의 차이는 약 1.2배에 불과하다. 구별하기 어렵다. 같은 문제 묶음에서 짝지어 비교하면 이 오차가 줄어들 수 있다(8장).</p></details></div>
+    <div class="prob" id="prob-table" data-level="1"><p>이 장의 실험에서 \(d=4\), \(\varepsilon=0.05\)일 때 정답일 확률과 '정답이지만 어긋난 줄이 있는' 확률의 이론값을 <a class="ref" href="#thm-flip"></a>의 식으로 계산하라.</p>
+      <details class="sol"><summary>풀이</summary><p>정답일 확률은 \((1+0.9^4)/2=(1+0.6561)/2=0.828\)이다. 모든 줄이 맞을 확률은 \(0.95^4=0.815\)이므로 정답이지만 어긋난 줄이 있을 확률은 \(0.828-0.815=0.0135\)이다. 실험 결과의 오류 주입 표에서 \(d=4\), \(\varepsilon=0.05\) 칸의 이론값과 같다.</p></details></div>
+    <div class="prob" id="prob-flip" data-level="2"><p>\(d=6\), \(\varepsilon=0.03\)에서 정답일 확률, 모든 줄이 맞을 확률, 정답이지만 풀이가 틀릴 확률을 구하라. 최종 답만 채점했을 때 정답으로 센 풀이 중 몇 %가 틀린 풀이인가?</p>
+      <details class="sol"><summary>풀이</summary><p>정답일 확률은 \((1+0.94^6)/2=0.845\)이고, 모든 줄이 맞을 확률은 \(0.97^6=0.833\)이다. 차이는 0.012이다. 정답으로 센 풀이 중 \(0.012/0.845=1.4\%\)가 틀린 풀이이다. \(d=10\), \(\varepsilon=0.05\)의 11.2%(<a class="ref" href="#ex-flip"></a>)보다 훨씬 작다. 단계가 짧고 오류율이 낮으면 상쇄될 일이 드물다.</p></details></div>
+    <div class="prob" id="prob-breakeven" data-level="2"><p>즉답이 0.95로 맞히는 4단계 홀짝 과제에서 단계적 풀이가 즉답보다 정확하려면 단계 하나의 오류율 \(\varepsilon\)이 얼마 아래여야 하는가? 식 <a class="ref" href="#eq-breakeven"></a>의 유도 과정도 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-flip"></a>의 1번에서 단계적 풀이의 정확도는 \(\tfrac12(1+(1-2\varepsilon)^d)\)이다. 이것이 \(a\)보다 크려면 \((1-2\varepsilon)^d>2a-1\)이다. \(a>\tfrac12\)이면 양변에 \(1/d\)제곱을 취해 \(1-2\varepsilon>(2a-1)^{1/d}\), 곧 \(\varepsilon<\bigl(1-(2a-1)^{1/d}\bigr)/2\)이다. \(a=0.95\), \(d=4\)이면 \((0.9)^{1/4}=0.974\)이고 \(\varepsilon^*=0.0130\)이다. 단계 하나의 오류율이 1.3% 아래여야 한다.</p></details></div>
+    <div class="prob" id="prob-kary" data-level="3"><p>답이 \(k\)가지 값이고, 각 줄이 앞 줄의 값에 새 숫자를 더해 \(k\)로 나눈 나머지를 쓰는 누적합 과제를 생각하자. 줄마다 독립으로 \(\varepsilon\)의 확률로 정답이 아닌 \(k-1\)가지 값 가운데 하나를 같은 확률로 쓰고, 틀린 값 위에서도 규칙대로 계산한다. 최종 답이 맞을 확률을 구하고, \(k=10\), \(d=5\), \(\varepsilon=0.02\)에서 '정답이지만 어긋난 줄이 있는' 확률을 \(k=2\)일 때와 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p>틀린 줄은 누적값에 0이 아닌 값 \(a\in\{1,\ldots,k-1\}\)을 더하는 것과 같고, 줄마다 더하는 값의 분포는 \(P(0)=1-\varepsilon\), \(P(a)=\varepsilon/(k-1)\)이다. 최종 답이 맞을 조건은 더한 값의 합이 \(k\)로 나눈 나머지 0인 것이다. 이산 푸리에 변환의 특성함수 \(\chi_j(a)=e^{2\pi i ja/k}\)에 대해 한 줄의 고윳값은 \(j\ne0\)이면 \(\lambda=(1-\varepsilon)+\tfrac{\varepsilon}{k-1}\sum_{a\ne0}\chi_j(a)=1-\varepsilon-\tfrac{\varepsilon}{k-1}=1-\tfrac{k\varepsilon}{k-1}\)로 \(j\)에 관계없이 같다. 줄이 독립이므로 \(P(\text{합}\equiv0)=\tfrac1k\bigl(1+(k-1)\lambda^d\bigr)=\tfrac1k+\bigl(1-\tfrac1k\bigr)\lambda^d\)이다. \(k=2\)이면 \(\lambda=1-2\varepsilon\)이어서 <a class="ref" href="#thm-flip"></a>의 식과 같다. \(k=10\), \(d=5\), \(\varepsilon=0.02\)이면 \(\lambda=1-0.2/9=0.9778\)이고 정답일 확률은 0.904이다. 모든 줄이 맞을 확률은 \(0.98^5=0.904\)이므로 정답이지만 어긋난 줄이 있을 확률은 0.0004이다. \(k=2\)의 0.0038의 약 1/9이다. 답이 많을수록 오류가 우연히 상쇄될 일이 드물어, 최종 답만 채점해도 틀린 풀이를 덜 통과시킨다.</p></details></div>
+    <div class="prob" id="prob-faith" data-level="2"><p>풀이의 충실성을 개입으로 가늠하는 실험을 설계하라. 무엇을 바꾸고, 무엇을 관측하며, 결과를 어떻게 해석하는지 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. 검증 가능한 과제(5.2절)에서 모델이 단계적 풀이로 맞힌 문제만 모은다. 각 풀이의 중간 한 단계를 틀린 값으로 바꿔 넣고(수정 전후를 기록), 그 앞까지의 풀이를 컨텍스트에 둔 채로 이어 쓰게 한 뒤 최종 답이 바뀌는 비율을 잰다. 바꾸는 것은 끼워 넣은 틀린 단계 하나이고 문제·디코딩 설정·시드는 고정한다. 해석: 최종 답이 틀린 단계를 따라 바뀌었다면 풀이가 답에 쓰였다고 볼 단서이다. 바뀌지 않았다면 풀이가 답에 쓰이지 않았을 수도 있지만, 모델이 틀린 단계를 알아채고 바로잡았을 수도 있으므로 이어 쓴 풀이에 정정이 있는지도 함께 읽어야 한다. 이 실험은 출력만으로 하는 개입 실험이어서 내부 계산에 대해서는 아무것도 말해 주지 못한다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="2"><p>공개된 모델 하나를 골라 '같은 문제 묶음에서 즉답과 단계적 풀이의 정확도'를 과제 유형별로 비교하는 실험을 설계하라. 무엇을 고정하고, 어떻게 채점하며, 무엇을 예상으로 적을지 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. 과제는 유형을 나눠 고른다. ① 여러 단계의 계산이 필요한 문제(예: 자릿수가 다른 곱셈이나 여러 단계 문장제), ② 한 단계 사실 확인 문제, ③ 모델이 알 수 없는 사실(학습 시점 이후의 정보 등). 유형마다 문제 수십~수백 개와 \(V\)(코드 판정)를 준비한다. 고정: 같은 문제 집합, 같은 디코딩 설정과 최대 토큰 수(1장), 같은 시드 집합, 두 방식의 지시문만 다르게(즉답은 '답만 쓰라', 단계적 풀이는 '풀이를 쓴 뒤 마지막 줄에 답'). 채점: 코드로 답을 뽑아 \(V\)로 판정하고, 형식을 어겨 답이 뽑히지 않은 경우는 따로 센다. 관측값: 유형별 정답률(± 표준오차), 출력 토큰 수와 지연(비용), 형식 실패 비율. 예상은 결과를 보기 전에 적는다. 예: ①에서는 단계적 풀이가 정답률을 올리고, ②에서는 같거나 비용만 늘며, ③에서는 둘 다 낮다. 틀렸다고 볼 조건도 함께 적는다. 두 방식의 토큰 예산이 다르다는 점이 공정한 비교의 문제이며, 이는 8장에서 다룬다. 모델 이름과 버전, 실행 날짜를 기록한다.</p></details></div>
   </section>
 </main>
 </body>
