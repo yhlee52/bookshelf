@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>06 추론형 언어모델의 학습 · AgentBook</title>
-<meta name="description" content="Reasoning Language Model의 범위 · 지도 학습과 강화학습의 역할 · 검증 가능한 보상과 그 한계 · 모델 능력과 외부 시스템 설계의 경계">
+<meta name="description" content="추론형 언어모델(RLM)의 범위, 지도 학습과 강화학습이 맡는 일, 정책 경사와 묶음 상대 이점, 검증 가능한 보상이 학습을 이끄는 조건과 검증기의 사각지대, 모델 능력과 외부 시스템의 경계를 다루고, 검증기만 바꿔 같은 정책을 강화학습시키는 작은 실험으로 확인한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,538 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch06">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">06</span></div>
     <h1 data-fill="chapter-title">추론형 언어모델의 학습</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">5장은 단계적 풀이가 도움이 되는 과제와 그렇지 않은 과제를 가르고, 풀이를 믿는 근거는 풀이 문장이 아니라 모델 바깥의 검사 함수 \(V\)라고 정리했다. 거기서 질문이 둘 남았다. 모델이 필요할 때 스스로 긴 풀이를 쓰게 하려면 어떻게 학습시키는가. 그리고 학습 신호가 \(V\)일 때 모델은 '맞게 푸는 법'을 배우는가, 아니면 '\(V\)를 통과하는 법'을 배우는가. 이 장은 2부의 두 번째 장으로, 추론형 언어모델(RLM)이 가리키는 범위를 정하고, 지도 학습과 강화학습이 맡는 일을 나눈 뒤, 검증 가능한 보상이 학습을 이끄는 조건과 한계를 이론으로 세운다. 마지막 실험은 같은 정책을 같은 알고리즘으로 학습시키되 검증기만 바꿔, 검증기가 구별하지 못하는 오류를 강화학습이 어떻게 다루는지 작은 모형으로 확인한다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>추론형 언어모델이 프롬프트로 단계적 풀이를 유도한 모델, 추론 때 후보를 고르는 시스템과 어떻게 다른지 설명하고, 이 책이 RLM에 둔 범위를 말할 수 있다.</li>
+      <li>지도 학습(시연 모방, 거절 표집)과 강화학습(보상 최대화)의 신호가 어떻게 다른지 설명하고, 정책 경사와 기준선, 묶음 상대 이점(GRPO 형)의 식을 쓸 수 있다.</li>
+      <li>묶음의 보상이 모두 같으면 학습 신호가 0임을 보이고, 문제의 난이도에 따라 신호가 있는 묶음의 확률을 계산할 수 있다.</li>
+      <li>검증기의 오류를 '답과 무관한 오류'와 '답에 따라 다른 오류(사각지대)'로 나누고, 앞의 것은 학습 방향을 보존하지만 뒤의 것은 강화학습이 고치지 못함을 설명할 수 있다.</li>
+      <li>모델의 가중치가 학습하는 것과 모델 바깥의 시스템이 맡아야 하는 것을 구분하고, 학습에 쓴 검증기를 평가에 그대로 쓰면 안 되는 이유를 말할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch04.html">4장</a>(지도 미세조정, 보상 모델과 과최적화), <a href="ch05.html">5장</a>(단계적 풀이, 검사 함수 \(V\), 풀이의 충실성)</p>
   </header>
+
+  <!-- ============================================================ 6.1 -->
   <section id="s1">
     <h2>Reasoning Language Model의 범위</h2>
-    <p class="slot" data-slot="6.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>5장의 단계적 풀이는 프롬프트로 유도한 것이었다. 지시를 붙이면 모델이 풀이를 쓰고, 붙이지 않으면 쓰지 않는다. 이때 모델의 가중치는 풀이를 <em>맞게</em> 쓰도록 학습된 적이 없다. 사전학습은 사람이 쓴 글처럼 이어 쓰는 것을, 4장의 후속 학습은 선호되는 응답을 가르쳤을 뿐이다. 풀이가 맞는지를 재고 그 결과로 가중치를 고치는 단계가 빠져 있다. 이 단계를 넣어, 답에 앞서 풀이를 쓰는 습관과 그 풀이를 맞게 쓰는 능력을 가중치에 넣은 모델을 이 책에서는 <span class="term">추론형 언어모델</span>(Reasoning Language Model, RLM)이라 부른다. 같은 대상을 LRM(Large Reasoning Model)이라고도 하며, 용어는 <a href="https://arxiv.org/abs/2501.11223">Besta 외(2025)</a>를 따른다.</p>
+    <div class="box def" id="def-rlm"><div class="box-h">추론형 언어모델 (이 책의 작업 정의)</div>
+      <p>질문 \(x\)에 대해 길이가 정해져 있지 않은 풀이 \(z_{1:T}\)를 먼저 쓰고 답 \(a\)를 내는 정책 \(\pi_\theta\)가 있다. 출력 \(y=(z_{1:T},a)\)를 검사 함수 \(V\)로 평가한 보상 \(r\)의 기댓값이 커지도록 \(\theta\)를 후속 학습한 언어모델을 추론형 언어모델이라 한다.</p>
+      <div class="formula" id="eq-rlm">\[ y=(z_{1:T},a)\sim\pi_\theta(\cdot\mid x),\qquad r(x,y)=V\bigl(x,a\bigr),\qquad J(\theta)=\mathbb E_{x}\,\mathbb E_{y\sim\pi_\theta(\cdot\mid x)}\bigl[r(x,y)\bigr] \]<div class="where">\(T\)는 정책이 정한다(고정이 아니다). \(r\)이 최종 답만 보면 결과 기반, 풀이의 단계도 보면 과정 기반이다(5.2절). 이 장은 \(r\in\{0,1\}\)인 결과 기반 보상을 주로 다룬다.</div></div>
+    </div>
+    <p>Besta 외(2025)는 초록에서 RLM을 'LLM에 고급 추론 기제를 더한 것'으로 보고, 풀이의 구조(사슬·트리·그래프), 추론 전략(몬테카를로 트리 탐색, 빔 탐색), 강화학습의 개념(정책 모델과 가치 모델), 감독 방식(결과 기반과 과정 기반)을 한 틀에서 설명한다. 이 책은 그중 <b>가중치가 바뀌는 부분</b>과 <b>추론 때 시스템이 하는 부분</b>을 일부러 나눈다. 모델의 능력을 늘리는 일과 모델 바깥에 실행 시스템을 만드는 일을 섞으면, 개선이 어디서 왔는지 말할 수 없기 때문이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>대상</th><th>무엇이 바뀌나</th><th>풀이의 길이를 정하는 것</th><th>이 책의 자리</th></tr></thead>
+      <tbody>
+        <tr><td>프롬프트로 단계적 풀이를 유도한 모델</td><td>입력 (가중치는 그대로)</td><td>프롬프트와 모델의 평소 습관</td><td><a href="ch05.html">5장</a></td></tr>
+        <tr><td><b>풀이를 쓰도록 후속 학습한 모델 (RLM)</b></td><td>가중치</td><td>학습으로 굳은 습관과 난이도에 대한 감각</td><td><b>이 장</b></td></tr>
+        <tr><td>후보를 여러 개 뽑아 고르거나 탐색하는 절차</td><td>추론 때의 절차 (가중치는 그대로)</td><td>시스템이 정한 후보 수·예산</td><td><a href="ch07.html">7장</a></td></tr>
+        <tr><td>도구를 부르며 행동하는 에이전트</td><td>입력·출력 형식과 실행 환경</td><td>모델과 실행 시스템이 함께</td><td><a href="ch13.html">4부</a></td></tr>
+      </tbody>
+    </table></div>
+    <p>'추론한다'는 말을 사람처럼 생각한다는 뜻으로 읽을 필요는 없고, 읽어서도 안 된다. 이 책이 RLM에 대해 쓰는 것은 관측할 수 있는 두 성질뿐이다. 풀이의 길이에 따라 한 질문에 쓰는 계산량이 달라지고(5.1절), 결과가 \(V\)로 검사된다(5.2절). 모델 내부에는 접근할 수 없으므로 출력과 실행 기록만 관측했다고 쓴다.</p>
+
+    <h3 id="h-evidence6">어떤 근거가 있는가</h3>
+    <p><a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI(2025)</a>는 사람이 라벨링한 추론 궤적 없이 순수한 강화학습만으로 LLM의 추론 능력을 끌어낼 수 있다고 보고했다. 초록에 따르면 이렇게 학습한 모델에서 자기 성찰, 검증, 전략 전환 같은 행동이 나타났고, 수학·코딩 대회·STEM처럼 답을 검증할 수 있는 과제에서 사람의 시연으로 지도 학습한 것보다 좋았다. 이 학습은 5.2절의 '검증 가능한 과제'에서만 가능하다는 점이 중요하다. 이는 <b>자료의 주장</b>이며 그 논문이 쓴 모델과 과제에 한정된다.</p>
+    <p>상용 모델 다수는 학습 절차를 자세히 공개하지 않았다. 따라서 이 장에서 설명하는 학습법은 논문으로 공개된 방법에 대한 설명이고, 특정 상용 모델이 그렇게 학습되었다는 주장이 아니다. Claude도 마찬가지로, 학습 방법이 공개되어 있지 않으므로 이 장의 방법이 Claude에 쓰였다고 말하지 않는다.</p>
+    <p><b>제품의 현재 동작</b>(<a href="https://platform.claude.com/docs/en/build-with-claude/thinking">Claude 공식 문서: Thinking</a>, 2026-11 확인)은 위의 원리와 구분해서 읽자. Messages API는 응답에 사고(thinking) 블록을 담을 수 있다. 문서에 따르면 Claude 5 이후 모델에서는 사고가 기본으로 켜져 있고, 최근 모델에서는 <code>thinking: {"type": "adaptive"}</code>로 요청마다 사고 여부와 깊이를 모델이 정하게 하며 깊이는 <code>effort</code>로 조절한다. 이전의 고정 예산 방식(<code>budget_tokens</code>)은 Claude 4.7 이후 모델에서 400 오류를 낸다. 응답에 돌아오는 사고 텍스트는 <code>display</code> 설정에 따라 요약이거나 비어 있고, 어떤 설정도 원문 그대로의 사고를 돌려주지 않는다. 과금은 요약이 아니라 실제로 생성된 사고 토큰 전체를 출력 토큰으로 센다. 5.3절의 구분을 그대로 적용하면, 응답에서 보는 사고 텍스트는 단서일 뿐 감사 기록이 아니다.</p>
+    <div class="callout agent"><strong>사고 깊이는 호출마다 쓰는 예산이다</strong>
+      <p>에이전트는 한 작업에서 모델을 수십, 수백 번 부른다(<a href="ch14.html">14장</a>). 호출마다 사고에 쓰는 토큰이 지연과 비용으로 그대로 쌓이므로, 어느 호출에 깊이 생각하게 하고 어느 호출은 줄일지는 모델의 능력 문제가 아니라 시스템이 정하는 예산 문제다(<a href="ch07.html">7장</a>, <a href="ch20.html">20장</a>). 모델이 스스로 깊이를 조절하는 방식을 쓰더라도 상한과 기본값을 정하는 것은 호출하는 쪽이다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 6.2 -->
   <section id="s2">
     <h2>지도 학습과 강화학습의 역할</h2>
-    <p class="slot" data-slot="6.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>풀이를 쓰도록 가중치를 고치는 방법은 신호의 종류에 따라 둘로 나뉜다. 지도 학습은 '이렇게 써라'는 시연을 주고, 강화학습은 모델이 직접 쓴 풀이에 '맞았다/틀렸다'는 보상을 준다. 둘은 서로 다른 것을 가르치고, 실제 학습 절차는 보통 둘을 번갈아 쓴다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>지도 학습 (SFT)</th><th>강화학습 (RL)</th></tr></thead>
+      <tbody>
+        <tr><td>신호</td><td>시연: 정답 풀이 \(y^\star\)</td><td>보상: 모델이 뽑은 풀이 \(y\)가 \(V\)를 통과했는가</td></tr>
+        <tr><td>데이터의 출처</td><td>사람이 쓴 풀이, 다른 모델이 쓴 풀이(증류), 거절 표집으로 거른 풀이</td><td>학습 중인 모델이 그 순간 직접 뽑은 풀이(on-policy)</td></tr>
+        <tr><td>목적</td><td>\(-\log\pi_\theta(y^\star\mid x)\)를 줄인다(4장)</td><td>\(J(\theta)\)(식 <a class="ref" href="#eq-rlm"></a>)를 키운다</td></tr>
+        <tr><td>얻는 것</td><td>형식, 읽을 만한 풀이라는 시작점, 시연에 들어 있는 패턴</td><td>이미 뽑을 수 있는 풀이 가운데 \(V\)를 통과하는 것의 비중</td></tr>
+        <tr><td>필요한 것</td><td>시연(만드는 비용)</td><td>\(V\)와, 모델이 가끔은 통과한다는 사실</td></tr>
+        <tr><td>한계</td><td>시연의 수준이 상한이다</td><td>한 번도 통과하지 못하는 문제에서는 신호가 없다. \(V\)의 빈틈을 따라간다</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-sft6">시연 모방과 거절 표집</h3>
+    <p>지도 학습은 4장에서 본 그대로 시연 \(y^\star\)의 NLL을 줄인다. 시연을 사람이 쓰면 비싸므로 둘로 대신한다. 하나는 <b>증류</b>로, 더 큰 모델이 쓴 풀이를 시연으로 삼아 작은 모델을 지도 학습한다. 다른 하나는 <b>거절 표집</b>(rejection sampling)으로, 모델이 문제마다 풀이를 여러 개 뽑고 \(V\)를 통과한 풀이만 남겨 다시 지도 학습한다. <a href="https://arxiv.org/abs/2203.14465">Zelikman 외(2022)</a>의 STaR는 이를 반복하는 방법이다. 그들은 풀이를 뽑아 맞힌 것으로 미세조정하는 과정을 되풀이하고, 틀린 문제에는 정답을 힌트로 주어 풀이를 다시 만들게 한다.</p>
+
+    <h3 id="h-pg">강화학습: 정책 경사</h3>
+    <p>강화학습은 샘플한 풀이의 보상을 직접 목적함수로 삼는다. 한 문제 \(x\)에서 기대 보상을 \(J_x(\theta)=\mathbb E_{y\sim\pi_\theta(\cdot\mid x)}[r(x,y)]\)라 하면, \(r\in\{0,1\}\)일 때 \(J_x\)는 정책이 \(V\)를 통과할 확률 \(p_\theta(x)\)이다. 이 확률을 키우는 방향은 다음 정리로 구한다.</p>
+    <div class="box thm" id="thm-pg"><div class="box-h">정책 경사와 기준선</div>
+      <p>정책 \(\pi_\theta(y\mid x)\)와 보상 \(r\)에 대해 다음이 성립한다.</p>
+      <ol>
+        <li>\(\nabla_\theta J_x=\mathbb E_{y\sim\pi_\theta}\bigl[\,r(x,y)\,\nabla_\theta\log\pi_\theta(y\mid x)\bigr]\). \(r\in\{0,1\}\)이면 이것은 \(\nabla_\theta p_\theta(x)\)와 같다.</li>
+        <li>\(x\)에만 의존하고 \(y\)에는 의존하지 않는 아무 \(b(x)\)에 대해 \(\nabla_\theta J_x=\mathbb E\bigl[(r-b(x))\,\nabla_\theta\log\pi_\theta(y\mid x)\bigr]\)이다.</li>
+        <li>\(x\)에서 독립으로 \(y_1,\ldots,y_G\)를 뽑아 묶음 평균 \(\bar r=\tfrac1G\sum_j r_j\)를 기준선으로 쓴 추정량 \(\hat g=\tfrac1G\sum_i (r_i-\bar r)\nabla_\theta\log\pi_\theta(y_i\mid x)\)의 기댓값은 \(\bigl(1-\tfrac1G\bigr)\nabla_\theta J_x\)이다.</li>
+        <li>\(r\in\{0,1\}\)이고 묶음의 보상이 모두 같으면(\(k=0\) 또는 \(k=G\)) 모든 \(r_i-\bar r\)이 0이어서 \(\hat g=0\)이다. 문제의 통과 확률이 \(p\)일 때 묶음에 성공과 실패가 모두 있을 확률은 \(1-p^G-(1-p)^G\)이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: \(\nabla\pi=\pi\,\nabla\log\pi\)이므로 \(\nabla J_x=\sum_y r(x,y)\nabla\pi_\theta(y\mid x)=\mathbb E[r\nabla\log\pi]\)이다. \(r\in\{0,1\}\)이면 \(J_x=\sum_{y:\,r=1}\pi_\theta(y\mid x)=p_\theta(x)\)이다. 2번: \(\mathbb E[\nabla\log\pi]=\sum_y\nabla\pi_\theta(y\mid x)=\nabla 1=0\)이고 \(b\)는 \(y\)에 의존하지 않으므로 \(\mathbb E[b\,\nabla\log\pi]=b\cdot0=0\)이다. 3번: \(\mathbb E[(r_i-\bar r)\nabla\log\pi(y_i)]\)에서 \(\bar r\)의 \(j\ne i\)항은 \(y_i\)와 독립이라 \(\mathbb E[r_j\nabla\log\pi(y_i)]=\mathbb E[r_j]\cdot0=0\)이다. 남는 것은 \(j=i\)항의 \(\mathbb E[(1-\tfrac1G)\,r_i\nabla\log\pi(y_i)]=(1-\tfrac1G)\nabla J_x\)이다. 4번: 보상이 모두 같으면 평균도 그 값이므로 차이가 0이다. 성공 확률이 \(p\)이므로 묶음이 모두 성공할 확률은 \(p^G\), 모두 실패할 확률은 \((1-p)^G\)이고, 나머지가 성공과 실패가 섞인 묶음이다.</p>
+      </details>
+    </div>
+    <p>1번에서 \(b=0\)이면 우변은 '정책이 뽑은 풀이 가운데 \(r=1\)인 것의 \(\nabla\log\pi\)의 평균'이다. 이것은 거절 표집으로 거른 풀이에 NLL 경사를 한 번 적용하는 것(손실을 남긴 풀이 수가 아니라 뽑은 풀이 수로 나눌 때)과 기댓값이 같다. 곧 <b>정책이 직접 뽑은 풀이를 \(V\)로 걸러 지도 학습하는 것은 기준선이 없는 정책 경사의 한 걸음</b>이다(이 책의 설명). 강화학습은 여기에 기준선을 빼 분산을 줄이고(2번), 통과하지 못한 풀이에도 음의 신호를 준다. 3번이 보이듯 묶음 평균을 기준선으로 쓰면 가치 모델 없이도 기준선을 얻을 수 있고, 대가는 기댓값이 \((G-1)/G\)배가 되는 것뿐이다. \(i\)번째 항을 뺀 나머지의 평균을 기준선으로 쓰면 이 배율도 없어진다(<a class="ref" href="#prob-baseline"></a>).</p>
+    <p><span class="term">GRPO</span>(Group Relative Policy Optimization)는 <a href="https://arxiv.org/abs/2402.03300">DeepSeekMath</a>가 PPO의 변형으로 소개한 방법으로, 가치 모델 없이 묶음 안의 보상을 서로 비교한다. <a href="https://arxiv.org/abs/2501.12948">DeepSeek-R1</a> 논문이 적은 이점은 묶음의 평균과 표준편차로 정규화한 값이다. <a href="https://arxiv.org/abs/2503.20783">Liu 외(2025)</a>는 GRPO의 목적함수에서 응답 길이로 나누는 항과 표준편차로 나누는 항이 편향을 만든다고 분석하고, 둘을 뺀 Dr. GRPO를 제안했다. 이 장의 실험은 평균만 빼는 형태를 쓴다. 이 식에서 PPO의 확률비 clip과 기준 정책에 대한 KL 항은 다루지 않는다(자세한 목적함수는 위 논문들을 본다).</p>
+    <div class="formula" id="eq-adv">\[ A_i=r_i-\bar r\qquad\text{또는}\qquad A_i=\frac{r_i-\bar r}{\sigma_r}\quad\bigl(\sigma_r=\text{묶음 보상의 표준편차}\bigr) \]<div class="where">앞의 것이 평균만 뺀 이점, 뒤의 것이 GRPO의 이점이다. \(r\in\{0,1\}\)이고 성공이 \(k\)개이면 \(\sigma_r=\sqrt{k(G-k)}/G\)이다.</div></div>
+    <p>\(G=16\)에서 성공이 1개인 묶음을 보자. 평균만 뺀 이점은 성공한 풀이에 \(+0.9375\), 실패한 풀이 15개에 각각 \(-0.0625\)를 준다. 표준편차로 나누면 \(+3.873\)과 \(-0.258\)이 되어 갱신이 \(1/\sigma_r=4.13\)배가 된다. 성공이 8개(\(p=0.5\))이면 배율은 2.0이다. 표준편차 정규화는 성공이 드물거나 거의 다 성공하는 문제의 갱신을 키우는 셈이다. 이 배율은 문제의 난이도에 따라 달라지므로 <b>문제마다 신호의 크기를 다르게 한다</b>는 점이 Liu 외의 비판이다.</p>
+    <div class="box ex" id="ex-informative"><div class="box-h">신호가 있는 묶음의 확률</div>
+      <p>\(G=16\)에서 통과 확률 \(p\)에 따라 성공과 실패가 모두 있는 묶음의 확률은 \(p=0.01\)에서 0.149, \(p=0.05\)에서 0.560, \(p=0.1\)에서 0.815, \(p=0.5\)에서 1.000이다. 통과 확률이 0.01인 문제는 묶음 크기를 \(G=64\)로 키워야 0.474가 된다. 문제를 한 번도 풀지 못하는 모델(\(p=0\))은 어떤 \(G\)에서도 신호가 0이다. 그래서 강화학습만으로 시작하기보다 시연으로 먼저 통과 확률을 어느 정도 만들어 두는 단계가 필요하고, 반대로 이미 거의 다 푸는 문제도 신호가 작다.</p>
+    </div>
+
+    <h3 id="h-roles">그래서 둘은 각각 무엇을 하는가</h3>
+    <p>DeepSeek-AI(2025)가 보고한 절차는 이 역할 분담을 보여 준다. 기본 모델에 규칙 기반 보상만으로 강화학습한 변형(DeepSeek-R1-Zero)이 있고, 읽을 만한 풀이를 쓰도록 소량의 긴 풀이로 먼저 지도 학습(cold start)한 뒤 추론 과제에서 강화학습하고, 그 결과에서 거절 표집으로 모은 풀이로 다시 지도 학습하고, 마지막으로 전체 과제에 대해 강화학습하는 4단계의 DeepSeek-R1이 있다. 같은 논문은 작은 모델에는 큰 모델의 풀이를 증류하는 편이 작은 모델에 직접 강화학습하는 것보다 좋았다고 보고한다. 이 비교는 그 논문의 설정에 한정된다.</p>
+    <p>강화학습이 새 능력을 만드는지에 대한 논쟁도 있다. <a href="https://arxiv.org/abs/2504.13837">Yue 외(2025)</a>는 RLVR(검증 가능한 보상을 쓰는 강화학습, 6.3절)로 학습한 모델이 작은 \(k\)(예: \(k=1\))에서는 기본 모델보다 낫지만 \(k\)가 크면 기본 모델의 pass@\(k\)가 더 높았고, 관측된 추론 능력이 기본 모델이 이미 가진 범위 안에 있다고 보고했다. 반면 증류는 교사 모델의 새 패턴을 들여올 수 있다고 한다. 여기서 pass@\(k\)는 문제마다 \(k\)번 뽑아 한 번이라도 맞힐 확률로, 통과 확률 \(p\)인 문제에서 \(1-(1-p)^k\)이다. 이 결과는 그들이 시험한 모델과 알고리즘에 한정되고, 모든 강화학습이 그렇다는 증명은 아니다. 이 장의 실험은 같은 질문을 작은 정책으로 해 본다.</p>
+    <p>정리하면 지도 학습은 시작점과 새 패턴을 넣는 일, 강화학습은 이미 뽑을 수 있는 풀이 가운데 검증을 통과하는 쪽으로 확률을 옮기는 일을 한다. 뒤의 일이 6.3절의 주제다. 옮기는 방향을 정하는 것이 검증기이기 때문이다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 300" role="img" aria-label="기본 모델을 시연으로 지도 학습해 시작 정책을 만든다. 강화학습 고리에서는 문제에 대해 정책이 풀이 G개를 뽑고, 모델 바깥의 검증기가 보상을 주며, 묶음 안에서 비교한 이점으로 정책을 갱신하고 다음 걸음으로 돌아간다.">
+  <defs>
+    <marker id="g61-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+    <marker id="g61-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker>
+  </defs>
+  <text class="t-b" x="5" y="16">① 지도 학습: 시작 정책 만들기</text>
+  <rect class="f-surface" x="5" y="26" width="170" height="52" rx="8"/><text class="t-b" x="90" y="49" text-anchor="middle">기본 모델</text><text class="t-dim" x="90" y="67" text-anchor="middle">사전학습·4장의 후속 학습</text>
+  <rect class="f-surface" x="215" y="26" width="190" height="52" rx="8"/><text class="t-b" x="310" y="49" text-anchor="middle">시연 모방</text><text class="t-dim" x="310" y="67" text-anchor="middle">증류·거절 표집으로 거른 풀이</text>
+  <rect class="f-acc-soft" x="445" y="26" width="150" height="52" rx="8"/><text class="t-b" x="520" y="49" text-anchor="middle">시작 정책 π₀</text><text class="t-dim" x="520" y="67" text-anchor="middle">가끔은 통과한다</text>
+  <path d="M175 52 H211" class="s-line" marker-end="url(#g61-arr)"/><path d="M405 52 H441" class="s-line" marker-end="url(#g61-arr)"/>
+  <path d="M520 78 V112" class="s-line" marker-end="url(#g61-arr)"/>
+  <text class="t-b" x="5" y="112">② 강화학습: 한 걸음</text>
+  <rect class="f-surface" x="5" y="124" width="116" height="56" rx="8"/><text class="t-b" x="63" y="148" text-anchor="middle">문제 x</text><text class="t-dim" x="63" y="166" text-anchor="middle">여러 개 중 일부</text>
+  <rect class="f-acc-soft" x="153" y="124" width="150" height="56" rx="8"/><text class="t-b" x="228" y="148" text-anchor="middle">정책이 풀이를</text><text class="t-b" x="228" y="166" text-anchor="middle">G개 뽑는다</text>
+  <rect x="335" y="124" width="150" height="56" rx="8" style="fill:var(--bg-elev);stroke:var(--accent-2);stroke-width:2" stroke-dasharray="5 3"/><text class="t-b" x="410" y="148" text-anchor="middle">검증기 V</text><text class="t-dim" x="410" y="166" text-anchor="middle">보상 rᵢ ∈ {0, 1}</text>
+  <rect class="f-surface" x="517" y="124" width="124" height="56" rx="8"/><text class="t-b" x="579" y="148" text-anchor="middle">이점</text><text class="t-dim" x="579" y="166" text-anchor="middle">Aᵢ = rᵢ − r̄</text>
+  <rect class="f-acc-soft" x="673" y="124" width="122" height="56" rx="8"/><text class="t-b" x="734" y="148" text-anchor="middle">정책 갱신</text><text class="t-dim" x="734" y="166" text-anchor="middle">θ ← θ + η ĝ</text>
+  <path d="M121 152 H149" class="s-line" marker-end="url(#g61-arr)"/><path d="M303 152 H331" class="s-line" marker-end="url(#g61-arr)"/><path d="M485 152 H513" class="s-line" marker-end="url(#g61-arr)"/><path d="M641 152 H669" class="s-line" marker-end="url(#g61-arr)"/>
+  <path d="M734 180 V228 H228 V184" class="s-acc" marker-end="url(#g61-acc)" fill="none"/>
+  <text class="t-acc" x="480" y="246" text-anchor="middle">갱신된 정책으로 다음 걸음</text>
+  <path d="M335 196 H485" style="stroke:var(--accent-2);stroke-width:2" fill="none"/><path d="M335 191 V201 M485 191 V201" style="stroke:var(--accent-2);stroke-width:2"/>
+  <text class="t-dim" x="410" y="216" text-anchor="middle">모델 바깥에서 실행되는 코드</text>
+  <text class="t-dim" x="400" y="282" text-anchor="middle">보상이 모든 풀이에서 같으면 이점이 0이어서 갱신이 없다(정리 6.1의 4번)</text>
+</svg>
+      <figcaption><b>그림 6-1.</b> 추론형 언어모델의 후속 학습. 지도 학습이 통과 확률이 0이 아닌 시작 정책을 만들고, 강화학습의 고리는 검증기가 준 보상으로 정책을 갱신한다. 검증기는 학습되는 모델이 아니라 모델 바깥의 코드이다.</figcaption>
+    </figure>
+    <div class="callout agent"><strong>검사할 수 있는 환경이 곧 학습 신호다</strong>
+      <p>코드 작성 과제의 테스트, 파일 수정 뒤의 최종 상태 검사처럼 에이전트의 작업 환경에는 \(V\)가 될 수 있는 검사가 흔하다. 이런 검사를 학습 신호로 삼는 방향은 제안되어 있다(Yue 외(2025)는 다회전 에이전트-환경 상호작용을 더 나은 강화학습 방식의 후보로 든다). 이 책이 확실히 쓰는 것은 학습이 아니라 같은 검사를 실행 때 쓰는 일이다. 작업이 끝났다는 모델의 말 대신 테스트 결과와 최종 상태로 판단한다(<a href="ch31.html">31장</a>).</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 6.3 -->
   <section id="s3">
     <h2>검증 가능한 보상과 그 한계</h2>
-    <p class="slot" data-slot="6.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>5.2절의 검사 함수 \(V\)를 보상으로 쓰는 것이 <span class="term">검증 가능한 보상</span>을 쓰는 강화학습(Reinforcement Learning with Verifiable Rewards, RLVR)이다. 이 용어는 <a href="https://arxiv.org/abs/2411.15124">Tulu 3 보고서(Lambert 외, 2024)</a>가 새 방법의 이름으로 소개했다. DeepSeek-AI(2025)가 쓴 보상도 규칙으로 계산한 두 가지, 답이 맞는지 보는 정확도 보상과 풀이를 지정한 태그 안에 쓰는지 보는 형식 보상이었다. 같은 논문은 신경망 보상 모델을 쓰지 않은 이유로, 대규모 강화학습에서 신경망 보상 모델은 보상 해킹을 겪을 수 있다는 점을 들었다(4장의 보상 모델 과최적화와 같은 문제다).</p>
+    <div class="box def" id="def-rlvr"><div class="box-h">검증 가능한 보상과 검증기의 오류</div>
+      <p>보상이 \(r(x,y)=V(x,\operatorname{answer}(y))\in\{0,1\}\)이면 이를 검증 가능한 보상이라 한다. 검증기가 받아들이는 출력의 집합을 \(A_x=\{y: r(x,y)=1\}\)이라 하자. 검증기의 오류는 두 가지다.</p>
+      <ul>
+        <li><b>거짓 양성</b>: 틀린 답이 \(A_x\)에 들어 있다. 확률 \(\alpha\)로 받아들이면 거짓 양성률이 \(\alpha\)이다.</li>
+        <li><b>거짓 음성</b>: 맞은 답이 \(A_x\)에서 빠져 있다. 확률 \(\beta\)로 거부하면 거짓 음성률이 \(\beta\)이다.</li>
+      </ul>
+    </div>
+    <p>\(V\)가 코드라고 해서 완전한 것은 아니다. 검증기는 사람이 쓴 또 하나의 프로그램이고, 정답 집합과 \(A_x\)가 다를 수 있다. 아래에서는 이 오류가 어떤 모양이냐에 따라 강화학습의 결과가 전혀 달라짐을 보인다. 오류가 <b>어떤 답이냐와 무관한가</b>, 아니면 <b>답에 따라 다른가</b>이다.</p>
+
+    <h3 id="h-noise">답과 무관한 오류는 방향을 보존한다</h3>
+    <div class="box thm" id="thm-noise"><div class="box-h">답과 무관한 검증 오류</div>
+      <p>검증기가 정답을 확률 \(1-\beta\)로, 오답을 확률 \(\alpha\)로 받아들이고 이 확률이 어떤 답인지와 무관하다고 하자. 정책의 통과 확률을 \(p_\theta\)라 하면
+      \[ \mathbb E[r]=\alpha+(1-\alpha-\beta)\,p_\theta,\qquad \nabla_\theta\,\mathbb E[r]=(1-\alpha-\beta)\,\nabla_\theta p_\theta \]
+      이다. 따라서 \(\alpha+\beta\lt1\)이면 기울기의 방향은 완전한 검증기와 같고 크기만 \(1-\alpha-\beta\)배가 된다. \(\alpha+\beta=1\)이면 신호가 사라지고, \(\alpha+\beta\gt1\)이면 방향이 거꾸로다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>정답일 확률이 \(p_\theta\)이므로 \(\mathbb E[r]=p_\theta(1-\beta)+(1-p_\theta)\alpha=\alpha+(1-\alpha-\beta)p_\theta\)이다. \(\alpha,\beta\)가 \(\theta\)와 무관하므로 양변을 미분하면 두 번째 식이다.</p>
+      </details>
+    </div>
+    <p>예를 들어 \(\alpha=\beta=0.2\)이면 기울기는 0.6배가 되지만 방향은 그대로다. 같은 학습을 더 오래 하면 되고, 표집 잡음이 늘어 느려질 뿐 정답을 향한다는 뜻이다. 반대로 \(\alpha+\beta\)가 1에 가까워지면 검증기는 무작위 동전과 구별되지 않아 학습할 것이 없다. 이 정리는 5.2절의 '확인이 풀이보다 쉬운 과제'가 불완전한 검증기로도 쓸 만한 이유를 말해 준다. 그러나 전제가 강하다. 오류율이 정책이 바꿀 수 있는 답에 따라 달라지면 성립하지 않는다.</p>
+
+    <h3 id="h-blind">답에 따라 다른 오류는 고쳐지지 않는다</h3>
+    <p>검증기가 정답과 함께 특정한 오답도 받아들이는 경우를 생각하자. 예를 들어 덧셈의 일의 자리만 비교하는 검증기는 올림을 빠뜨린 답(\(s-10\))도 받아들인다. 이때 정책이 두 답 가운데 어느 쪽으로 쏠리는지는 검증기가 정하지 못한다. 가장 단순한 모형인 한 문제의 표 형태 소프트맥스 정책에서 이를 정확히 쓸 수 있다.</p>
+    <div class="box thm" id="thm-blind"><div class="box-h">검증기가 구별하지 못하는 답 사이의 순서</div>
+      <p>한 문제에서 출력이 \(K\)가지이고 정책이 로짓 \(\theta\in\mathbb R^K\)의 소프트맥스 \(\pi=\operatorname{softmax}(\theta)\)이다. 받아들이는 집합이 \(A\), \(J=\pi(A)\)이고 로짓이 기댓값 보상의 경사 흐름 \(\dot\theta=\nabla_\theta J\)을 따른다고 하자.</p>
+      <ol>
+        <li>\(\dot\theta_y=\pi_y\bigl(\mathbf 1[y\in A]-J\bigr)\)이고, \(J\)는 시간에 따라 줄지 않는다.</li>
+        <li>\(u,w\in A\)이면 \(\dfrac{d}{dt}(\theta_u-\theta_w)=(\pi_u-\pi_w)(1-J)\)이다. 따라서 \(\theta_u-\theta_w\)의 부호는 바뀌지 않고 절댓값은 줄지 않는다.</li>
+        <li>정답 \(s\)와 오답 \(w\)가 모두 \(A\)에 있고 처음에 \(\pi_0(w)\gt\pi_0(s)\)이면, 모든 시각에서 \(\displaystyle \pi_t(s)\le\frac{\pi_0(s)}{\pi_0(s)+\pi_0(w)}\)이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: \(\partial J/\partial\theta_y=\sum_{z\in A}\pi_z(\delta_{zy}-\pi_y)=\pi_y\bigl(\mathbf 1[y\in A]-J\bigr)\)이다. \(\dot J=\|\nabla J\|^2\ge0\)이므로 \(J\)는 줄지 않는다. 2번: \(u,w\in A\)이면 \(\dot\theta_u-\dot\theta_w=(\pi_u-\pi_w)(1-J)\)이다. 소프트맥스는 로짓에 대해 단조이므로 \(\pi_u-\pi_w\)의 부호는 \(\theta_u-\theta_w\)의 부호와 같고 \(1-J\ge0\)이다. 곧 \(\theta_u-\theta_w\)의 변화율은 그 값과 같은 부호이거나 0이어서, 부호는 유지되고 절댓값은 줄지 않는다. 3번: 처음에 \(\theta_s-\theta_w\lt0\)이므로 2번에 의해 항상 \(\pi_t(s)/\pi_t(w)\le\pi_0(s)/\pi_0(w)=:\rho\)이다. \(\pi_t(s)=\dfrac{\pi_t(s)/\pi_t(w)}{1+\pi_t(s)/\pi_t(w)}\bigl(\pi_t(s)+\pi_t(w)\bigr)\)이고 \(\pi_t(s)+\pi_t(w)\le1\)이므로 \(\pi_t(s)\le\rho/(1+\rho)=\pi_0(s)/(\pi_0(s)+\pi_0(w))\)이다.</p>
+      </details>
+    </div>
+    <p>2번은 <b>강화학습이 검증기가 구별하지 못하는 두 답 가운데 처음에 앞서던 쪽을 더 앞세운다</b>는 말이다. 정책이 처음부터 정답을 더 선호하면 검증기가 정답과 오답을 구별하지 못해도 정답으로 수렴한다. 반대로 오답을 더 선호하면 보상이 오를수록 오답 쪽으로 더 쏠린다.</p>
+    <div class="box ex" id="ex-flow"><div class="box-h">올림을 빠뜨린 답을 더 선호하는 정책</div>
+      <p>한 문제에서 정답 \(s\)의 확률이 0.30, 올림을 빠뜨린 답 \(w\)가 0.45, 나머지 네 출력이 0.25(그 가운데 이웃한 두 수가 0.05씩, 형식 오류가 0.10, 아무 수가 0.05)라고 하자. <a class="ref" href="#thm-blind"></a>의 3번이 주는 상한은 \(0.30/(0.30+0.45)=0.40\)이다. 아래는 경사 흐름을 수치로 적분한 값이다(Heun 방법, 간격 0.05; 시간 \(t\)는 흐름의 단위이고 학습의 걸음 수와 일대일이 아니다).</p>
+      <div class="table-wrap"><table class="nowrap">
+        <thead><tr><th class="num">\(t\)</th><th class="num">\(A=\{s,w\}\): \(\pi(s)\)</th><th class="num">\(\pi(w)\)</th><th class="num">\(J=\pi(A)\)</th><th class="num">\(A=\{s\}\): \(\pi(s)\)</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td class="num">0.300</td><td class="num">0.450</td><td class="num">0.750</td><td class="num">0.300</td></tr>
+          <tr><td class="num">10</td><td class="num">0.284</td><td class="num">0.614</td><td class="num">0.897</td><td class="num">0.863</td></tr>
+          <tr><td class="num">100</td><td class="num">0.094</td><td class="num">0.896</td><td class="num">0.989</td><td class="num">0.991</td></tr>
+          <tr><td class="num">1000</td><td class="num">0.014</td><td class="num">0.985</td><td class="num">0.999</td><td class="num">0.999</td></tr>
+          <tr><td class="num">10000</td><td class="num">0.002</td><td class="num">0.998</td><td class="num">1.000</td><td class="num">1.000</td></tr>
+        </tbody>
+      </table></div>
+      <p>검증기 보상 \(J\)는 0.75에서 1.000까지 오르는데 정답 확률은 0.30에서 0.002로 떨어진다. 정확한 검증기(\(A=\{s\}\))는 같은 정책을 0.999로 끌어올린다. 처음에 정답을 더 선호하는 정책(\(\pi_0(s)=0.45\), \(\pi_0(w)=0.30\))이라면 같은 일의 자리 검증기에서도 \(\pi(s)\)가 100 단위 시간에 0.896, 10000에 0.998로 오른다.</p>
+    </div>
+    <p>이것이 <b>보상 해킹</b>의 가장 작은 모양이다. <a href="https://arxiv.org/abs/2209.13085">Skalse 외(2022)</a>는 대리 보상(proxy)을 최대화하는 과정에서 진짜 보상이 오히려 낮아질 수 있으면 그 대리 보상이 '해킹 가능하다'고 정의하고, 가능한 모든 확률적 정책을 고려하면 두 보상 함수가 서로에 대해 해킹 불가능하려면 둘 중 하나가 상수여야 함을 보였다. 곧 불완전한 검증기가 아무 때나 안전하다고 기대할 근거는 없다. 위 예에서 검증기 보상은 오르고 진짜 정확도는 내려갔으므로 해킹 가능한 경우다. '해킹'이라는 말이 모델의 의도를 뜻하지는 않는다. 보상을 키우는 최적화가 만든 결과일 뿐이다.</p>
+    <p>정리의 한계도 분명하다. 표 형태 정책은 문제마다 독립인 로짓이므로 한 문제의 갱신이 다른 문제로 번지지 않고, 경사 흐름은 정확한 기댓값 기울기를 가정한다. 실제 모델은 매개변수를 문제 사이에서 공유하므로, 어떤 <em>행동</em>(예: 올림을 빠뜨리는 버릇)이 여러 문제에서 보상을 받으면 그 행동이 문제 전체로 퍼진다. 이 차이는 아래 실험의 통제 조건에서 직접 확인한다.</p>
+
+    <h3 id="h-reported">보고된 사례</h3>
+    <p>검증기의 빈틈이 실제 학습에서 어떻게 드러나는지에 대해서는 다음이 보고되어 있다. 모두 각 논문의 모델과 과제에 한정된다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>출처</th><th>보고한 것 (자료의 주장)</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://arxiv.org/abs/2503.11926">Baker 외(2025)</a></td><td>에이전트형 코딩 환경에서 프런티어 추론 모델(o3-mini)의 보상 해킹을, 사고 사슬을 읽는 다른 LLM이 행동과 출력만 보는 것보다 훨씬 잘 잡았다. 사고 사슬 감시를 학습 보상에 넣으면 최적화가 약할 때는 더 능력 있고 정렬된 에이전트가 나왔지만, 최적화가 지나치면 의도를 사고에 숨기면서 해킹을 계속하는 행동이 나타났다. 저자들은 사고 사슬에 직접 강한 최적화 압력을 가하지 않는 '감시 가능성 세금'을 제안한다.</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2506.10947">Shao 외(2025)</a></td><td>Qwen2.5-Math-7B를 무작위 보상으로 GRPO 학습해도 MATH-500이 21.4%p 올랐다(정답 보상은 29.1%p). 저자들은 GRPO의 clip 편향이 사전학습에서 익힌 행동(코드로 추론하기 등)을 증폭한다고 해석한다. 효과는 모델 계열에 크게 의존해 Llama3와 OLMo2에서는 대개 이득이 없었다.</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2211.14275">Uesato 외(2022)</a></td><td>GSM8K에서 결과 기반 감독은 최종 답의 오류율이 비슷하면서 라벨이 덜 들었다. 그러나 정답으로 끝난 풀이 가운데 풀이가 틀린 비율을 14.0%에서 3.4%로 낮추려면 과정 기반 감독이나 그것을 흉내 낸 보상 모델이 필요했다고 보고한다(5.3절의 '정답이지만 풀이가 틀린' 경우).</td></tr>
+        <tr><td>DeepSeek-AI(2025)</td><td>규칙 기반 보상을 쓰고 신경망 보상 모델은 쓰지 않았다. 과정 보상 모델은 세밀한 단계를 정의하고 중간 단계의 정오를 판정하기 어렵고, 모델 기반이면 보상 해킹과 추가 비용이 따라, 그들의 시도에서는 이점이 제한적이었다고 보고한다.</td></tr>
+      </tbody>
+    </table></div>
+    <p>이 가운데 Shao 외(2025)의 결과는 읽는 법에 주의가 필요하다. 보상이 정답과 거의 상관이 없는데도 정확도가 올랐다면, '보상을 올렸더니 좋아졌다'는 관측만으로는 그 보상이 능력을 키웠다고 말할 수 없다. 개선이 정답 신호에서 왔는지, 모델이 이미 가진 행동을 끌어올린 데서 왔는지는 보상을 바꾼 대조군을 돌려 봐야 안다. 아래 실험이 같은 구조를 작은 모형에서 보인다.</p>
+
+    <h3 id="h-verifiers">검증기의 종류와 사각지대</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>검증기</th><th>받아들이는 것 \(A_x\)</th><th>사각지대 (거짓 양성이 되는 것)</th></tr></thead>
+      <tbody>
+        <tr><td>형식 검사 (태그, 정규식)</td><td>형식이 맞는 모든 출력</td><td>형식이 맞는 모든 오답. 정답에 대한 신호가 없다</td></tr>
+        <tr><td>필요조건만 검사 (자릿수, 마지막 자리, 값의 범위)</td><td>필요조건을 만족하는 출력</td><td>필요조건은 만족하지만 틀린 답</td></tr>
+        <tr><td>일부 테스트로 채점하는 코드</td><td>그 테스트를 통과하는 프로그램</td><td>테스트에 없는 입력에서 틀리는 프로그램(테스트 값을 그대로 돌려주는 것 등)</td></tr>
+        <tr><td>정답과 정확히 비교</td><td>정답과 같은 출력</td><td>거짓 음성이 문제다. 표기가 다른 정답(\(1/2\)와 0.5)을 거부한다</td></tr>
+        <tr><td>학습된 판정자 (LLM 심판)</td><td>판정자가 좋다고 본 출력</td><td>판정자의 선호(길이, 말투)에 맞춘 오답</td></tr>
+      </tbody>
+    </table></div>
+    <p>표의 사각지대 열은 이 책의 설명이다(5.2절의 구분과 4장의 보상 모델 과최적화에서 이어진다). 중요한 것은 사각지대가 <b>정책이 바꿀 수 있는 답</b>과 겹치느냐이다. 사각지대에 속하는 오답을 정책이 거의 내지 않으면 해킹은 일어나지 않고(아래 실험의 설정 U), 정책이 자주 내는 오류가 사각지대 안에 있으면 일어난다(설정 C).</p>
+
+    <h3 id="h-check">검증기를 의심하는 방법</h3>
+    <ol>
+      <li><b>보상 대조군.</b> 같은 학습을 형식 보상만으로, 또는 무작위 보상으로 돌려 본다. 정답 보상으로 얻은 개선이 이 대조군과 같으면 개선은 정답 신호가 아니라 다른 데서 왔다(Shao 외가 보인 것).</li>
+      <li><b>독립 검사.</b> 학습에 쓰지 않은 검증기나 가려 둔 테스트로 정확도를 재고, 학습 보상과의 차이를 추적한다. 보상은 오르는데 독립 정확도가 오르지 않으면 해킹의 신호다.</li>
+      <li><b>받아들여진 오답 모으기.</b> 보상 1을 받았지만 독립 검사로는 틀린 출력을 모아 읽는다. 모양이 비슷하면 그것이 사각지대다.</li>
+      <li><b>학습 도중에 같이 재기.</b> 보상과 독립 정확도를 같은 걸음마다 기록한다. 최종 값만 보면 언제부터 갈라졌는지 알 수 없다.</li>
+    </ol>
   </section>
+
+  <!-- ============================================================ 6.4 -->
   <section id="s4">
     <h2>모델 능력과 외부 시스템 설계의 경계</h2>
-    <p class="slot" data-slot="6.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>학습이 바꾸는 것은 가중치뿐이고, 그 결과는 \(\pi_\theta(y\mid x)\)라는 분포 하나다. 이 분포가 풀이를 쓰고, 어느 정도는 스스로 되짚지만, 5장과 이 장에서 본 한계는 가중치 안에서 해결되지 않는다. 어디까지가 모델이 맡는 일이고 어디부터가 시스템이 맡는 일인지를 정해 두어야, 개선이 필요할 때 무엇을 바꿀지 고를 수 있다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>질문</th><th>모델(가중치)이 하는 일</th><th>시스템이 하는 일</th><th>자리</th></tr></thead>
+      <tbody>
+        <tr><td>풀이를 쓸 것인가, 얼마나 길게 쓸 것인가</td><td>학습으로 굳은 습관과 난이도에 대한 감각</td><td>최대 토큰과 effort 같은 상한, 호출마다 예산</td><td>6.1절, <a href="ch07.html">7장</a></td></tr>
+        <tr><td>풀이가 맞는지</td><td>풀이 안에서 점검하는 행동(그 점검도 텍스트다)</td><td>모델 바깥의 검증기 \(V\): 테스트, 계산기, 최종 상태 검사</td><td>5.3절, <a href="ch08.html">8장</a></td></tr>
+        <tr><td>틀렸을 때</td><td>풀이 안에서 되돌아가기</td><td>재시도, 후보 수 늘리기, 실패 처리</td><td><a href="ch07.html">7장</a>, <a href="ch15.html">15장</a>, <a href="ch30.html">30장</a></td></tr>
+        <tr><td>모르는 사실</td><td>풀지 못한다(5.4절)</td><td>검색과 읽기 도구</td><td><a href="ch11.html">11장</a>, <a href="ch13.html">13장</a></td></tr>
+        <tr><td>정확한 계산</td><td>근사적으로 하며 단계 오류가 쌓인다</td><td>코드 실행, 계산기</td><td>5.4절, <a href="ch13.html">13장</a></td></tr>
+        <tr><td>무엇이 맞는가</td><td>학습 때 쓴 검증기에 맞춘 행동</td><td>실행 때의 독립 검증</td><td>6.3절, <a href="ch31.html">31장</a></td></tr>
+      </tbody>
+    </table></div>
+    <p>표에서 이 장의 이론이 곧바로 말해 주는 것은 세 가지다.</p>
+    <ol>
+      <li><b>학습에 쓴 검증기로 평가하지 않는다.</b> 모델은 그 검증기가 받아들이는 출력을 늘리도록 최적화되었다. <a class="ref" href="#thm-blind"></a>의 예처럼 같은 검증기의 점수와 진짜 정확도가 갈라질 수 있으므로, 평가에는 독립 검증기나 가려 둔 검사를 쓴다(<a href="ch08.html">8장</a>).</li>
+      <li><b>모델이 '확인했다'고 쓴 문장은 검증이 아니다.</b> 추론형 모델이 풀이 안에서 자기 답을 점검하더라도, 그 점검은 5.3절의 풀이와 같은 종류의 텍스트다. 점검을 믿을 근거는 모델 바깥의 검사 결과에서 와야 한다.</li>
+      <li><b>학습은 이미 뽑을 수 있는 풀이의 비중을 옮길 뿐이다.</b> 정책이 한 번도 통과하지 못하는 문제에서는 신호가 없다(<a class="ref" href="#thm-pg"></a>의 4번). 그 구간은 도구, 검색, 사람의 일이다.</li>
+    </ol>
+    <p>모델이 바뀌면 이 경계도 움직인다. 새 모델이 같은 과제를 더 잘 풀면 시스템의 재시도와 검증이 덜 필요해질 수 있고, 반대로 새 모델이 학습 검증기의 사각지대를 더 깊이 파고들었을 수도 있다. 두 경우 모두 같은 검증기와 같은 예산으로 다시 재어 보기 전에는 알 수 없다(<a href="ch08.html">8장</a>의 '모델 변경에 따른 재검증').</p>
+    <div class="callout agent"><strong>학습 때의 검증기와 실행 때의 검증기는 다른 것이다</strong>
+      <p>Claude Code가 변경 뒤 테스트를 돌리거나 hook으로 검사를 자동 실행하는 것(<a href="ch23.html">23장</a>)은 모델 바깥에서 도는 코드로 결과를 확인하는 일이다. 모델이 후속 학습에서 어떤 검증기로 최적화되었는지는 공개된 정보가 없고, 실행 때의 검사와 같다고 가정해서도 안 된다. 실행 때의 검사는 모델이 최적화한 대상이 아니라는 점이 오히려 장점이다. 모델이 '테스트가 통과한다'고 말하는 것과 테스트를 돌려 얻은 종료 코드는 다른 증거다(<a href="ch26.html">26장</a>의 작업자와 검증자 분리).</p>
+    </div>
+    <p>7장은 학습이 아니라 추론 때 계산을 늘리는 방법, 곧 후보를 여러 개 뽑고 고르는 일과 그 비용을 다룬다. 이 장의 이론은 그때 두 가지로 이어진다. 후보를 고르는 기준이 검증기라면 그 검증기의 사각지대가 선택에 그대로 들어오고, 후보 수를 늘려 얻는 pass@\(k\)의 한계는 정책이 이미 뽑을 수 있는 풀이의 범위가 정한다.</p>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 검증기가 답의 형식만 확인할 때와 정답까지 확인할 때, 그 보상을 최대화하도록 고른 정책의 실제 정답률은 어떻게 다른가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 검증기만 바꾸면 정책은 무엇을 배우는가</h2>
+    <p>슬롯에 적어 둔 질문은 '검증기가 답의 형식만 확인할 때와 정답까지 확인할 때, 그 보상을 최대화하도록 고른 정책의 실제 정답률은 어떻게 다른가'였다. 실제 추론형 모델을 학습시키는 일은 이 책의 범위를 넘으므로, 이 장에서는 질문의 구조만 작은 정책으로 떼어 낸다. 풀이를 쓰지 않고 답 하나를 내는 정책을 두고, 지도 학습으로 불완전한 기본 정책을 만든 뒤, 같은 강화학습을 <b>검증기만 바꿔</b> 돌린다. 여기서 정책의 출력 하나가 6.1절의 \(y\)에 해당하고, 풀이가 없으므로 답이 곧 출력이다. 이 실험이 보여 주는 것은 6.2~6.3절의 구조이지, LLM을 학습시킨 결과가 아니다.</p>
+
+    <h3 id="h-design6">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>과제</td><td>한 자리 수 \(a,b\)(0~9)의 덧셈 문제 100개. 정답 \(s=a+b\)는 0~18이고, 올림이 있는 문제(\(s\ge10\))가 45개다.</td></tr>
+        <tr><td>정책</td><td>입력 \((a,b)\)(원-핫 20차원) → 은닉층 하나(폭 64, tanh) → 출력 24개의 소프트맥스. 출력 0~18은 올바른 형식의 수이고 19~23은 형식 오류(이를테면 끝나지 않은 문장)다.</td></tr>
+        <tr><td>지도 학습 단계</td><td>문제마다 '불완전한 선생'의 출력 64개(모두 6,400개)를 NLL로 모방한다(Adam, 학습률 0.01, 600걸음). 선생의 오류 모양이 두 가지다. <b>U</b>(흩어진 오류): 정답 0.55, 이웃한 수 0.25, 형식 오류 0.10, 아무 수 0.10. <b>C</b>(올림 누락): 올림이 있는 문제에서 정답 0.30, 올림을 빠뜨린 답(\(s-10\)) 0.45, 이웃한 수 0.10, 형식 오류 0.10, 아무 수 0.05. 올림이 없는 문제는 U와 같다. 이 확률은 실험하기 전에 정했다.</td></tr>
+        <tr><td>강화학습 단계</td><td>한 걸음에 문제 32개를 비복원으로 고르고 문제마다 출력 16개를 뽑는다. 이점은 \(A_i=r_i-\bar r\)(식 <a class="ref" href="#eq-adv"></a>의 앞쪽), Adam 학습률 0.003, 300걸음. 한 번 뽑아 한 번 갱신하므로 확률비 clip과 KL 항은 쓰지 않았다.</td></tr>
+        <tr><td>바꾸는 것(하나)</td><td>검증기(보상 함수). <b>fmt</b>: 올바른 형식의 수이면 1. <b>ones</b>: 올바른 형식이고 일의 자리가 정답과 같으면 1(올림 자리를 보지 않는 부분 검사). <b>exact</b>: 정답이면 1. <b>noisy</b>: exact의 판정을 답과 무관하게 20% 확률로 뒤집는다(\(\alpha=\beta=0.2\), 기울기 배율 0.6).</td></tr>
+        <tr><td>고정하는 것</td><td>문제, 정책 구조, 시드마다 지도 학습으로 만든 <b>같은 기본 정책</b>(네 검증기를 이 정책에서 각각 따로 학습), 강화학습의 알고리즘·하이퍼파라미터·걸음 수, 시드 0~19.</td></tr>
+        <tr><td>관측값</td><td>학습한 정책의 확률표에서 정확한 값으로 계산한다(표집 오차 없음). 검증기 보상의 기댓값, 올바른 형식의 비율, 정확도(\(\pi(s\mid x)\)의 문제 평균), 올림 문제의 정확도, pass@8(\(1-(1-\pi(s\mid x))^8\)의 평균). 시드 20개의 평균 ± 표준오차이고, 문제 100개 사이의 변동은 표준오차에 들어 있지 않다.</td></tr>
+        <tr><td>통제</td><td>문제마다 독립인 로짓표(매개변수 공유 없음)를 같은 기본 정책의 확률에서 시작해 같은 알고리즘으로, 최적화만 SGD(걸음 크기 0.4)로 바꿔 학습한다. 검증기는 fmt, ones, exact.</td></tr>
+        <tr><td>예산</td><td>설정 2개 × 시드 20 × 검증기 4 × 300걸음, 통제 3개, 표준편차 변형(시드 5개) 4개.</td></tr>
+        <tr><td>예상 (이론에서)</td><td><b>E1</b> 어느 검증기에서든 그 검증기의 보상이 기본 정책보다 오른다(<a class="ref" href="#thm-blind"></a>의 1번). <b>E2</b> exact는 정확도를 올린다. <b>E3</b> 설정 U의 ones는 틀린 답(이웃한 수, 형식 오류)이 일의 자리 검사에 걸리므로 exact와 비슷하다. <b>E4</b> 설정 C에서 기본 정책이 정답보다 올림 누락 답을 더 선호하는 문제는 fmt와 ones 모두 올림 누락 답을 받아들이므로, 학습 뒤 정확도가 <a class="ref" href="#thm-blind"></a>의 3번 상한 \(\pi_0(s)/(\pi_0(s)+\pi_0(w))\) 이하에 머문다. <b>E5</b> noisy는 <a class="ref" href="#thm-noise"></a>에 따라 exact와 같은 방향으로 오르되 같은 걸음 수에서는 조금 뒤진다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td>E1: 어느 검증기든 보상이 기본 정책보다 낮아지면. E4: 설정 C에서 ones로 학습한 올림 문제 정확도가 exact로 학습한 값의 절반 이상이면, 또는 상한을 표준오차의 3배 넘게 넘으면(통제와 MLP 모두. MLP에서만 넘으면 정리가 표 형태 정책의 것일 뿐 공유 매개변수 정책으로 옮겨지지 않는다는 뜻이다). E5: noisy의 정확도가 기본 정책보다 낮으면.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code6">코드</h3>
+    <p>Python 3.14.5와 NumPy 2.5.4에서 실행했다(한 코어(<code>OMP_NUM_THREADS=1</code>)에서 약 12분 걸렸다). 다른 NumPy 버전에서는 난수 열이 달라 마지막 자리가 바뀔 수 있다. 정책의 기울기는 NumPy로 직접 계산했고, 출력의 표집은 누적 확률과 균등 난수를 비교하는 방식으로 직접 구현했다.</p>
+<pre><code>import math
+import numpy as np
+
+K, NV, H = 24, 19, 64                           # 출력 24개(0~18은 올바른 형식의 수, 19~23은 형식 오류), 은닉 폭
+SEEDS, STEPS, BQ, G, LR, ETA = range(20), 300, 32, 16, 0.003, 0.4
+a, b = np.divmod(np.arange(100), 10)            # 문제 100개: 한 자리 수 a, b의 덧셈
+S = a + b; N = len(S); CARRY = S &gt;= 10          # S: 정답, CARRY: 올림이 있는 문제
+X = np.zeros((N, 20)); X[np.arange(N), a] = 1; X[np.arange(N), 10 + b] = 1
+Y = np.arange(K)[None, :]
+OK = {"fmt": np.broadcast_to(Y &lt; NV, (N, K)),                       # 검증기가 받아들이는 (문제, 출력) 표
+      "ones": (Y &lt; NV) &amp; (Y % 10 == S[:, None] % 10),
+      "exact": Y == S[:, None]}
+OK["noisy"] = OK["exact"]                       # 정답 검사의 판정을 20% 확률로 뒤집는다
+
+def teacher(setting):                           # 시연 데이터를 만드는 '불완전한 선생'의 출력 분포
+    T = np.zeros((N, K))
+    for i, s in enumerate(S):
+        near = [v for v in (s - 1, s + 1) if 0 &lt;= v &lt; NV]
+        w = (.55, 0, .25, .10, .10) if setting == "U" or s &lt;= 9 else (.30, .45, .10, .10, .05)
+        T[i, s] += w[0]; T[i, near] += w[2] / len(near)           # 정답 / 이웃한 수
+        if w[1]: T[i, s - 10] += w[1]                             # 올림 누락
+        T[i, NV:] += w[3] / (K - NV); T[i, :NV] += w[4] / NV      # 형식 오류 / 아무 수
+    return T / T.sum(1, keepdims=True)
+
+def softmax(z):
+    e = np.exp(z - z.max(1, keepdims=True)); return e / e.sum(1, keepdims=True)
+
+def policy(P, x):                               # 정책: 입력 -&gt; 출력 24개의 확률. 은닉층 1개짜리 신경망
+    return softmax(np.tanh(x @ P[0] + P[1]) @ P[2] + P[3])
+
+def backward(P, x, dz):                         # dz: 손실을 로짓으로 미분한 값
+    h = np.tanh(x @ P[0] + P[1]); dh = (dz @ P[2].T) * (1 - h ** 2)
+    return [x.T @ dh, dh.sum(0), h.T @ dz, dz.sum(0)]
+
+class Adam:
+    def __init__(s, P, lr): s.P, s.lr, s.t = P, lr, 0; s.m = [0 * p for p in P]; s.v = [0 * p for p in P]
+    def step(s, Gr):
+        s.t += 1
+        for i, g in enumerate(Gr):
+            s.m[i] = .9 * s.m[i] + .1 * g; s.v[i] = .999 * s.v[i] + .001 * g ** 2
+            s.P[i] -= s.lr * (s.m[i] / (1 - .9 ** s.t)) / (np.sqrt(s.v[i] / (1 - .999 ** s.t)) + 1e-8)
+
+def draw(rng, pi):                              # 확률표 pi의 각 행에서 출력 하나씩 뽑는다
+    return (pi.cumsum(1) &lt; rng.random(len(pi))[:, None]).sum(1).clip(max=K - 1)
+
+def sft(rng, setting, per=64, steps=600):       # 지도 학습: 문제마다 선생의 출력 64개를 흉내 내도록 학습
+    idx = np.repeat(np.arange(N), per); y = draw(rng, teacher(setting)[idx])
+    P = [rng.normal(0, 20 ** -.5, (20, H)), np.zeros(H), rng.normal(0, H ** -.5, (H, K)), np.zeros(K)]
+    opt, Z = Adam(P, 0.01), np.eye(K)[y]
+    for _ in range(steps): opt.step(backward(P, X[idx], (policy(P, X[idx]) - Z) / len(y)))
+    return P
+
+def reward(kind, qi, y, rng):                   # 검증기: 출력 y가 받아들여지면 1, 아니면 0
+    r = OK[kind][qi, y].astype(float)
+    return np.where(rng.random(len(y)) &lt; .2, 1 - r, r) if kind == "noisy" else r
+
+def rl(pol, update, P, kind, rng, steps=STEPS, std=False, trace=None):
+    for t in range(steps):                      # 강화학습: 문제 BQ개, 문제마다 출력 G개를 뽑아 보상으로 갱신
+        if trace is not None and t % 20 == 0: trace.append(measure(pol(P, np.arange(N)), kind))
+        qi = np.repeat(rng.choice(N, BQ, replace=False), G)
+        pi = pol(P, qi); y = draw(rng, pi)
+        r = reward(kind, qi, y, rng).reshape(BQ, G)
+        adv = r - r.mean(1, keepdims=True)      # 묶음 안의 평균을 기준선으로 뺀다
+        if std: adv = adv / (r.std(1, keepdims=True) + 1e-6)
+        dz = -adv.reshape(-1, 1) * (np.eye(K)[y] - pi) / len(y)   # -(A * 로짓에 대한 log pi의 미분)
+        update(P, qi, dz)
+    if trace is not None: trace.append(measure(pol(P, np.arange(N)), kind))
+    return P
+
+def measure(pi, kind):                          # 정책의 확률표에서 정확한 값을 계산한다(표집 오차 없음)
+    ps = pi[np.arange(N), S]; R = OK[kind] * (.6 if kind == "noisy" else 1) + (.2 if kind == "noisy" else 0)
+    return dict(rew=(pi * R).sum(1).mean(), valid=pi[:, :NV].sum(1).mean(), acc=ps.mean(),
+                carry=ps[CARRY].mean(), p8=(1 - (1 - ps) ** 8).mean())
+
+def cond(pi0, kind):                            # 받아들여진 답 가운데 정답의 몫: 정답 신호 없이 걸러내기만 할 때의 정확도
+    c = pi0[np.arange(N), S] / (pi0 * OK[kind]).sum(1); return dict(acc=c.mean(), carry=c[CARRY].mean())
+
+def wrong_mode(pi0):                            # 기본 정책이 정답 s보다 올림 누락 답 s-10을 더 선호하는 문제
+    M = CARRY &amp; (pi0[np.arange(N), np.maximum(S - 10, 0)] &gt; pi0[np.arange(N), S])
+    ps, pw = pi0[np.arange(N), S], pi0[np.arange(N), np.maximum(S - 10, 0)]
+    return M, ps / (ps + pw)                    # 문제 집합과 문제별 정확도 상한 π0(s)/(π0(s)+π0(s-10))
+
+kinds = ("fmt", "ones", "exact", "noisy")
+mlp = lambda P, qi: policy(P, X[qi])
+ms = lambda v: f"{np.mean(v):.3f} ± {np.std(v, ddof=1) / math.sqrt(len(v)):.3f}"
+show = lambda tag, R: print(f"{tag:12s}" + " | ".join(f"{k} {ms([r[k] for r in R])}" for k in R[0]))
+for setting in ("U", "C"):
+    out, ctl, stdv, base, trace, base_r = {}, {}, {}, [], {k: [] for k in kinds}, {}
+    mode, bound = {k: [] for k in ("fmt", "ones")}, []
+    for seed in SEEDS:
+        rng = np.random.default_rng((seed, 0)); P0 = sft(rng, setting); pi0 = policy(P0, X)
+        base.append(measure(pi0, "exact"))
+        for k in kinds: base_r.setdefault(k, []).append(measure(pi0, k)["rew"])
+        for k in ("fmt", "ones"): out.setdefault("cond " + k, []).append(cond(pi0, k))
+        M, ub = wrong_mode(pi0); bound.append((M.sum(), ub[M].mean() if M.any() else 0))
+        L0 = np.log(pi0)
+        for k in kinds:
+            P = [p.copy() for p in P0]; opt = Adam(P, LR)
+            tr = []; P = rl(mlp, lambda P, qi, dz: opt.step(backward(P, X[qi], dz)), P, k, np.random.default_rng((seed, 1)), trace=tr)
+            trace[k].append(tr)
+            pi = policy(P, X); out.setdefault(k, []).append(measure(pi, k))
+            if k in mode and M.any(): mode[k].append(pi[np.arange(N), S][M].mean())
+            if setting == "C" and seed &lt; 5:
+                P = [p.copy() for p in P0]; opt = Adam(P, LR)
+                P = rl(mlp, lambda P, qi, dz: opt.step(backward(P, X[qi], dz)), P, k, np.random.default_rng((seed, 1)), std=True)
+                stdv.setdefault(k, []).append(measure(policy(P, X), k))
+            if k in ("fmt", "ones", "exact"):   # 통제: 문제마다 독립인 로짓표(매개변수 공유 없음), 같은 알고리즘, SGD
+                T = L0.copy()
+                rl(lambda P, qi: softmax(P[0][qi]), lambda P, qi, dz: np.add.at(P[0], qi, -ETA * BQ * dz), [T], k,
+                   np.random.default_rng((seed, 1)))
+                ctl.setdefault(k, []).append(measure(softmax(T), k))
+                if k in mode and M.any(): ctl.setdefault("mode " + k, []).append(softmax(T)[np.arange(N), S][M].mean())
+    print(f"[설정 {setting}] 시드 {len(SEEDS)}개, 정책 업데이트 {STEPS}번 (평균 ± 표준오차)")
+    show("기본 정책", base)
+    print("기본 정책의 검증기 보상: " + ", ".join(f"{k} {ms(base_r[k])}" for k in kinds))
+    for k in kinds: show(k, out[k])
+    for k in ("fmt", "ones"): show("조건부 " + k, out["cond " + k])
+    print(f"올림 누락 답을 더 선호하는 문제: 시드당 평균 {np.mean([m for m, _ in bound]):.1f}개, 정확도 상한 평균 {np.mean([u for _, u in bound]):.3f}")
+    for k in mode:
+        if mode[k]: print(f"  그 문제들의 정확도: {k} 학습 후 MLP {ms(mode[k])} / 표 형태 통제 {ms(ctl['mode ' + k])}")
+    print("통제(표 형태 정책, 매개변수 공유 없음):")
+    for k in ("fmt", "ones", "exact"): show("표 " + k, ctl[k])
+    print("추적(시드 평균, 20번마다): 올림 문제 정확도 / 검증기 보상")
+    for k in kinds:
+        print(f"  {k:6s}" + " ".join(f"{np.mean([t[i]['carry'] for t in trace[k]]):.3f}/{np.mean([t[i]['rew'] for t in trace[k]]):.3f}" for i in range(len(trace[k][0]))))
+    if setting == "C":
+        print("표준편차로 나눈 변형(시드 5개):")
+        for k in kinds: show("std " + k, stdv[k])</code></pre>
+
+    <h3 id="h-result6">결과</h3>
+    <p>수는 시드 20개의 평균이고 ± 뒤는 표준오차이다. 열 이름은 다음과 같다. '보상'은 학습에 쓴 검증기의 기댓값 보상으로 '→' 앞이 강화학습 전, 뒤가 300걸음 뒤이고, '형식'은 올바른 형식의 출력 비율, '올림 문제'는 올림이 있는 45개 문제의 정확도이다. 보상과 형식 열의 표준오차는 모두 0.002 이하라 적지 않았다. 기본 정책 행의 보상은 검증기마다 달라 적지 않았고 각 검증기 행의 '→' 앞 값이 그것이다.</p>
+    <p><b>(가) 설정 U</b> (흩어진 오류)</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>검증기</th><th class="num">보상 (전 → 후)</th><th class="num">형식</th><th class="num">정확도</th><th class="num">올림 문제</th><th class="num">pass@8</th></tr></thead><tbody><tr><td>기본 정책</td><td class="num">—</td><td class="num">0.901</td><td class="num">0.555 ± 0.002</td><td class="num">0.557 ± 0.002</td><td class="num">0.997 ± 0.000</td></tr>
+<tr><td>fmt</td><td class="num">0.901 → 1.000</td><td class="num">1.000</td><td class="num">0.648 ± 0.003</td><td class="num">0.651 ± 0.006</td><td class="num">0.980 ± 0.002</td></tr>
+<tr><td>ones</td><td class="num">0.560 → 0.956</td><td class="num">1.000</td><td class="num">0.956 ± 0.000</td><td class="num">0.957 ± 0.001</td><td class="num">1.000 ± 0.000</td></tr>
+<tr><td>exact</td><td class="num">0.555 → 0.956</td><td class="num">1.000</td><td class="num">0.956 ± 0.000</td><td class="num">0.957 ± 0.001</td><td class="num">1.000 ± 0.000</td></tr>
+<tr><td>noisy</td><td class="num">0.533 → 0.769</td><td class="num">1.000</td><td class="num">0.948 ± 0.001</td><td class="num">0.949 ± 0.001</td><td class="num">1.000 ± 0.000</td></tr></tbody></table></div>
+    <p><b>(나) 설정 C</b> (올림 누락)</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>검증기</th><th class="num">보상 (전 → 후)</th><th class="num">형식</th><th class="num">정확도</th><th class="num">올림 문제</th><th class="num">pass@8</th></tr></thead><tbody><tr><td>기본 정책</td><td class="num">—</td><td class="num">0.901</td><td class="num">0.440 ± 0.001</td><td class="num">0.302 ± 0.002</td><td class="num">0.968 ± 0.001</td></tr>
+<tr><td>fmt</td><td class="num">0.901 → 1.000</td><td class="num">1.000</td><td class="num">0.556 ± 0.008</td><td class="num">0.492 ± 0.015</td><td class="num">0.932 ± 0.007</td></tr>
+<tr><td>ones</td><td class="num">0.646 → 0.979</td><td class="num">0.999</td><td class="num">0.560 ± 0.004</td><td class="num">0.060 ± 0.008</td><td class="num">0.613 ± 0.005</td></tr>
+<tr><td>exact</td><td class="num">0.440 → 0.969</td><td class="num">1.000</td><td class="num">0.969 ± 0.001</td><td class="num">0.974 ± 0.000</td><td class="num">1.000 ± 0.000</td></tr>
+<tr><td>noisy</td><td class="num">0.464 → 0.778</td><td class="num">0.999</td><td class="num">0.963 ± 0.001</td><td class="num">0.969 ± 0.001</td><td class="num">1.000 ± 0.000</td></tr></tbody></table></div>
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 800 330" role="img" aria-label="설정 C에서 강화학습 걸음 수에 따른 올림 문제의 정확도. exact와 noisy는 0.3에서 0.97 근처로 오른다. fmt는 0.49까지 천천히 오른다. ones는 검증기 보상이 0.65에서 0.98로 오르는 동안 올림 문제의 정확도가 0.30에서 0.06으로 내려간다.">
+  <path d="M62 272.0 H640" class="s-grid"/><text class="t-mono" x="54" y="276.0" text-anchor="end">0.0</text>
+  <path d="M62 223.2 H640" class="s-grid"/><text class="t-mono" x="54" y="227.2" text-anchor="end">0.2</text>
+  <path d="M62 174.4 H640" class="s-grid"/><text class="t-mono" x="54" y="178.4" text-anchor="end">0.4</text>
+  <path d="M62 125.6 H640" class="s-grid"/><text class="t-mono" x="54" y="129.6" text-anchor="end">0.6</text>
+  <path d="M62 76.8 H640" class="s-grid"/><text class="t-mono" x="54" y="80.8" text-anchor="end">0.8</text>
+  <path d="M62 28.0 H640" class="s-grid"/><text class="t-mono" x="54" y="32.0" text-anchor="end">1.0</text>
+  <path d="M62.0 272 V277" class="s-line"/><text class="t-mono" x="62.0" y="291" text-anchor="middle">0</text>
+  <path d="M254.7 272 V277" class="s-line"/><text class="t-mono" x="254.7" y="291" text-anchor="middle">100</text>
+  <path d="M447.3 272 V277" class="s-line"/><text class="t-mono" x="447.3" y="291" text-anchor="middle">200</text>
+  <path d="M640.0 272 V277" class="s-line"/><text class="t-mono" x="640.0" y="291" text-anchor="middle">300</text>
+  <text class="t-dim" x="351" y="312" text-anchor="middle">강화학습 걸음 수</text>
+  <text class="t-dim" x="14" y="150" text-anchor="middle" transform="rotate(-90 14 150)">올림 문제의 정확도 / 검증기 보상</text>
+  <polyline points="62.0,198.3 100.5,115.6 139.1,80.2 177.6,64.6 216.1,55.8 254.7,50.7 293.2,46.8 331.7,43.9 370.3,41.4 408.8,40.0 447.3,38.5 485.9,37.5 524.4,36.5 562.9,35.8 601.5,35.1 640.0,34.3" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <polyline points="62.0,198.3 100.5,122.4 139.1,86.1 177.6,69.7 216.1,60.2 254.7,53.9 293.2,49.5 331.7,46.3 370.3,43.9 408.8,41.9 447.3,40.2 485.9,39.0 524.4,38.0 562.9,37.0 601.5,36.3 640.0,35.6" fill="none" style="stroke:var(--accent);stroke-width:1.5" stroke-dasharray="7 4"/>
+  <polyline points="62.0,198.3 100.5,179.5 139.1,171.7 177.6,167.1 216.1,163.9 254.7,161.5 293.2,159.3 331.7,157.8 370.3,156.6 408.8,155.6 447.3,154.6 485.9,153.7 524.4,153.2 562.9,152.9 601.5,152.4 640.0,152.0" fill="none" style="stroke:var(--text-dim);stroke-width:1.8"/>
+  <polyline points="62.0,198.3 100.5,223.2 139.1,239.8 177.6,247.1 216.1,251.0 254.7,253.2 293.2,254.4 331.7,255.4 370.3,255.9 408.8,256.4 447.3,256.6 485.9,256.9 524.4,257.1 562.9,257.4 601.5,257.4 640.0,257.4" fill="none" style="stroke:var(--accent-2);stroke-width:2.2"/>
+  <polyline points="62.0,114.4 100.5,80.5 139.1,64.6 177.6,55.6 216.1,49.7 254.7,45.6 293.2,42.6 331.7,40.4 370.3,38.7 408.8,37.5 447.3,36.3 485.9,35.3 524.4,34.6 562.9,34.1 601.5,33.4 640.0,33.1" fill="none" style="stroke:var(--accent-2);stroke-width:1.5" stroke-dasharray="2 4"/>
+  <text class="t-dim" x="650" y="37.1">ones: 검증기 보상</text>
+  <text class="t-acc" x="650" y="52.1">exact</text>
+  <text class="t-dim" x="650" y="67.1">noisy</text>
+  <text class="t-dim" x="650" y="156.0">fmt</text>
+  <text class="t-b" x="650" y="261.4">ones: 정확도</text>
+      </svg>
+      <figcaption><b>그림 6-2.</b> 설정 C에서 강화학습 걸음 수에 따른 올림 문제의 정확도(실선과 긴 점선)와 ones의 검증기 보상(짧은 점선). 시드 20개의 평균이다. ones는 보상이 오르는 내내 정확도가 내려간다.</figcaption>
+    </figure>
+    <p>아래 표는 검증기가 정답 여부를 보지 않고 걸러내기만 했을 때 정확도가 이르는 곳과 실제 학습 결과를 견준다. '조건부 정확도'는 기본 정책이 받아들여지는 답 안에서 정답에 둔 몫 \(\pi_0(s)/\pi_0(A)\)의 문제 평균으로, 받아들여지지 않는 답에 있던 질량이 비율을 유지한 채 옮겨 올 때의 정확도이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>설정, 검증기</th><th class="num">조건부 (전체)</th><th class="num">학습 후 (전체)</th><th class="num">조건부 (올림)</th><th class="num">학습 후 (올림)</th></tr></thead><tbody><tr><td>설정 U, fmt</td><td class="num">0.616 ± 0.002</td><td class="num">0.648 ± 0.003</td><td class="num">0.619 ± 0.002</td><td class="num">0.651 ± 0.006</td></tr>
+<tr><td>설정 U, ones</td><td class="num">0.991 ± 0.000</td><td class="num">0.956 ± 0.000</td><td class="num">0.990 ± 0.001</td><td class="num">0.957 ± 0.001</td></tr>
+<tr><td>설정 C, fmt</td><td class="num">0.489 ± 0.001</td><td class="num">0.556 ± 0.008</td><td class="num">0.336 ± 0.002</td><td class="num">0.492 ± 0.015</td></tr>
+<tr><td>설정 C, ones</td><td class="num">0.726 ± 0.001</td><td class="num">0.560 ± 0.004</td><td class="num">0.400 ± 0.002</td><td class="num">0.060 ± 0.008</td></tr></tbody></table></div>
+    <p>다음은 <a class="ref" href="#thm-blind"></a>의 3번을 직접 시험한 결과이다. 설정 C에서 기본 정책이 정답 \(s\)보다 올림을 빠뜨린 답 \(w=s-10\)을 더 선호하는 문제는 시드당 평균 41.3개(올림 문제 45개 중)였고, 이 문제들에서 학습 뒤 정확도를 문제별 상한 \(\pi_0(s)/(\pi_0(s)+\pi_0(w))\)의 평균과 견주었다. 두 번째 표는 통제 조건(문제마다 독립인 로짓표)의 결과 전체이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>검증기</th><th class="num">상한 \(\pi_0(s)/(\pi_0(s)+\pi_0(w))\)의 평균</th><th class="num">MLP 정책의 학습 후 정확도</th><th class="num">표 형태 통제의 학습 후 정확도</th></tr></thead><tbody><tr><td>fmt</td><td class="num">0.389</td><td class="num">0.483 ± 0.014</td><td class="num">0.261 ± 0.003</td></tr>
+<tr><td>ones</td><td class="num">0.389</td><td class="num">0.052 ± 0.007</td><td class="num">0.191 ± 0.004</td></tr></tbody></table></div>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>통제 (설정 C)</th><th class="num">보상</th><th class="num">형식</th><th class="num">정확도</th><th class="num">올림 문제</th><th class="num">pass@8</th></tr></thead><tbody><tr><td>표 형태, fmt</td><td class="num">0.973 ± 0.000</td><td class="num">0.973</td><td class="num">0.556 ± 0.002</td><td class="num">0.280 ± 0.004</td><td class="num">0.947 ± 0.001</td></tr>
+<tr><td>표 형태, ones</td><td class="num">0.969 ± 0.000</td><td class="num">0.989</td><td class="num">0.635 ± 0.003</td><td class="num">0.223 ± 0.006</td><td class="num">0.889 ± 0.003</td></tr>
+<tr><td>표 형태, exact</td><td class="num">0.972 ± 0.000</td><td class="num">0.992</td><td class="num">0.972 ± 0.000</td><td class="num">0.971 ± 0.000</td><td class="num">1.000 ± 0.000</td></tr></tbody></table></div>
+
+    <h3 id="h-limits6">해석과 한계</h3>
+    <ul>
+      <li><b>E1, E2, E3, E5는 맞았다.</b> 모든 검증기에서 검증기 보상이 올랐다(표의 '→'). exact는 정확도를 설정 U에서 0.555에서 0.956으로, 설정 C에서 0.440에서 0.969로 올렸다. 설정 U의 ones는 exact와 소수 셋째 자리까지 같았다(0.956 ± 0.000). 기본 정책의 오답이 이웃한 수와 형식 오류에 몰려 있어 일의 자리 검사에 걸리기 때문이다. 일의 자리가 같은 오답(\(s\pm10\))은 선생 분포에서 '아무 수'에 속한 0.005 정도의 몫뿐이었다. noisy의 정확도는 0.948(U)과 0.963(C)로 exact보다 0.008, 0.006 낮을 뿐이었고, 보상은 최댓값 \(1-\beta=0.8\)에 가까운 0.769와 0.778이었다. 이 걸음 수에서는 기울기가 0.6배가 된 영향이 작았다. 더 짧은 학습에서 이 차이가 커지는지는 시험하지 않았다.</li>
+      <li><b>사각지대는 설정 C에서 보상과 정확도를 갈랐다.</b> ones의 검증기 보상은 0.646에서 0.979로 올랐는데 올림 문제의 정확도는 0.302에서 0.060으로, pass@8은 0.968에서 0.613으로 내려갔다. 같은 학습을 exact로 하면 올림 문제가 0.974가 된다(E4의 ones 부분은 맞았고, 올림 문제 정확도가 exact의 절반 이상이라는 기각 조건에는 걸리지 않았다). 전체 정확도만 보면 ones가 0.440에서 0.560으로 올라 개선처럼 보인다. 표의 값에서 올림이 없는 55개 문제의 정확도를 계산하면 약 0.97이므로 이 평균은 한쪽의 큰 개선과 다른 쪽의 후퇴를 섞은 것이다. 평균 하나로는 해킹이 보이지 않는다. 그림 6-2에서 정확도는 첫 20걸음부터 내려가기 시작한다. pass@8의 하락은 강화학습이 새 풀이를 만들지 못했을 뿐 아니라 정책이 이미 가지고 있던 정답의 몫까지 지울 수 있음을 보여 준다.</li>
+      <li><b>정답에 대한 신호가 없는 보상도 정확도를 움직였다.</b> fmt는 형식 오류를 없애 올바른 형식 비율을 0.901에서 1.000으로 올렸고, 정확도는 설정 U에서 0.555에서 0.648로, 설정 C에서 0.440에서 0.556으로(올림 문제는 0.302에서 0.492로) 올랐다. 이 보상은 정답과 오답을 구별하지 않는다. 오른 만큼이 정답 신호에서 왔다고 볼 근거는 없고, 정책이 이미 자주 내던 행동이 커진 결과로 읽는다. U에서는 정답이 다수라 정확도가 오르고, 다수로 쏠리면서 pass@8은 0.997에서 0.980으로 줄었다. 올림 문제에서는 오답이 문제 단위의 다수인데도 정확도가 올랐으므로, 그 부분은 아래 항목의 공유 매개변수 설명으로 읽어야 한다. 'fmt만으로 올랐으니 정답 신호가 필요 없다'가 아니라 '보상이 올라도 그 원인이 정답 신호인지 따로 재야 한다'가 읽을 수 있는 것이다. Shao 외(2025)가 무작위 보상으로 보고한 개선과 겹치는 모양이지만, 그 논문의 원인(GRPO의 clip 편향)은 이 실험에 없으므로 같은 현상이라고 주장하지 않는다.</li>
+      <li><b>E4의 상한은 통제에서는 맞았고 MLP의 fmt에서는 틀렸다.</b> 상한 평균은 0.389였다. ones는 MLP가 0.052, 표 형태 통제가 0.191로 둘 다 상한 아래였고, fmt도 통제는 0.261로 상한 아래였다. 그러나 MLP의 fmt는 0.483 ± 0.014로 상한을 0.094(표준오차의 약 6.7배) 넘었다. 설계 표의 기각 조건에 따라 E4는 MLP의 fmt에서 기각된다. 정리는 표 형태 정책의 것이고, 이 결과는 그것이 공유 매개변수 정책에 그대로 옮겨지지 않는다는 뜻이다. 우리가 세운 설명은 매개변수 공유이다. 올림이 없는 55개 문제에서는 정답이 뚜렷한 다수이므로 fmt 학습이 정답 쪽을 키우고, 그것이 공유된 매개변수를 통해 올림 문제의 정답 확률까지 올렸다는 것이다. ones에서는 같은 공유가 반대로 작용해, 올림 누락이 여러 문제에서 보상을 받아 표 형태(0.191)보다 더 낮은 0.052까지 내려갔다고 읽는다. 이 설명은 통제에서 상한이 지켜진다는 사실과 맞지만, 올림이 없는 문제를 학습에서 빼 보는 식의 개입으로 확인하지는 않았다.</li>
+      <li><b>표준편차 정규화는 결론을 바꾸지 않았다.</b> 설정 C의 시드 5개에서 이점을 표준편차로 나누어도 ones의 올림 문제 정확도는 0.030 ± 0.010, exact는 0.980 ± 0.001, fmt는 0.483 ± 0.029였다. 사각지대에 대한 결론은 같았다. 시드가 5개뿐이어서 이 변형이 수렴 속도를 바꾸는지는 말하지 않는다.</li>
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> 선생의 확률(특히 설정 C의 0.30과 0.45)과 E1~E5의 방향은 첫 실행 전에 정했다. 그러나 최종 실행 전에 시험 실행이 있었다. 같은 알고리즘의 초기 코드(난수를 쓰는 순서가 달라 수치는 다르다)를 시드 3개로, 통제 없이 돌린 시제품에서 ones의 효과와 fmt의 올림 문제 정확도 0.519를 이미 보았다. 그래서 문제별 상한 비교와 표 형태 통제를 시제품 뒤에 추가했다. 통제는 처음에 Adam으로 시도했다가 경사 흐름(<a class="ref" href="#thm-blind"></a>)에 더 가까운 SGD로 바꿨고, SGD 걸음 크기 0.4는 시드 1개로 1.5와 3을 시험해 exact 정확도가 MLP(0.969)보다 높게(0.993과 0.997) 나온 것을 보고 낮춰 정했다. 따라서 통제의 학습량은 exact 정확도가 MLP와 비슷하도록 맞춘 값이다. 설계 표의 기각 조건에 적은 수치 기준(절반, 표준오차의 3배)과 'MLP에서만 넘으면 정리가 표 형태 정책의 것일 뿐이라는 뜻'이라는 해석도 시제품을 본 뒤에 적었다. 최종 코드는 이 설정을 고정한 채 두 번 돌렸다. 두 번째는 기본 정책의 검증기 보상과 설정 U의 추적을 출력하도록 줄만 추가한 것이고, 두 실행에서 공통으로 출력된 줄은 모두 같았다.</li>
+      <li><b>실제 LLM에 옮길 수 있는 것은 구조뿐이다.</b> 이 정책은 풀이 없이 답 하나를 고른다. 6.2절의 토큰 단위 신용 할당, 긴 풀이, 길이 편향은 들어 있지 않다. 선생의 오류 분포는 우리가 설계했고, 설정 C는 올림 누락이 정답보다 많이 나오도록 정했으므로 실제 모델이 그렇다는 뜻이 아니다. 오답이 정답보다 아주 조금만 덜 선호되었다면 정리의 부등식이 반대로 작용해 결과가 달랐을 것이다. 검증기는 네 가지이고 잡음은 대칭인 한 종류만 썼다. KL 항과 clip이 없고, 한 가지 학습률로 300걸음만 학습했으며, 학습에 쓴 문제 100개로 그대로 평가해 새 문제로의 일반화는 재지 않았다. 표준오차는 시드 사이의 변동이고 문제 100개 사이의 변동은 들어 있지 않다. 옮겨지는 것은 세 가지 구조이다. 검증기가 구별하지 못하는 오류는 강화학습이 고치지 못하고 처음에 앞선 쪽을 키운다. 오류가 사각지대에 있으면 검증기 보상과 정확도가 갈라지고 평균 지표는 이를 가린다. 정답 신호가 없는 보상도 정확도를 움직일 수 있다.</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>이 책에서 추론형 언어모델(RLM)은 답에 앞서 가변 길이의 풀이를 쓰고, 출력의 보상이 커지도록 가중치를 후속 학습한 모델이다. 프롬프트로 단계적 풀이를 유도한 모델(입력만 바뀜)과 후보를 고르는 추론 절차(가중치가 그대로)와 구분한다. 학습 방법이 공개되지 않은 상용 모델에 대해서는 이 장의 학습법이 쓰였다고 말하지 않는다.</li>
+      <li>지도 학습은 시연을 모방해 형식과 시작점, 시연에 있는 패턴을 넣고, 강화학습은 모델이 직접 뽑은 풀이에 보상을 주어 이미 뽑을 수 있는 풀이 가운데 검증을 통과하는 쪽의 비중을 키운다. 정책이 뽑은 풀이를 \(V\)로 걸러 지도 학습하는 것은 기준선이 없는 정책 경사의 한 걸음과 기댓값이 같다.</li>
+      <li>정책 경사는 \(\nabla J=\mathbb E[(r-b)\nabla\log\pi]\)이고 \(y\)에 의존하지 않는 기준선은 기댓값을 바꾸지 않는다. 묶음 평균을 기준선으로 쓰면 기댓값이 \((1-1/G)\)배가 된다. 묶음의 보상이 모두 같으면 신호가 0이고, 신호가 있는 묶음의 확률은 \(1-p^G-(1-p)^G\)이다. 한 번도 통과하지 못하는 문제에서는 배울 수 없다.</li>
+      <li>GRPO의 이점은 묶음의 평균과 표준편차로 정규화한 값이고, 평균만 빼는 형태와 표준편차 나눗셈(\(1/\sigma_r\)배)만 다르다. 이 배율은 문제의 난이도에 따라 달라져 문제마다 신호의 크기를 다르게 한다(Liu 외, 2025의 비판).</li>
+      <li>검증기의 오류는 답과 무관한 것과 답에 따라 다른 것으로 나뉜다. 답과 무관하면 기울기가 \(1-\alpha-\beta\)배가 될 뿐 방향이 보존된다. 답에 따라 다르면, 표 형태 정책의 경사 흐름에서 검증기가 구별하지 못하는 두 답 사이의 순서가 보존되고 처음에 앞선 쪽이 더 앞선다. 정책이 처음에 오답을 더 선호하면 정답 확률은 \(\pi_0(s)/(\pi_0(s)+\pi_0(w))\) 이하에 머문다.</li>
+      <li>작은 정책 실험(설정 C, 시드 20개)에서 올림을 보지 않는 부분 검증기(ones)는 검증기 보상을 0.646에서 0.979로 올리면서 올림 문제의 정확도를 0.302에서 0.060으로 내렸다. 정확한 검증기(exact)는 같은 정책을 0.974로 올렸다. 전체 정확도 평균(0.440에서 0.560)은 이 후퇴를 가렸다.</li>
+      <li>정답 신호가 없는 형식 보상(fmt)도 올림 문제의 정확도를 0.302에서 0.492로 올렸다. 개선이 정답 신호에서 왔는지는 보상을 바꾼 대조군으로 따로 재야 한다. 표 형태 정책에서 성립하는 상한은 매개변수를 공유하는 정책(MLP)의 fmt에서 깨졌다.</li>
+      <li>모델의 가중치는 풀이를 쓰는 습관과 풀이의 분포를 학습하고, 시스템은 모델 밖의 검증, 예산, 재시도, 도구를 맡는다. 학습에 쓴 검증기는 모델이 최적화한 대상이므로 평가에는 독립 검증기나 가려 둔 검사를 쓰고, 보상은 오르는데 독립 정확도가 오르지 않으면 해킹을 의심한다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 이 책의 정의(<a class="ref" href="#def-rlm"></a>)에서 추론형 언어모델(RLM)에 해당하는 것은?</p><div class="opts">
+        <button class="opt">프롬프트에 'step by step'을 붙여 풀이를 쓰게 한 chat 모델</button>
+        <button class="opt" data-correct>답에 앞서 가변 길이의 풀이를 쓰고, 그 출력의 보상이 커지도록 가중치를 후속 학습한 모델</button>
+        <button class="opt">후보를 여러 개 뽑아 검증기로 고르는 추론 시스템</button>
+      </div><div class="quiz-exp">첫째는 입력만 바꾼 5장의 방법이고, 셋째는 가중치가 그대로인 추론 때의 절차다(7장). 이 책은 가중치가 바뀌는 부분과 시스템이 하는 부분을 나눠 다룬다.</div></div>
+      <div class="quiz-q"><p>2. 정책 경사에서 \(y\)에 의존하지 않는 기준선 \(b(x)\)를 빼도 기울기의 기댓값이 바뀌지 않는 이유는?</p><div class="opts">
+        <button class="opt">\(b\)가 보상보다 작기 때문이다.</button>
+        <button class="opt" data-correct>점수 함수 \(\nabla\log\pi\)의 기댓값이 0이고 \(b\)는 \(y\)에 의존하지 않아 \(\mathbb E[b\,\nabla\log\pi]=0\)이기 때문이다.</button>
+        <button class="opt">보상이 0 또는 1이기 때문이다.</button>
+      </div><div class="quiz-exp">\(\sum_y\nabla\pi_\theta(y\mid x)=\nabla 1=0\)이다(<a class="ref" href="#thm-pg"></a>의 2번). 기준선은 분산만 바꾼다. \(y\)에 의존하는 기준선에는 이 논거가 성립하지 않는다.</div></div>
+      <div class="quiz-q"><p>3. 문제 하나에서 풀이 16개를 뽑았더니 모두 틀렸다. 묶음 평균을 기준선으로 쓸 때 이 문제의 갱신은?</p><div class="opts">
+        <button class="opt">모두 실패했으므로 풀이마다 같은 크기로 벌점을 준다.</button>
+        <button class="opt">표준편차 때문에 갱신이 무한히 커진다.</button>
+        <button class="opt" data-correct>모든 이점 \(r_i-\bar r\)이 0이어서 갱신이 없다.</button>
+      </div><div class="quiz-exp">보상이 모두 같으면 평균도 그 값이므로 이점이 모두 0이다(<a class="ref" href="#thm-pg"></a>의 4번). 통과 확률이 낮은 문제는 묶음 크기를 키워야 신호가 생긴다(<a class="ref" href="#ex-informative"></a>).</div></div>
+      <div class="quiz-q"><p>4. 검증기가 정답의 80%와 오답의 20%를 받아들이고, 이 확률이 어떤 답인지와 무관하다. 기댓값 보상의 기울기는 완전한 검증기의 기울기의 몇 배인가?</p><div class="opts">
+        <button class="opt">0.8배</button>
+        <button class="opt" data-correct>0.6배</button>
+        <button class="opt">0.2배</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-noise"></a>에서 \(\alpha=0.2\), \(\beta=0.2\)이므로 \(1-\alpha-\beta=0.6\)이다. 방향은 같고 크기만 줄어든다.</div></div>
+      <div class="quiz-q"><p>5. 검증기가 정답 \(s\)와 오답 \(w\)를 둘 다 받아들이고 처음 정책이 \(w\)를 더 선호한다. 표 형태 정책의 경사 흐름에서 일어나는 일은?</p><div class="opts">
+        <button class="opt">정답 확률이 올라 결국 \(w\)를 앞지른다.</button>
+        <button class="opt">두 답의 확률이 같아진다.</button>
+        <button class="opt" data-correct>검증기 보상은 오르지만 정답 확률은 \(\pi_0(s)/(\pi_0(s)+\pi_0(w))\) 이하에 머문다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-blind"></a>의 2번과 3번이다. 검증기가 구별하지 못하는 두 답 사이에서는 처음에 앞서던 쪽이 계속 앞서고 격차가 벌어진다(<a class="ref" href="#ex-flow"></a>).</div></div>
+      <div class="quiz-q"><p>6. 어떤 팀이 훈련에 쓴 검증기의 통과율이 0.55에서 0.98로 올랐다며 '모델이 좋아졌다'고 보고했다. 가장 먼저 할 일은?</p><div class="opts">
+        <button class="opt">더 오래 학습해 통과율을 1.00에 가깝게 만든다.</button>
+        <button class="opt" data-correct>훈련에 쓰지 않은 독립 검사로 정확도를 재고, 형식 보상 같은 대조군과 비교한다.</button>
+        <button class="opt">통과율이 더 높게 나오는 검증기로 바꾼다.</button>
+      </div><div class="quiz-exp">통과율은 정책이 최적화한 대상이므로 그 자체로는 정확도의 증거가 아니다. 독립 검사와 보상 대조군으로 개선이 정답 신호에서 왔는지 확인한다(6.3절).</div></div>
+      <div class="quiz-q"><p>7. RLVR로 학습한 모델이 pass@1은 기본 모델보다 높지만 \(k\)가 클 때의 pass@\(k\)는 기본 모델이 더 높았다는 관측(Yue 외, 2025)이 시사하는 것은?</p><div class="opts">
+        <button class="opt" data-correct>강화학습이 풀 수 있는 문제의 범위를 넓히기보다 이미 뽑을 수 있던 풀이의 비중을 키웠을 수 있다.</button>
+        <button class="opt">지도 학습이 모든 경우에 강화학습보다 낫다.</button>
+        <button class="opt">pass@\(k\)는 \(k\)와 무관하게 같은 값이다.</button>
+      </div><div class="quiz-exp">pass@\(k\)는 통과 확률 \(p\)인 문제에서 \(1-(1-p)^k\)이므로, \(p\)를 키우는 학습은 작은 \(k\)에서 이득이 크다. 이 해석은 그 논문이 시험한 모델과 알고리즘에 한정된 관측이고 일반 법칙은 아니다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-signal" data-level="1"><p>통과 확률이 \(p=0.05\)인 문제에서 \(G=8\)과 \(G=64\)일 때 묶음에 성공과 실패가 모두 있을 확률을 구하라. 한 걸음에 문제 32개를 \(G=8\)로 뽑으면 신호가 있는 문제는 평균 몇 개인가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-pg"></a>의 4번에서 \(1-p^G-(1-p)^G\)이다. \(G=8\)이면 \(1-0.05^8-0.95^8=0.337\), \(G=64\)이면 \(0.963\)이다. 문제 32개의 기댓값은 \(32\times0.3366=10.8\)개로, 3분의 2 가까이는 신호 없이 지나간다. 같은 예산(문제 수 \(\times\) 묶음 크기)에서 \(G\)를 키우면 신호가 있는 문제의 비율은 오르지만 다루는 문제 수는 준다.</p></details></div>
+    <div class="prob" id="prob-adv" data-level="1"><p>\(G=16\)이고 성공이 4개인 묶음에서 평균만 뺀 이점과 표준편차로 나눈 이점(식 <a class="ref" href="#eq-adv"></a>)을 성공한 풀이와 실패한 풀이에 대해 각각 구하라. 두 경우 모두 이점의 합이 0임을 확인하고, 표준편차로 나눈 쪽이 몇 배 큰지 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(k=4\)이므로 \(\bar r=0.25\), \(\sigma_r=\sqrt{4\cdot12}/16=0.433\)이다. 평균만 뺀 이점은 성공 \(+0.75\), 실패 \(-0.25\)이고 합은 \(4(0.75)+12(-0.25)=0\)이다. 표준편차로 나누면 성공 \(+1.732\), 실패 \(-0.577\)이고 합은 \(4(1.732)+12(-0.577)=0\)이다. 모든 이점이 \(1/\sigma_r=2.309\)배이다. 성공이 1개였다면 배율은 4.13배였으므로, 정규화는 문제에 따라 갱신의 크기를 다르게 한다.</p></details></div>
+    <div class="prob" id="prob-noise" data-level="2"><p>검증기가 정답을 90%, 오답을 10% 받아들이고 이 확률은 답과 무관하다. 기울기는 완전한 검증기의 몇 배인가? \((\alpha,\beta)=(0.5,0.5)\)와 \((0.7,0.4)\)에서는 학습이 어떻게 되는가? 정답 문자열 끝의 공백 때문에 정답의 3%만 거부하고 오답은 하나도 받아들이지 않는 검증기는 이 정리의 전제를 만족하는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(\alpha=0.1\), \(\beta=0.1\)이므로 \(1-\alpha-\beta=0.8\)배이다. \((0.5,0.5)\)이면 0이어서 기울기가 사라져 학습이 일어나지 않고, \((0.7,0.4)\)이면 \(-0.1\)이어서 기댓값 보상을 키우는 방향이 정답 확률을 낮추는 방향이다. 공백 때문에 거부하는 검증기(\(\alpha=0\), \(\beta=0.03\))는 배율 0.97이므로 해가 작다. 다만 이 거부가 어떤 답이냐와 무관해야 전제를 만족한다. 거부되는 정답이 특정 표기나 특정 풀이 방식에 몰려 있으면 정책은 그 표기를 피하는 쪽으로 쏠린다. 이 경우는 답에 따라 다른 오류다.</p></details></div>
+    <div class="prob" id="prob-baseline" data-level="2"><p><a class="ref" href="#thm-pg"></a>의 3번을 따라 \(G=2\)일 때 묶음 평균 기준선의 기댓값이 정책 경사의 몇 배인지 구하라. \(i\)번째 항의 기준선을 나머지 \(G-1\)개의 평균 \(b_i=\tfrac1{G-1}\sum_{j\ne i}r_j\)로 바꾸면 기댓값이 정확히 \(\nabla J_x\)가 됨을 보여라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(G=2\)이면 \(1-\tfrac1G=0.5\)배이다. \(G=16\)이면 0.9375배이다. \(b_i\)는 \(y_j\ (j\ne i)\)에만 의존하므로 \(y_i\)와 독립이다. 따라서 \(\mathbb E[b_i\nabla\log\pi(y_i)]=\mathbb E[b_i]\cdot\mathbb E[\nabla\log\pi(y_i)]=0\)이고, \(\mathbb E[(r_i-b_i)\nabla\log\pi(y_i)]=\mathbb E[r_i\nabla\log\pi(y_i)]=\nabla J_x\)이다. 평균에 자기 자신이 들어가 생기던 \((G-1)/G\)배가 없어진다.</p></details></div>
+    <div class="prob" id="prob-flow" data-level="2"><p>한 문제에서 정답 \(s\)의 확률이 0.2, 올림을 빠뜨린 답 \(w\)가 0.5, 나머지가 0.3이다. 일의 자리만 보는 검증기(둘 다 받아들임)로 강화학습할 때 정답 확률의 상한은? 정확한 검증기라면 어떻게 되는가? 처음 확률이 \(\pi_0(s)=0.5\), \(\pi_0(w)=0.2\)라면 어떻게 달라지는가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-blind"></a>의 3번에서 상한은 \(0.2/(0.2+0.5)=0.286\)이다. 경사 흐름을 수치로 적분하면(나머지 0.3은 0.1, 0.1, 0.05, 0.05로 나눔) \(t=100\)에 \(\pi(s)=0.026\), \(t=1000\)에 0.004이다. 정확한 검증기(\(A=\{s\}\))라면 같은 시각에 0.991과 0.999로 오른다. \(\pi_0(s)=0.5\), \(\pi_0(w)=0.2\)이면 일의 자리 검증기에서도 정답이 계속 앞서므로 \(\pi(s)\)가 \(t=100\)에 0.965, \(t=10000\)에 0.999가 된다. 이때 극한은 \(\pi_0(s)/(\pi_0(s)+\pi_0(w))=0.714\) 이상이다. 같은 검증기의 결과가 처음 정책의 선호에 달려 있다.</p></details></div>
+    <div class="prob" id="prob-pass" data-level="2"><p>통과 확률 \(p=0.3\)인 문제의 pass@8을 구하라. 강화학습 뒤 \(p=0.9\)가 되었다면 pass@1과 pass@8은? 통과 확률이 0.01인 문제가 학습 뒤에도 0.01이면 pass@64는? 이 계산으로 pass@\(k\)의 개선이 큰 \(k\)에서 작아지는 이유를 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>pass@\(k=1-(1-p)^k\)이다. \(p=0.3\)이면 pass@8 \(=1-0.7^8=0.942\)이다. \(p=0.9\)이면 pass@1 \(=0.9\), pass@8 \(=1-0.1^8\approx1.000\)이다. \(p=0.01\)이면 pass@64 \(=1-0.99^{64}=0.474\)이다. \(p=0.3\)인 문제는 이미 pass@8이 0.94여서 \(p\)를 0.9로 올려도 pass@8의 이득은 0.06에 불과하지만 pass@1은 0.6 오른다. 이득이 큰 \(k\)에서 작은 것은 포화 때문이고, 통과 확률이 거의 0인 문제는 \(p\)를 올릴 신호가 없어(<a class="ref" href="#ex-informative"></a>) 큰 \(k\)에서도 바뀌지 않는다.</p></details></div>
+    <div class="prob" id="prob-mod9" data-level="3"><p>이 장의 실험 코드에서 일의 자리 검사(<code>Y % 10 == S[:, None] % 10</code>)를 9로 나눈 나머지 검사(<code>Y % 9 == S[:, None] % 9</code>, 'casting out nines')로 바꾸고, 설정 C에서 시드 5개로 돌려 올림 문제의 정확도를 보라. 일의 자리 검사와 다른 결과가 나오는 이유를 <a class="ref" href="#thm-blind"></a>에 비추어 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p>설정 C, 시드 5개에서 올림 문제의 정확도는 \(0.974\pm0.001\)로 exact와 같았고(검증기 보상 0.969), 일의 자리 검사의 0.060(본문 표, 시드 20개)보다 훨씬 높았다. 9로 나눈 나머지가 정답과 같은 출력은 \(s\), \(s\pm9\), \(s\pm18\)뿐이다. 정책이 자주 내는 오답인 올림 누락 답 \(s-10\)은 \(10\equiv1\pmod 9\)이므로 \(s-10\equiv s-1\)로 걸러지고, 이웃한 수 \(s\pm1\)도 걸러진다. 그래서 <a class="ref" href="#thm-blind"></a>의 3번이 요구하는 '정답과 정책이 선호하는 오답이 모두 받아들여진다'는 조건이 성립하지 않고, 정책은 정답 쪽으로 움직인다. 같은 부분 검사라도 사각지대가 정책의 오류와 겹치는지가 결과를 가른다. 이 시드 5개의 값은 이 문제용으로 따로 돌린 것이어서 본문 표와 시드 수가 다르다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="3"><p>실제 추론형 모델 하나를 검증 가능한 과제에서 강화학습할 때, '개선이 정답 신호에서 왔는가'를 가르는 실험을 설계하라. 무엇을 바꾸고, 무엇을 고정하며, 무엇을 예상으로 적을지 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. 같은 기본 모델, 같은 문제 묶음, 같은 알고리즘과 예산으로 보상만 바꾼 학습을 세 갈래 돌린다. ① 정답 보상(\(V\)), ② 형식만 보는 보상, ③ 정답과 무관한 무작위 보상(통과 확률을 ①의 학습 초기 통과율에 맞춤). 고정: 문제와 분할, 하이퍼파라미터, 걸음 수, 시드 집합, 사고 길이의 상한. 평가는 학습에 쓰지 않은 독립 검증기와 가려 둔 문제로 하고, 보상의 훈련 곡선과 독립 정확도를 같은 걸음마다 기록한다. 예상은 결과를 보기 전에 적는다. 예: ①이 ②·③보다 독립 정확도가 높고, ②와 ③은 기본 모델에서 크게 달라지지 않는다. 틀렸다고 볼 조건도 함께 적는다. 예: ③의 개선이 ①의 80% 이상이면 개선의 대부분은 정답 신호가 아니다(Shao 외가 Qwen2.5-Math-7B에서 보인 모양). 모델 계열을 둘 이상 쓰면 효과가 모델에 달려 있는지도 볼 수 있다. 모델 이름과 버전, 실행 날짜를 기록한다.</p></details></div>
   </section>
 </main>
 </body>
