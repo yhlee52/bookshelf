@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>09 이미지와 언어의 연결 · AgentBook</title>
-<meta name="description" content="텍스트와 이미지 표현 · 대조 학습의 직관 · 비전 인코더와 언어모델의 연결 · 분류와 생성의 차이">
+<meta name="description" content="이미지를 패치의 열로 바꾸는 계산과 비용, 이미지와 글을 한 공간의 단위 벡터로 놓는 이중 인코더, 짝 맞히기 대조 손실이 구분하게 만드는 것과 그렇지 않은 것, 비전 인코더를 언어모델에 잇는 접두·교차 어텐션·질의 압축의 비용, 후보 중에서 고르는 일과 글을 쓰는 일의 서로 다른 실패를 다룬다. 마지막 실험은 실제 CLIP ViT-B/32에서 이미지와 설명의 짝을 바꾸어 유사도와 선택이 어떻게 변하는지 잰다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,678 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch09">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">09</span></div>
     <h1 data-fill="chapter-title">이미지와 언어의 연결</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">8장까지 모델의 입력은 모두 토큰이었다. 이미지는 토큰이 아니다. 이미지는 연속적인 값의 격자이고 어휘가 없으며, 열의 길이가 내용이 아니라 해상도로 정해진다. 이 장은 3부의 첫 장으로, 이미지를 모델이 다루는 입력으로 바꾸는 길을 세운다. 9.1절은 이미지를 패치의 열로 바꾸는 계산과 그 비용, 그리고 이미지와 글을 같은 공간의 벡터로 놓는다는 것이 무슨 뜻인지를 다룬다. 9.2절은 (이미지, 설명)의 짝을 맞히는 대조 학습이 무엇을 구분하게 만들고 무엇은 구분하지 않아도 되게 두는지를, 9.3절은 비전 인코더의 출력을 언어모델에 잇는 방식과 그 비용을, 9.4절은 후보 중에서 고르는 일과 글을 쓰는 일이 서로 다르게 틀린다는 점을 다룬다. 마지막 실험은 실제 CLIP 모델에서 이미지와 설명의 짝을 바꾸어, 유사도와 선택이 어떻게 변하는지를 잰다. 이 장과 10장은 건너뛰어도 4부로 갈 수 있지만, 이미지를 입력으로 받는 에이전트의 비용과 실패를 이해하려면 이 장의 계산이 바탕이 된다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>이미지를 패치의 열로 바꿀 때의 토큰 수와 attention 점수 수를 계산하고, 선형 패치 임베딩이 정보를 지우는 조건을 설명할 수 있다.</li>
+      <li>배치 대조 손실의 기울기를 유도하고, 음성 예시와 온도가 손실이 구분하라고 요구하는 것을 어떻게 정하는지 설명할 수 있다.</li>
+      <li>순서를 못 보는 글 인코더가 손실을 0으로 만들 수 있는 조건을 쌍둥이 설명의 확률로 계산하고, 이것이 속성과 물체의 짝짓기(바인딩) 실패와 어떻게 이어지는지 말할 수 있다.</li>
+      <li>비전 인코더를 언어모델에 잇는 접두, 교차 어텐션, 질의 압축의 KV cache와 점수 수를 비교할 수 있다.</li>
+      <li>후보 집합 안의 선택이 갖는 성질과 2×2 짝 바꾸기 시험의 우연 수준을 계산하고, 선택과 생성이 서로 다르게 틀리는 이유를 구분할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch01.html">1장</a>(토큰과 임베딩, 소프트맥스), <a href="ch02.html">2장</a>(attention과 KV cache의 비용), <a href="ch08.html">8장</a>(찍기 확률과 채점기 오류, 표본 오차)</p>
   </header>
+
+
+  <!-- ============================================================ 9.1 -->
   <section id="s1">
     <h2>텍스트와 이미지 표현</h2>
-    <p class="slot" data-slot="9.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>1장과 2장에서 모델의 입력은 토큰 id의 열이었다. 글은 어휘의 토큰으로 잘려 길이가 정해지고, 각 토큰은 임베딩 표의 한 행이 되어 attention에 들어간다. 이미지는 이 길을 그대로 따를 수 없다. 이미지는 높이 \(H\), 너비 \(W\), 채널 \(C\)(보통 3)의 수 격자여서 어휘가 없고, 이웃한 값끼리 거의 같으며, 열의 길이가 내용이 아니라 해상도로 정해진다. 픽셀 위치 하나를 토큰 하나로 쓰면 \(224\times224\) 이미지의 열은 길이가 50,176이고, 한 층·한 head의 attention 점수가 \(50{,}176^2\approx2.5\times10^9\)개이다. 토큰 50개짜리 열의 점수 2,500개의 약 100만 배이다. 이미지를 모델에 넣으려면 먼저 열을 짧게 만들어야 한다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="이미지와 글이 같은 공간의 단위 벡터가 되는 두 경로. 위쪽 이미지 경로는 224×224×3 이미지를 7×7 패치 49개로 자르고, 선형 투영으로 768차원 토큰 49개에 클래스 토큰을 더해 50개 열을 만들고, 12층 Transformer를 지나 클래스 위치의 출력을 512차원으로 투영한다. 아래쪽 글 경로는 문장을 토큰 열로 바꾸고 12층 Transformer를 지나 끝 토큰 위치의 출력을 512차원으로 투영한다. 두 출력은 길이 1로 맞춘 뒤 내적으로 점수를 낸다.">
+  <defs>
+    <marker id="g91-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+  </defs>
+  <text class="t-acc" x="8" y="12">이미지 경로</text>
+  <rect class="f-surface" x="8" y="20" width="150" height="90" rx="8"/>
+  <path d="M22 42 V98 M30 42 V98 M38 42 V98 M46 42 V98 M54 42 V98 M62 42 V98 M70 42 V98 M78 42 V98 M22 42 H78 M22 50 H78 M22 58 H78 M22 66 H78 M22 74 H78 M22 82 H78 M22 90 H78 M22 98 H78" class="s-grid"/>
+  <text class="t-b" x="88" y="52">이미지</text><text class="t-dim" x="88" y="70">224×224×3</text><text class="t-dim" x="88" y="86">7×7 = 49칸</text>
+  <rect class="f-surface" x="178" y="20" width="150" height="90" rx="8"/>
+  <text class="t-b" x="253" y="46" text-anchor="middle">패치를 펼쳐 투영</text><text class="t-dim" x="253" y="66" text-anchor="middle">32×32×3 = 3,072값</text><text class="t-dim" x="253" y="82" text-anchor="middle">→ 768차원 토큰 49개</text><text class="t-dim" x="253" y="98" text-anchor="middle">+ 클래스 토큰, 위치</text>
+  <rect class="f-surface" x="348" y="20" width="150" height="90" rx="8"/>
+  <text class="t-b" x="423" y="46" text-anchor="middle">Transformer 12층</text><text class="t-dim" x="423" y="66" text-anchor="middle">열 길이 50, 은닉 768</text><text class="t-dim" x="423" y="82" text-anchor="middle">(2장과 같은 구조)</text>
+  <rect class="f-surface" x="518" y="20" width="150" height="90" rx="8"/>
+  <text class="t-b" x="593" y="46" text-anchor="middle">클래스 위치 출력</text><text class="t-dim" x="593" y="66" text-anchor="middle">선형 투영 → 512차원</text><text class="t-dim" x="593" y="82" text-anchor="middle">길이를 1로 맞춤</text>
+  <text class="t-acc" x="8" y="212">글 경로</text>
+  <rect class="f-surface" x="8" y="220" width="150" height="90" rx="8"/>
+  <text class="t-b" x="83" y="246" text-anchor="middle">글</text><text class="t-dim" x="83" y="266" text-anchor="middle">"a red square and</text><text class="t-dim" x="83" y="282" text-anchor="middle">a blue circle"</text>
+  <rect class="f-surface" x="178" y="220" width="150" height="90" rx="8"/>
+  <text class="t-b" x="253" y="246" text-anchor="middle">토큰과 임베딩</text><text class="t-dim" x="253" y="266" text-anchor="middle">최대 77토큰</text><text class="t-dim" x="253" y="282" text-anchor="middle">1장의 경로</text>
+  <rect class="f-surface" x="348" y="220" width="150" height="90" rx="8"/>
+  <text class="t-b" x="423" y="246" text-anchor="middle">Transformer 12층</text><text class="t-dim" x="423" y="266" text-anchor="middle">은닉 512</text><text class="t-dim" x="423" y="282" text-anchor="middle">(인과 마스크)</text>
+  <rect class="f-surface" x="518" y="220" width="150" height="90" rx="8"/>
+  <text class="t-b" x="593" y="246" text-anchor="middle">끝 토큰 위치 출력</text><text class="t-dim" x="593" y="266" text-anchor="middle">선형 투영 → 512차원</text><text class="t-dim" x="593" y="282" text-anchor="middle">길이를 1로 맞춤</text>
+  <path d="M158 65 H174" class="s-line" marker-end="url(#g91-arr)"/><path d="M328 65 H344" class="s-line" marker-end="url(#g91-arr)"/><path d="M498 65 H514" class="s-line" marker-end="url(#g91-arr)"/>
+  <path d="M158 265 H174" class="s-line" marker-end="url(#g91-arr)"/><path d="M328 265 H344" class="s-line" marker-end="url(#g91-arr)"/><path d="M498 265 H514" class="s-line" marker-end="url(#g91-arr)"/>
+  <path d="M668 65 H684 V130 H700" class="s-line" marker-end="url(#g91-arr)"/><path d="M668 265 H684 V200 H700" class="s-line" marker-end="url(#g91-arr)"/>
+  <rect x="702" y="100" width="92" height="130" rx="8" style="fill:var(--bg-elev);stroke:var(--accent-2);stroke-width:2" stroke-dasharray="5 3"/>
+  <text class="t-b" x="748" y="128" text-anchor="middle">공유 공간</text><text class="t-dim" x="748" y="148" text-anchor="middle">단위 벡터</text><text class="t-mono" x="748" y="166" text-anchor="middle">u, v</text><text class="t-dim" x="748" y="184" text-anchor="middle">점수</text><text class="t-mono" x="748" y="202" text-anchor="middle">s = u·v</text>
+  <text class="t-acc" x="338" y="170" text-anchor="middle">두 경로는 구조도 입력도 다르다. 같은 공간에 놓는 일은 학습이 한다 (9.2절)</text>
+</svg>
+      <figcaption><b>그림 9-1.</b> 이미지와 글이 같은 공간의 벡터가 되는 두 경로. 그림의 크기는 이 장의 실험에서 쓰는 CLIP ViT-B/32의 구성 파일 값이다(이미지 224, 패치 32, 은닉 768, 글 은닉 512, 길이 77, 투영 512). 이미지 쪽은 2장의 인과 마스크 없이 양방향으로 attention하고, 글 쪽은 인과 마스크를 쓴다.</figcaption>
+    </figure>
+
+    <h3 id="h-patch">이미지를 열로 바꾸기: 패치</h3>
+    <p><a href="https://arxiv.org/abs/2010.11929">Dosovitskiy 외(2020)</a>는 제목('An Image is Worth 16x16 Words')이 말하듯, 초록에 따르면 이미지 패치의 열에 순수한 Transformer를 직접 적용해도 이미지 분류에서 잘 작동함을 보였다(Vision Transformer, ViT). 방법은 단순하다. 이미지를 \(P\times P\) 칸으로 자르고, 칸마다 \(P^2C\)개의 값을 펼쳐 벡터 하나로 만든 뒤, 선형 층으로 은닉 차원 \(d\)로 보내 토큰 하나로 쓴다. 여기에 위치 임베딩을 더해 각 패치가 이미지의 어디에 있었는지를 알려 주고, 그 뒤는 2장의 Transformer와 같다. 아래 정리는 이 변환이 만드는 열의 길이, 지우는 정보, 비용을 센 것이다.</p>
+    <div class="box thm" id="thm-patch"><div class="box-h">패치 열의 길이, 정보, 비용</div>
+      <p>높이 \(H\), 너비 \(W\), 채널 \(C\)의 이미지를 \(P\times P\) 패치로 자른다(\(P\)는 \(H\)와 \(W\)의 약수). 패치 임베딩은 선형 사상 \(E:\mathbb R^{D}\to\mathbb R^{d}\)이고 \(D=P^2C\)이다.</p>
+      <ol>
+        <li>패치는 \(N=HW/P^2\)개이고, 클래스 토큰 하나를 앞에 붙이면 열의 길이는 \(N+1\)이다.</li>
+        <li>\(E\)가 단사이려면 \(d\ge D\)여야 한다. \(d\lt D\)이면 \(E\)의 영공간의 차원이 \(D-\operatorname{rank}E\ge D-d\)이고, 차이가 영공간에 속하는 두 패치는 attention에 들어가기 전에 같은 토큰이 된다.</li>
+        <li>한 층·한 head의 attention 점수는 \((N+1)^2\)개이다. \(P\)를 고정하고 이미지의 한 변을 2배로 하면 \(N\)이 4배가 되고, 점수 수는 \(\bigl((4N+1)/(N+1)\bigr)^2\)배로 \(N\)이 클수록 16에 가까워진다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번은 칸의 수를 센 것이다. 2번은 계수-영공간 정리이다. \(\dim\ker E=D-\operatorname{rank}E\)이고 \(\operatorname{rank}E\le d\)이므로 \(\dim\ker E\ge D-d\)이다. \(E\)는 선형이어서 \(E(a)=E(b)\)는 \(a-b\in\ker E\)와 같다. 3번은 길이 \(N+1\)의 열에서 점수 행렬이 \((N+1)\times(N+1)\)이라는 것과, 한 변이 2배이면 면적이 4배라는 것에서 나온다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-patch"><div class="box-h">224픽셀 이미지는 토큰 몇 개인가</div>
+      <p>CLIP ViT-B/32(공개 구성 파일 기준: 이미지 224, 패치 32, 은닉 768)에서는 \(N=(224/32)^2=49\)이고 클래스 토큰을 더하면 50이다. 이 장의 실험에서 이 모델의 토큰열 출력이 실제로 \((50,768)\) 모양임을 확인했다. 패치 하나는 \(32\cdot32\cdot3=3{,}072\)개의 값이고 은닉 차원이 768이므로 패치 임베딩 행렬(\(768\times3072\))은 단사일 수 없다. 영공간의 차원은 최소 2,304이고, 실험에서 특잇값으로 센 행렬의 계수는 768이어서 정확히 2,304이다. 반대로 같은 공개 구성 파일에서 ViT-B/16(패치 16, 은닉 768)은 \(16\cdot16\cdot3=768=d\)여서 패치 임베딩이 단사일 수 있다(그렇게 학습되었다는 말은 아니다). BLIP-2 논문은 ViT-L/14의 이미지 특징을 \(257\times1024\)로 적었는데, \((224/14)^2+1=257\)과 맞는다. 해상도를 224에서 448로 올리면(패치 32 고정) 토큰이 50개에서 197개로 늘고 점수 수는 \((197/50)^2=15.5\)배가 된다.</p>
+    </div>
+    <p>영공간이 크다는 것은 그 방향의 정보가 attention에 닿기 전에 사라진다는 뜻이다. 어느 방향이 사라지는지는 학습이 정한다. 이 계산만으로 손실이 얼마나 큰지는 말할 수 없다. 다만 한 패치 안에서 값이 빠르게 바뀌는 세부(작은 글자, 가는 선)가 먼저 위험하다고 짐작할 수 있고, 이는 문서와 화면을 읽을 때 <a href="ch10.html">10장</a>에서 다시 본다.</p>
+
+    <h3 id="h-dual">이미지 하나를 벡터 하나로: 이중 인코더</h3>
+    <p>글 쪽은 1~2장의 경로와 같다. 토큰을 임베딩하고 Transformer를 지난 뒤 한 위치의 출력을 모으는데, 이 장에서 쓰는 CLIP의 구현(Hugging Face transformers 5.22.2의 코드로 확인)은 글에서는 끝 토큰 위치의 출력을, 이미지에서는 클래스 토큰 위치의 출력을 쓴다. 각 출력에 선형 투영을 하고 길이를 1로 맞추면 두 벡터가 같은 차원의 구 위에 놓인다. 두 경로는 구조도 입력도 가중치도 다르다.</p>
+    <div class="box def" id="def-dual"><div class="box-h">이중 인코더와 점수</div>
+      <p>이미지 인코더 \(f\)와 글 인코더 \(g\)가 각각 \(\mathbb R^d\)의 벡터를 낸다. 정규화한 \(u=f(x)/\lVert f(x)\rVert\), \(v=g(t)/\lVert g(t)\rVert\)로 이미지 \(x\)와 글 \(t\)의 <b>점수</b>를 \(s(x,t)=u^\top v\)(코사인 유사도)로 정의한다. 점수는 \([-1,1]\)에 있다. 두 출력이 '같은 공간'에 있다는 것은 학습으로 점수가 비교 가능하도록 맞추었다는 뜻이다.</p>
+    </div>
+    <p>학습하기 전에는 두 공간 사이에 아무 대응이 없다. 두 인코더가 따로 초기화되므로 차원이 같다는 것 말고는 \(f\)의 좌표와 \(g\)의 좌표를 이어 주는 것이 없다. 무엇이 같은 것인지를 정하는 일은 학습 목표의 몫이다(9.2절). 점수가 갖춘 뒤에는 두 가지를 할 수 있다. 하나는 이미지 하나에 대해 후보 글 가운데 점수가 가장 높은 것을 고르는 일이고(분류, 검색), 다른 하나는 반대로 글 하나에 대해 후보 이미지를 고르는 일이다. 어느 쪽이든 쓰는 것은 점수의 크기가 아니라 후보 사이의 대소이다. 이미지와 글의 임베딩은 같은 공간에서도 서로 떨어져 있다는 보고가 있고(<a href="https://arxiv.org/abs/2203.02053">Liang 외(2022)</a>의 초록: 두 모달리티가 좁은 원뿔 안에서 '한 팔 간격'으로 떨어져 있다), 이 장의 실험에서 짝을 이룬 이미지와 글의 코사인 값이 1에 얼마나 못 미치는지도 잰다.</p>
   </section>
+
+  <!-- ============================================================ 9.2 -->
   <section id="s2">
     <h2>대조 학습의 직관</h2>
-    <p class="slot" data-slot="9.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>점수가 의미를 가지려면 같은 것을 가리키는 이미지와 글이 가까워지도록 두 인코더를 함께 학습해야 한다. 쓸 수 있는 자료는 웹에서 모은 (이미지, 설명) 쌍이다. <a href="https://arxiv.org/abs/2103.00020">Radford 외(2021)</a>의 초록에 따르면 이 방법은 인터넷에서 모은 4억 개의 쌍으로 '어느 설명이 어느 이미지에 속하는지 맞히는 단순한 사전학습 과제'를 푼다. 라벨의 목록은 없고 쌍만 있다. 이 쌍으로 설명을 토큰 단위로 생성하도록 학습하는 길도 있지만(1장의 언어모델 학습), 한 이미지에 맞는 설명은 무수히 많아서('a dog', 'my dog at the beach') 정확한 문장을 맞히라는 요구는 필요 이상으로 어렵다. 반면 'N개의 설명 가운데 이 이미지의 설명은 어느 것인가'라는 선택 과제는 설명의 표현을 일일이 맞힐 필요가 없다. 이 선택 과제를 손실로 쓴 것이 대조 학습이다.</p>
+    <div class="box def" id="def-nce"><div class="box-h">배치 대조 손실</div>
+      <p>쌍 \((x_i,t_i)\), \(i=1,\ldots,N\)을 한 배치로 묶고, 정규화한 임베딩을 \(u_i,v_j\), 온도를 \(\tau\gt0\)(\(1/\tau\)가 로짓 스케일)이라 하자. 로짓 \(z_{ij}=u_i^\top v_j/\tau\)에 대해 행(row)과 열(column)의 소프트맥스 확률을 위첨자 \(\mathrm r\), \(\mathrm c\)로 나타내어 다음과 같이 둔다.</p>
+      <div class="formula">\[ p^{\mathrm{r}}_{ij}=\frac{e^{z_{ij}}}{\sum_{k}e^{z_{ik}}},\qquad p^{\mathrm{c}}_{ij}=\frac{e^{z_{ij}}}{\sum_{k}e^{z_{kj}}},\qquad L=\frac1{2N}\sum_{i=1}^{N}\Bigl(-\log p^{\mathrm{r}}_{ii}-\log p^{\mathrm{c}}_{ii}\Bigr) \]</div>
+      <p>행 손실은 이미지 \(i\)가 설명 \(N\)개 가운데 자기 짝을 고르는 교차 엔트로피이고, 열 손실은 설명 \(i\)가 이미지 \(N\)개 가운데 자기 짝을 고르는 교차 엔트로피이다. 배치 안의 다른 짝들이 음성 예시가 된다. 이 장은 이미지→글과 글→이미지 두 방향을 합친 대칭 형태로 이 식을 정의했다(Flamingo 논문이 비전 인코더를 학습할 때 Radford 외의 'two-term contrastive loss'를 썼다고 적은 것과 같은 계열이다). 식의 세부(온도를 학습하는지 등)는 모델마다 다르다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 350" role="img" aria-label="N=4인 배치의 점수 행렬. 행은 이미지 4개, 열은 설명 4개이다. 대각선 칸 네 개가 짝이고 양성 예시이다. 나머지 칸은 음성 예시이다. 1행 2열 칸은 낱말 모음이 같은 설명이 배치에 들어 있는 경우로 어려운 음성이다. 행 방향은 이미지가 설명을 고르는 소프트맥스, 열 방향은 설명이 이미지를 고르는 소프트맥스이다.">
+  <defs>
+    <marker id="g92-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+  </defs>
+  <text class="t-b" x="40" y="22">점수 행렬 (N=4)</text>
+  <text class="t-dim" x="154" y="48" text-anchor="middle">설명 1</text><text class="t-dim" x="226" y="48" text-anchor="middle">설명 2</text><text class="t-dim" x="298" y="48" text-anchor="middle">설명 3</text><text class="t-dim" x="370" y="48" text-anchor="middle">설명 4</text>
+  <text class="t-dim" x="112" y="90" text-anchor="end">이미지 1</text><text class="t-dim" x="112" y="162" text-anchor="end">이미지 2</text><text class="t-dim" x="112" y="234" text-anchor="end">이미지 3</text><text class="t-dim" x="112" y="306" text-anchor="end">이미지 4</text>
+  <g stroke-width="1.5" style="stroke:var(--border)">
+    <rect class="f-surface" x="120" y="56" width="68" height="68"/><rect class="f-surface" x="192" y="56" width="68" height="68"/><rect class="f-surface" x="264" y="56" width="68" height="68"/><rect class="f-surface" x="336" y="56" width="68" height="68"/>
+    <rect class="f-surface" x="120" y="128" width="68" height="68"/><rect class="f-surface" x="192" y="128" width="68" height="68"/><rect class="f-surface" x="264" y="128" width="68" height="68"/><rect class="f-surface" x="336" y="128" width="68" height="68"/>
+    <rect class="f-surface" x="120" y="200" width="68" height="68"/><rect class="f-surface" x="192" y="200" width="68" height="68"/><rect class="f-surface" x="264" y="200" width="68" height="68"/><rect class="f-surface" x="336" y="200" width="68" height="68"/>
+    <rect class="f-surface" x="120" y="272" width="68" height="68"/><rect class="f-surface" x="192" y="272" width="68" height="68"/><rect class="f-surface" x="264" y="272" width="68" height="68"/><rect class="f-surface" x="336" y="272" width="68" height="68"/>
+  </g>
+  <g style="fill:var(--accent);opacity:.28"><rect x="120" y="56" width="68" height="68"/><rect x="192" y="128" width="68" height="68"/><rect x="264" y="200" width="68" height="68"/><rect x="336" y="272" width="68" height="68"/></g>
+  <text class="t-b" x="154" y="96" text-anchor="middle">+</text><text class="t-b" x="226" y="168" text-anchor="middle">+</text><text class="t-b" x="298" y="240" text-anchor="middle">+</text><text class="t-b" x="370" y="304" text-anchor="middle">+</text>
+  <rect x="193" y="57" width="66" height="66" fill="none" style="stroke:var(--accent-2);stroke-width:2.5" stroke-dasharray="5 3"/>
+  <text class="t-dim" x="226" y="96" text-anchor="middle">어려운</text><text class="t-dim" x="226" y="112" text-anchor="middle">음성</text>
+  <path d="M410 90 H438" class="s-line" marker-end="url(#g92-arr)"/><text class="t-dim" x="446" y="94">행: 이미지가 설명을 고른다</text>
+  <text class="t-b" x="446" y="140">읽는 법</text>
+  <text class="t-dim" x="446" y="164">+ 칸(대각선)의 로짓은 올리고, 나머지 칸은 내린다.</text>
+  <text class="t-dim" x="446" y="184">내리는 힘은 칸의 소프트맥스 확률에 비례한다.</text>
+  <text class="t-dim" x="446" y="204">그래서 점수가 높은 음성(어려운 음성)이 더 세게 밀린다.</text>
+  <text class="t-dim" x="446" y="234">열 방향도 같다: 설명이 이미지를 고른다.</text>
+  <text class="t-acc" x="446" y="274">손실이 아는 것은 배치 안의 음성뿐이다.</text>
+  <text class="t-acc" x="446" y="294">배치에 없는 비슷한 설명은 구분하지 않아도 된다.</text>
+</svg>
+      <figcaption><b>그림 9-2.</b> 배치 대조 손실의 점수 행렬. 대각선이 양성(짝), 나머지가 음성이다. 점선 칸은 낱말 모음이 같은 설명이 배치에 들어온 경우로, 이런 '어려운 음성'이 배치에 있을 때만 손실이 그것을 구분하라고 요구한다.</figcaption>
+    </figure>
+    <div class="box thm" id="thm-nce"><div class="box-h">대조 손실의 성질</div>
+      <p><a class="ref" href="#def-nce"></a>의 손실에서 한 행의 손실을 \(\ell_i=-\log p^{\mathrm{r}}_{ii}\)라 하자.</p>
+      <ol>
+        <li>모든 로짓이 같으면 \(L=\log N\)이다(우연 수준).</li>
+        <li>\(\dfrac{\partial\ell_i}{\partial z_{ij}}=p^{\mathrm{r}}_{ij}-\delta_{ij}\)이다. 따라서 정규화 제약을 무시하고 \(u_i\)를 자유 변수로 보면 \(\nabla_{u_i}\ell_i=\dfrac1\tau\Bigl(\sum_jp^{\mathrm{r}}_{ij}v_j-v_i\Bigr)\)이다. 이 기울기의 반대 방향으로 가면 \(u_i\)가 짝 \(v_i\) 쪽으로 가고, 후보 전체를 확률로 가중한 평균에서는 멀어진다.</li>
+        <li>정답과 로짓이 같은 음성이 \(k\)개 있으면 \(p^{\mathrm{r}}_{ii}\le1/(1+k)\)이고 \(\ell_i\ge\log(1+k)\)이다. 다른 음성이 아무리 낮아도 마찬가지이다.</li>
+        <li>정답의 로짓이 모든 음성보다 \(m\) 이상 높으면 \(\ell_i\le\log\bigl(1+(N-1)e^{-m}\bigr)\)이다.</li>
+        <li>두 음성 \(j,k\)가 받는 기울기 가중의 비 \(p^{\mathrm{r}}_{ij}/p^{\mathrm{r}}_{ik}=\exp\bigl((s_{ij}-s_{ik})/\tau\bigr)\)이다. \(\tau\)가 작을수록 점수 \(s\)가 가장 높은 음성에 기울기가 몰린다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 모든 \(z_{ij}\)가 같으면 \(p=1/N\)이므로 손실은 \(\log N\)이다. 2번: \(\ell_i=-z_{ii}+\log\sum_ke^{z_{ik}}\)를 \(z_{ij}\)로 미분하면 \(-\delta_{ij}+p^{\mathrm{r}}_{ij}\)이다. \(z_{ij}=u_i^\top v_j/\tau\)이므로 연쇄 법칙으로 \(\nabla_{u_i}\ell_i=\frac1\tau\sum_j(p^{\mathrm{r}}_{ij}-\delta_{ij})v_j\)이다. 3번: 분모에 \(e^{z_{ii}}\)가 \((1+k)\)번 들어가 있으므로 \(p^{\mathrm{r}}_{ii}=e^{z_{ii}}/\bigl((1+k)e^{z_{ii}}+\text{(나머지 양수)}\bigr)\le1/(1+k)\)이다. 4번: \(\ell_i=\log\bigl(1+\sum_{j\ne i}e^{z_{ij}-z_{ii}}\bigr)\)이고 각 항이 \(e^{-m}\) 이하이다. 5번은 소프트맥스의 정의에서 나온다.</p>
+      </details>
+    </div>
+    <p>3번과 4번을 함께 읽으면 손실이 0에 가까워지는 데 필요한 것이 <em>배치에 실제로 들어 있는 음성</em>과의 간격이라는 점이 드러난다. 배치 밖에 있는 비슷한 설명과 구분되는지는 손실이 묻지 않는다. 4번의 식을 거꾸로 풀면 \(N\)이 커질수록 같은 손실에 필요한 간격이 늘어난다. 손실을 0.05 이하로 보장하는 데는 \(N=8\)에서 \(m\ge4.9\), \(N=256\)에서 \(m\ge8.5\)이면 충분하다(음성이 모두 같은 점수이면 등식이므로 이 값이 필요하기도 하다). 로짓 단위이므로 \(\tau=0.01\)(로짓 스케일 100)이면 코사인 차이로는 0.05와 0.085이다. 5번은 학습에서 온도의 역할을 말해 준다.</p>
+    <div class="box ex" id="ex-temp"><div class="box-h">온도가 정하는 것: 어려운 음성이 얼마나 들리는가</div>
+      <p>배치 크기 \(N=256\)에서 한 행을 보자. 정답의 점수가 0.31, 가장 어려운 음성이 0.30, 나머지 254개가 0.15라 하자. \(\tau=0.07\)(로짓 스케일 약 14)이면 정답의 확률은 0.036, 손실은 3.32이고, 음성에 걸리는 기울기 가중 가운데 어려운 음성의 몫은 약 3%뿐이다. 쉬운 음성 254개가 가중의 대부분을 가져간다. \(\tau=0.01\)(로짓 스케일 100)이면 정답의 확률은 0.731, 손실은 0.313이고 어려운 음성의 몫이 99.99%로 올라간다. 점수 차이 0.01이 로짓에서는 1이 되어 정답과 어려운 음성의 확률이 0.731과 0.269로 갈리기 때문이다. 내려받은 CLIP ViT-B/32의 <code>logit_scale</code>은 \(100.0\)이다(\(\tau=0.01\)). 온도가 낮을수록 어려운 음성이 학습 신호를 지배한다.</p>
+    </div>
+
+    <h3 id="h-bag">순서를 몰라도 손실이 0이 되는 경우</h3>
+    <p>정리의 3번은 구체적인 실패를 하나 만든다. 글 인코더가 낱말의 순서나 묶음을 보지 못하면 같은 낱말로 쓴 두 설명을 같은 벡터로 보낸다. 예를 들어 토큰 임베딩의 합을 정규화한 \(g_{\text{bag}}(t)\)는 토큰의 순열에 대해 불변이다. 'a red square and a blue circle'과 'a blue square and a red circle'은 낱말 모음이 같다. 색 두 개를 서로 맞바꾼 것뿐이다. 두 설명의 임베딩이 같으면 어떤 이미지 \(x\)에 대해서도 점수가 같고, 이 둘이 한 배치에 들어오면 정리의 3번에서 그 행의 손실은 \(\log2\)를 넘는다. 학습으로 이 손실을 줄일 방법이 없다. 반대로 배치에 이런 쌍둥이가 없으면 낱말 모음이 다른 설명끼리만 구분하면 되고, 그것은 \(g_{\text{bag}}\)로도 된다.</p>
+    <p>그래서 질문은 쌍둥이가 배치에 얼마나 자주 들어오느냐가 된다. 이 장의 실험에 쓰는 장난감 설명 전체(색 6, 모양 3, 서로 색과 모양이 다른 물체 두 개를 왼쪽부터 읽은 설명)는 180개이고, 한 설명과 낱말 모음이 같은 다른 설명은 3개이다(짝짓기 2가지에 읽는 순서 2가지에서 자기 자신을 뺀 것).</p>
+    <div class="box ex" id="ex-twin"><div class="box-h">무작위 배치에는 쌍둥이가 드물다</div>
+      <p>배치의 한 설명을 두고, 나머지 \(N-1\)개를 다른 179개 설명에서 무작위로(비복원) 뽑는다. 배치에 쌍둥이가 하나라도 들어올 확률은 \(N=2\)에서 1.7%, \(N=8\)에서 11.3%, \(N=32\)에서 43.7%이다. 순서를 못 보는 인코더가 피할 수 없는 행 손실의 기댓값(쌍둥이 \(k\)개일 때 \(\log(1+k)\)의 평균)은 각각 0.012, 0.080, 0.336이다. \(N=8\)에서는 손실의 바닥이 \(\log2=0.693\)의 12%에 그친다. 설명의 가짓수가 180개뿐인 이 장난감에서도 그렇다. 실제 웹 설명의 가짓수는 이보다 훨씬 많아 쌍둥이가 나올 확률은 더 작을 것이라고 짐작하지만, 이 장은 그것을 재지 않았다.</p>
+    </div>
+    <p>이것이 <a href="https://arxiv.org/abs/2210.01936">Yuksekgonul 외(2022)</a>가 가설로 내놓은 설명과 같은 구조이다. 초록에 따르면 이들은 시각-언어 모델이 낱말 모음처럼 행동한다고 보고하고(물체와 속성을 잇는 데서 실수하고 낱말 순서에 거의 민감하지 않다), 기존 데이터셋의 검색은 구성 정보와 순서 정보 없이도 잘 풀리며 대조 사전학습이 이런 지름길이 있는 검색에 맞게 최적화한다는 가설을 세웠다. 이들이 제안한 해법은 구성을 바꾼 어려운 음성을 일부러 배치에 넣는 것이다(초록: composition-aware hard negative mining). 위의 정리는 이 가설의 논리를 정리한 것이다. 손실은 바인딩(어느 속성이 어느 물체에 붙는가)을 요구하지 않을 수 있다. 다만 그것은 '요구하지 않는다'일 뿐 '배우지 못한다'가 아니다. 실제 모델이 배웠는지는 재야 알 수 있고, 이 장의 실험이 그것을 잰다.</p>
+    <p>이 손실의 다른 형태도 있다. <a href="https://arxiv.org/abs/2303.15343">Zhai 외(2023)</a>의 초록에 따르면 시그모이드 손실은 이미지와 글의 쌍에만 작용하고 소프트맥스 정규화에 쓰는 '쌍별 유사도의 전체 시야'가 필요 없으며, 이 덕에 배치를 더 키울 수 있다. 소프트맥스 대조 손실의 기울기 가중 \(p_{ij}\)가 배치 전체에 걸린 정규화에서 나온다는 위의 읽기는 이 형태에는 그대로 옮겨지지 않는다.</p>
   </section>
+
+  <!-- ============================================================ 9.3 -->
   <section id="s3">
     <h2>비전 인코더와 언어모델의 연결</h2>
-    <p class="slot" data-slot="9.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>대조 학습이 주는 것은 이미지 하나당 벡터 하나(글 하나당 벡터 하나)이다. 후보 중에서 고르는 데는 충분하지만, 언어모델이 이미지에 대해 문장을 쓰려면 '어디에 무엇이 있는지'를 읽을 수 있어야 하고 벡터 하나에는 그 세부가 다 담기지 않는다. 그래서 연결은 패치마다의 특징 열(또는 그 요약)을 언어모델이 쓰게 하는 일이 된다. 언어모델은 글 토큰의 임베딩에 맞게, 비전 인코더는 글 인코더에 맞게 학습되었으므로 둘 사이에는 번역이 필요하다. 이 번역의 설계는 두 질문으로 나뉜다. 시각 특징이 언어모델의 어디로 들어가는가, 그리고 몇 개의 토큰으로 줄여서 넣는가.</p>
+    <p>아래 표는 세 연구를 이 두 축에 놓은 것이다. 내용은 각 논문 본문에서 확인했다(arXiv PDF에서 추출한 텍스트; LLaVA는 §4.1~4.2, BLIP-2는 §3.1~3.3, Flamingo는 §2.1~2.2).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>시각 특징을 전부 넣는다</th><th>학습된 질의로 줄여 넣는다</th></tr></thead>
+      <tbody>
+        <tr><td><b>입력 열 앞에 붙인다</b><br>(접두)</td><td><a href="https://arxiv.org/abs/2304.08485">LLaVA</a>: CLIP ViT-L/14의 격자 특징 \(Z_v\)를 학습 가능한 선형 투영 \(W\)로 단어 임베딩 공간의 토큰 \(H_v=WZ_v\)로 바꾼다.</td><td><a href="https://arxiv.org/abs/2301.12597">BLIP-2</a>: 질의 32개(각 768차원)를 쓰는 Q-Former가 이미지 특징(예: ViT-L/14의 \(257\times1024\))을 \(32\times768\)로 줄이고, 선형 투영한 뒤 입력 글 임베딩 앞에 붙인다.</td></tr>
+        <tr><td><b>층 사이에서 교차 어텐션으로 읽는다</b></td><td>(이 장이 확인한 예가 없다)</td><td><a href="https://arxiv.org/abs/2204.14198">Flamingo</a>: Perceiver Resampler가 가변 길이의 시각 특징을 고정된 개수(64)의 시각 토큰으로 줄이고, 얼린 언어모델의 층 사이에 새로 끼운 gated cross-attention 층이 그것을 읽는다.</td></tr>
+      </tbody>
+    </table></div>
+    <p>같은 표를 학습의 쪽에서 읽으면 세 설계 모두 이미 학습된 두 모델을 처음부터 다시 학습하지 않고 사이를 잇는다. LLaVA는 두 단계로 학습한다. 첫 단계에서는 비전 인코더와 언어모델을 얼리고 투영 \(W\)만 학습해(논문의 표현으로 '고정된 언어모델에 맞는 시각 토크나이저'를 만든다), 둘째 단계에서는 인코더는 얼린 채 \(W\)와 언어모델을 함께 갱신한다. BLIP-2는 이미지 인코더와 LLM을 모두 얼리고 Q-Former를 두 단계로 학습한다(초록). Flamingo는 사전학습한 비전 인코더(Radford 외의 대조 손실로 따로 학습한 것)와 언어모델을 얼리고 Perceiver Resampler와 교차 어텐션 층을 새로 학습한다. 지시를 따르게 하는 학습은 <a href="ch10.html">10장</a>에서 이어진다. 이 구조가 Claude에 쓰였는지는 공개되어 있지 않으며 이 장은 말하지 않는다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 300" role="img" aria-label="시각 특징이 언어모델에 들어가는 두 방식. 왼쪽 접두 방식은 시각 토큰 K개를 글 토큰 T개 앞에 붙여 하나의 열로 만들고 모든 층이 이 열 전체에 attention한다. 오른쪽 교차 어텐션 방식은 글 토큰 T개만 열을 이루고, 시각 토큰 K개는 몇몇 층에 끼운 교차 어텐션 층에서 키와 값으로 읽힌다.">
+  <defs>
+    <marker id="g93-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+  </defs>
+  <text class="t-b" x="40" y="22">접두: 시각 토큰이 열의 일부가 된다</text>
+  <rect x="40" y="40" width="150" height="34" rx="6" style="fill:var(--accent);opacity:.28"/><text class="t-b" x="115" y="62" text-anchor="middle">시각 토큰 K개</text>
+  <rect class="f-surface" x="192" y="40" width="190" height="34" rx="6"/><text class="t-b" x="287" y="62" text-anchor="middle">글 토큰 T개</text>
+  <rect class="f-surface" x="40" y="100" width="342" height="38" rx="6"/><text class="t-dim" x="211" y="124" text-anchor="middle">언어모델 층 1</text>
+  <rect class="f-surface" x="40" y="146" width="342" height="38" rx="6"/><text class="t-dim" x="211" y="170" text-anchor="middle">언어모델 층 2 ... L</text>
+  <path d="M211 76 V98" class="s-line" marker-end="url(#g93-arr)"/>
+  <text class="t-acc" x="40" y="214">KV cache에 K자리가 더 든다 (K×κ바이트)</text>
+  <text class="t-acc" x="40" y="234">점수 행렬이 T²에서 (T+K)²로 커진다</text>
+  <text class="t-acc" x="40" y="254">컨텍스트 윈도의 K자리를 쓴다</text>
+  <text class="t-b" x="440" y="22">교차 어텐션: 시각 토큰은 옆에서 읽힌다</text>
+  <rect class="f-surface" x="440" y="40" width="190" height="34" rx="6"/><text class="t-b" x="535" y="62" text-anchor="middle">글 토큰 T개</text>
+  <rect class="f-surface" x="440" y="100" width="190" height="38" rx="6"/><text class="t-dim" x="535" y="124" text-anchor="middle">언어모델 층 (얼림)</text>
+  <rect x="440" y="146" width="190" height="38" rx="6" fill="none" style="stroke:var(--accent-2);stroke-width:2" stroke-dasharray="5 3"/><text class="t-dim" x="535" y="170" text-anchor="middle">교차 어텐션 층 (새로 끼움)</text>
+  <rect class="f-surface" x="440" y="192" width="190" height="38" rx="6"/><text class="t-dim" x="535" y="216" text-anchor="middle">언어모델 층 (얼림) ...</text>
+  <path d="M535 76 V98" class="s-line" marker-end="url(#g93-arr)"/>
+  <rect x="660" y="146" width="132" height="38" rx="6" style="fill:var(--accent);opacity:.28"/><text class="t-b" x="726" y="170" text-anchor="middle">시각 토큰 K개</text>
+  <path d="M660 165 H634" class="s-line" marker-end="url(#g93-arr)"/><text class="t-dim" x="726" y="204" text-anchor="middle">키·값으로 읽힘</text>
+  <text class="t-acc" x="440" y="254">글 열의 길이는 그대로이다 (T)</text>
+  <text class="t-acc" x="440" y="274">교차 층마다 T×K개의 점수가 더 든다</text>
+</svg>
+      <figcaption><b>그림 9-3.</b> 시각 특징이 언어모델에 들어가는 두 방식. 왼쪽은 시각 토큰을 글 토큰 앞에 붙여 하나의 열로 읽고(LLaVA, BLIP-2), 오른쪽은 글 열은 그대로 두고 끼워 넣은 교차 어텐션 층이 시각 토큰을 읽는다(Flamingo). \(\kappa\)는 아래 정리의 토큰당 KV cache 바이트이다.</figcaption>
+    </figure>
+    <div class="box thm" id="thm-conn"><div class="box-h">연결 방식과 비용</div>
+      <p>언어모델이 \(L\)층, 층마다 키·값 head \(n_{kv}\)개, head 차원 \(d_h\)이고 키·값의 원소가 \(b\)바이트라 하자. 토큰 하나의 KV cache는 \(\kappa=2Ln_{kv}d_hb\)바이트이다(2장). 글 토큰이 \(T\)개이고 커넥터가 언어모델에 넘기는 시각 토큰이 이미지 한 장당 \(K\)개이다.</p>
+      <ol>
+        <li><b>접두</b>: 이미지 한 장은 KV cache를 \(K\kappa\)바이트 늘리고, 한 층·한 head의 점수 행렬 크기를 \(T^2\)에서 \((T+K)^2\)으로 키우며, 이후 디코딩 단계마다 키·값 \(K\)개를 더 읽게 한다. 시각 토큰은 컨텍스트 윈도의 \(K\)자리를 쓴다.</li>
+        <li><b>교차 어텐션</b>: 교차 층이 \(L_x\)개이고 그 층의 키·값 head 설정이 언어모델과 같다고 하자. 이미지의 키·값 저장은 \(K\cdot2L_xn_{kv}d_hb\)바이트이고, 글 쪽 self-attention의 점수 \(T^2\)은 그대로이며 교차 층마다 \(TK\)개의 점수가 더해진다. 글 열의 길이와 컨텍스트 윈도의 자리는 늘지 않는다.</li>
+        <li><b>압축</b>: 시각 특징 \(N\)개를 학습된 질의 \(Q\)개로 줄이면 \(K=Q\)이다. 언어모델이 이미지에 대해 쓸 수 있는 정보는 이 \(Q\times d\)개의 수에 담긴 것이 전부이다. 글 입력과 가중치가 같고 압축 결과가 같은 두 이미지는 언어모델의 출력 분포도 같다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번과 2번은 저장하는 키·값과 점수의 수를 센 것이다. 접두에서는 열의 길이가 \(T+K\)이므로 모든 층이 \(T+K\)개의 키·값을 저장하고 \(\kappa\)가 토큰당 바이트이다. 교차 어텐션에서는 교차 층의 키·값만 시각 토큰에서 만들어진다. 3번: 언어모델의 출력 분포는 입력 열(시각 토큰 포함)과 가중치로 정해지는 함수이다. 이미지는 커넥터의 출력으로만 들어가므로, 커넥터 출력이 같으면 입력이 같고 분포가 같다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-kv"><div class="box-h">이미지 한 장의 KV cache</div>
+      <p>가상 설정으로 언어모델이 32층, 키·값 head 8개, head 차원 128, 16비트(\(b=2\))라 하자. 어떤 실제 모델의 구조도 말하지 않는 값이다. 토큰당 \(\kappa=2\cdot32\cdot8\cdot128\cdot2=131{,}072\)바이트, 곧 128 KiB이다. 해상도 336, 패치 14의 비전 인코더가 만드는 \(N=(336/14)^2=576\)개를 그대로 접두로 넣으면 이미지 한 장이 576자리와 72 MiB를 쓴다. 학습된 질의 32개로 줄이면 4 MiB이다. 교차 어텐션을 8개 층에 끼우면 같은 576개 시각 토큰의 키·값이 18 MiB이다. 글 \(T=1000\)토큰이면 접두의 점수 행렬은 \(1000^2\)에서 \(1576^2\)으로 2.48배가 된다. 이미지가 5장이면 접두는 2,880자리와 360 MiB로, 글 토큰 2,880개의 KV cache와 같다.</p>
+    </div>
+    <div class="callout agent"><strong>스크린샷은 단계마다 컨텍스트를 쓴다</strong>
+      <p>에이전트가 화면을 보며 일하면 단계마다 새 이미지가 들어온다. 접두 방식에서 이미지 한 장이 위 예처럼 576토큰이면, 스크린샷 열 장은 글 5,760토큰의 컨텍스트 자리와 KV cache(위 가상 설정에서 720 MiB)를 쓴다. 이미지에서 읽은 정보를 글로 옮겨 적고 이미지는 버리는 설계가 가능한 것도 이 비용 때문이다. 어떤 이미지를 남기고 버릴지는 컨텍스트 관리의 문제이다(<a href="ch20.html">20장</a>). Claude가 이미지 한 장을 몇 토큰으로 세는지는 제품 문서가 알려 주며 <a href="ch10.html">10장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 9.4 -->
   <section id="s4">
     <h2>분류와 생성의 차이</h2>
-    <p class="slot" data-slot="9.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>9.1~9.3절은 이미지를 다루는 두 가지 일을 가능하게 한다. 이중 인코더는 후보 가운데 하나를 <b>고른다</b>. 연결된 언어모델은 이미지에 대한 글을 <b>쓴다</b>. 둘은 출력의 공간이 달라서 틀리는 방식도, 재는 방식도 다르다. 이 절은 그 차이를 세우고, 8장의 평가 도구가 각각에 어떻게 걸리는지 본다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>고르기 (검색, 분류, 객관식)</th><th>쓰기 (설명, 자유 답변)</th></tr></thead>
+      <tbody>
+        <tr><td>출력의 공간</td><td>사람이 준 후보 \(K\)개</td><td>모든 문자열</td></tr>
+        <tr><td>모델이 내는 것</td><td>후보마다의 점수 \(s(x,t_k)\)</td><td>토큰마다의 조건부 확률. 문장은 그 곱이다(\(p(t\mid x)=\prod_ip(t_i\mid t_{\lt i},x)\))</td></tr>
+        <tr><td>우연 수준</td><td>\(1/K\)</td><td>정해지지 않는다(열린 집합)</td></tr>
+        <tr><td>전형적인 실패</td><td>후보에 정답이 없어도 하나를 고른다. 후보의 구성에 따라 답이 바뀐다</td><td>이미지에 없는 것을 말한다(object hallucination)</td></tr>
+        <tr><td>채점</td><td>후보의 일치. 싸고 오류가 적다</td><td>채점기가 필요하다. 8.1절의 \(t,\alpha\)가 그대로 걸린다</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-closed">고르는 일은 후보 안에서만 답한다</h3>
+    <p>점수에서 후보 위의 확률을 만드는 가장 흔한 방법은 로짓 \(z_k=s(x,t_k)/\tau\)에 소프트맥스를 취하는 것이다. 이 확률은 후보 집합과 온도에 상대적인 값이라, 사건의 확률로 읽으면 틀린다.</p>
+    <div class="box thm" id="thm-closed"><div class="box-h">후보 집합 안의 선택</div>
+      <p>후보 \(t_1,\ldots,t_K\)의 점수가 \(s_k\)이고 선택 확률이 \(p_k=e^{s_k/\tau}/\sum_je^{s_j/\tau}\)라 하자.</p>
+      <ol>
+        <li>가장 높은 점수의 후보(top-1)는 온도 \(\tau\gt0\)와 무관하다.</li>
+        <li>\(\max_kp_k\ge1/K\)이다. 후보 가운데 맞는 것이 하나도 없어도 어떤 후보는 확률 \(1/K\) 이상을 받는다.</li>
+        <li>후보 \(t'\)을 추가하면 기존 후보의 확률은 모두 줄어든다. top-1이 바뀌는 것은 \(s'\gt\max_ks_k\)일 때에 한한다.</li>
+        <li>\(\tau\to\infty\)이면 \(p_k\to1/K\)이고, \(\tau\to0\)이면 \(p\)는 최고 점수 후보 하나(동점이 없을 때)로 몰린다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: \(\tau\gt0\)에서 \(s\mapsto s/\tau\)와 소프트맥스는 순서를 보존한다. 2번: 확률의 합이 1이므로 최댓값은 평균 \(1/K\) 이상이다. 3번: 분모에 양수 항 \(e^{s'/\tau}\)이 더해지므로 모든 \(p_k\)가 줄고, 새 후보가 이기는 것은 \(e^{s'/\tau}\gt e^{\max s_k/\tau}\)일 때이다. 4번: \(\tau\to\infty\)에서 \(e^{s_k/\tau}\to1\)이고, \(\tau\to0\)에서는 가장 큰 지수가 나머지를 압도한다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-closed"><div class="box-h">같은 점수, 다른 확률</div>
+      <p>이미지 하나와 후보 다섯 개의 코사인이 0.31, 0.29, 0.22, 0.20, 0.18이라 하자. 로짓 스케일 100(\(\tau=0.01\))에서 최대 확률은 0.881이고, 스케일 10에서 0.353, 스케일 1에서 0.214(하한 \(1/5=0.2\)에 가깝다)이다. top-1은 모두 첫 후보로 같다. 점수 0.33의 후보를 하나 더하면 스케일 100에서 top-1이 새 후보로 바뀌고(확률 0.867), 이전 1위의 확률은 0.881에서 0.117로 떨어진다. 점수 0.25의 후보를 더하면 top-1은 그대로이고 1위의 확률이 0.881에서 0.879로 거의 안 변한다. 정답이 없는 후보 집합에서도 1위의 확률이 0.88이 될 수 있다는 점이 이 장의 실험(별 이미지)에서 다시 나온다.</p>
+    </div>
+    <p><a class="ref" href="#thm-closed"></a>의 2번은 '해당 없음'을 점수로 말할 수 없다는 뜻이다. 이를 후보 집합에 '해당 없음'이라는 후보를 넣어 풀 수 있지만, 그 후보가 어떤 점수를 받느냐는 다시 모델과 문구에 달려 있다. 코사인 값에 임계를 두는 방법도 그 값이 다른 모델이나 장면에서도 통한다는 보장이 없다. 이 장의 실험에서 짝을 이룬 이미지와 글의 코사인은 0.36 근처였다.</p>
+
+    <h3 id="h-pair">짝을 바꾸어 재기</h3>
+    <p>고르는 일이 정말 이미지의 내용을 보고 있는지는 후보를 신중히 고르면 잴 수 있다. 가장 단순한 형태가 이미지 둘과 설명 둘의 2×2 시험이다. <a href="https://arxiv.org/abs/2204.03162">Winoground</a>(Thrush 외, 2022)의 초록에 따르면 이미지 두 장과 설명 두 장이 주어지고 둘을 올바르게 짝짓는 것이 과제이며, 두 설명은 같은 낱말을 다른 순서로 쓴 것이고, 평가한 모델 가운데 우연보다 크게 나은 것이 없었다. 본문의 점수 정의를 이 장의 기호로 옮기면 다음과 같다.</p>
+    <div class="box thm" id="thm-pair"><div class="box-h">2×2 시험의 점수와 우연 수준</div>
+      <p>이미지 \(x_1,x_2\), 설명 \(t_1,t_2\), 점수 \(S_{ij}=s(x_i,t_j)\)이고 정답 짝은 \((x_1,t_1),(x_2,t_2)\)이다. 세 점수를 다음처럼 정의한다(Winoground의 이름과 같다).</p>
+      <div class="formula">\[ \text{글 점수}=\mathbf 1[S_{11}\gt S_{12}\wedge S_{22}\gt S_{21}],\quad \text{이미지 점수}=\mathbf 1[S_{11}\gt S_{21}\wedge S_{22}\gt S_{12}],\quad \text{그룹 점수}=\text{글 점수}\cdot\text{이미지 점수} \]</div>
+      <p>글 점수는 이미지마다 올바른 설명을 고르는지, 이미지 점수는 설명마다 올바른 이미지를 고르는지이다.</p>
+      <ol>
+        <li>네 점수가 교환 가능하고 동점이 없으면(이미지도 글도 보지 않는 모델) 기댓값은 글 점수 \(1/4\), 이미지 점수 \(1/4\), 그룹 점수 \(1/6\)이다.</li>
+        <li>그룹 점수는 글 점수와 이미지 점수 가운데 작은 쪽 이하이다.</li>
+        <li>글 인코더가 두 설명을 같은 벡터로 보내면(\(v_1=v_2\)) \(S_{i1}=S_{i2}\)이므로 이미지 점수는 항상 0이다. 글 점수는 동점을 무작위로 깰 때 기댓값 \(1/4\)이고 그룹 점수는 0이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 네 점수의 순위는 \(4!=24\)가지가 같은 확률이다. 글 점수는 \(S_{11}\gt S_{12}\)와 \(S_{22}\gt S_{21}\)이 모두 성립하는 순위이며 6가지, 이미지 점수도 6가지이다. 그룹 점수는 두 대각 원소가 두 비대각 원소보다 모두 큰 순위이고 \(2!\cdot2!=4\)가지이므로 \(4/24=1/6\)이다. 2번은 정의에서 바로 나온다. 3번: \(S_{11}=S_{12}=a_1\), \(S_{21}=S_{22}=a_2\)로 두면 이미지 점수의 조건은 \(a_1\gt a_2\)와 \(a_2\gt a_1\)이 동시에 성립하는 것이어서 불가능하다. 글 점수의 두 조건 \(a_1\gt a_1\)과 \(a_2\gt a_2\)는 모두 동점이므로, 각각 무작위로 깨면 확률 \(1/2\)씩 독립이어서 \(1/4\)이다.</p>
+      </details>
+    </div>
+    <p>1번의 우연 수준 25%, 25%, 16.67%는 Winoground 본문의 표에도 같은 값으로 실려 있다. 3번은 순서를 못 보는 글 인코더가 이 시험에서 내는 점수의 모양을 보여 준다. 두 설명이 같은 벡터이면 이미지 점수는 0이다. 점수가 우연 수준 25%보다 훨씬 낮아지는 경우는 이것만이 아니다. 점수를 \(S_{ij}=a_i+b_j+\varepsilon_{ij}\)로 쪼개 보자. \(a_i\)는 이미지마다의 높낮이, \(b_j\)는 설명마다의 높낮이, \(\varepsilon_{ij}\)는 이미지와 설명의 짝에서만 나오는 부분이다. \(|b_1-b_2|\)가 \(\varepsilon\)의 차이보다 크면 글 점수의 두 조건은 한 번에 하나만 성립하고, \(|a_1-a_2|\)가 크면 이미지 점수가 같은 꼴로 막힌다. 곧 높낮이가 짝의 신호보다 크면 두 점수가 모두 0에 가까워진다. 짝의 신호만 남기려면 \(\Delta=S_{11}+S_{22}-S_{12}-S_{21}=\varepsilon_{11}+\varepsilon_{22}-\varepsilon_{12}-\varepsilon_{21}\)을 보면 된다. \(a\)와 \(b\)가 상쇄되므로 \(\Delta\gt0\)인 비율(대각 합이 더 큰 비율)이 짝짓기 정확도이다. 이 장의 실험은 세 점수와 함께 \(\Delta\)도 잰다.</p>
+
+    <h3 id="h-gen">쓰는 일은 다르게 틀린다</h3>
+    <p>언어모델은 이미지를 읽는 접두 토큰 위에서 글을 토큰 단위로 쓴다. LLaVA의 식에 따르면 답의 확률은 이미지와 지시, 앞서 쓴 토큰을 조건으로 한 토큰별 확률의 곱이다(논문의 식 (3)). 후보 집합이 없으므로 고르는 일의 '후보 안에서만'이라는 제약이 없다. 대신 이미지에 없는 것을 쓸 수 있다. <a href="https://arxiv.org/abs/2305.10355">Li 외(2023)</a>의 초록은 대형 시각 언어모델이 대상 이미지와 맞지 않는 물체를 설명에 쓰는 경향(object hallucination)이 있고, 평가한 모델 대부분이 이 문제를 심하게 겪으며, 시각 지시에 자주 나오거나 이미지의 물체와 함께 나오는 물체일수록 지어내기 쉽다고 보고한다. 이들이 제안한 POPE는 본문에 따르면 환각의 평가를 이진 분류로 바꾼다. 'Is there a car in the image?'처럼 물체의 유무를 예/아니오로 묻고, 있는 물체와 없는 물체를 1:1로 섞는다. 곧 쓰는 일의 실패를 고르는 일의 형태로 바꾸어 우연 수준(50%)과 채점의 쉬움을 얻은 것이다. 다만 이렇게 바꾼 시험이 재는 것은 '유무를 묻는 질문에 맞게 답하는가'이지, 자유롭게 쓸 때 지어내지 않는가가 아니다.</p>
+    <p>쓰는 일의 채점에는 8장의 도구가 그대로 걸린다. 자유 서술의 정오를 정하려면 채점기가 필요하고(정규식, 사람, 판정 모델), 채점기의 참양성률과 거짓 양성률이 측정 정확도를 바꾼다(<a href="ch08.html#thm-grader">8장의 정리 8.2</a>). 판정 모델이 시각 언어모델이면 이미지를 잘못 읽는 채점기가 쓰는 일의 오류를 확인하는 셈이 된다. 고르는 일에는 찍기가 걸린다. 객관식 정답률은 \(A=q+(1-q)g\)이고(<a href="ch08.html#thm-guess">8장의 정리 8.3</a>), 시각 질문의 객관식에서는 \(g\)가 \(1/K\)보다 클 수 있다. <a href="https://arxiv.org/abs/2403.20330">Chen 외(2024)</a>의 초록에 따르면 많은 벤치마크 문항이 시각 내용 없이 풀리며(한 모델은 MMMU에서 이미지 없이 42.9%를 얻었다), 이는 질문과 선택지, 또는 언어모델의 지식만으로 답이 추론되기 때문이다.</p>
+    <div class="box ex" id="ex-blind"><div class="box-h">이미지를 지운 정답률로 보정하기</div>
+      <p>가상의 수치로 계산한다. 어떤 시각 언어모델이 4지선다 문항에서 정답률 0.60을 얻고, 같은 문항에서 이미지를 지우면 0.43을 얻는다고 하자. 흔한 보정은 우연 \(1/4\)를 빼는 것으로 \((0.60-0.25)/0.75=0.467\)이다. 그러나 이미지 없이도 0.43이 나온다면 찍기에 해당하는 몫 \(g\)가 0.25보다 훨씬 크다고 볼 이유가 있다. \(g=0.43\)으로 보정하면 \((0.60-0.43)/0.57=0.298\)이다. 이 두 값의 차이가 이미지를 보아야만 맞는 문항의 몫에 대한 불확실성이다. 이미지를 지운 정답률은 모델이 이미지를 볼 때의 \(g\)와 같다는 보장이 없으므로 위 계산은 \(g\)의 후보 하나를 넣어 본 것일 뿐이다. 8장의 결론(정답률만으로는 \(q\)와 \(g\)를 가를 수 없다)이 여기에도 그대로 걸린다. 이미지를 지운 시험, 이미지를 바꾼 시험이 정답률 밖의 정보를 준다.</p>
+    </div>
+    <div class="callout agent"><strong>이미지에 대한 판단은 후보를 정해 묻고, 다른 경로로 확인한다</strong>
+      <p>에이전트가 화면을 보고 '저장 버튼이 있는가'를 판단할 때 자유 서술을 시키면 없는 요소를 말할 수 있다. 이를 예/아니오나 후보 중 선택으로 바꾸면 우연 수준이 정해지고 채점이 쉬워지지만(POPE가 쓴 방식), 후보 밖의 답은 낼 수 없으므로 '해당 없음'을 후보에 넣어야 한다(<a class="ref" href="#thm-closed"></a>의 2번). 어느 쪽이든 이미지에서 읽은 것은 확률적인 해석이다. 행동으로 옮기기 전에 다른 경로, 곧 화면의 글자나 도구가 돌려주는 상태 같은 별도의 정보로 확인하는 단계를 두는 것이 안전하다. 화면을 읽을 때의 구체적인 실패는 <a href="ch10.html">10장</a>, 관찰을 확인하고 계획을 고치는 루프는 <a href="ch14.html">14장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 이미지·설명의 짝을 바꾸면 유사도와 선택이 어떻게 변하는가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 짝을 바꾸면 유사도와 선택은 어떻게 변하는가</h2>
+    <p>슬롯에 적어 둔 질문은 '이미지와 설명의 짝을 바꾸면 유사도와 선택이 어떻게 변하는가'였다. 이 장은 8장과 달리 모의 세계가 아니라 실제 모델을 쓴다. 공개된 CLIP ViT-B/32를 내려받아 합성 장면에서 9.2절의 가설(대조 손실은 속성과 물체의 짝짓기를 요구하지 않는다)과 9.4절의 2×2 시험을 직접 잰다. 장면은 흰 바탕의 도형 둘이다. 같은 낱말로 쓴 두 설명(색 두 개를 맞바꾼 것)과 두 이미지를 짝짓게 하고, 그 선택이 어떻게 변하는지 본다. 이 실험이 보여 주는 것은 이 모델과 이 장면에서의 행동이지, 시각 언어모델 일반의 성질이 아니다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 310" role="img" aria-label="색 바꾸기 2×2 시험. 이미지 1은 왼쪽 빨간 사각형과 오른쪽 파란 원이고, 이미지 2는 왼쪽 파란 사각형과 오른쪽 빨간 원이다. 설명 1은 a red square and a blue circle, 설명 2는 a blue square and a red circle이다. 두 설명은 낱말 모음이 같고 색이 붙는 물체만 다르다. 정답 짝은 이미지 1과 설명 1, 이미지 2와 설명 2이다.">
+  <text class="t-b" x="40" y="22">색 바꾸기 시험(CS): 같은 낱말, 다른 짝짓기</text>
+  <rect x="40" y="40" width="110" height="110" rx="6" style="fill:#fff;stroke:var(--border);stroke-width:1.5"/>
+  <rect x="53" y="78" width="34" height="34" fill="#dc1e1e"/>
+  <circle cx="120" cy="95" r="17" fill="#2846dc"/>
+  <rect x="40" y="170" width="110" height="110" rx="6" style="fill:#fff;stroke:var(--border);stroke-width:1.5"/>
+  <rect x="53" y="208" width="34" height="34" fill="#2846dc"/>
+  <circle cx="120" cy="225" r="17" fill="#dc1e1e"/>
+  <text class="t-dim" x="95" y="168" text-anchor="middle">이미지 1</text><text class="t-dim" x="95" y="298" text-anchor="middle">이미지 2</text>
+  <text class="t-b" x="190" y="82">설명 1</text><text class="t-mono" x="190" y="102">"a red square and</text><text class="t-mono" x="190" y="120">a blue circle"</text>
+  <text class="t-b" x="190" y="212">설명 2</text><text class="t-mono" x="190" y="232">"a blue square and</text><text class="t-mono" x="190" y="250">a red circle"</text>
+  <text class="t-b" x="430" y="40">점수 행렬 S</text>
+  <rect x="430" y="70" width="80" height="50" rx="4" class="f-surface" style="stroke:var(--border)"/>
+  <rect x="430" y="70" width="80" height="50" rx="4" style="fill:var(--accent);opacity:.28"/>
+  <text class="t-b" x="470" y="100" text-anchor="middle">S11</text>
+  <rect x="520" y="70" width="80" height="50" rx="4" class="f-surface" style="stroke:var(--border)"/>
+  <text class="t-b" x="560" y="100" text-anchor="middle">S12</text>
+  <rect x="430" y="130" width="80" height="50" rx="4" class="f-surface" style="stroke:var(--border)"/>
+  <text class="t-b" x="470" y="160" text-anchor="middle">S21</text>
+  <rect x="520" y="130" width="80" height="50" rx="4" class="f-surface" style="stroke:var(--border)"/>
+  <rect x="520" y="130" width="80" height="50" rx="4" style="fill:var(--accent);opacity:.28"/>
+  <text class="t-b" x="560" y="160" text-anchor="middle">S22</text>
+  <text class="t-dim" x="470" y="64" text-anchor="middle">설명 1</text><text class="t-dim" x="560" y="64" text-anchor="middle">설명 2</text>
+  <text class="t-dim" x="420" y="100" text-anchor="end">이미지 1</text><text class="t-dim" x="420" y="160" text-anchor="end">이미지 2</text>
+  <text class="t-dim" x="430" y="212">글 점수: S11>S12, S22>S21</text>
+  <text class="t-dim" x="430" y="232">이미지 점수: S11>S21, S22>S12</text>
+  <text class="t-dim" x="430" y="252">짝짓기: S11+S22 > S12+S21</text>
+  <text class="t-acc" x="430" y="282">색을 올바른 물체에 붙여야만 풀린다</text>
+</svg>
+      <figcaption><b>그림 9-4.</b> 색 바꾸기(CS) 2×2 시험. 두 설명은 낱말 모음이 같고 색이 붙는 물체만 다르다. 정답 짝은 대각선이고, 짝짓기 정확도는 대각선의 합이 반대 대각선의 합보다 큰 비율이다(\(\Delta\gt0\)). 모양 바꾸기(SS) 시험은 같은 방식으로 두 모양을 맞바꾼다.</figcaption>
+    </figure>
+
+    <h3 id="h-design9">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모델</td><td>CLIP ViT-B/32(<code>openai/clip-vit-base-patch32</code>, 리비전 <code>3d74acf</code>의 <code>pytorch_model.bin</code>). CPU, float32, 한 스레드. 이미지 224, 패치 32, 은닉 768, 글 은닉 512, 투영 512, 로짓 스케일 100.0. 순수 추론이며 학습하지 않는다.</td></tr>
+        <tr><td>장면과 설명</td><td>224×224 흰 바탕에 물체 둘(왼쪽, 오른쪽). 색 6개(red, green, blue, yellow, purple, orange), 모양 3개(square, circle, triangle). 크기와 위치는 시드로 정한 작은 흔들림으로, 한 칸의 두 이미지는 같은 흔들림을 쓴다. 설명은 <code>a {색} {모양} and a {색} {모양}</code>이고 왼쪽 물체를 먼저 쓴다.</td></tr>
+        <tr><td>바꾸는 것(시험마다 하나)</td><td><b>CS</b>(색 바꾸기): 이미지 \(x_1=(a\,x\,|\,b\,y)\), \(x_2=(b\,x\,|\,a\,y)\), 설명 \(t_1\)은 "a ⟨\(a\)⟩ ⟨\(x\)⟩ and a ⟨\(b\)⟩ ⟨\(y\)⟩", \(t_2\)는 "a ⟨\(b\)⟩ ⟨\(x\)⟩ and a ⟨\(a\)⟩ ⟨\(y\)⟩"(⟨ ⟩ 안에 색 또는 모양의 이름이 들어간다). <b>SS</b>(모양 바꾸기): \(x_2=(a\,y\,|\,b\,x)\), \(t_2\)는 "a ⟨\(a\)⟩ ⟨\(y\)⟩ and a ⟨\(b\)⟩ ⟨\(x\)⟩". <b>RN</b>(무작위 음성): 음성이 색이 하나도 겹치지 않는 다른 장면의 설명(또는 이미지). <b>N-way</b>: 낱말 모음이 모두 다른 장면 8개로 만든 배치(쌍둥이가 없다)에서 top-1과 대칭 손실. 그 밖에 낱말 순서 섞기와 닫힌 집합 고르기(CW)를 본다.</td></tr>
+        <tr><td>고정하는 것</td><td>시드 9. CS와 SS는 각각 색·모양 조합 90칸에 흔들림 변형 3개씩 270개의 2×2. RN 270번, N-way 200배치, CW 이미지 72장(색 6 × 모양 4 × 변형 3). 구간은 90칸 단위 군집 부트스트랩 2,000번(같은 칸의 변형 3개는 평균)이다. 문제 수가 아니라 칸의 수가 표본 크기이다.</td></tr>
+        <tr><td>관측값</td><td>쌍 정확도(2×2의 네 비교의 평균, 우연 0.5), 글 점수·이미지 점수·그룹 점수(<a class="ref" href="#thm-pair"></a>), 코사인 평균, 스케일 100의 행 손실(우연 \(\log2=0.693\)), 낱말 순서를 섞은 설명과의 비교, 두 모달리티의 코사인 간격.</td></tr>
+        <tr><td>점검</td><td><b>E0</b>: (a) 기울기 식과 중심 차분의 최대 오차. (b) 같은 임베딩의 손실 = \(\log N\). (c) 2×2 우연 수준을 24개 순위의 열거로. (d) 순서를 못 보는 글 인코더의 점수 모양(<a class="ref" href="#thm-pair"></a>의 3번). (e) 패치 임베딩의 토큰열 모양과 행렬의 계수. (f) 로짓 스케일 1, 10, 100에서 모든 선택의 top-1이 같음.</td></tr>
+        <tr><td>예산</td><td>한 스레드에서 약 7~9분. 모델 가중치는 약 600 MB이다.</td></tr>
+        <tr><td>예상</td><td><b>E0</b> (a) 오차 \(\lt10^{-6}\). (b) 오차 \(\lt10^{-9}\). (c) 글 6/24, 이미지 6/24, 그룹 4/24. (d) 이미지 점수 0, 글 점수 \(0.25\pm4\)표준오차, 그룹 점수 0. (e) 토큰열 \((50,768)\), 행렬 \(768\times3072\), 계수 768, 영공간 2,304. (f) 모든 선택에서 같음. <b>E1</b>(장면이 모델의 능력 안에 있는지) 무작위 음성의 쌍 정확도 \(\ge0.98\)(양 방향), N-way top-1 \(\ge0.90\)(양 방향). <b>E2</b>(<a class="ref" href="#thm-nce"></a>과 Yuksekgonul 외의 가설에서 세운 추측이며, 정리가 함의하는 것은 아니다) CS와 SS의 쌍 정확도가 각각 0.90 이하.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td><b>E0</b>: 위 범위를 벗어나면. <b>E1</b>: 하나라도 못 미치면 장면이 모델의 능력 밖이므로 E2는 해석하지 않는다. <b>E2</b>: CS(또는 SS)의 쌍 정확도가 0.90을 넘으면 그 시험에서 '바인딩을 배우지 못했다'는 추측이 기각된다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code9">코드</h3>
+    <p>Python 3.14.5, PyTorch 2.15.0(CPU), Transformers 5.22.2, NumPy 2.5.4, Pillow 13.0.0에서 실행했다(한 스레드(<code>OMP_NUM_THREADS=1</code>, <code>python -I -X utf8</code>)에서 약 7~9분(최소 쌍을 추가하기 전의 첫 실행은 혼자서 약 7분, 최종 코드를 두 번 동시에 돌렸을 때는 약 9분)). 같은 코드를 두 번 따로 실행해 출력이 같음을 확인했다. 모델은 처음 실행할 때 내려받으며(약 600 MB) 리비전을 고정했다. 이 코드는 첫 실행 뒤에 추가한 점검(<code>extra</code>와 최소 쌍 MP)을 포함하고 있으며, 그 사정은 '해석과 한계'에 적었다. 다른 PyTorch나 Transformers 버전에서는 부동소수점 결과의 마지막 자리가 바뀔 수 있다.</p>
+<pre><code>import itertools, math, random
+import numpy as np
+import torch
+from PIL import Image, ImageDraw
+from transformers import CLIPModel, CLIPProcessor
+
+SEED, NV, BOOT = 9, 3, 2000                              # 시드, 배치당 jitter 변형 수, 부트스트랩 횟수
+NAME, REV = "openai/clip-vit-base-patch32", "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268"
+COLORS = {"red": (220, 30, 30), "green": (30, 160, 50), "blue": (40, 70, 220),
+          "yellow": (245, 215, 30), "purple": (140, 50, 170), "orange": (245, 135, 25)}
+CN, SH = list(COLORS), ["square", "circle", "triangle"]
+torch.set_num_threads(1)
+rng = np.random.default_rng(SEED)
+
+# ---------- E0: 모델 없이 확인하는 이론 점검 ----------
+def row_loss(U, V, tau):                                  # 행 방향 대조 손실의 평균
+    z = U @ V.T / tau; z -= z.max(1, keepdims=True)
+    return -np.mean(np.diag(z - np.log(np.exp(z).sum(1, keepdims=True))))
+
+def e0_math():
+    r = np.random.default_rng(SEED); N, d, tau = 5, 7, 0.07
+    U, V = r.normal(size=(N, d)), r.normal(size=(N, d))
+    U /= np.linalg.norm(U, axis=1, keepdims=True); V /= np.linalg.norm(V, axis=1, keepdims=True)
+    z = U @ V.T / tau; p = np.exp(z - z.max(1, keepdims=True)); p /= p.sum(1, keepdims=True)
+    g = (p @ V - V) / (tau * N)                           # 식: (E_{j~p_i}[v_j] - v_i)/tau, 행 평균이라 1/N
+    num = np.zeros_like(U)
+    for i, k in itertools.product(range(N), range(d)):
+        Up, Um = U.copy(), U.copy(); Up[i, k] += 1e-6; Um[i, k] -= 1e-6
+        num[i, k] = (row_loss(Up, V, tau) - row_loss(Um, V, tau)) / 2e-6
+    same = np.tile(U[:1], (N, 1))
+    print(f"E0a 기울기 최대 오차 {np.abs(g - num).max():.2e}")
+    print(f"E0b 같은 임베딩의 손실 {row_loss(same, same, tau):.9f}  log N {math.log(N):.9f}")
+    c = np.zeros(3, int)
+    for s11, s12, s21, s22 in itertools.permutations(range(4)):
+        t, i = s11 &gt; s12 and s22 &gt; s21, s11 &gt; s21 and s22 &gt; s12    # 글 점수, 이미지 점수(Winoground의 이름)
+        c += (t, i, t and i)
+    print(f"E0c 2x2 우연 수준(열거) 글 {c[0]}/24 이미지 {c[1]}/24 그룹 {c[2]}/24")
+    a = r.random((200000, 2)); tie = r.random((200000, 2)) &lt; 0.5   # 순서를 못 보는 글 인코더: 이미지 i에서 두 설명의 점수가 같다(a_i)
+    txt = tie[:, 0] &amp; tie[:, 1]                                     # 글 점수: S11&gt;S12, S22&gt;S21이 모두 동점 깨기에 달렸다
+    img = (a[:, 0] &gt; a[:, 1]) &amp; (a[:, 1] &gt; a[:, 0])                 # 이미지 점수: S11&gt;S21=a_2, S22&gt;S12=a_1이 동시에 성립할 수 없다
+    print(f"E0d 글 점수 {txt.mean():.4f}±{math.sqrt(.25 * .75 / 2e5):.4f} 이미지 점수 {img.mean():.4f} 그룹 {(txt &amp; img).mean():.4f}")
+
+# ---------- 장면, 설명, 임베딩 ----------
+def render(objs, v, key):                                 # (색, 모양) 목록을 왼쪽부터. 같은 (v, key)면 크기·위치가 같다
+    rg = random.Random(1000 * key + v)
+    big = Image.new("RGB", (896, 896), "white"); dr = ImageDraw.Draw(big)
+    for (c, sh), x0 in zip(objs, [60, 164] if len(objs) == 2 else [112]):
+        s = rg.randint(52, 72) * 4; cx = (x0 + rg.randint(-6, 6)) * 4; cy = (112 + rg.randint(-10, 10)) * 4; h = s / 2
+        if sh == "square": dr.rectangle([cx - h, cy - h, cx + h, cy + h], fill=COLORS[c])
+        elif sh == "circle": dr.ellipse([cx - h, cy - h, cx + h, cy + h], fill=COLORS[c])
+        elif sh == "triangle": dr.polygon([(cx, cy - h), (cx - h, cy + h), (cx + h, cy + h)], fill=COLORS[c])
+        else: dr.polygon([(cx + (h if k % 2 == 0 else .4 * h) * math.cos(-math.pi / 2 + k * math.pi / 5),
+                           cy + (h if k % 2 == 0 else .4 * h) * math.sin(-math.pi / 2 + k * math.pi / 5)) for k in range(10)], fill=COLORS[c])
+    return big.resize((224, 224), Image.LANCZOS)
+
+cap = lambda o: " and ".join(f"a {c} {s}" for c, s in o)  # "a red square and a blue circle"
+model = CLIPModel.from_pretrained(NAME, revision=REV).eval()
+proc = CLIPProcessor.from_pretrained(NAME, revision=REV)
+
+@torch.no_grad()
+def emb(items, text):                                     # 단위 벡터(float64)를 돌려준다
+    out = []
+    for i in range(0, len(items), 64):
+        if text:
+            f = model.text_projection(model.text_model(**proc(text=items[i:i + 64], return_tensors="pt", padding=True)).pooler_output)
+        else:
+            f = model.visual_projection(model.vision_model(pixel_values=proc(images=items[i:i + 64], return_tensors="pt")["pixel_values"]).pooler_output)
+        out.append(f / f.norm(dim=-1, keepdim=True))
+    return torch.cat(out).numpy().astype(np.float64)
+
+def softmax(z):
+    z = z - z.max(-1, keepdims=True); p = np.exp(z); return p / p.sum(-1, keepdims=True)
+
+CS = [(a, b, x, y) for a, b in itertools.combinations(CN, 2) for x, y in itertools.permutations(SH, 2)]   # 색 바꾸기 90칸
+SS = [(a, b, x, y) for a, b in itertools.permutations(CN, 2) for x, y in itertools.combinations(SH, 2)]   # 모양 바꾸기 90칸
+TOP1 = []                                                  # E0f: 로짓 스케일을 바꿔도 top-1이 같은지 모아 둔다
+
+def swap_test(kind):                                       # 2x2: 이미지 i와 설명 j의 코사인 S[i][j], 정답은 대각선
+    imgs, caps = [], []
+    for k, (a, b, x, y) in enumerate(CS if kind == "CS" else SS):
+        for v in range(NV):
+            o1 = [(a, x), (b, y)]; o2 = [(b, x), (a, y)] if kind == "CS" else [(a, y), (b, x)]
+            key = k + (0 if kind == "CS" else 500)
+            imgs += [render(o1, v, key), render(o2, v, key)]; caps += [cap(o1), cap(o2)]
+    EI, ET = emb(imgs, False), emb(caps, True)
+    return np.einsum("nid,njd-&gt;nij", EI.reshape(-1, 2, 512), ET.reshape(-1, 2, 512)), EI, ET, caps
+
+def stats(S):
+    t = (S[:, 0, 0] &gt; S[:, 0, 1]) &amp; (S[:, 1, 1] &gt; S[:, 1, 0])   # 글 점수: 이미지마다 올바른 설명이 더 높다
+    i = (S[:, 0, 0] &gt; S[:, 1, 0]) &amp; (S[:, 1, 1] &gt; S[:, 0, 1])   # 이미지 점수: 설명마다 올바른 이미지가 더 높다
+    pa = ((S[:, 0, 0] &gt; S[:, 0, 1]) * 1. + (S[:, 1, 1] &gt; S[:, 1, 0]) + (S[:, 0, 0] &gt; S[:, 1, 0]) + (S[:, 1, 1] &gt; S[:, 0, 1])) / 4
+    lp = np.log(softmax(100 * S)); loss2 = -(lp[:, 0, 0] + lp[:, 1, 1]) / 2
+    TOP1.extend(S.reshape(-1, 2)); TOP1.extend(S.transpose(0, 2, 1).reshape(-1, 2))
+    return {"text": t * 1., "image": i * 1., "group": (t &amp; i) * 1., "pair": pa, "loss2": loss2,
+            "txt_margin": (S[:, 0, 0] - S[:, 0, 1] + S[:, 1, 1] - S[:, 1, 0]) / 2,
+            "img_margin": (S[:, 0, 0] - S[:, 1, 0] + S[:, 1, 1] - S[:, 0, 1]) / 2}
+
+def ci(x):                                                 # 90칸 단위 군집 부트스트랩 95% 구간 (칸당 변형 NV개는 평균)
+    m = np.asarray(x, float).reshape(-1, NV).mean(1)
+    b = m[rng.integers(0, len(m), (BOOT, len(m)))].mean(1)
+    return m.mean(), np.percentile(b, 2.5), np.percentile(b, 97.5)
+
+def show(name, st, keys):
+    print(f"{name}: " + "  ".join("%s %.3f [%.3f, %.3f]" % ((k,) + ci(st[k])) for k in keys))
+
+# ---------- 실행 ----------
+if __name__ == "__main__":
+    e0_math()
+    W = model.vision_model.embeddings.patch_embedding.weight.detach().reshape(768, -1).numpy().astype(np.float64)
+    sv = np.linalg.svd(W, compute_uv=False)
+    with torch.no_grad():
+        h = model.vision_model(pixel_values=proc(images=[render([("red", "square")], 0, 0)], return_tensors="pt")["pixel_values"]).last_hidden_state
+    print(f"E0e 토큰열 {tuple(h.shape[1:])}  패치 행렬 {W.shape} 계수 {(sv &gt; 1e-6 * sv[0]).sum()} 영공간 차원 {W.shape[1] - (sv &gt; 1e-6 * sv[0]).sum()}  logit_scale {model.logit_scale.detach().exp().item():.1f}")
+
+    res = {}
+    for kind in ("CS", "SS"):
+        S, EI, ET, caps = swap_test(kind); st = stats(S); res[kind] = (S, EI, ET, caps)
+        show(kind, st, ["pair", "text", "image", "group"])
+        print(f"   평균 코사인 대각 {np.mean([S[:, 0, 0], S[:, 1, 1]]):.3f} 비대각 {np.mean([S[:, 0, 1], S[:, 1, 0]]):.3f}  "
+              f"글 점수 여백 {st['txt_margin'].mean():.4f} 이미지 점수 여백 {st['img_margin'].mean():.4f}  행 손실(스케일 100) {st['loss2'].mean():.3f}  log2 {math.log(2):.3f}")
+        print(f"   두 설명 임베딩의 코사인 평균 {np.einsum('nd,nd-&gt;n', ET[0::2], ET[1::2]).mean():.3f}")
+
+    # 무작위 음성: 색이 하나도 겹치지 않는 다른 장면의 설명(또는 이미지)
+    S, EI, ET, caps = res["CS"]; ni, nc = [], []
+    for n in range(len(S)):
+        k, v = divmod(n, NV); a, b, x, y = CS[k]; rg = random.Random(7000 + n)
+        c1, c2 = rg.sample([c for c in CN if c not in (a, b)], 2); x2, y2 = rg.sample(SH, 2)
+        o = [(c1, x2), (c2, y2)]; ni.append(render(o, v, 2000 + k)); nc.append(cap(o))
+    NI, NC = emb(ni, False), emb(nc, True)
+    I1, C1 = EI[0::2], ET[0::2]; pos = np.einsum("nd,nd-&gt;n", I1, C1)
+    s_neg_c, s_neg_i = np.einsum("nd,nd-&gt;n", I1, NC), np.einsum("nd,nd-&gt;n", NI, C1)
+    for nm, sn in (("이미지→설명", s_neg_c), ("설명→이미지", s_neg_i)):
+        m, lo, hi = ci(pos &gt; sn)
+        print(f"RN {nm} 쌍 정확도 {m:.3f} [{lo:.3f}, {hi:.3f}]  평균 코사인 양성 {pos.mean():.3f} 음성 {sn.mean():.3f}")
+    TOP1.extend(np.stack([pos, s_neg_c], 1)); TOP1.extend(np.stack([pos, s_neg_i], 1))
+
+    # N-way 배치(N=8): 서로 다른 '주머니 반'(색 집합·모양 집합)에서 하나씩 뽑아, 쌍둥이가 없는 배치로 훈련 과제를 그대로 푼다
+    bags = {}
+    for o1 in itertools.product(CN, SH):
+        for o2 in itertools.product(CN, SH):
+            if o1[0] != o2[0] and o1[1] != o2[1]: bags.setdefault((frozenset([o1[0], o2[0]]), frozenset([o1[1], o2[1]])), []).append([o1, o2])
+    keys = list(bags); acc_i, acc_t, losses = [], [], []
+    for b in range(200):
+        pick = [bags[keys[j]][rng.integers(4)] for j in rng.choice(len(keys), 8, replace=False)]
+        Z = emb([render(o, 0, 3000 + 8 * b + i) for i, o in enumerate(pick)], False) @ emb([cap(o) for o in pick], True).T
+        acc_i.append((Z.argmax(1) == np.arange(8)).mean()); acc_t.append((Z.argmax(0) == np.arange(8)).mean()); TOP1.extend(Z); TOP1.extend(Z.T)
+        lr, lc = np.log(softmax(100 * Z)), np.log(softmax(100 * Z.T)); losses.append(-(np.trace(lr) + np.trace(lc)) / 16)
+    print(f"N-way(N=8) top-1 이미지→설명 {np.mean(acc_i):.3f} 설명→이미지 {np.mean(acc_t):.3f}  대칭 손실(스케일 100) {np.mean(losses):.4f}  log8 {math.log(8):.3f}")
+
+    # 설명의 낱말 순서를 섞기
+    keep, cos_sh, cos_tw, cos_rn = [], [], [], []
+    for n in range(len(S)):
+        w = caps[2 * n].split(); rg = random.Random(5000 + n)
+        while True:
+            u = w[:]; rg.shuffle(u)
+            if u != w: break
+        e = emb([" ".join(u)], True)[0]
+        keep.append(I1[n] @ C1[n] &gt; I1[n] @ e); cos_sh.append(C1[n] @ e); cos_tw.append(C1[n] @ ET[2 * n + 1]); cos_rn.append(C1[n] @ C1[(n + 7) % len(S)])
+    print(f"순서 섞기: 원문이 더 높은 비율 {np.mean(keep):.3f}  글 임베딩 코사인 섞은 글 {np.mean(cos_sh):.3f} 색 바꾼 쌍둥이 {np.mean(cos_tw):.3f} 다른 장면 설명 {np.mean(cos_rn):.3f}")
+
+    # 두 모달리티의 거리
+    ii = np.mean([I1[n] @ I1[(n + 7) % len(S)] for n in range(len(S))])
+    print(f"틈: 짝 코사인 {pos.mean():.3f}  이미지-이미지 {ii:.3f}  설명-설명 {np.mean(cos_rn):.3f}  평균 벡터 차이의 노름 {np.linalg.norm(I1.mean(0) - C1.mean(0)):.3f}")
+
+    # 닫힌 집합: 한 물체 이미지에서 모양·색 고르기
+    SH4 = SH + ["star"]; ims, meta = [], []
+    for ci_, (c, s) in enumerate(itertools.product(CN, SH4)):
+        for v in range(NV): ims.append(render([(c, s)], v, 4000 + ci_)); meta.append((c, s))
+    E1 = emb(ims, False); T1 = {(c, s): emb([f"a {c} {s}"], True)[0] for c, s in itertools.product(CN, SH4)}
+    shape_ok, color_ok, star3, star4, pm100, pm1, sel = [], [], [], [], [], [], []
+    for e, (c, s) in zip(E1, meta):
+        zc = np.array([e @ T1[(c2, s)] for c2 in CN]); color_ok.append(zc.argmax() == CN.index(c)); TOP1.append(zc)
+        z3 = np.array([e @ T1[(c, s2)] for s2 in SH]); z4 = np.array([e @ T1[(c, s2)] for s2 in SH4]); TOP1.append(z3); TOP1.append(z4)
+        if s == "star":
+            star3.append(SH[z3.argmax()]); star4.append(z4.argmax() == 3); pm100.append(softmax(100 * z3).max()); pm1.append(softmax(z3).max())
+        else: shape_ok.append(z3.argmax() == SH.index(s))
+    print(f"CW 색 고르기(6지선다, 72장) {np.mean(color_ok):.3f}  모양 고르기(3지선다, 54장) {np.mean(shape_ok):.3f}")
+    print(f"CW 별 이미지 18장, 후보 {{사각형, 원, 삼각형}}: 고른 것 {dict((s, star3.count(s)) for s in SH)}  최대 확률 평균 스케일 100 {np.mean(pm100):.3f}, 스케일 1 {np.mean(pm1):.3f} (하한 1/3={1/3:.3f})")
+    print(f"CW 별 이미지, 후보에 별을 넣으면 정확도 {np.mean(star4):.3f}")
+
+    # ---------- 첫 실행의 결과를 본 뒤에 추가한 점검 (사전에 적은 예상 없음) ----------
+    def extra(name, S, EI):                                # 이미지가 바뀌면 고르는 설명도 바뀌는가, 짝짓기(대각 합)는 맞는가
+        same = ((S[:, 0, 0] &gt; S[:, 0, 1]) == (S[:, 1, 0] &gt; S[:, 1, 1])) * 1.   # 두 이미지가 같은 설명을 고른 비율
+        dlt = S[:, 0, 0] + S[:, 1, 1] - S[:, 0, 1] - S[:, 1, 0]                # 이미지·글의 고유한 높낮이가 상쇄되는 양
+        print("추가 %s: 같은 설명을 고른 비율 %.3f [%.3f, %.3f]" % ((name,) + ci(same)),
+              " 대각 합이 더 큰 비율(짝짓기) %.3f [%.3f, %.3f]" % ci((dlt &gt; 0) * 1.),
+              f" Δ 평균 {dlt.mean():.4f} 표준편차 {dlt.std():.4f}  두 이미지의 코사인 {np.einsum('nd,nd-&gt;n', EI[0::2], EI[1::2]).mean():.3f}")
+    for kind in ("CS", "SS"): extra(kind, res[kind][0], res[kind][1])
+    imgs, caps = [], []                                    # 최소 쌍: 색 하나만 다른 설명(낱말 하나 차이)과 이미지
+    for k, (a, b, x, y) in enumerate(CS):
+        for v in range(NV):
+            c = random.Random(9000 + k * NV + v).choice([c for c in CN if c not in (a, b)])
+            o1, o4 = [(a, x), (b, y)], [(c, x), (b, y)]
+            imgs += [render(o1, v, k + 1000), render(o4, v, k + 1000)]; caps += [cap(o1), cap(o4)]
+    EM = emb(imgs, False); SM = np.einsum("nid,njd-&gt;nij", EM.reshape(-1, 2, 512), emb(caps, True).reshape(-1, 2, 512))
+    stm = stats(SM); show("MP", stm, ["pair", "text", "image", "group"])
+    extra("MP", SM, EM); print(f"   MP 행 손실(스케일 100) {stm['loss2'].mean():.3f}")
+
+    ok = all(len({softmax(s * np.asarray(z)).argmax() for s in (1, 10, 100)}) == 1 for z in TOP1)
+    print(f"E0f 로짓 스케일 1, 10, 100에서 top-1 동일: {ok}  (검사한 선택 {len(TOP1)}개)")</code></pre>
+
+    <h3 id="h-res9">결과</h3>
+    <p>먼저 E0이다. (a) 기울기 식과 중심 차분의 최대 오차는 \(8.74\times10^{-10}\), (b) 같은 임베딩의 손실은 \(N=5\)에서 1.609437912로 \(\log5\)와 아홉째 자리까지 같았다. (c) 순위 24가지를 열거하면 글 6, 이미지 6, 그룹 4이다. (d) 순서를 못 보는 글 인코더의 모의에서 글 점수는 0.2502 ± 0.0010, 이미지 점수와 그룹 점수는 0이었다. (e) CLIP의 토큰열은 \((50,768)\), 패치 임베딩 행렬은 \(768\times3072\)에 계수 768, 영공간 차원 2,304이고 <code>logit_scale</code>은 100.0이다. (f) 로짓 스케일 1, 10, 100에서 검사한 선택 7196개의 top-1이 모두 같았다. E1에서 무작위 음성의 쌍 정확도는 두 방향 모두 1.000이고 N-way(\(N=8\))의 top-1은 이미지→설명 0.961, 설명→이미지 0.934로 기준(0.98, 0.90)을 넘었다. 대칭 손실은 0.172로 우연 수준 \(\log8=2.079\)의 8%이다.</p>
+    <p>다음은 2×2 시험이다. 칸은 90개 칸 단위 군집 부트스트랩의 평균과 95% 구간이고 쌍 정확도의 우연 수준은 0.5, 글·이미지·그룹 점수의 우연 수준은 0.25, 0.25, 0.167이다. MP는 첫 실행의 결과를 본 뒤 추가한 대조 시험이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>시험</th><th class="num">쌍 정확도 [95%]</th><th class="num">글 점수</th><th class="num">이미지 점수</th><th class="num">그룹 점수</th><th class="num">코사인 대각/비대각</th><th class="num">행 손실</th></tr></thead><tbody>
+<tr><td>RN 이미지→설명</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0.356 / 0.259</td><td class="num">—</td></tr>
+<tr><td>RN 설명→이미지</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0.356 / 0.258</td><td class="num">—</td></tr>
+<tr><td>MP 최소 쌍 (추가)</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">—</td><td class="num">0.045</td></tr>
+<tr><td>CS 색 바꾸기</td><td class="num">0.500 [0.485, 0.515]</td><td class="num">0.041</td><td class="num">0.019</td><td class="num">0.007</td><td class="num">0.357 / 0.357</td><td class="num">0.770</td></tr>
+<tr><td>SS 모양 바꾸기</td><td class="num">0.478 [0.459, 0.495]</td><td class="num">0.011</td><td class="num">0.044</td><td class="num">0.004</td><td class="num">0.356 / 0.356</td><td class="num">0.796</td></tr></tbody></table></div>
+    <p>'행 손실'은 스케일 100에서 한 이미지가 두 설명 가운데 짝을 고르는 교차 엔트로피의 평균이다. CS의 글·이미지·그룹 점수의 95% 구간은 [0.011, 0.074], [0.004, 0.037], [0.000, 0.019]이고 SS는 [0.000, 0.030], [0.022, 0.070], [0.000, 0.011]이다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="두 설명이 어느 이미지에 맞는지 고르는 쌍 정확도. 무작위 음성과 색 하나만 다른 최소 쌍에서는 정확도가 1에 가깝고, 색 바꾸기와 모양 바꾸기에서는 0.5 근처이다. 가로 막대는 90칸 단위 군집 부트스트랩 95% 구간이다.">
+  <path d="M250.0 40 V250" class="s-grid"/><text class="t-mono" x="250.0" y="268" text-anchor="middle">0.4</text>
+  <path d="M335.0 40 V250" class="s-grid"/><text class="t-mono" x="335.0" y="268" text-anchor="middle">0.5</text>
+  <path d="M420.0 40 V250" class="s-grid"/><text class="t-mono" x="420.0" y="268" text-anchor="middle">0.6</text>
+  <path d="M505.0 40 V250" class="s-grid"/><text class="t-mono" x="505.0" y="268" text-anchor="middle">0.7</text>
+  <path d="M590.0 40 V250" class="s-grid"/><text class="t-mono" x="590.0" y="268" text-anchor="middle">0.8</text>
+  <path d="M675.0 40 V250" class="s-grid"/><text class="t-mono" x="675.0" y="268" text-anchor="middle">0.9</text>
+  <path d="M760.0 40 V250" class="s-grid"/><text class="t-mono" x="760.0" y="268" text-anchor="middle">1.0</text>
+  <path d="M335.0 36 V254" fill="none" style="stroke:var(--accent-2);stroke-width:2" stroke-dasharray="6 4"/>
+  <text class="t-acc" x="335.0" y="30" text-anchor="middle">우연 0.5</text>
+  <text class="t-dim" x="238" y="66" text-anchor="end">무작위 음성 (이미지→설명)</text>
+  <path d="M760.0 62 H760.0" style="stroke:var(--text);stroke-width:2.2"/>
+  <path d="M760.0 57 V67 M760.0 57 V67" style="stroke:var(--text);stroke-width:2.2"/>
+  <circle cx="760.0" cy="62" r="5.5" style="fill:var(--accent)"/>
+  <text class="t-mono" x="748.0" y="53" text-anchor="end">1.000</text>
+  <text class="t-dim" x="238" y="106" text-anchor="end">무작위 음성 (설명→이미지)</text>
+  <path d="M760.0 102 H760.0" style="stroke:var(--text);stroke-width:2.2"/>
+  <path d="M760.0 97 V107 M760.0 97 V107" style="stroke:var(--text);stroke-width:2.2"/>
+  <circle cx="760.0" cy="102" r="5.5" style="fill:var(--accent)"/>
+  <text class="t-mono" x="748.0" y="93" text-anchor="end">1.000</text>
+  <text class="t-dim" x="238" y="146" text-anchor="end">최소 쌍: 색 하나만 다름</text>
+  <path d="M760.0 142 H760.0" style="stroke:var(--text);stroke-width:2.2"/>
+  <path d="M760.0 137 V147 M760.0 137 V147" style="stroke:var(--text);stroke-width:2.2"/>
+  <circle cx="760.0" cy="142" r="5.5" style="fill:var(--accent)"/>
+  <text class="t-mono" x="748.0" y="133" text-anchor="end">1.000</text>
+  <text class="t-dim" x="238" y="186" text-anchor="end">색 바꾸기 (CS)</text>
+  <path d="M322.2 182 H347.8" style="stroke:var(--text);stroke-width:2.2"/>
+  <path d="M322.2 177 V187 M347.8 177 V187" style="stroke:var(--text);stroke-width:2.2"/>
+  <circle cx="335.0" cy="182" r="5.5" style="fill:var(--accent)"/>
+  <text class="t-mono" x="357.8" y="173" text-anchor="start">0.500</text>
+  <text class="t-dim" x="238" y="226" text-anchor="end">모양 바꾸기 (SS)</text>
+  <path d="M300.1 222 H330.8" style="stroke:var(--text);stroke-width:2.2"/>
+  <path d="M300.1 217 V227 M330.8 217 V227" style="stroke:var(--text);stroke-width:2.2"/>
+  <circle cx="316.3" cy="222" r="5.5" style="fill:var(--accent)"/>
+  <text class="t-mono" x="340.8" y="213" text-anchor="start">0.478</text>
+  <text class="t-dim" x="505.0" y="292" text-anchor="middle">쌍 정확도 (네 비교의 평균)</text>
+  <text class="t-acc" x="400" y="318" text-anchor="middle">정답을 골라야 하는 두 설명의 낱말이 같을 때만 우연 수준으로 내려간다</text>
+</svg>
+      <figcaption><b>그림 9-5.</b> 쌍 정확도(점)와 90칸 단위 군집 부트스트랩 95% 구간(막대). 정답과 음성의 낱말이 다르면(무작위 음성, 최소 쌍) 1.000이고, 낱말이 같고 짝짓기만 다르면(색 바꾸기, 모양 바꾸기) 우연 수준 0.5 근처이다.</figcaption>
+    </figure>
+    <p>정확도만으로는 '이미지를 안 본다'와 '이미지를 보지만 짝을 못 짓는다'가 갈리지 않으므로, 첫 실행의 결과를 본 뒤 두 가지를 더 쟀다. 하나는 두 이미지가 같은 설명을 고른 비율이고, 다른 하나는 \(\Delta=S_{11}+S_{22}-S_{12}-S_{21}\)이 양수인 비율(짝짓기 정확도)이다. \(\Delta\)는 이미지와 설명의 고유한 높낮이가 상쇄된 양이다(<a class="ref" href="#thm-pair"></a> 뒤의 분해).</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>시험</th><th class="num">같은 설명을 고른 비율</th><th class="num">짝짓기 정확도 (\(\Delta\gt0\))</th><th class="num">\(\Delta\) 평균 / 표준편차</th><th class="num">두 이미지 코사인</th></tr></thead><tbody>
+<tr><td>CS 색 바꾸기</td><td class="num">0.930 [0.881, 0.967]</td><td class="num">0.474 [0.385, 0.567]</td><td class="num">-0.0006 / 0.0025</td><td class="num">0.976</td></tr>
+<tr><td>SS 모양 바꾸기</td><td class="num">0.900 [0.841, 0.952]</td><td class="num">0.422 [0.344, 0.500]</td><td class="num">-0.0007 / 0.0032</td><td class="num">0.974</td></tr>
+<tr><td>MP 최소 쌍 (추가)</td><td class="num">0.000 [0.000, 0.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.0842 / 0.0185</td><td class="num">0.934</td></tr></tbody></table></div>
+    <p>나머지 관측이다. 설명의 낱말 순서를 무작위로 섞으면 원문이 더 높게 나온 비율은 0.941이다. 글 임베딩의 코사인은 원문과 섞은 글 0.927, 원문과 색을 바꾼 쌍둥이 0.978, 서로 다른 장면의 설명 0.890이다. 짝을 이룬 이미지와 글의 코사인은 0.356이고, 같은 모달리티에서는 이미지끼리 0.924, 설명끼리 0.890이며, 이미지 평균 벡터와 글 평균 벡터의 차이의 노름은 1.068이다(단위 벡터 사이의 최대 거리는 2). 한 물체 이미지에서 색 고르기(6지선다, 72장)의 정확도는 0.958, 모양 고르기(3지선다, 54장)는 0.944이다. 별 모양 이미지 18장에 후보를 {square, circle, triangle}로 주면 18장 모두 triangle을 골랐고, 최대 확률의 평균은 스케일 100에서 0.777, 스케일 1에서 0.339(하한 \(1/3\))이다. 후보에 star를 넣으면 정확도가 1.000이다.</p>
+
+    <h3 id="h-limits9">해석과 한계</h3>
+    <ul>
+      <li><b>예상은 기각되지 않았다.</b> E0의 (a)~(f)와 E1은 모두 예상 안에 들었고, E2의 CS 0.500, SS 0.478은 0.90 이하이다. 다만 E2는 정리가 함의하는 것이 아니라 가설에서 세운 추측이었고, 기각되지 않았다는 것이 입증되었다는 뜻은 아니다. 이 실험은 CLIP의 학습 손실이 이 결과의 원인이라는 것을 보이지 않았다(아래 한계).</li>
+      <li><b>질문에 대한 답: 이 모델과 이 장면에서는 짝을 바꾸어도 유사도가 거의 변하지 않고 선택은 우연 수준이다.</b> 색을 맞바꾼 쌍에서 짝의 평균 코사인(0.357)과 짝이 아닌 쪽의 평균 코사인(0.357)은 소수 셋째 자리까지 같았고, 쌍 정확도는 0.500 [0.485, 0.515]였다. 같은 이미지와 같은 코드에서 낱말 하나(색 하나)만 다른 설명을 고르게 하면(MP) 모든 점수가 1.000이고 행 손실은 0.045이다. 무작위 음성도 1.000이다. 모델은 장면에 어떤 색과 어떤 모양이 있는지는 가려낸다(한 물체 이미지에서 색 0.958, 모양 0.944). 그러나 그 색이 어느 물체에 붙는지는 이 점수에 드러나지 않는다. 설명의 낱말이 다르면 풀리고, 낱말이 같고 짝짓기만 다르면 풀리지 않는 것이 그림 9-5의 모양이다.</li>
+      <li><b>점수가 우연 수준보다 훨씬 낮은 이유.</b> CS의 글 점수 0.041과 이미지 점수 0.019는 우연 수준 0.25보다 훨씬 낮다. 두 이미지가 같은 설명을 고른 비율이 0.930(SS 0.900)인 것이 이유의 일부이다. 점수가 이미지가 아니라 설명의 높낮이에 이끌린다(<a class="ref" href="#thm-pair"></a> 뒤의 분해에서 \(|b_1-b_2|\gt\varepsilon\)). 이미지 점수도 낮은 것은 이미지 쪽의 높낮이 \(a_i\)도 짝의 신호보다 크다는 것과 맞지만, 이 장은 \(a_i\)를 따로 재지 않았다. 두 이미지의 코사인이 0.976으로 서로 다른 장면 사이(0.924)보다 가깝고, 두 설명의 글 임베딩 코사인이 0.978이라는 점도 같은 방향이다. 짝의 신호 \(\Delta\)는 CS에서 평균 -0.0006, 표준편차 0.0025이고 \(\Delta\gt0\)인 비율은 0.474 [0.385, 0.567]로 우연 수준과 구별되지 않는다(SS는 평균 -0.0007, 표준편차 0.0032, 비율 0.422 [0.344, 0.500]). 같은 시험에서 낱말 하나만 다른 최소 쌍의 \(\Delta\)는 평균 0.084이므로, 짝짓기가 점수에 싣는 변화의 크기(표준편차 0.0025와 0.0032)는 낱말 하나가 다를 때의 3~4%이다. 스케일 100의 행 손실이 CS 0.770, SS 0.796으로 우연 수준 \(\log2=0.693\)보다 큰 것은 작은 점수 차이가 스케일 100에서 확대되어 틀린 선택을 자신 있게 하기 때문이다.</li>
+      <li><b>글 인코더는 순수한 낱말 모음이 아니다.</b> 낱말 순서를 섞으면 원문이 더 높게 나온 비율이 0.941이다(순수한 낱말 모음이면 임베딩이 같아 0.5). 그러나 색을 바꾼 쌍둥이의 임베딩 코사인(0.978)은 섞은 글의 코사인(0.927)이나 서로 다른 장면의 설명(0.890)보다 훨씬 1에 가깝다. 모델은 문장이 자연스러운 순서인지에는 민감하지만, 문법에 맞는 두 문장 사이에서 속성이 붙는 물체가 바뀐 차이는 점수에 거의 싣지 않는다. 9.2절의 예(\(g_{\text{bag}}\))는 이 효과를 가장 단순하게 만든 극단이고, 실제 모델은 극단에 이르지 않고도 같은 결과(짝의 신호가 높낮이보다 작음)에 이른다.</li>
+      <li><b>고르는 일은 후보 안에서만 답한다.</b> 별 모양 이미지 18장에 후보를 {square, circle, triangle}로 주면 18장 모두 triangle을 골랐고 스케일 100에서 최대 확률의 평균이 0.777이다. 맞는 후보가 없어도 확신하여 고른다. 스케일 1에서는 같은 점수가 0.339(하한 1/3)가 되며, 모든 선택의 top-1은 스케일에 무관했다(<a class="ref" href="#thm-closed"></a>의 1번과 2번). 후보에 star를 넣으면 정확도가 1.000으로 올랐다(3번). 짝을 이룬 이미지와 글의 코사인이 0.356이라는 값은 같은 모달리티의 코사인 0.924(이미지)와 0.890(설명)에 비해 작다. 이는 이 장면 족 안에서의 값이고(장면들이 서로 닮아 같은 모달리티의 코사인이 높다) 일반 이미지의 값이 아니다.</li>
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> 예상 E0~E2와 기각 조건은 모델을 장면에 돌리기 전에 파일에 적어 두었다. 장면, 설명 틀, 칸의 수 같은 설계의 상수도 첫 실행 전에 정했고 이후 바꾸지 않았다. 그러나 세 가지를 밝힌다. (1) Winoground 본문을 읽고서야 글 점수와 이미지 점수의 이름을 반대로 붙였음을 알았다. 첫 출력을 읽기 전에 예상 파일에 그 사실을 덧붙이고 코드의 이름을 바꾸었다. 식은 그대로이고 첫 실행의 'text'가 지금의 이미지 점수이다. (2) 첫 실행의 결과(CS와 SS가 우연 수준이고 글·이미지 점수가 우연보다 훨씬 낮음)를 본 뒤 최소 쌍 MP, 두 이미지가 같은 설명을 고른 비율, \(\Delta\)로 본 짝짓기 정확도를 추가했다. 이들에는 사전에 적은 예상이 없으며, 파이프라인이 성공할 수 있는지 확인하는 대조와 결과의 해석을 위한 진단이다. 추가한 코드는 맨 끝에 두어 앞선 항목의 난수 순서를 바꾸지 않았고, 첫 실행과 이후 실행의 공통 항목은 같은 값이었다. (3) 모델 가중치는 처음에 변환 봇이 올린 병합 전 safetensors 변형으로 불러 구성 값과 로짓 스케일을 확인했을 뿐 실험 결과를 만들지 않았고, 실험은 <code>main</code> 리비전의 <code>pytorch_model.bin</code>으로 했다. 이 장의 CLIP 결과는 모두 이 리비전 하나의 값이다.</li>
+      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 CLIP ViT-B/32 하나, 장면은 흰 바탕의 단색 도형 둘로 한 족, 설명 틀은 하나이다. 자연 이미지에서나 더 큰 CLIP, 어려운 음성으로 학습한 모델, 시그모이드 손실로 학습한 모델에서는 다를 수 있고, 이 장은 그것을 재지 않았다. 학습 손실이 원인이라는 것도 보이지 않았다. <a class="ref" href="#thm-nce"></a>의 요지는 손실이 바인딩을 요구하지 않는다는 것일 뿐이고, 학습 자료나 손실을 바꾸어 학습하는 개입 실험은 하지 않았다. 표본의 단위는 장면 조합 90칸이고, 장면이 서로 닮아 구간이 보수적이지 않을 수 있다. SS의 쌍 정확도 0.478은 0.5보다 작고 구간 [0.459, 0.495]이 0.5를 포함하지 않지만, 크기가 작아 해석하지 않았다. 옮겨지는 것은 구조 셋이다. 후보가 낱말만으로 구별될 때의 선택 정확도는 짝짓기 능력을 보장하지 않으므로 최소 쌍과 짝 바꾸기를 함께 시험해야 한다. 정확도 한 숫자 대신 짝짓기 정확도와 '이미지가 바뀌어도 같은 설명을 고르는 비율'을 같이 보아야 이미지를 보지 않는 것과 짝을 못 짓는 것이 갈린다. top-1이 같아도 확률은 스케일과 후보 구성에 따라 다르다.</li>
+    </ul>
   </section>
+
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>이미지는 어휘가 없는 연속 격자여서 픽셀을 토큰으로 쓰면 열이 너무 길다(\(224\times224\)면 점수 \(2.5\times10^9\)개). 패치로 자르면 열의 길이가 \(N+1=HW/P^2+1\)이 되고, 점수 수는 한 변이 2배일 때 약 16배가 된다. 은닉 차원 \(d\)가 패치의 값의 수 \(P^2C\)보다 작으면 선형 패치 임베딩의 영공간이 최소 \(P^2C-d\)차원이다(ViT-B/32에서 3,072 대 768, 영공간 2,304).</li>
+      <li>이중 인코더는 이미지와 글을 각각 단위 벡터로 보내고 코사인으로 점수를 낸다. 두 인코더는 구조도 입력도 다르며 같은 공간에 있다는 것은 학습으로 맞추었다는 뜻이다. 점수는 후보 사이의 대소로만 쓴다.</li>
+      <li>배치 대조 손실은 행(이미지가 설명을 고름)과 열(설명이 이미지를 고름)의 교차 엔트로피이다. 우연 수준은 \(\log N\)이고, 기울기는 짝 쪽으로 당기고 확률 가중 평균에서 밀어내며, 정답과 같은 점수의 음성이 \(k\)개면 행 손실이 \(\log(1+k)\) 아래로 못 내려간다. 온도가 낮을수록 점수가 높은 음성이 기울기를 지배한다(\(N=256\)에서 어려운 음성의 몫이 약 3%에서 99.99%로).</li>
+      <li>손실이 구분하라고 요구하는 것은 배치에 실제로 들어 있는 음성과의 차이뿐이다. 순서를 못 보는 글 인코더는 낱말 모음이 같은 쌍둥이 설명이 배치에 없으면 손실을 0으로 만들 수 있다. 장난감 설명 180개에서 \(N=8\)의 배치에 쌍둥이가 들어올 확률은 11.3%이다. '손실이 바인딩을 요구하지 않는다'는 '모델이 바인딩을 배우지 못한다'와 다르며, 후자는 재야 안다.</li>
+      <li>비전 인코더를 언어모델에 잇는 방식은 두 축으로 가른다. 시각 토큰을 입력 열 앞에 붙이느냐(접두; LLaVA, BLIP-2) 층 사이의 교차 어텐션으로 읽느냐(Flamingo), 그리고 시각 특징을 전부 넣느냐 학습된 질의로 줄이느냐(BLIP-2는 32개, Flamingo는 64개)이다. 접두는 이미지 한 장당 KV cache \(K\kappa\)바이트와 컨텍스트 \(K\)자리를 쓰고(가상 설정에서 576토큰에 72 MiB), 압축은 비용을 줄이는 대신 언어모델이 이미지에 대해 아는 것을 \(Q\times d\)개의 수로 제한한다.</li>
+      <li>고르는 일은 후보 안에서만 답한다. top-1은 온도와 무관하고 최대 확률은 \(1/K\) 이상이며, 후보를 더하면 기존 후보의 확률이 모두 줄어든다. 쓰는 일은 후보가 없는 대신 이미지에 없는 것을 말할 수 있다. 고르는 일에는 찍기(\(A=q+(1-q)g\))가, 쓰는 일에는 채점기 오류(\(t,\alpha\))가 걸린다는 점에서 8장의 도구가 두 일에 다르게 쓰인다.</li>
+      <li>2×2 짝 바꾸기 시험의 우연 수준은 글 점수 1/4, 이미지 점수 1/4, 그룹 점수 1/6이다. 점수를 \(a_i+b_j+\varepsilon_{ij}\)로 쪼개면 이미지·설명의 높낮이가 짝의 신호보다 클 때 두 점수가 모두 0에 가까워지고, 짝의 신호는 \(\Delta=S_{11}+S_{22}-S_{12}-S_{21}\)에만 남는다.</li>
+      <li>실제 CLIP ViT-B/32에서 낱말이 다른 후보(무작위 음성, 색 하나만 다른 최소 쌍)는 쌍 정확도가 1.000이지만, 낱말이 같고 짝짓기만 다른 후보(색 바꾸기 0.500, 모양 바꾸기 0.478)는 우연 수준이었다. 짝의 평균 코사인과 짝이 아닌 쪽의 평균 코사인이 같았고(0.357), 두 이미지가 같은 설명을 고른 비율이 0.93(색)과 0.90(모양)이었으며, 짝의 신호 \(\Delta\)의 크기는 낱말 하나가 다를 때의 3~4%였다. 이 결과는 '손실이 바인딩을 요구하지 않는다'는 가설과 어긋나지 않지만 원인을 보인 것은 아니며, 모델·장면·설명 틀이 각각 하나뿐이다.</li>
+      <li>고르는 일을 시험할 때는 정확도 한 숫자 대신 최소 쌍(낱말 하나 차이)과 짝 바꾸기를 함께 쓰고, 짝짓기 정확도(\(\Delta\gt0\)의 비율)와 이미지가 바뀌어도 같은 설명을 고르는 비율을 같이 본다. 같은 점수도 스케일과 후보 구성에 따라 확률이 다르다(별 이미지에서 맞는 후보가 없어도 최대 확률의 평균이 0.777이었다).</li>
+    </ol>
   </section>
+
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 이미지를 \(224\times224\)로 두고 \(16\times16\) 패치로 자른 뒤 클래스 토큰을 하나 붙이면 Transformer에 들어가는 열의 길이는?</p><div class="opts">
+        <button class="opt">196</button>
+        <button class="opt" data-correct>197</button>
+        <button class="opt">224</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-patch"></a>의 1번이다. 패치는 \((224/16)^2=196\)개이고 클래스 토큰 하나를 더하면 197이다. 224는 한 변의 픽셀 수일 뿐 열의 길이가 아니다.</div></div>
+      <div class="quiz-q"><p>2. 패치 하나가 \(32\cdot32\cdot3=3072\)개의 값이고 은닉 차원이 768이면 선형 패치 임베딩의 영공간 차원은 최소 얼마인가?</p><div class="opts">
+        <button class="opt">0</button>
+        <button class="opt">768</button>
+        <button class="opt" data-correct>2,304</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-patch"></a>의 2번이다. \(\dim\ker E\ge D-d=3072-768=2304\)이다. 영공간 방향으로만 다른 두 패치는 attention에 닿기 전에 같은 토큰이 된다. 0은 \(d\ge D\)일 때만 가능하다(<a class="ref" href="#ex-patch"></a>의 ViT-B/16).</div></div>
+      <div class="quiz-q"><p>3. 배치 크기가 16일 때 모든 로짓이 같은 상태(아무것도 모르는 모델)의 대조 손실은?</p><div class="opts">
+        <button class="opt">0</button>
+        <button class="opt" data-correct>\(\log16\approx2.77\)</button>
+        <button class="opt">16</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-nce"></a>의 1번이다. 확률이 \(1/16\)씩이므로 \(-\log(1/16)=\log16\)이다. 배치가 커질수록 우연 수준의 손실도 커진다.</div></div>
+      <div class="quiz-q"><p>4. 행 손실 \(\ell_i\)를 줄이는 방향으로 \(u_i\)를 움직이면 어디로 가는가?</p><div class="opts">
+        <button class="opt" data-correct>짝 \(v_i\) 쪽으로 가고, 후보 \(v_j\)를 확률로 가중한 평균에서는 멀어진다.</button>
+        <button class="opt">모든 음성 \(v_j\)에서 같은 힘으로 멀어진다.</button>
+        <button class="opt">점수가 가장 높은 후보 쪽으로만 간다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-nce"></a>의 2번이다. \(-\nabla_{u_i}\ell_i=\frac1\tau\bigl(v_i-\sum_jp_{ij}v_j\bigr)\)이다. 음성이 밀리는 힘은 그 음성의 소프트맥스 확률에 비례하므로 같지 않다. 점수가 가장 높은 후보가 짝이면 \(p_{ii}\)가 커서 기울기가 작아진다.</div></div>
+      <div class="quiz-q"><p>5. 배치에 정답과 점수가 정확히 같은 음성이 하나 있다. 다른 음성이 아무리 낮아도 그 행의 손실이 넘지 못하는 하한은?</p><div class="opts">
+        <button class="opt">0</button>
+        <button class="opt" data-correct>\(\log2\approx0.693\)</button>
+        <button class="opt">\(\log4\approx1.386\)</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-nce"></a>의 3번에서 \(k=1\)이다. \(p_{ii}\le1/2\)이므로 \(\ell_i\ge\log2\)이다. 낱말 모음이 같은 두 설명을 같은 벡터로 보내는 글 인코더가 이런 쌍둥이를 만나는 경우이다(<a class="ref" href="#ex-twin"></a>).</div></div>
+      <div class="quiz-q"><p>6. 가상 설정(32층, 키·값 head 8개, head 차원 128, 16비트)에서 시각 토큰 576개를 접두로 넣으면 이미지 한 장이 늘리는 KV cache는?</p><div class="opts">
+        <button class="opt">약 576 KiB</button>
+        <button class="opt" data-correct>72 MiB</button>
+        <button class="opt">약 1.2 GiB</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-conn"></a>의 1번이다. 토큰당 \(\kappa=2\cdot32\cdot8\cdot128\cdot2=131{,}072\)바이트(128 KiB)이고 \(576\times128\,\mathrm{KiB}=72\,\mathrm{MiB}\)이다. 576 KiB는 토큰 하나의 바이트 수가 아니라 토큰 수를 단위로 잘못 읽은 값이다.</div></div>
+      <div class="quiz-q"><p>7. 후보 4개 가운데 맞는 것이 없는 이미지에 대해 코사인 점수에 소프트맥스를 취했다. 온도를 바꾸면?</p><div class="opts">
+        <button class="opt">top-1이 바뀔 수 있고 최대 확률은 0.25 아래로 내려갈 수 있다.</button>
+        <button class="opt" data-correct>top-1은 그대로이고 최대 확률은 어떤 온도에서도 0.25 이상이다.</button>
+        <button class="opt">맞는 후보가 없으므로 확률이 모두 0이 된다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-closed"></a>의 1번과 2번이다. 확률의 합이 1이므로 최댓값은 평균 \(1/4\) 이상이다. 후보 안에 정답이 없다는 사실은 점수에 나타나지 않으므로 '해당 없음'은 따로 후보로 넣어야 한다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-patch" data-level="1"><p>이미지 한 변이 336픽셀, 패치가 14픽셀이고 클래스 토큰이 있다. (가) 열의 길이는? (나) 한 변을 672로 늘리면 열의 길이와 점수 수는 336일 때의 몇 배가 되는가? (다) 336을 그대로 두고 패치를 28로 키우면?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-patch"></a>을 쓴다. (가) \(N=(336/14)^2=576\)이고 열의 길이는 577이다. (나) \(N=(672/14)^2=2304\), 길이는 2,305이고 점수 수는 \(2305^2=5{,}313{,}025\)로 \(577^2=332{,}929\)의 15.96배이다(16에 가깝고 정확히 16은 아니다. 클래스 토큰 때문이다). (다) \(N=(336/28)^2=144\), 길이는 145, 점수 수는 21,025로 \(0.063\)배이다. 패치를 키우면 비용은 크게 줄지만 한 패치가 \(28^2\cdot3=2352\)개의 값이 되어 같은 은닉 차원으로 더 많은 값을 눌러 담아야 한다.</p></details></div>
+    <div class="prob" id="prob-rank" data-level="1"><p>패치 임베딩이 선형일 때 \((P,d)\)가 \((14,1024)\), \((32,768)\), \((16,384)\), \((16,768)\)이다. 채널은 3이다. 각각 영공간 차원의 하한과 단사일 수 있는지를 답하라.</p>
+      <details class="sol"><summary>풀이</summary><p>\(D=3P^2\)이다. \((14,1024)\): \(D=588\le1024\)이므로 하한 0이고 단사일 수 있다. \((32,768)\): \(D=3072\)이고 하한 2,304로 단사일 수 없다. \((16,384)\): \(D=768\)이고 하한 384이다. \((16,768)\): \(D=768=d\)이므로 하한 0이고 단사일 수 있다(그렇게 학습된다는 뜻은 아니다). 하한은 \(\max(0,D-d)\)이고 실제 영공간 차원은 학습된 행렬의 계수로 정해진다.</p></details></div>
+    <div class="prob" id="prob-grad" data-level="2"><p>\(N=3\), \(\tau=0.1\), 점수 행렬(행이 이미지, 열이 설명) \(s=\begin{pmatrix}0.6&0.5&0.1\\0.2&0.7&0.3\\0.4&0.1&0.5\end{pmatrix}\)이다. (가) 1행의 확률과 행 손실은? (나) 1열의 열 손실은? (다) 1행의 손실을 \(s_{11},s_{12},s_{13}\)으로 미분한 값은? (라) 대칭 손실 \(L\)과 우연 수준 \(\log3\)을 견주라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#def-nce"></a>과 <a class="ref" href="#thm-nce"></a>의 2번을 쓴다. (가) 로짓은 \((6,5,1)\)이고 확률은 \(e^6,e^5,e^1\)의 비인 \((0.7275,\,0.2676,\,0.0049)\)이다. 행 손실은 \(-\log0.7275=0.318\)이다. (나) 1열의 로짓은 \((6,2,4)\)이고 \(p=(0.8668,0.0159,0.1173)\), 손실은 0.143이다. (다) \(\partial\ell/\partial s_{1j}=(p_{1j}-\delta_{1j})/\tau\)이므로 \((-2.725,\,2.676,\,0.049)\)이다. 가장 점수가 높은 음성(\(s_{12}=0.5\))이 가장 세게 밀린다. (라) 여섯 항을 모두 평균한 \(L=0.181\)로 \(\log3=1.099\)보다 훨씬 낮다.</p></details></div>
+    <div class="prob" id="prob-margin" data-level="2"><p>배치 크기 \(N=1024\)에서 한 행의 손실을 0.05 이하로 만들려면 정답이 음성보다 로짓으로 최소 얼마나 높아야 하는가(음성이 모두 같은 점수라고 둔다)? \(\tau=0.07\)과 \(\tau=0.01\)에서 코사인 차이로는 얼마인가? 손실 0.5라면?</p>
+      <details class="sol"><summary>풀이</summary><p>음성이 모두 같은 점수이면 <a class="ref" href="#thm-nce"></a>의 4번이 등식이다. \(\ell=\log\bigl(1+(N-1)e^{-m}\bigr)\le0.05\)에서 \(m\ge\ln\bigl((N-1)/(e^{0.05}-1)\bigr)=9.90\)이다. 코사인 차이는 \(m\tau\)이므로 \(\tau=0.07\)에서 0.693, \(\tau=0.01\)에서 0.099이다. 온도가 높으면 같은 손실에 훨씬 큰 점수 차이가 필요하고, 코사인이 \([-1,1]\)에 있으므로 한계에 가까워진다. 손실 0.5라면 \(m\ge7.36\)이고 코사인 차이는 0.515(\(\tau=0.07\)), 0.074(\(\tau=0.01\))이다.</p></details></div>
+    <div class="prob" id="prob-twin" data-level="2"><p>색 4개, 모양 3개의 장난감 세계에서 설명은 '색과 모양이 서로 다른 두 물체를 왼쪽부터 읽은 문장'이다. (가) 설명의 가짓수와 한 설명의 쌍둥이(낱말 모음이 같은 다른 설명) 수를 구하라. (나) 배치의 다른 \(N-1\)개를 나머지 설명에서 비복원으로 뽑을 때 \(N=2,4,8\)에서 쌍둥이가 하나라도 들어올 확률과, 순서를 못 보는 인코더가 피할 수 없는 행 손실의 기댓값을 구하라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) 물체는 \(4\cdot3=12\)개이고 첫 물체를 고르면 둘째 물체는 색 3개, 모양 2개 중에서 골라 6가지이다. 설명은 \(12\cdot6=72\)개이다. 한 설명과 낱말 모음이 같은 설명은 짝짓기 2가지에 읽는 순서 2가지, 곧 4개에서 자기를 뺀 3개이다. (나) 쌍둥이가 하나라도 들어올 확률은 \(1-\binom{71-3}{N-1}/\binom{71}{N-1}\)이다. \(N=2\)에서 4.2%, \(N=4\)에서 12.3%, \(N=8\)에서 27.1%이다. 쌍둥이가 \(k\)개 들어오면 손실의 하한은 \(\log(1+k)\)이므로(<a class="ref" href="#thm-nce"></a>의 3번) 기댓값은 0.029, 0.087, 0.198이다. 가짓수가 적은 세계일수록 쌍둥이가 자주 들어와 바인딩을 배울 신호가 강하다.</p></details></div>
+    <div class="prob" id="prob-kv" data-level="2"><p>언어모델이 40층, 키·값 head 8개, head 차원 128, 16비트이다. 시각 토큰이 이미지당 729개이고 이미지가 3장, 글이 8,000토큰이다. (가) 접두로 넣을 때 전체 KV cache와 이미지의 몫은? (나) 이미지를 질의 64개로 줄이면 이미지 한 장의 KV cache는?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-conn"></a>의 1번에서 \(\kappa=2\cdot40\cdot8\cdot128\cdot2=163{,}840\)바이트(160 KiB)이다. (가) 이미지는 \(3\cdot729\cdot160\,\mathrm{KiB}=341.7\,\mathrm{MiB}\), 글은 \(8000\cdot160\,\mathrm{KiB}=1250\,\mathrm{MiB}\)이고 합은 1,591.7 MiB이다. 이미지의 몫은 21.5%이다(이미지 토큰 2,187개가 전체 10,187개의 21.5%이므로 토큰 수의 몫과 같다). (나) \(64\cdot160\,\mathrm{KiB}=10\,\mathrm{MiB}\)로 \(729\) 토큰일 때의 113.9 MiB의 약 9%이다. 대신 이미지 정보는 \(64\times d\)개의 수로 제한된다(<a class="ref" href="#thm-conn"></a>의 3번).</p></details></div>
+    <div class="prob" id="prob-pair" data-level="2"><p>점수 \(S_{11},S_{12},S_{21},S_{22}\)가 독립이고 같은 분포일 때 글 점수, 이미지 점수, 그룹 점수의 기댓값을 구하라. 글 점수가 1일 때 이미지 점수가 1일 확률은? 이 결과를 세 점수가 모두 우연 수준 근처인 모델과 연결해 말하라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-pair"></a>의 1번이다. 네 값의 순위 24가지가 같은 확률이다. 글 점수는 \(S_{11}\gt S_{12}\), \(S_{22}\gt S_{21}\)이 모두 성립하는 6가지로 \(1/4\), 이미지 점수도 \(1/4\)이다. 그룹 점수는 두 대각 원소가 두 비대각 원소보다 큰 4가지로 \(1/6\)이다. 글 점수가 1인 6가지 가운데 이미지 점수도 1인 것은 4가지이므로 조건부 확률은 \(2/3\)이다. 세 점수가 \(1/4,1/4,1/6\) 근처인 모델은 이미지도 글도 점수에 반영하지 않는 모델과 구별되지 않는다. 반대로 \(1/4\)보다 훨씬 낮은 점수는 이미지나 글의 높낮이가 짝의 신호보다 크다는 뜻일 수 있다(<a class="ref" href="#thm-pair"></a> 뒤의 분해).</p></details></div>
+    <div class="prob" id="prob-closed" data-level="2"><p>코사인 점수가 0.28, 0.26, 0.20인 후보 셋이 있다. (가) 스케일 100, 20, 1에서 확률과 최대 확률은? (나) 점수 0.285의 넷째 후보를 더하면 스케일 100에서 확률은? (다) 어느 스케일에서도 \(\max_kp_k\)의 하한은?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-closed"></a>을 쓴다. (가) 스케일 100에서 \((0.881,0.119,0.0003)\)으로 최대 0.881, 스케일 20에서 \((0.534,0.358,0.108)\)으로 0.534, 스케일 1에서 \((0.344,0.338,0.318)\)으로 0.344이다. top-1은 모두 첫 후보이다. (나) 스케일 100에서 \((0.359,0.049,0.0001,0.592)\)로 top-1이 넷째 후보로 바뀌고 이전 1위의 확률은 0.881에서 0.359로 줄어든다. (다) \(1/3\)이다(후보가 넷이면 \(1/4\)). 스케일 1에서의 0.344는 이 하한에 가깝다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="3"><p>어떤 시각 언어모델이 객관식 이미지 질문 벤치마크에서 정답률이 올랐다. 이 상승이 이미지를 더 잘 읽게 된 결과인지 가르는 평가를 설계하라. 같게 할 것과 바꿀 것, 예상과 기각 조건, 8장의 도구를 어떻게 쓰는지 적으라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. 같은 문항, 같은 모델 ID와 설정으로 두 조건을 만든다. 원래의 문항과, 이미지를 지우거나 다른 이미지로 바꾼 문항이다. 문항을 같게 해 짝지어 분석한다(<a href="ch08.html#thm-var">8장의 정리 8.1</a>의 3번). 관측값은 두 조건의 정답률과 차이, 선택지 순서를 섞었을 때의 정답률, 같은 문항을 선택지 없이 물었을 때의 정답률이다(<a href="ch08.html#thm-guess">8장의 정리 8.3</a>). 예상: 이미지를 읽게 된 개선이라면 이미지를 바꾼 조건에서 정답률이 크게 떨어지고, 개선 폭도 이미지가 필요한 문항에서 더 크다. 기각 조건: 이미지를 지운 조건의 정답률도 같은 폭으로 올랐다면 이 예상은 틀린 것이다(텍스트 지름길의 개선이다). 이미지를 지운 정답률이 \(1/K\)보다 높으면 찍기 확률 \(g\)가 \(1/K\)가 아니므로(<a class="ref" href="#ex-blind"></a>) 우연으로 보정하는 해석을 쓰지 않는다. 문항 수는 잡으려는 가장 작은 차이로 정하고(<a href="ch08.html#ex-power">8장의 예제 8.6</a>), 채점은 후보 일치라 오류가 적지만 선택지 파서의 오류율은 감사 표본으로 확인한다. 이 설계로는 개선이 이미지 읽기에서 왔는지를 보일 수 있지만 모델이 이미지의 어느 부분을 읽는지는 말해 주지 않는다.</p></details></div>
   </section>
 </main>
 </body>
