@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>10 문서와 화면을 읽는 VLM · AgentBook</title>
-<meta name="description" content="텍스트만으로 부족한 정보 · 이미지·도표·화면의 입력 경로 · 시각 정보의 누락과 착각 · 이미지 읽기와 도구 조작의 차이">
+<meta name="description" content="문서와 화면을 글로 옮기는 변환이 어떤 질문의 답을 지우는지 센다. 이미지를 직접 읽히는 길의 해상도 한도와 토큰 수(Claude의 28×28 패치 규칙), 축소가 선·글자·막대 길이에 미치는 영향, 누락과 착각의 구분, 화면 좌표의 축소 오차와 읽기·조작의 차이를 다룬다. 마지막 실험은 같은 막대 도표를 표·글 추출·여섯 해상도의 이미지로 주고 작은 시각 언어모델이 무엇을 놓치는지 잰다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,848 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch10">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">10</span></div>
     <h1 data-fill="chapter-title">문서와 화면을 읽는 VLM</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">9장은 이미지를 모델이 다루는 입력으로 바꾸는 길을 세웠다. 그러나 에이전트가 실제로 읽는 이미지는 대개 풍경 사진이 아니라 청구서, 논문의 도표, 표, 웹 페이지, 앱 화면이다. 이런 자료에서는 정보가 글자에만 있지 않다. 글자가 놓인 자리, 막대의 길이, 색, 선도 정보를 나른다. 10.1절은 자료를 글로 옮기는 변환이 어떤 질문의 답을 지우는지를 '충돌'로 정의하고, 변환된 글만 보는 독자는 어떤 모델이든 넘지 못하는 정확도의 상한이 있음을 보인다. 10.2절은 이미지를 그대로 읽히는 길과 그 비용, 곧 해상도 한도와 토큰 수를 Claude의 공개된 규칙으로 센다. 10.3절은 이미지 경로에서 정보가 사라지는 방식(누락)과 정보가 없거나 있는데도 틀린 답이 나오는 방식(착각)을 가른다. 10.4절은 화면을 읽는 일과 화면에서 조작하는 일이 왜 다른 문제인지를, 좌표가 축소 배율 때문에 어긋나는 양으로 보인다. 마지막 실험은 같은 막대 도표를 표, 글 추출, 여섯 해상도의 이미지로 주고, 작은 시각 언어모델이 무엇을 놓치는지 잰다. 이 장과 9장은 건너뛰어도 4부로 갈 수 있지만, 화면을 보며 일하는 에이전트의 비용과 실패를 이해하려면 이 장의 계산이 바탕이 된다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>자료를 글로 옮기는 변환이 질문의 답을 보존하는지를 정의하고, 변환된 글만 보는 독자의 정확도 상한을 계산할 수 있다.</li>
+      <li>이미지를 직접 읽히는 길과 글로 변환하는 길, 둘을 함께 쓰는 길의 입력과 비용을 비교하고, Claude의 이미지 크기 규칙(28×28 패치, 긴 변과 토큰 한도)으로 토큰 수와 축소 배율을 계산할 수 있다.</li>
+      <li>축소가 가는 선, 글자, 막대 길이에 미치는 영향을 구분하고, 누락이 모델의 답과 확신도로 드러나지 않는 이유를 설명할 수 있다.</li>
+      <li>화면 좌표가 축소 배율 때문에 어긋나는 양과 목표 크기에 따른 적중 확률을 계산하고, 같은 경로로 다시 확인하는 것이 정보를 더하지 못하는 이유를 말할 수 있다.</li>
+      <li>같은 정보를 글과 이미지로 주었을 때의 정확도를 짝지어 비교하는 실험을 설계하고, 변환이 만드는 정확도의 바닥과 읽는 쪽의 한계를 구분해 해석할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch02.html">2장</a>(KV cache), <a href="ch08.html">8장</a>(표본 오차, 채점기), <a href="ch09.html">9장</a>(패치 열, 연결 방식, 고르는 일과 쓰는 일)</p>
   </header>
+
+
+  <!-- ============================================================ 10.1 -->
   <section id="s1">
     <h2>텍스트만으로 부족한 정보</h2>
-    <p class="slot" data-slot="10.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>8장까지 모델이 읽는 것은 글이었고, 9장은 사진 같은 이미지를 패치의 열로 바꾸었다. 업무 자료는 둘 사이에 있다. 문서와 화면의 정보는 세 가지 방식으로 담긴다. 첫째는 글자 자체, 곧 문자열이다. 둘째는 배치로, 어느 글자가 어느 칸과 어느 열에 있는지, 어떤 순서로 읽는지가 여기에 든다. 셋째는 그림으로, 막대의 길이, 색, 선, 도장, 체크 표시가 여기에 든다. 에이전트가 이런 자료를 글로만 받는 길은 많다. 스캔한 문서에는 OCR을, PDF에는 문자 층을 꺼내는 파서를, 웹 페이지에는 HTML의 DOM이나 접근성 트리를 쓴다. 이 도구들은 모두 자료 \(d\)를 문자열 \(f(d)\)로 보내는 함수이고, 그 함수가 무엇을 같은 글로 만드는지가 이 절의 질문이다.</p>
+    <div class="box def" id="def-conv"><div class="box-h">변환과 보존</div>
+      <p>자료 \(d\)가 분포 \(P\)를 따라 나오고, 질문 \(q\)의 정답이 \(q(d)\in A\)라 하자. <b>변환</b> \(f\)는 \(d\)를 글 \(f(d)\in S\)로 보내는 함수이고, <b>독자</b>는 \(f(d)\)만 보고 답을 내는 모든 방법(사람, 모델, 확률적인 것 포함)이다. 독자의 정확도는 \(\Pr[\text{답}=q(d)]\)이다. 변환 \(f\)가 질문 \(q\)를 <b>보존한다</b>는 것은 \(f(d)=f(d')\)이면 \(q(d)=q(d')\)이라는 뜻이다. 보존하지 않으면 같은 글로 가는 서로 다른 자료가 서로 다른 답을 갖는 <b>충돌</b>이 있다.</p>
+    </div>
+    <div class="box thm" id="thm-collide"><div class="box-h">변환 뒤의 정확도 상한</div>
+      <p><a class="ref" href="#def-conv"></a>의 설정에서 \(B(f,q)=\sum_{s\in S}\max_{a\in A}\Pr[f(d)=s,\;q(d)=a]\)라 하자.</p>
+      <ol>
+        <li>변환된 글만 보는 어떤 독자의 정확도도 \(B(f,q)\) 이하이다. 각 글 \(s\)에서 가장 흔한 답을 내는 독자가 등호를 이룬다.</li>
+        <li>\(f\)가 \(q\)를 보존하면 \(B=1\)이고, 보존하지 않으면 \(B\lt1\)이다.</li>
+        <li>변환 뒤에 글을 더 줄이면(\(g\circ f\)) \(B\)는 늘지 않는다. 두 변환의 출력을 함께 주면 \(B\bigl((f_1,f_2),q\bigr)\ge\max\bigl(B(f_1,q),B(f_2,q)\bigr)\)이다. 같은 변환을 두 번 주어도 \(B\)는 그대로이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 독자가 글 \(s\)에 답 \(a_s\)를 낸다면(확률적이면 \(a_s\)의 분포에 대해 평균하면 된다) 정확도는 \(\sum_s\Pr[f=s,\,q=a_s]\le\sum_s\max_a\Pr[f=s,\,q=a]\)이다. 각 \(s\)에서 최댓값을 내는 \(a\)를 고르면 등호이다. 2번: 보존하면 각 \(s\)에서 \(q\)가 한 값뿐이어서 \(\max_a\Pr[f=s,q=a]=\Pr[f=s]\)이고 합이 1이다. 보존하지 않으면 어떤 \(s\)에서 두 답이 모두 양의 확률을 가져 최댓값이 \(\Pr[f=s]\)보다 작다. 3번: \(g\)가 글 여러 개를 한 글로 합치면 \(\max_a\)가 합 위에서 취해지고, 합의 최댓값은 최댓값의 합 이하이다. 두 변환을 함께 보면 글의 칸이 더 잘게 나뉘므로 같은 부등식이 거꾸로 성립한다. 같은 변환의 출력을 반복하면 칸이 나뉘지 않는다.</p>
+      </details>
+    </div>
+    <p>이 정리는 모델이 아니라 정보에 대한 말이다. 모델을 키우거나 프롬프트를 고쳐도 \(B\)를 넘을 수 없다. 넘고 싶다면 변환 규칙을 바꾸거나(구분자, 좌표를 넣는다) 다른 변환을 하나 더해야 한다는 것이 3번이다. 아래 두 예는 변환이 질문을 보존하지 않는 가장 흔한 두 경우이다.</p>
+    <div class="box ex" id="ex-shape"><div class="box-h">구분자가 없는 표: 모양이 사라진다</div>
+      <p>행 우선으로 \(n\)개의 셀을 구분자 없이 한 줄로 이으면, \(r\times c=n\)인 모든 모양 \((r,c)\)가 같은 글이 된다. 모양의 가짓수는 \(n\)의 약수의 개수이다. 셀이 12개이면 6가지(1×12, 2×6, 3×4, 4×3, 6×2, 12×1), 24개이면 8가지, 36개이면 9가지, 60개이면 12가지이다(실험의 E0a가 센다). '3행 2열의 값은?'의 답은 모양에 따라 다르므로 이 변환은 이 질문을 보존하지 않는다. 줄바꿈, 탭, <code>|</code> 같은 구분자를 넣으면 모양이 복원된다. 변환 규칙에 정보를 넣은 것이다. 병합 셀이나 빈 셀이 있으면 구분자로도 모양이 다 복원되지 않을 수 있다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 400" role="img" aria-label="막대 6개로 이루어진 도표를 글로 옮기는 두 방식. 도표는 Alder 37, Birch 82, Cedar 55(빨간색), Dune 91, Ember 24, Fjord 68이다. 위쪽 방식은 이름과 값을 한 줄에 묶은 표로, 값과 이름의 연결이 남지만 빨간색은 남지 않는다. 아래쪽 방식은 글상자를 위에서 아래, 왼쪽에서 오른쪽으로 읽은 글로, 값이 큰 순서의 숫자들과 맨 아래 항목 이름 줄이 되어 값과 이름의 연결이 사라진다. 이 도표에서는 720가지 막대 배치가 같은 글이 된다.">
+  <defs>
+    <marker id="g101-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+  </defs>
+  <text class="t-b" x="20" y="24">도표</text>
+  <path d="M30 330 H210" class="s-line"/>
+  <rect class="f-acc-soft" x="38" y="242" width="20" height="88"/>
+  <rect class="f-acc-soft" x="66" y="133" width="20" height="197"/>
+  <rect x="94" y="198" width="20" height="132" style="fill:#dc1e1e;opacity:.85"/>
+  <rect class="f-acc-soft" x="122" y="112" width="20" height="218"/>
+  <rect class="f-acc-soft" x="150" y="272" width="20" height="58"/>
+  <rect class="f-acc-soft" x="178" y="167" width="20" height="163"/>
+  <text class="t-dim" x="48" y="348" text-anchor="middle">A</text><text class="t-dim" x="76" y="348" text-anchor="middle">B</text><text class="t-dim" x="104" y="348" text-anchor="middle">C</text><text class="t-dim" x="132" y="348" text-anchor="middle">D</text><text class="t-dim" x="160" y="348" text-anchor="middle">E</text><text class="t-dim" x="188" y="348" text-anchor="middle">F</text>
+  <text class="t-dim" x="120" y="376" text-anchor="middle">A=Alder … F=Fjord, C만 빨간색</text>
+  <path d="M222 120 H262" class="s-line" marker-end="url(#g101-arr)"/>
+  <path d="M222 260 H262" class="s-line" marker-end="url(#g101-arr)"/>
+  <text class="t-acc" x="274" y="24">(가) 표로 변환: 이름과 값을 한 줄에 묶는다</text>
+  <rect class="f-surface" x="274" y="36" width="190" height="168" rx="8"/>
+  <text class="t-mono" x="290" y="62">Alder: 37</text><text class="t-mono" x="290" y="82">Birch: 82</text><text class="t-mono" x="290" y="102">Cedar: 55</text><text class="t-mono" x="290" y="122">Dune: 91</text><text class="t-mono" x="290" y="142">Ember: 24</text><text class="t-mono" x="290" y="162">Fjord: 68</text>
+  <text class="t-dim" x="290" y="190">빨간색은 어디에도 없다</text>
+  <text class="t-acc" x="274" y="238">(나) 글 추출: 위에서 아래, 왼쪽에서 오른쪽</text>
+  <rect class="f-surface" x="274" y="250" width="190" height="140" rx="8"/>
+  <text class="t-mono" x="290" y="270">100 · 91 · 82 · 80 · 68</text>
+  <text class="t-mono" x="290" y="288">60 55 · 40 37 · 24 · 20 · 0</text>
+  <text class="t-mono" x="290" y="306">(눈금 0~100과 값이 섞여 읽힌다)</text>
+  <text class="t-mono" x="290" y="330">Alder Birch Cedar</text><text class="t-mono" x="290" y="348">Dune Ember Fjord</text>
+  <text class="t-dim" x="290" y="376">값과 이름의 연결이 없다</text>
+  <path d="M474 120 H520" class="s-line" marker-end="url(#g101-arr)"/>
+  <path d="M474 320 H520" class="s-line" marker-end="url(#g101-arr)"/>
+  <rect class="f-surface" x="528" y="36" width="260" height="168" rx="8"/>
+  <text class="t-b" x="544" y="62">값·최고·비교 질문: B = 1</text>
+  <text class="t-b" x="544" y="86">색 질문: B = 1/6</text>
+  <text class="t-dim" x="544" y="116">값이 이름에 붙어 있어 이 질문들은 보존된다.</text>
+  <text class="t-dim" x="544" y="136">색은 이 글에 없으므로 어느 막대든</text>
+  <text class="t-dim" x="544" y="156">빨간색일 확률이 같아 6개 중 하나를</text>
+  <text class="t-dim" x="544" y="176">찍는 수준을 넘을 수 없다.</text>
+  <rect class="f-surface" x="528" y="250" width="260" height="140" rx="8"/>
+  <text class="t-b" x="544" y="276">이 도표: 720가지 배치가 같은 글</text>
+  <text class="t-b" x="544" y="300">'Alder의 값은?' 상한 1/6</text>
+  <text class="t-dim" x="544" y="326">분포 전체에서 평균한 상한은 실험의 E0b가</text>
+  <text class="t-dim" x="544" y="346">센다. 값 0.227, 최고 0.196, 색 1/6</text>
+  <text class="t-dim" x="544" y="366">(막대 두 개의 값이 가까우면 좌우 순서가 남는다)</text>
+</svg>
+      <figcaption><b>그림 10-1.</b> 한 도표를 글로 옮기는 두 방식. (가)는 이름과 값을 한 줄에 묶어 값과 이름의 연결을 보존하지만 색을 담지 못한다. (나)는 글상자를 읽기 순서로 늘어놓아 값이 높이 순으로 읽히고 항목 이름은 맨 아래 줄로 따로 읽히므로, 값과 이름의 연결이 사라진다. 이 도표에서는 막대 배치 720가지(\(6!\))가 모두 같은 글이다. 도표의 값은 실험에서 쓰는 생성기의 한 예이다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-order"><div class="box-h">읽기 순서가 연관을 지운다</div>
+      <p>그림 10-1의 (나)는 단순한 추출기를 가정한다. 글상자를 위에서 아래로 읽고, 높이 24 px 안의 글상자는 한 줄로 묶어 왼쪽부터 읽는다. 막대 위의 값 라벨은 막대마다 높이가 달라 값이 큰 순서로 읽히고, 항목 이름은 맨 아래 줄에 좌우 순서로 읽힌다. 다음은 이 규칙으로 뽑은 글이다(실험 코드의 <code>ocr_text</code>가 만든다).</p>
+<pre><code>100
+91
+82
+80
+68
+60 55
+40 37
+24
+20
+0
+Alder Birch Cedar Dune Ember Fjord</code></pre>
+      <p>값 37, 82, 55, 91, 24, 68을 어떤 순서로 막대에 배치해도 이 글이 나온다(6! = 720가지를 모두 세어 확인했다). '60 55'와 '40 37'은 눈금 라벨 60, 40이 값 라벨 55, 37과 같은 줄에 묶인 것이다. 눈금과 값이 구별 없이 섞이는 것도 추출의 현실이다. 따라서 '<code>Alder</code>의 값은?'에 답하는 독자는 이 도표에서 6개 값 가운데 하나를 찍는 수준(\(1/6\))을 넘을 수 없다. 표 변환은 같은 질문을 보존한다.</p>
+    </div>
+    <p>실제 연구에서도 이 구조가 보인다. <a href="https://arxiv.org/abs/2111.15664">Donut</a>(Kim 외, 2021)의 초록에 따르면 문서 이해에 흔히 쓰는 OCR 엔진은 계산 비용이 들고 언어와 문서 종류에 유연하지 못하며 OCR 오류가 뒤 단계로 퍼지는데, 이 문제들을 피하려고 OCR 없이 문서 이미지에서 바로 답을 내는 모델을 제안했다. 정리의 3번으로 읽으면 OCR 단계는 하나의 변환 \(f\)이고, 그 뒤 모델은 \(B(f,q)\)를 넘지 못한다. <a href="https://arxiv.org/abs/2203.10244">ChartQA</a>(Masry 외, 2022)의 초록에 따르면 이 벤치마크는 시각 추론과 여러 단계의 논리·산술 추론이 필요한 도표 질문을 모았고, 저자들이 제안한 두 모델은 시각 특징과 도표의 기반 데이터 표를 함께 쓴다. 두 변환의 출력을 함께 쓰는 설계(정리의 3번)에 해당한다. <a href="https://arxiv.org/abs/2007.00398">DocVQA</a>(Mathew 외, 2020)의 초록은 문서 이미지 12,000여 장에 대한 질문 5만 개로 이루어진 자료에서 모델과 사람(94.36%) 사이의 큰 격차가 있었고, 특히 문서의 구조를 이해해야 하는 질문에서 개선이 필요하다고 보고한다. 이 논문들이 위 정리를 쓴 것은 아니며, 이 책이 정리의 눈으로 다시 읽은 것이다.</p>
+    <p>반대 방향도 사실이다. 이미지가 글보다 나은 것은 아니다. 글자 자체, 곧 숫자, 식별자, URL 같은 정확한 문자열은 PDF의 문자 층이나 HTML에서 변환이 맞기만 하면 손실 없이 얻는다. 이미지에서는 해상도가 모자라면 같은 문자열을 틀리게 읽는다(10.2~10.3절). 또 변환에는 있고 이미지에는 없는 정보도 있다. 화면에 보이지 않지만 문서의 구조에 들어 있는 글(스타일로 가린 글, 주석, 접근성 이름)이 그렇다. 다음 표는 두 경로가 정보 종류별로 무엇을 남기는지를 정리한 것이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>정보</th><th>글로 변환 (OCR, 파서, DOM)</th><th>이미지를 직접</th></tr></thead>
+      <tbody>
+        <tr><td>정확한 문자열 (숫자, ID, URL)</td><td>변환이 맞으면 그대로 남는다</td><td>해상도가 모자라면 틀리게 읽는다</td></tr>
+        <tr><td>표의 행과 열</td><td>구분자나 좌표를 넣어야 남는다</td><td>선과 정렬로 남는다</td></tr>
+        <tr><td>읽는 순서, 단 나누기</td><td>변환 규칙이 정한다 (틀리면 연관이 깨진다)</td><td>배치로 남고 모델이 순서를 추론한다</td></tr>
+        <tr><td>막대 길이, 선, 색, 강조 표시</td><td>좌표나 스타일을 넣지 않으면 사라진다</td><td>남는다 (축소 배율까지)</td></tr>
+        <tr><td>화면에 안 보이는 글</td><td>변환 규칙에 따라 남을 수 있다</td><td>사라진다</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout agent"><strong>웹 페이지는 두 번 읽을 수 있다</strong>
+      <p>브라우저를 쓰는 에이전트는 같은 페이지를 DOM이나 접근성 트리(글)와 스크린샷(이미지)의 두 경로로 얻는다. 정리 10.1의 3번에 따라 둘을 함께 보면 하나만 볼 때보다 정확도의 상한이 낮아지지 않지만, 비용은 두 경로의 합이다. 어느 쪽을 기본으로 할지는 질문의 종류가 정한다. 버튼의 정확한 이름이나 입력란의 값은 글 경로가, 요소가 화면 어디에 어떤 모양으로 놓였는지는 이미지 경로가 보존한다. 도구로 페이지를 가져오는 방법은 <a href="ch13.html">13장</a>과 <a href="ch19.html">19장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 10.2 -->
   <section id="s2">
     <h2>이미지·도표·화면의 입력 경로</h2>
-    <p class="slot" data-slot="10.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>글로 옮기지 않고 이미지를 모델에 그대로 주는 길에서는 변환 대신 해상도가 문제가 된다. 9장에서 이미지는 패치의 열이 되었고, 열의 길이는 이미지 크기에 따라 정해졌다. 모델이 받을 수 있는 열의 길이에는 한도가 있으므로, 큰 이미지는 어디선가 줄어든다. 문서와 화면은 작은 글자와 가는 선이 많아서 이 축소의 영향을 사진보다 먼저 받는다. 아래 그림은 문서와 화면이 모델에 닿는 세 경로와 각 경로가 치르는 값을 요약한다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="문서와 화면이 모델에 닿는 세 경로. 가 경로는 문서를 OCR이나 파서나 DOM으로 글로 바꾸어 언어모델에 준다. 나 경로는 문서를 이미지로 두고 한도에 맞게 줄인 뒤 패치 토큰으로 바꾸어 시각 언어모델에 준다. 다 경로는 두 입력을 함께 준다. PDF 지원이 쪽마다 이미지와 추출한 글을 함께 주는 방식이 여기에 해당한다. 각 경로 아래에 치르는 값이 적혀 있다.">
+  <defs>
+    <marker id="g102-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+  </defs>
+  <text class="t-acc" x="8" y="18">(가) 글로 변환</text>
+  <rect class="f-surface" x="8" y="26" width="130" height="46" rx="8"/><text class="t-b" x="73" y="54" text-anchor="middle">문서·화면</text>
+  <rect class="f-surface" x="168" y="26" width="190" height="46" rx="8"/><text class="t-b" x="263" y="46" text-anchor="middle">OCR · 파서 · DOM</text><text class="t-dim" x="263" y="62" text-anchor="middle">변환 규칙 f가 정한다</text>
+  <rect class="f-surface" x="388" y="26" width="150" height="46" rx="8"/><text class="t-b" x="463" y="54" text-anchor="middle">글 (토큰)</text>
+  <rect class="f-surface" x="568" y="26" width="130" height="46" rx="8"/><text class="t-b" x="633" y="54" text-anchor="middle">언어모델</text>
+  <path d="M138 49 H164" class="s-line" marker-end="url(#g102-arr)"/><path d="M358 49 H384" class="s-line" marker-end="url(#g102-arr)"/><path d="M538 49 H564" class="s-line" marker-end="url(#g102-arr)"/>
+  <text class="t-dim" x="8" y="94">치르는 값: 글 토큰. 잃는 것: 규칙이 담지 않은 배치·도형·색 (정리 10.1)</text>
+  <text class="t-acc" x="8" y="132">(나) 이미지를 직접</text>
+  <rect class="f-surface" x="8" y="140" width="130" height="46" rx="8"/><text class="t-b" x="73" y="168" text-anchor="middle">문서·화면</text>
+  <rect class="f-surface" x="168" y="140" width="190" height="46" rx="8"/><text class="t-b" x="263" y="160" text-anchor="middle">한도에 맞춰 축소</text><text class="t-dim" x="263" y="176" text-anchor="middle">배율 ρ (정리 10.2)</text>
+  <rect class="f-surface" x="388" y="140" width="150" height="46" rx="8"/><text class="t-b" x="463" y="160" text-anchor="middle">패치 토큰</text><text class="t-dim" x="463" y="176" text-anchor="middle">⌈w/28⌉ × ⌈h/28⌉</text>
+  <rect class="f-surface" x="568" y="140" width="130" height="46" rx="8"/><text class="t-b" x="633" y="168" text-anchor="middle">시각 언어모델</text>
+  <path d="M138 163 H164" class="s-line" marker-end="url(#g102-arr)"/><path d="M358 163 H384" class="s-line" marker-end="url(#g102-arr)"/><path d="M538 163 H564" class="s-line" marker-end="url(#g102-arr)"/>
+  <text class="t-dim" x="8" y="208">치르는 값: 이미지 토큰 (한도에서 멈춤). 잃는 것: 해상도가 모자란 작은 글자·가는 선 (10.3절)</text>
+  <text class="t-acc" x="8" y="246">(다) 둘을 함께</text>
+  <rect class="f-surface" x="8" y="254" width="130" height="46" rx="8"/><text class="t-b" x="73" y="282" text-anchor="middle">문서(PDF 등)</text>
+  <rect class="f-surface" x="168" y="254" width="190" height="46" rx="8"/><text class="t-b" x="263" y="274" text-anchor="middle">쪽 이미지 + 추출한 글</text><text class="t-dim" x="263" y="290" text-anchor="middle">(가)와 (나)를 모두</text>
+  <rect class="f-surface" x="388" y="254" width="150" height="46" rx="8"/><text class="t-b" x="463" y="274" text-anchor="middle">글 토큰 + 이미지 토큰</text><text class="t-dim" x="463" y="290" text-anchor="middle">두 비용의 합</text>
+  <rect class="f-surface" x="568" y="254" width="130" height="46" rx="8"/><text class="t-b" x="633" y="282" text-anchor="middle">시각 언어모델</text>
+  <path d="M138 277 H164" class="s-line" marker-end="url(#g102-arr)"/><path d="M358 277 H384" class="s-line" marker-end="url(#g102-arr)"/><path d="M538 277 H564" class="s-line" marker-end="url(#g102-arr)"/>
+  <text class="t-dim" x="8" y="322">치르는 값: 두 경로의 합. 정확도의 상한은 둘 중 나은 쪽 이상 (정리 10.1의 3번)</text>
+</svg>
+      <figcaption><b>그림 10-2.</b> 문서와 화면이 모델에 닿는 세 경로. (다)의 예로, Claude의 PDF 지원은 쪽마다 쪽 이미지와 추출한 글을 함께 준다(2026년 11월 공식 문서).</figcaption>
+    </figure>
+
+    <h3 id="h-res">해상도를 다루는 방식: 고정, 가변, 상한 있는 가변</h3>
+    <p>이미지를 시각 토큰으로 바꾸는 방식은 해상도를 어떻게 다루는지로 갈린다. 첫째는 고정 해상도이다. 9장의 CLIP은 이미지를 모델이 정한 크기(224)로 늘이거나 줄여 항상 같은 길이의 열을 만든다. 문서와 화면은 가로세로 비율과 크기가 제각각이고 글자가 작아서 이 방식이 맞지 않는다. 둘째는 가변 해상도로, 이미지의 크기에 따라 토큰 수가 달라진다. <a href="https://arxiv.org/abs/2210.03347">Pix2Struct</a>(Lee 외, 2022)의 초록은 웹 페이지의 가려진 스크린샷을 단순화한 HTML로 옮기는 사전학습과 함께 '가변 해상도 입력 표현'을 제안하고, 질문 같은 언어 프롬프트를 입력 이미지 위에 직접 그려 넣는다고 밝힌다. <a href="https://arxiv.org/abs/2409.12191">Qwen2-VL</a>(Wang 외, 2024)의 초록은 고정 해상도 방식을 다시 생각해 '해상도에 따라 서로 다른 수의 시각 토큰'을 만드는 Naive Dynamic Resolution을 도입했다고 적는다. 셋째는 상한 있는 가변이다. 제품에서는 가변 해상도에 긴 변과 토큰 수의 상한이 붙고, 상한을 넘는 이미지는 줄어든다. 아래는 Claude의 공개된 입력 규칙(2026년 11월 확인)이다.</p>
+    <div class="box def" id="def-patchtok"><div class="box-h">패치 토큰 수와 축소 배율 (Claude의 이미지 규칙)</div>
+      <p>Claude는 이미지를 28×28 픽셀 패치로 처리하며 패치 하나가 시각 토큰 하나이다. 폭 \(w\), 높이 \(h\)인 이미지의 토큰 수는 \(N(w,h)=\lceil w/28\rceil\lceil h/28\rceil\)이다. 모델마다 긴 변의 한도 \(E\)와 토큰 한도 \(T\)가 있고(표준 등급은 \(E=1568\), \(T=1568\), 'Claude 4.7 이후' 모델의 고해상도 등급은 \(E=2576\), \(T=4784\)), 한도를 넘는 이미지는 종횡비를 유지한 채 \(\lceil w'/28\rceil\cdot28\le E\), \(\lceil h'/28\rceil\cdot28\le E\), \(N(w',h')\le T\)를 모두 만족하는 가장 큰 \(w'\times h'\)로 줄어든다. <b>축소 배율</b>은 \(\rho=w'/w\le1\)이다. 줄인 이미지는 오른쪽과 아래쪽이 28의 배수가 되도록 빈 칸으로 채워진다(<a href="https://platform.claude.com/docs/en/build-with-claude/vision">Vision</a>, <a href="https://platform.claude.com/docs/en/build-with-claude/vision-coordinates">Coordinates and bounding boxes</a>).</p>
+    </div>
+    <div class="box thm" id="thm-resize"><div class="box-h">축소가 만드는 것</div>
+      <p>\(w\times h\) 이미지를 배율 \(\rho\)로 줄여 모델에 준다고 하자.</p>
+      <ol>
+        <li>토큰 한도가 구속하는 큰 이미지에서는 \(N\approx T\)이고 \(\rho\approx28\sqrt{T/(wh)}\)이다.</li>
+        <li>원본에서 높이 \(g\) px인 글자는 모델이 보는 이미지에서 \(\rho g\) px이고, 모델 토큰 하나는 원본 위에서 한 변 \(28/\rho\) px의 정사각형을 덮는다.</li>
+        <li>흰 바탕의 폭 \(u\) px인 어두운 선이 상자 필터로 줄인 출력 픽셀 하나에 들어가면, 그 픽셀의 밝기는 \(255(1-u\rho)\)로 오른다(\(u\rho\le1\)). 선은 사라지지 않고 회색이 되지만 배경과의 차이는 \(\rho\)배로 줄어든다.</li>
+        <li>입력이 한도 안에 있으면 토큰 수는 면적에 비례해 늘고, 한도를 넘으면 늘지 않는다. 한도 밖에서 더 큰 이미지를 주면 비용은 같고 \(\rho\)만 작아진다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 한도에 맞게 줄인 크기가 \(w'h'\approx28^2N\le28^2T\)이고, \(\rho^2=w'h'/(wh)\)이다(올림은 무시했다). 2번: 축소는 선형이다. 3번: 선이 덮는 비율이 출력 픽셀 하나의 \(u\rho\)이면, 픽셀 값은 선(0)과 배경(255)의 면적 가중 평균 \(255(1-u\rho)\)이다. 4번은 정의에서 나온다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-claude"><div class="box-h">Claude의 규칙으로 센 크기와 토큰</div>
+      <p>실험의 E0c가 위 규칙으로 센 값이다(공식 문서의 표와 비교했다).</p>
+      <div class="table-wrap"><table class="nowrap"><thead><tr><th>입력</th><th class="num">표준 등급: 줄인 크기 (ρ)</th><th class="num">표준 등급 토큰</th><th class="num">고해상도 등급: 크기 (ρ)</th><th class="num">고해상도 등급 토큰</th></tr></thead><tbody>
+<tr><td>1000×1000</td><td class="num">그대로 (1.00)</td><td class="num">1,296</td><td class="num">그대로 (1.00)</td><td class="num">1,296</td></tr>
+<tr><td>1920×1080</td><td class="num">1456×819 (0.758)</td><td class="num">1,560</td><td class="num">그대로 (1.00)</td><td class="num">2,691</td></tr>
+<tr><td>2000×1500</td><td class="num">1270×952 (0.635)</td><td class="num">1,564</td><td class="num">그대로 (1.00)</td><td class="num">3,888</td></tr>
+<tr><td>3840×2160</td><td class="num">1456×819 (0.379)</td><td class="num">1,560</td><td class="num">2576×1449 (0.671)</td><td class="num">4,784</td></tr>
+<tr><td>1075×1520 (A4, 130 DPI)</td><td class="num">924×1307 (0.860)</td><td class="num">1,551</td><td class="num">그대로 (1.00)</td><td class="num">2,145</td></tr>
+</tbody></table></div>
+      <p>공식 문서의 표와 같은 값이 나온 칸이 대부분이다. 2000×1500은 문서의 표가 폭 1269를 적었고 이 장의 구현은 1270이다. 1270에서 짧은 변이 정확히 952.5가 되는 동점이어서, 문서의 참조 구현처럼 짝수 쪽으로 반올림하면 952로 한도 안에 들고 올림하면 953으로 한도를 넘는다. 1 px 차이이므로 토큰 수는 같다(1,564). 화면 좌표를 맞출 때는 이 1 px도 규칙을 정확히 따라야 한다는 뜻이다(10.4절). 1920×1080 스크린샷 10장은 표준 등급에서 15,600 토큰, 고해상도 등급에서 26,910 토큰을 컨텍스트에 쌓는다(<a href="ch09.html#ex-kv">9장의 예제 9.4</a>와 같은 계산이다). 같은 4K 화면(3840×2160)이 표준 등급에서는 \(\rho=0.379\)로 줄어, 원본에서 높이 12 px인 글자가 4.5 px이 된다. 공식 문서도 이미지 안의 글자가 중요하면 작지 않게 하고, 큰 이미지는 보내기 전에 직접 줄이거나 잘라 어떻게 줄어드는지 통제하라고 권한다. 이 장의 모든 값은 규칙이 바뀌면 바뀌므로, 원리(정리 10.2)와 제품의 현재 동작(이 예제)을 구분해서 읽는다.</p>
+    </div>
+    <p>PDF는 (다) 경로의 예이다. 공식 문서에 따르면 PDF의 쪽마다 이미지가 만들어지고 쪽에서 추출한 글이 이미지와 함께 주어진다. 글의 비용은 쪽당 대략 1,500~3,000 토큰이고 이미지의 비용은 위 계산이 그대로 걸린다. PDF의 쪽은 서버에서 사용자가 정할 수 없는 크기로 이미지가 되므로, 좌표를 쓰는 작업이면 쪽을 직접 이미지로 만들어 보내라고 한다.</p>
+
+    <h3 id="h-vit">지시를 따르게 하는 학습: 이미지를 글로 옮겨 만든 학습 자료</h3>
+    <p>9장은 비전 인코더와 언어모델을 잇는 방식을 세웠고, 지시를 따르게 하는 학습은 이 장으로 미루었다. <a href="https://arxiv.org/abs/2304.08485">LLaVA</a>(Liu 외, 2023)가 쓴 방법이 정리 10.1과 맞물린다. 사람이 이미지마다 질문과 답을 쓰는 대신, 이미지를 <em>글로 옮겨</em> 글만 읽는 언어모델(GPT-4)에게 질문과 답을 쓰게 했다. 논문에 따르면 글 변환은 두 가지였다. 장면을 여러 관점에서 설명하는 캡션, 그리고 물체의 개념과 위치를 담은 경계 상자이다. 이미지 자체는 생성 모델에 주어지지 않았다. 이렇게 만든 지시 자료는 모두 158,000개로, 대화 58,000개, 상세 설명 23,000개, 복잡한 추론 77,000개로 이루어진다. 학습은 두 단계이다. 첫 단계는 필터링한 CC3M 595,000쌍으로 비전 인코더와 언어모델을 얼린 채 투영만 학습하고, 둘째 단계는 비전 인코더는 얼린 채 투영과 언어모델을 158,000개의 지시 자료로 함께 학습한다(논문 본문의 설정: ar5iv 판으로 확인).</p>
+    <p>정리 10.1로 읽으면 이 자료의 한계가 보인다. 질문 \(q\)의 답이 캡션과 상자(\(f(d)\))로 정해지지 않으면, 글만 읽는 생성 모델이 쓴 답은 \(B(f,q)\) 이하의 정확도로만 이미지의 실제 답과 맞는다. 학습하는 모델은 그런 답까지 '그럴듯한 답'으로 배운다. 이 읽기는 이 책의 해석이며, 논문이 생성 자료의 정확도를 이렇게 잰 것은 아니다. 논문 자체는 한계로 LLaVA가 때때로 이미지를 '패치의 주머니(bag of patches)'처럼 다루어 복잡한 의미를 놓치는 예를 들었다고 보고한다(9장의 바인딩 실험과 같은 방향이다). 문서와 화면을 읽는 모델의 학습 자료도 같은 질문을 받는다. 정답이 이미지에서 나오는가, 이미지를 글로 옮긴 어떤 변환에서 나오는가.</p>
+    <div class="callout agent"><strong>스크린샷은 비용과 정보가 함께 한도를 가진다</strong>
+      <p>컴퓨터를 조작하는 에이전트는 단계마다 스크린샷을 받는다. 화면이 클수록 줄어드는 정도가 커지므로, 화면 해상도는 비용만이 아니라 글자와 버튼이 보이는 크기도 정한다. Claude의 computer use 문서(2026년 11월 확인)는 일반 데스크톱 작업에는 1024×768이나 1280×720, 웹 애플리케이션에는 1280×800이나 1366×768을 권하고, 1920×1080을 넘는 해상도는 성능 문제를 일으킬 수 있다고 적는다. 어떤 스크린샷을 컨텍스트에 남기고 버릴지는 <a href="ch20.html">20장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 10.3 -->
   <section id="s3">
     <h2>시각 정보의 누락과 착각</h2>
-    <p class="slot" data-slot="10.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>10.2절에서 축소는 피할 수 없는 선택이 될 수 있음을 보았다. 이미지 경로에서 틀린 답이 나오는 이유는 크게 둘이다. 하나는 <b>누락</b>으로, 입력에 있던 정보가 모델에 닿기 전에 사라진다. 다른 하나는 <b>착각</b>으로, 정보가 닿았는데도 틀리게 읽거나, 닿지 않았는데도 그럴듯한 답을 낸다. 둘은 고치는 방법이 다르므로 먼저 갈라야 한다. 누락은 입력을 바꾸어야 고쳐지고, 착각은 입력을 그대로 두고 읽는 쪽을 바꾸어야 고쳐진다.</p>
+
+    <h3 id="h-lose">무엇이 사라지고 무엇이 남는가</h3>
+    <p>정리 10.1의 논리는 이미지 경로의 모든 단계에 그대로 걸린다. 이미지는 축소, 압축, 패치 투영을 거쳐 표현 \(r(d)\)가 되고, 이 단계들이 서로 다른 두 이미지를 같은 표현으로 보내면 충돌이다. 충돌의 원천은 다섯 가지이다. 축소(배율 \(\rho\)), 패치 임베딩의 영공간(<a href="ch09.html#thm-patch">9장의 정리 9.1</a>), 손실 압축(공식 문서는 JPEG나 손실 WebP가 모델 성능에 해로운 아티팩트를 만들 수 있고, 압축을 여러 번 거칠수록 심하며, 강한 JPEG 압축은 글자를 읽기 어렵게 만든다고 경고한다), 잘라내기와 가장자리 채움, 그리고 10.1절의 글 변환이다.</p>
+    <p>그러나 축소가 지우는 정도는 정보의 종류마다 다르다. 같은 축소를 가는 선, 막대 길이, 두 자리 숫자 라벨에 적용해 재 보았다(실험의 E0e~E0g).</p>
+    <div class="table-wrap"><table class="nowrap"><thead><tr><th>축소 배율 \(\rho\)</th><th class="num">1 px 검은 선의 최저 밝기 (예측 \(255(1-\rho)\))</th><th class="num">막대 길이를 잉크 합으로 읽은 평균 오차 (값 단위)</th><th class="num">두 자리 라벨 90개 쌍의 최소 거리 (RMS, 0~255)</th></tr></thead><tbody>
+<tr><td>1</td><td class="num">0</td><td class="num">0.000</td><td class="num">19.2</td></tr>
+<tr><td>3/4</td><td class="num">—</td><td class="num">0.011</td><td class="num">16.4</td></tr>
+<tr><td>1/2</td><td class="num">128 (127.5)</td><td class="num">0.030</td><td class="num">13.1</td></tr>
+<tr><td>3/8</td><td class="num">—</td><td class="num">0.043</td><td class="num">10.4</td></tr>
+<tr><td>1/4</td><td class="num">191 (191.2)</td><td class="num">0.094</td><td class="num">6.5</td></tr>
+<tr><td>1/8</td><td class="num">223 (223.1)</td><td class="num">0.166</td><td class="num">1.4</td></tr>
+</tbody></table></div>
+    <p>가는 선은 사라지지 않고 회색이 된다. 배경과의 차이가 \(\rho\)배로 줄 뿐이다(정리 10.2의 3번). 막대의 길이는 면적이 보존되어 거의 그대로 남는다. 1/8로 줄여도 평균 오차가 0.17(값의 범위 100에 대해)이다. 이것은 막대의 색 채우기가 이미지에서 합산할 수 있는 연속량이기 때문이다. 두 자리 숫자 라벨은 사정이 다르다. 라벨은 90가지 기호 가운데 하나를 고르는 일이어서, 가장 가까운 두 라벨 사이의 거리(원본 19.2)가 1/4에서 6.5, 1/8에서 1.4로 줄어든다. 1/8에서 거리가 2 미만인 쌍은 4005쌍 중 16쌍, 4 미만인 쌍은 217쌍이다. 중앙값은 46.1에서 9.3으로 내려갔다. 따라서 축소는 연속량보다 기호를 먼저 어렵게 만든다.</p>
+    <p>이 거리들을 '읽을 수 있다'로 읽으면 안 된다. 위 값은 글꼴과 위치를 아는 이상적인 판독기가 8비트 양자화 잡음(RMS 약 0.29)보다 큰 거리로 모든 쌍을 구별할 수 있다는 것만 말한다(최소 거리가 가장 작은 1/8에서도 1.41이다). 압축 같은 잡음이 거리 2 수준이라고 가정하면 1/8에서는 16쌍이 구별되지 않는다는 식으로 읽을 수 있다. 실제 모델이 읽는 해상도의 문턱은 별개이고, 이 장의 실험이 그것을 잰다. 정보가 표현에 남아 있는데도 틀리는 경우는 실제로 보고된다. <a href="https://arxiv.org/abs/2407.06581">Rahmanzadehgervi 외(2024)</a>의 초록에 따르면 두 원이 겹치는지, 선이 몇 번 교차하는지, 어느 글자가 동그라미에 둘러싸였는지 같은 단순한 시각 과제 일곱 개(BlindTest)에서 평가한 네 모델의 평균 정확도가 약 58%였고(최고인 Claude 3.5 Sonnet이 약 78%, 사람은 100%), 도형이 겹치거나 가까우면 어려워하고 떨어져 있으면 거의 완벽했다. 선형 탐침 실험은 비전 인코더가 과제를 푸는 데 필요한 정보를 가지고 있지만 언어모델이 그것을 정확한 답으로 옮기지 못한다고 시사한다. 이 수치는 논문이 평가한 당시 모델의 것이며 지금의 모델에 그대로 옮기면 안 된다. 누락(표현에 없음)과 독자 실패(표현에 있는데 못 읽음)는 이렇게 다른 원인이다.</p>
+    <div class="box thm" id="thm-silent"><div class="box-h">누락은 같은 칸 안에서 구별되지 않는다</div>
+      <p>이미지 경로가 자료 \(d\)를 표현 \(r(d)\)(패딩 포함, 모델이 받는 전부)로 보내고, 가중치와 프롬프트가 고정되어 있으며, 모델의 출력 \(O\)(답, 토큰 확률, 모델이 말한 확신도를 모두 포함)가 \(r(d)\)와 독립인 샘플링 난수에만 의존한다고 하자.</p>
+      <ol>
+        <li>\(r(d)=r(d')\)이면 \(O(d)\)와 \(O(d')\)의 분포가 같다.</li>
+        <li>이때 \(q(d)\ne q(d')\)이면 두 자료에서의 정확도의 합은 1 이하이다. 곧 둘의 평균 정확도는 \(1/2\) 이하이다.</li>
+        <li>확신도는 \(O\)의 함수이므로, 같은 표현 \(s\)를 갖는 자료 가운데 맞는 쪽과 틀린 쪽에서 같은 분포로 나온다. 확신도가 칸 안의 오류를 가려내려면 표현 \(s\) 자체가 모호하다는 것을 모델이 \(s\)에서 배워야 하며, 이는 표현에서 공짜로 나오지 않는 학습의 결과이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: \(O\)는 \(r(d)\)와 독립 난수의 함수이므로 \(r(d)\)가 같으면 분포가 같다. 2번: 답 \(a\)를 낼 확률을 \(p(a)\)라 하면 \(d\)에서의 정확도는 \(p(q(d))\), \(d'\)에서는 \(p(q(d'))\)이고, \(q(d)\ne q(d')\)이면 서로 다른 두 답의 확률의 합이므로 \(p(q(d))+p(q(d'))\le1\)이다. 3번: \(r(d)=s\)로 조건을 걸면 \(O\)의 분포는 \(d\)에 상관없이 \(s\)로만 정해지고, 정답 \(q(d)\)만 \(d\)에 따라 다르다.</p>
+      </details>
+    </div>
+    <p>3번은 정직한 한계를 하나 짚는다. 모델이 '이런 표현에서는 정보가 모자란다'고 학습했다면 칸 전체의 확신도를 낮출 수는 있다. 그러나 칸 안에서 어느 자료가 맞는지는 모른다. 이 장의 실험은 정보가 없는 글 추출(ocr) 설정에서 작은 모델이 '모른다'고 답하는지, 아니면 그럴듯한 답을 내는지를 응답에서 센다.</p>
+
+    <h3 id="h-illusion">착각: 후보 밖을 모르고, 연관을 틀리고, 글자에 이끌린다</h3>
+    <p>착각은 정보의 유무와 관계없이 일어나며 적어도 네 가지 모양이 있다. 첫째는 빈칸을 그럴듯하게 채우는 것이다. 정보가 없는 질문에도 모델은 답의 분포를 가지고 있고, 가장 그럴듯한 답이 나온다. 9장의 정리 9.4(고르는 일은 후보 안에서만 답한다)와 같은 뿌리이다. 후보가 없는 글쓰기에서는 그것이 '그럴듯한 말을 내놓는다'로 나타난다. 둘째는 연관(바인딩)의 실패이다. 막대와 이름, 셀과 머리글, 속성과 물체의 짝이 틀린다. 9장의 실험이 보인 구조와 같고, 글로 변환할 때(10.1절)도 이미지로 읽을 때도 일어난다. 셋째는 이미지 속 글자에 이끌리는 것이다. <a href="https://arxiv.org/abs/2402.19150">Cheng 외(2024)</a>의 초록에 따르면 CLIP류 모델을 흔드는 것으로 알려진 타이포그래피 공격(이미지에 글자를 넣는 공격)이 대형 시각 언어모델에도 통하며, 저자들은 상용·오픈소스 모델에서 이를 확인하고 벤치마크를 만들었고 원인에 대한 세 가지 발견으로 성능 저하를 42.07%에서 13.90%로 줄였다고 보고한다. 넷째는 세기, 공간 관계, 도표 추론이다. BlindTest 외에 <a href="https://arxiv.org/abs/2406.18521">CharXiv</a>(Wang 외, 2024)의 초록은 실제 논문에서 가져온 도표 2,323개에서 가장 좋은 상용 모델(GPT-4o)의 추론 정확도가 47.1%, 사람이 80.5%였고, 도표나 질문을 조금 바꾸는 시험만으로 성능이 최대 34.5% 떨어질 수 있다고 보고한다. 이 숫자들도 논문 당시의 것이다. Claude의 공식 문서(2026년 11월)는 한계로 저품질, 회전, 200 픽셀 미만의 작은 이미지에서 환각이나 실수가 있을 수 있고, 위치 출력은 근사이며, 개수도 많은 작은 물체에서는 정확하지 않을 수 있다고 적고, 정밀함이 완벽해야 하는 작업을 사람의 감독 없이 맡기지 말라고 한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>실패</th><th>무엇이 틀리나</th><th>원인이 있는 곳</th><th>가르는 점검</th></tr></thead>
+      <tbody>
+        <tr><td>누락 (충돌)</td><td>정보가 표현에 없다</td><td>변환, 축소, 압축</td><td>같은 표현이 되는 쌍을 만들어 정확도가 우연 수준인지 본다. 해상도를 올려 본다</td></tr>
+        <tr><td>독자 실패</td><td>정보는 있는데 못 읽는다</td><td>모델</td><td>참조 판독기나 더 높은 해상도·다른 모델로 같은 입력을 읽힌다</td></tr>
+        <tr><td>빈칸 채우기</td><td>정보가 없는데 확신 있는 답이 나온다</td><td>후보 안에서만 답하는 구조</td><td>정보를 지운 입력의 정확도를 본다. '알 수 없음'을 후보에 넣는다</td></tr>
+        <tr><td>연관 실패</td><td>속성과 물체, 라벨과 막대의 짝</td><td>변환 또는 모델</td><td>낱말은 같고 짝만 다른 쌍을 쓴다 (9장의 2×2)</td></tr>
+        <tr><td>글자에 이끌림</td><td>이미지 속 글이 판단을 바꾼다</td><td>모델</td><td>이미지 속 글만 바꾼 대조 이미지를 쓴다</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout agent"><strong>화면 속 글이 지시가 될 때</strong>
+      <p>컴퓨터를 조작하는 에이전트의 입력은 에이전트가 직접 통제하지 못하는 웹 페이지와 문서의 이미지를 포함한다. Claude의 computer use 문서(2026년 11월)는 어떤 상황에서는 모델이 내용 속에서 발견한 명령을 사용자의 지시와 충돌해도 따를 수 있고, 웹 페이지나 이미지 속 지시가 사용자의 지시를 덮어쓰거나 실수를 일으킬 수 있다고 경고한다. 반환된 스크린샷을 분류기가 훑어 지시 주입 가능성을 표시하고 모델이 행동 전에 그 지시가 정말 사용자에게서 왔는지 확인하도록 이끄는 방어가 있지만, 사람이 확인하지 않는 사용 사례에는 맞지 않을 수 있다고도 적는다. 문서는 최소 권한의 가상 머신이나 컨테이너, 민감한 자료(로그인 정보)를 주지 않기, 인터넷 접근을 허용 목록으로 제한하기, 결과가 큰 결정은 사람에게 확인받기를 권한다. 도구 결과 속 지시를 다루는 규칙은 <a href="ch24.html">24장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 10.4 -->
   <section id="s4">
     <h2>이미지 읽기와 도구 조작의 차이</h2>
-    <p class="slot" data-slot="10.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>지금까지 모델은 이미지를 읽고 글을 냈다. 에이전트는 읽은 뒤 행동한다. 화면의 한 점을 누르고, 글자를 입력하고, 파일을 고친다. 읽기와 조작은 이미지에서 출발한다는 점은 같지만 세 가지가 다르다. 출력이 놓이는 좌표계, 오류가 끼치는 비용, 오류를 확인하는 경로이다.</p>
+
+    <h3 id="h-coord">좌표는 축소된 이미지 위에 있다</h3>
+    <p>Claude의 문서(Coordinates and bounding boxes, 2026년 11월)에 따르면 모델이 돌려주는 좌표는 모델이 처리한 이미지, 곧 한도에 맞게 줄어든 이미지 위의 픽셀 위치이고, 원점은 왼쪽 위이다. computer use에서는 한 걸음 더 나가, 한도를 넘는 스크린샷은 자동으로 줄이지 않고 오류로 거절하므로 응용 쪽이 스크린샷을 먼저 줄여 돌려주고, 모델이 돌려준 좌표를 원래 화면 좌표로 되돌려 써야 한다. 이 되돌리기를 빠뜨리거나 틀리면 조작이 어긋난다.</p>
+    <div class="box def" id="def-coord"><div class="box-h">화면 좌표의 변환</div>
+      <p>화면이 \(W\times H\)이고 모델에 준 스크린샷이 \(w'\times h'\)(\(\rho=w'/W\))라 하자. 모델이 이미지 위의 점 \((x',y')\)를 내면, 이를 화면 위에서 \((x,y)=(x'/\rho,\;y'/\rho)\)로 되돌려 조작한다. 모델의 한 픽셀은 화면 위에서 \(1/\rho\) px이다. 화면이 HiDPI라서 스크린샷 픽셀과 논리 좌표가 다르면 그 배율로도 나눈다(computer use 문서가 macOS의 2배 예를 든다).</p>
+    </div>
+    <div class="box thm" id="thm-click"><div class="box-h">축소가 만드는 좌표 오차</div>
+      <p>화면에서 정답 점이 \(x\)이고 모델이 그 점을 정확히 짚어 \(x'=\rho x\)를 냈다고 하자.</p>
+      <ol>
+        <li>좌표를 되돌리지 않고 \(x'\)를 화면 좌표로 쓰면 오차는 \(x(1-\rho)\)이다. 오차는 원점(왼쪽 위)에서 멀수록 크고 방향이 일정하다(원점 쪽).</li>
+        <li>모델이 정수 픽셀 좌표를 낸다면 화면 위에서 \(1/\rho\) px 간격의 격자의 점만 가리킬 수 있고, 반올림 오차는 최대 \(1/(2\rho)\) px이다.</li>
+        <li>모델이 목표의 중심을 \([-\delta,\delta]\) 모델 픽셀의 균일한 오차로 짚으면, 화면에서 폭 \(t\) px인 목표를 맞힐 확률은 \(\min\bigl(1,\;t\rho/(2\delta)\bigr)\)이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 정답이 \(x\)이면 모델은 \(\rho x\)를 낸다. 되돌리지 않으면 클릭이 \(\rho x\)에 가고 오차는 \(x-\rho x\)이다. 2번: 정수 \(x'\)에 대응하는 화면 점은 \(x'/\rho\)이므로 간격이 \(1/\rho\)이고, 가장 가까운 격자점까지의 거리는 간격의 절반 이하이다. 3번: 화면에서의 오차는 \([-\delta/\rho,\delta/\rho]\)에서 균일하고, 맞히려면 오차의 크기가 \(t/2\) 이하이어야 한다. 그 확률은 \(\min\bigl(1,(t/2)/(\delta/\rho)\bigr)\)이다.</p>
+      </details>
+    </div>
+    <p>1번의 모양은 computer use 문서의 문제 해결 표가 말하는 증상과 같다. 문서에 따르면 클릭이 일정한 방향으로 계속 어긋나는 가장 흔한 원인이 모델 좌표를 다른 크기의 화면에 스케일 없이 적용한 것이다. 3번은 같은 문서가 짚는 다른 증상, '클릭이 올바른 영역에는 닿지만 목표를 놓친다'를 설명한다. 문서는 원인으로 목표가 매우 작거나, 축소로 세부가 사라졌거나, 종횡비가 일그러진 경우를 든다. 실험의 E0i가 센 값은 다음과 같다.</p>
+    <div class="table-wrap"><table class="nowrap"><thead><tr><th>화면</th><th>등급</th><th class="num">모델 이미지</th><th class="num">\(\rho\)</th><th class="num">토큰</th><th class="num">모델 한 픽셀 = 화면 px</th><th class="num">보정 없이 쓰면 \(x=1800\)에서의 오차 (px)</th></tr></thead><tbody>
+<tr><td>1280×800</td><td>표준·고해상도</td><td class="num">1280×800</td><td class="num">1.000</td><td class="num">1,334</td><td class="num">1.00</td><td class="num">0</td></tr>
+<tr><td>1920×1080</td><td>표준</td><td class="num">1456×819</td><td class="num">0.758</td><td class="num">1,560</td><td class="num">1.32</td><td class="num">435</td></tr>
+<tr><td>1920×1080</td><td>고해상도</td><td class="num">1920×1080</td><td class="num">1.000</td><td class="num">2,691</td><td class="num">1.00</td><td class="num">0</td></tr>
+<tr><td>2560×1440</td><td>표준</td><td class="num">1456×819</td><td class="num">0.569</td><td class="num">1,560</td><td class="num">1.76</td><td class="num">776</td></tr>
+<tr><td>2560×1440</td><td>고해상도</td><td class="num">2560×1440</td><td class="num">1.000</td><td class="num">4,784</td><td class="num">1.00</td><td class="num">0</td></tr>
+<tr><td>3840×2160</td><td>표준</td><td class="num">1456×819</td><td class="num">0.379</td><td class="num">1,560</td><td class="num">2.64</td><td class="num">1,118</td></tr>
+<tr><td>3840×2160</td><td>고해상도</td><td class="num">2576×1449</td><td class="num">0.671</td><td class="num">4,784</td><td class="num">1.49</td><td class="num">593</td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 320" role="img" aria-label="화면 좌표의 변환. 왼쪽은 3840×2160 화면이고 오른쪽 위쪽 모서리 쪽에 작은 목표가 있다. 가운데는 표준 등급에서 1456×819로 줄어든 모델 이미지로 목표와 모델이 내는 점이 있다. 모델의 좌표를 화면 좌표로 되돌리지 않고 그대로 쓰면 왼쪽 화면의 왼쪽 위 근처에 클릭이 간다. ρ분의 1을 곱해 되돌리면 목표 위로 간다.">
+  <defs>
+    <marker id="g103-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-dim"/></marker>
+  </defs>
+  <text class="t-b" x="20" y="22">화면 3840×2160 (원본)</text>
+  <rect class="f-surface" x="20" y="36" width="384" height="216" rx="4"/>
+  <rect x="292" y="136" width="14" height="14" style="fill:var(--accent);opacity:.35;stroke:var(--accent);stroke-width:1.5"/>
+  <text class="t-dim" x="299" y="126" text-anchor="middle">목표</text>
+  <circle cx="299" cy="143" r="4" style="fill:var(--accent-2)"/>
+  <circle cx="114" cy="93" r="5" fill="none" style="stroke:#dc1e1e;stroke-width:2"/>
+  <path d="M110 89 L118 97 M118 89 L110 97" style="stroke:#dc1e1e;stroke-width:2"/>
+  <text class="t-dim" x="124" y="86">되돌리지 않은 클릭</text>
+  <text class="t-dim" x="124" y="101">(x', y')를 그대로 사용</text>
+  <text class="t-dim" x="212" y="272" text-anchor="middle">올바르게 되돌린 점 (x'/ρ, y'/ρ)</text>
+  <text class="t-b" x="450" y="22">모델이 보는 이미지 1456×819</text>
+  <text class="t-dim" x="450" y="38">표준 등급, ρ = 0.379</text>
+  <rect class="f-surface" x="450" y="52" width="146" height="82" rx="3"/>
+  <rect x="525" y="85" width="5" height="5" style="fill:var(--accent);opacity:.35;stroke:var(--accent);stroke-width:1"/>
+  <circle cx="527.5" cy="87.5" r="2.5" style="fill:var(--accent-2)"/>
+  <text class="t-dim" x="523" y="108" text-anchor="middle">모델이 내는 점 (x', y')</text>
+  <path d="M600 90 H432" class="s-line" stroke-dasharray="4 3" marker-end="url(#g103-arr)"/>
+  <text class="t-acc" x="450" y="170">되돌리기: 화면 = 모델 좌표 / ρ</text>
+  <text class="t-dim" x="450" y="192">모델 한 픽셀 = 화면 2.64 px</text>
+  <text class="t-dim" x="450" y="212">12 px 목표는 모델 이미지에서 4.5 px</text>
+  <text class="t-dim" x="450" y="232">되돌리지 않으면 x=1800 부근의 오차 1,118 px</text>
+  <text class="t-acc" x="450" y="272">두 이미지는 같은 비율로 그렸다 (왼쪽 ÷ 2.64 = 오른쪽)</text>
+  <rect x="20" y="288" width="760" height="26" rx="6" class="f-surface"/>
+  <text class="t-dim" x="400" y="306" text-anchor="middle">모델 좌표는 줄어든 이미지 위의 값이다. 화면에 쓰려면 반드시 배율로 되돌린다 (정의 10.3, 정리 10.4)</text>
+</svg>
+      <figcaption><b>그림 10-3.</b> 3840×2160 화면을 표준 등급에서 줄인 경우의 좌표 변환. 모델이 목표를 정확히 짚어 낸 점 \((x',y')\)를 화면 좌표로 되돌리지 않고 그대로 클릭하면 왼쪽 위 근처로 간다. 되돌리면 \(x'/\rho\)로 목표에 닿는다. 점의 위치는 도식이며 비례는 위 값을 따랐다.</figcaption>
+    </figure>
+    <div class="box ex" id="ex-click"><div class="box-h">작은 버튼을 맞히는 확률</div>
+      <p>3840×2160 화면에서 모델이 목표의 중심을 \(\delta=3\) 모델 픽셀 안에서 짚는다고 가정하자(가상의 값이다. 모델의 실제 위치 오차는 이 장이 재지 않았다). 폭 8 px, 12 px, 24 px의 목표를 맞힐 확률은 <a class="ref" href="#thm-click"></a>의 3번에서 표준 등급(\(\rho=0.379\))에서 0.506, 0.758, 1이고, 고해상도 등급(\(\rho=0.671\))에서 0.894, 1, 1이다. 1920×1080 화면이면 표준 등급(\(\rho=0.758\))에서도 세 목표가 모두 1이다(\(8\cdot0.758/6=1.01\)). 같은 모델이 같은 오차로 짚어도 화면이 클수록, 목표가 작을수록, 등급이 낮을수록 놓친다. 공식 문서가 권하는 대로 큰 화면을 해상도가 낮은 화면으로 쓰거나, 작은 목표는 영역을 잘라 보내고 되돌릴 때 잘라낸 위치를 더하면 \(\rho\)가 1에 가까워진다.</p>
+    </div>
+
+    <h3 id="h-act">읽기와 조작은 오류가 다르게 퍼진다</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>이미지를 읽기</th><th>도구를 조작하기</th></tr></thead>
+      <tbody>
+        <tr><td>출력</td><td>글, 숫자, 표</td><td>좌표, 키 입력, 명령 (<a href="ch13.html">13장</a>의 도구 호출)</td></tr>
+        <tr><td>틀렸을 때</td><td>틀린 문장이 나온다. 다음 단계가 그 문장을 믿고 이어 간다</td><td>다른 위치가 눌린다. 되돌릴 수 없는 부작용이 생길 수 있다</td></tr>
+        <tr><td>오차의 단위</td><td>값 하나, 글자 하나</td><td>목표를 놓친 몇 px이 다른 요소로 이어진다</td></tr>
+        <tr><td>확인하는 길</td><td>글 경로와 대조한다</td><td>조작 뒤의 상태를 다른 경로로 확인한다 (<a href="ch14.html">14장</a>)</td></tr>
+      </tbody>
+    </table></div>
+    <p>이 차이는 평가에도 드러난다. <a href="https://arxiv.org/abs/2404.07972">OSWorld</a>(Xie 외, 2024)는 Ubuntu, Windows, macOS에서 실제 컴퓨터 환경을 쓰는 369개 과제의 벤치마크로, 각 과제에 초기 상태 설정과 실행 기반 평가 스크립트가 있다. 초록에 따르면 사람은 72.36% 이상을 풀었고 가장 좋은 모델은 12.24%였으며, 저자들은 주된 결함이 GUI 그라운딩과 조작에 대한 지식에 있다고 보고한다. <a href="https://arxiv.org/abs/2401.10935">SeeClick</a>(Cheng 외, 2024)의 초록은 HTML 같은 구조화된 자료가 길고 데스크톱에서는 얻기 어려울 수 있다는 점에서 스크린샷만 쓰는 에이전트를 제안하고, 지시에 따라 화면 요소의 위치를 정확히 짚는 능력(GUI 그라운딩)을 핵심 과제로 꼽으며 그라운딩 벤치마크 ScreenSpot을 만들었다고 한다. 두 수치는 논문 당시의 것이다. 요점은 점수가 아니라, 이미지를 읽는 능력과 그 위에서 정확한 위치에 행동하는 능력이 따로 재어진다는 점이다.</p>
+    <div class="box ex" id="ex-verify"><div class="box-h">같은 경로로 다시 확인해도 정보는 늘지 않는다</div>
+      <p>조작 하나가 어긋날 확률을 \(\varepsilon\), 확인 단계가 어긋난 조작을 잡아낼 확률을 \(v\)라 하면, 확인을 통과한 어긋난 조작의 확률은 \(\varepsilon(1-v)\)이다. 확인 단계가 같은 스크린샷을 모델에게 다시 보이는 것이라면 같은 표현에서 같은 칸을 보는 것이어서(<a class="ref" href="#thm-silent"></a>의 1번), 충돌에서 온 어긋남에 대한 \(v\)는 크지 않다. 정리 10.1의 3번도 같은 변환을 되풀이해도 \(B\)가 변하지 않는다고 말한다. 다시 읽기는 샘플링 변동처럼 독자 쪽 오차를 줄일 수는 있지만(7장의 반복 시도와 같다), 정보의 상한은 그대로이다. 확인이 정보를 더하려면 다른 변환이 필요하다. 접근성 트리나 DOM(글), 조작 뒤 도구가 돌려주는 상태(저장되었는가, 입력란의 값이 무엇인가), 조작 전후 화면의 변화를 기대와 대조하는 것이 그런 경로이다. 숫자 예시는 연습문제에 둔다.</p>
+    </div>
+    <p>화면을 조작하는 길은 둘이다. 하나는 이 절이 다룬 것처럼 픽셀 좌표로 누르는 길이고, 다른 하나는 요소를 이름이나 역할로 지정하는 길(DOM이나 접근성 API)이다. 뒤쪽은 좌표 오차가 없지만 요소가 구조에 노출되어 있어야 한다. 캔버스에 그려진 버튼이나 이미지로만 존재하는 아이콘은 글 경로에 나타나지 않고, 이때는 이미지 경로가 유일한 길이다. 두 길을 함께 두는 것이 10.1절 정리의 3번이 권하는 구성이다.</p>
+    <div class="callout agent"><strong>읽는 도구와 조작하는 도구를 나눈다</strong>
+      <p>스크린샷을 읽는 일은 부작용이 없는 읽기 도구이고, 클릭과 입력은 부작용이 있는 쓰기 도구이다. 이 구분이 <a href="ch13.html">13장</a>에서 도구마다 읽기·쓰기 부작용을 표시하는 근거이고, <a href="ch24.html">24장</a>에서 쓰기 도구의 실행을 허용·확인·거부하는 기준이 된다. 조작 뒤에 화면을 다시 읽어 결과를 확인하는 루프는 <a href="ch14.html">14장</a>의 관찰 단계이다. 이 장이 보인 것은 그 확인이 같은 이미지 경로만으로는 정보를 더하지 못한다는 점이다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 같은 도표를 텍스트 설명과 이미지로 제공하면 무엇을 놓치는가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 같은 도표를 글과 이미지로 주면 무엇을 놓치는가</h2>
+    <p>슬롯에 적어 둔 질문은 '같은 도표를 텍스트 설명과 이미지로 제공하면 무엇을 놓치는가'였다. 9장처럼 실제 모델을 쓰되 두 부분으로 나눈다. 먼저 모델 없이 이 장의 계산이 맞는지 확인한다(E0). 그다음 합성한 막대 도표를 표, 글 추출, 여섯 해상도의 이미지로 주고 작은 시각 언어모델이 다섯 종류의 질문에 얼마나 맞히는지 잰다(E1~E3). 도표는 항목 6개의 막대 그림이고 막대 하나가 빨간색이다. 값을 묻는 질문은 글 변환이 보존하고, 빨간색을 묻는 질문은 표 변환이 보존하지 않으며, 글 추출은 값과 이름의 연결까지 지운다. 이 실험이 보여 주는 것은 이 모델과 이 도표 족에서의 행동이지, 시각 언어모델 일반이나 Claude의 성질이 아니다. Claude API는 호출하지 않았다.</p>
+
+    <h3 id="h-design10">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모델</td><td>Qwen2-VL-2B-Instruct(<code>Qwen/Qwen2-VL-2B-Instruct</code>, 리비전 <code>895c3a49</code>). bfloat16, GPU 한 장(RTX 3060 Ti 8 GB), 탐욕 디코딩, 최대 12 토큰, 배치 2. 이 모델을 고른 이유는 세 가지이다. 이미지를 28×28 픽셀 패치당 토큰 하나로 받으므로 Claude의 공개 규칙(<a class="ref" href="#def-patchtok"></a>)과 같은 단위로 토큰 수를 셀 수 있다(실험이 확인한다). 입력 이미지의 크기를 직접 정해 해상도를 통제할 수 있다. 8 GB GPU에서 돈다. 순수 추론이며 학습하지 않는다.</td></tr>
+        <tr><td>도표와 질문</td><td>1120×672 흰 바탕에 막대 6개(폭 96 px, 값 1당 4 px). 값은 10~99에서 서로 다르게 뽑고, 항목 이름은 12개 후보(<code>Alder</code>, <code>Birch</code>, …)에서 6개를 순서를 섞어 뽑는다. 막대 하나가 빨간색(나머지는 파란색)이고 그 위치는 값과 독립이다. 질문 다섯 개를 도표마다 묻는다. <b>L</b> 항목 하나의 값, <b>A</b> 값이 가장 큰 항목, <b>C</b> 값이 가장 가까운 두 항목 중 큰 쪽, <b>Mn</b> 빨간 막대의 항목 이름, <b>Mp</b> 빨간 막대가 왼쪽에서 몇 번째인가. L과 Mp는 숫자, 나머지는 항목 이름으로 답한다.</td></tr>
+        <tr><td>바꾸는 것</td><td>입력의 형태. <b>table</b>: 항목 이름과 값을 한 줄에 묶은 글. <b>ocr</b>: 글상자를 위에서 아래, 왼쪽에서 오른쪽으로 읽은 글(<a class="ref" href="#ex-order"></a>의 규칙). <b>이미지</b>: 도표를 \(\rho\in\{1,\,3/4,\,1/2,\,3/8,\,1/4,\,1/8\}\)로 줄여 모델에 직접 준다(시각 토큰 960, 540, 240, 135, 60, 15개). 값 라벨이 있는 도표와 없는 도표를 둘 다 쓴다. 값 라벨이 없는 도표에서는 L을 막대 높이와 눈금으로 읽어야 한다.</td></tr>
+        <tr><td>고정하는 것</td><td>시드 10. 도표 80개를 모든 입력 형태에 똑같이 쓴다(짝지은 비교). 질문 문구, 모델과 디코딩, 축소 방법(Pillow LANCZOS)은 같다. 구간은 도표 단위 군집 부트스트랩 2,000번이다. 질문 5개는 같은 도표 안에서 묶여 있으므로 표본 크기는 질문 수가 아니라 도표 수이다.</td></tr>
+        <tr><td>관측값</td><td>질문별 정확도(L은 정확히 일치, 값 라벨이 없는 도표에서는 ±5 안이면 맞는 L5도 본다), 무응답 비율(응답에서 답을 읽지 못한 비율), 시각 토큰 수. 채점은 정규식과 문자열 일치여서 채점기 오류가 없다.</td></tr>
+        <tr><td>점검</td><td><b>E0</b>: (a) 구분자 없는 표의 모양 수를 약수의 개수와 대조. (b) ocr 변환의 정확도 상한(<a class="ref" href="#thm-collide"></a>)을 값 집합 200개로 모든 배치 720가지에서 센다. (c) 공식 문서의 이미지 크기 규칙을 구현해 문서의 표와 대조. (d) 해상도 격자의 토큰 수. (e) 가는 선의 대비(<a class="ref" href="#thm-resize"></a>의 3번). (f) 막대 길이를 잉크 합으로 읽은 오차. (g) 두 자리 라벨 쌍의 최소 거리. (h) 숫자 높이. (i) 화면 크기별 \(\rho\), 토큰, 좌표 오차.</td></tr>
+        <tr><td>예산</td><td>RTX 3060 Ti 한 장에서 모델 추론만 약 25분이다(표 20초, 글 추출 27초, 이미지 12개 설정은 해상도에 따라 28~309초, 모델 로딩 제외).</td></tr>
+        <tr><td>예상</td><td>모델을 한 번도 돌리기 전에 파일에 적었다(아래 '미리 적은 것과 보고 나서 적은 것'). <b>E1</b> table의 L, A, C가 모두 0.95 이상. <b>E2</b>(<a class="ref" href="#thm-collide"></a>에서 나온다) table의 Mn, Mp는 우연 수준 1/6 근처이고 ocr의 L, A, C, Mn, Mp는 E0b가 센 상한(0.227, 0.196, 0.760, 1/6, 1/6)을 넘지 않는다. <b>E3</b>(정리가 함의하지 않는 추측이며 해상도 문턱의 위치에는 예상이 없다) (a) 값 라벨이 있는 960토큰에서 L이 0.90 이상. (b) 값 라벨이 없는 도표의 L이 같은 해상도의 라벨 있는 도표보다 \(\rho\ge3/8\)에서 낮다. (c) 15토큰에서 Mn의 95% 구간이 1/6을 포함한다. (d) A가 0.9 아래로 내려가는 해상도가 L이 내려가는 해상도보다 작거나 같다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td><b>E1</b> 하나라도 0.90 미만이면 모델이 글 표도 못 읽는 것이므로 E2, E3를 해석하지 않는다. <b>E2</b> 95% 구간의 하한이 상한을 넘으면(어떤 독자도 낼 수 없는 값이므로) 변환이나 정답 생성에 정보가 새는 오류가 있다. <b>E3</b> 각 항목의 부등호가 반대로 나오면 그 추측은 기각된다. 기각되지 않았다는 것이 입증되었다는 뜻은 아니다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code10">코드</h3>
+    <p>Python 3.14.5, PyTorch 2.11.0(CUDA 12.8), Transformers 5.22.2, NumPy 2.5.4, Pillow 13.0.0에서 실행했다(<code>OMP_NUM_THREADS=1 python -I -X utf8 exp10.py</code>). 모델은 처음 실행할 때 내려받으며(약 4.4 GB) 리비전을 고정했다. 항목 이름과 글자는 Pillow가 기본으로 내장한 글꼴(<code>ImageFont.load_default(size=…)</code>)로 그리므로 시스템 글꼴과 무관하다. 같은 코드를 두 번 따로 실행해 출력이 같은지 확인했다(아래 결과). 다른 GPU나 라이브러리 버전에서는 부동소수점 결과의 마지막 자리가 바뀌고 탐욕 디코딩의 답이 달라질 수 있다. 배치 크기는 스모크 테스트를 배치 8로 돌렸다가 이미지 8장을 묶으면 8 GB GPU에서 비전 인코더의 attention이 메모리를 넘어 사실상 멈추는 것을 보고 2로 낮추었다(사정은 '해석과 한계'에 적었다). 아래 코드와 모든 결과는 배치 2의 것이다.</p>
+<pre><code>import itertools, json, math, re, sys, time
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+MODE = sys.argv[1] if len(sys.argv) &gt; 1 else "all"             # all | e0 | model
+SEED, NCH, BOOT, BS = 10, 80, 2000, 2                          # 시드, 도표 수, 부트스트랩 횟수, 배치 크기(8 GB GPU에서 이미지 8장을 묶으면 비전 attention이 메모리를 넘는다)
+W, H = 1120, 672                                               # 40 x 24 칸(28 px)
+PX0, PX1, PY0, PY1 = 120, 1080, 160, 560                       # 그림 영역: 값 0은 y=PY1, 값 100은 y=PY0 (단위당 4 px)
+SLOT, BARW = (PX1 - PX0) // 6, 96
+RATIOS = [(1, 1), (3, 4), (1, 2), (3, 8), (1, 4), (1, 8)]      # 축소 비율 rho = a/b
+NAMES = ["Alder", "Birch", "Cedar", "Dune", "Ember", "Fjord", "Grove", "Haze", "Isle", "Jade", "Kelp", "Lark"]
+BLUE, RED = (40, 70, 220), (220, 30, 30)
+HEDGE = r"sorry|cannot|can't|unable|unclear|unknown|n/a|not (?:possible|visible|clear|provided|enough)"   # 모른다·알 수 없다는 뜻의 응답
+NAME, REV = "Qwen/Qwen2-VL-2B-Instruct", "895c3a49bc3fa70a340399125c650a463535e71c"
+FV, FC, FT = (ImageFont.load_default(size=s) for s in (22, 24, 20))   # 값 라벨, 항목 이름, 눈금 라벨
+rng = np.random.default_rng(SEED)
+
+
+def ci(x):                                                     # 도표 단위 군집 부트스트랩 95% 구간
+    x = np.asarray(x, float); b = x[rng.integers(0, len(x), (BOOT, len(x)))].mean(1)
+    return x.mean(), np.percentile(b, 2.5), np.percentile(b, 97.5)
+
+
+# ---------- 도표와 그 텍스트 추출 ----------
+def make_chart(r):
+    vals = [int(v) for v in r.choice(np.arange(10, 100), 6, replace=False)]
+    names = [str(n) for n in r.choice(NAMES, 6, replace=False)]
+    order = sorted(range(6), key=lambda i: vals[i])
+    p, q = min(((order[k], order[k + 1]) for k in range(5)), key=lambda t: vals[t[1]] - vals[t[0]])
+    pair = [p, q] if r.random() &lt; 0.5 else [q, p]               # 질문에서 두 이름의 순서는 무작위
+    return dict(vals=vals, names=names, red=int(r.integers(6)), j=int(r.integers(6)), pair=pair)
+
+
+def render(ch, labeled=True, grid=True, axes=True):
+    im = Image.new("RGB", (W, H), "white"); d = ImageDraw.Draw(im)
+    for t in range(0, 101, 20):
+        y = PY1 - 4 * t
+        if grid: d.line([(PX0, y), (PX1, y)], fill=(215, 215, 215), width=1)
+        if grid: d.text((PX0 - 10, y), str(t), font=FT, fill=(60, 60, 60), anchor="rm")
+    for i, v in enumerate(ch["vals"]):
+        x0 = PX0 + i * SLOT + (SLOT - BARW) // 2; top = PY1 - 4 * v
+        d.rectangle([x0, top, x0 + BARW - 1, PY1 - 1], fill=RED if i == ch["red"] else BLUE)
+        if labeled: d.text((x0 + BARW / 2, top - 8), str(v), font=FV, fill="black", anchor="ms")
+        d.text((x0 + BARW / 2, PY1 + 14), ch["names"][i], font=FC, fill="black", anchor="mt")
+    if axes: d.line([(PX0, PY0 - 20), (PX0, PY1)], fill="black", width=2); d.line([(PX0, PY1), (PX1, PY1)], fill="black", width=2)
+    return im
+
+
+def shrink(im, a, b):                                          # 가로·세로를 a/b배로 (28의 배수가 되도록 W, H를 골랐다)
+    return im.resize((W * a // b, H * a // b), Image.LANCZOS)
+
+
+def table_text(names, vals):                                   # 구조를 보존하는 변환: 이름과 값이 한 줄에 묶인다
+    return "\n".join(f"{n}: {v}" for n, v in zip(names, vals))
+
+
+def ocr_text(names, vals):                                     # 글상자를 위에서 아래, 왼쪽에서 오른쪽으로 읽는 단순한 추출 (24 px 높이 안은 한 줄)
+    boxes = [(PY1 - 4 * t, 60, str(t)) for t in range(0, 101, 20)]
+    boxes += [(PY1 - 4 * v - 16, PX0 + i * SLOT + SLOT // 2, str(v)) for i, v in enumerate(vals)]
+    boxes += [(PY1 + 26, PX0 + i * SLOT + SLOT // 2, n) for i, n in enumerate(names)]
+    rows = {}
+    for y, x, s in boxes: rows.setdefault(int(y // 24), []).append((x, s))
+    return "\n".join(" ".join(s for _, s in sorted(rows[k])) for k in sorted(rows))
+
+
+def questions(ch):                                             # (이름, 문장, 정답, 종류)
+    nm, v = ch["names"], ch["vals"]; a, b = ch["pair"]
+    hi = max(range(6), key=lambda i: v[i])
+    return [("L", f"What is the value of the bar labeled {nm[ch['j']]}? Answer with a number only.", v[ch["j"]], "num"),
+            ("A", "Which category has the highest value? Answer with the category name only.", nm[hi], "name"),
+            ("C", f"Which is larger, {nm[a]} or {nm[b]}? Answer with the category name only.", nm[a] if v[a] &gt; v[b] else nm[b], "name"),
+            ("Mn", "Which bar is drawn in red? Answer with the category name only.", nm[ch["red"]], "name"),
+            ("Mp", "Counting from the left, which position (1 to 6) is the red bar? Answer with a number only.", ch["red"] + 1, "num")]
+
+
+def score(out, gold, kind, names):
+    if kind == "num":
+        m = re.search(r"-?\d+(?:\.\d+)?", out); return (round(float(m.group())) if m else None), gold
+    hit = [(out.lower().find(n.lower()), n) for n in names if n.lower() in out.lower()]
+    return (min(hit)[1] if hit else None), gold
+
+
+# ---------- E0: 모델 없이 확인하는 점검 ----------
+def count_tokens(w, h): return math.ceil(w / 28) * math.ceil(h / 28)
+
+
+def resized_size(w, h, max_edge=1568, max_tokens=1568):        # Claude 문서가 밝힌 규칙: 두 한도를 모두 만족하는 가장 큰 종횡비 보존 크기
+    fits = lambda x, y: math.ceil(x / 28) * 28 &lt;= max_edge and math.ceil(y / 28) * 28 &lt;= max_edge and count_tokens(x, y) &lt;= max_tokens
+    if fits(w, h): return w, h
+    if h &gt; w: rh, rw = resized_size(h, w, max_edge, max_tokens); return rw, rh
+    lo, hi = 1, w
+    while lo + 1 &lt; hi:
+        mid = (lo + hi) // 2
+        if fits(mid, max(round(mid / (w / h)), 1)): lo = mid
+        else: hi = mid
+    return lo, max(round(lo / (w / h)), 1)
+
+
+def bayes_floor(trials=200):                                   # 변환된 글을 보는 어떤 독자도 넘지 못하는 정확도 (값 집합을 무작위로 뽑아 순열 720개를 모두 센다)
+    r = np.random.default_rng(SEED + 1); names = ["Alder", "Birch", "Cedar", "Dune", "Ember", "Fjord"]
+    acc = dict(L=[], A=[], C=[], M=[])
+    for _ in range(trials):
+        V = sorted(int(v) for v in r.choice(np.arange(10, 100), 6, replace=False))
+        gp = min(zip(V, V[1:]), key=lambda t: t[1] - t[0])      # 값이 가장 가까운 두 값
+        cells = {k: {} for k in "LAC"}
+        for perm in itertools.permutations(range(6)):           # perm[i] = i번째 막대가 갖는 값의 순번
+            vals = [V[k] for k in perm]; s = ocr_text(names, vals)
+            p, q = perm.index(V.index(gp[0])), perm.index(V.index(gp[1]))
+            for j in range(6): cells["L"].setdefault((s, j), {}).setdefault(vals[j], 0); cells["L"][(s, j)][vals[j]] += 1
+            hi = vals.index(max(vals)); cells["A"].setdefault(s, {}).setdefault(hi, 0); cells["A"][s][hi] += 1
+            ans = q if vals[q] &gt; vals[p] else p; key = (s, min(p, q), max(p, q))
+            cells["C"].setdefault(key, {}).setdefault(ans, 0); cells["C"][key][ans] += 1
+        tot = 720
+        acc["L"].append(sum(max(c.values()) for c in cells["L"].values()) / (6 * tot))
+        acc["A"].append(sum(max(c.values()) for c in cells["A"].values()) / tot)
+        acc["C"].append(sum(max(c.values()) for c in cells["C"].values()) / tot)
+    return {k: float(np.mean(v)) for k, v in acc.items() if v}
+
+
+def e0():
+    print("E0a 구분자 없이 이은 n개 셀의 가능한 표 모양 수 (약수의 개수):",
+          {n: len([r for r in range(1, n + 1) if n % r == 0]) for n in (12, 24, 36, 60)})
+    f = bayes_floor(); print("E0b 글 추출(ocr)만 보는 독자의 최선 정확도  L %.3f A %.3f C %.3f M %.3f (표는 L,A,C=1, M=1/6=%.3f)" % (f["L"], f["A"], f["C"], 1 / 6, 1 / 6))
+    chk = [((1000, 1000), 1568, 1568), ((1092, 1092), 1568, 1568), ((1920, 1080), 1568, 1568), ((2000, 1500), 1568, 1568),
+           ((3840, 2160), 1568, 1568), ((1075, 1520), 1568, 1568), ((1920, 1080), 2576, 4784), ((2000, 1500), 2576, 4784),
+           ((3840, 2160), 2576, 4784), ((1075, 1520), 2576, 4784), ((200, 200), 1568, 1568)]
+    for (w, h), me, mt in chk:
+        rw, rh = resized_size(w, h, me, mt); print(f"E0c {w}x{h} 한도({me},{mt}) -&gt; {rw}x{rh}  토큰 {count_tokens(rw, rh)}")
+    print("E0d 우리 해상도 격자:", [(f"{a}/{b}", W * a // b, H * a // b, count_tokens(W * a // b, H * a // b)) for a, b in RATIOS])
+    # 가는 선의 대비: 흰 바탕의 1 px 검은 선을 상자 필터로 줄이면 최저 밝기가 255(1 - rho)로 올라간다
+    for s in (2, 4, 8):
+        im = Image.new("L", (64, 64), 255); ImageDraw.Draw(im).line([(32, 0), (32, 63)], fill=0, width=1)
+        sm = np.asarray(im.resize((64 // s, 64 // s), Image.BOX)); print(f"E0e 선 폭 1px, 축소 1/{s}: 최저 밝기 {sm.min()} (예측 {255 * (1 - 1 / s):.1f})")
+    # 연속량(막대 길이)은 축소해도 남고, 기호(두 자리 숫자)는 서로 구별하기 어려워진다
+    r = np.random.default_rng(SEED + 2); err = {k: [] for k in RATIOS}
+    for _ in range(40):
+        ch = make_chart(r); base = render(ch, labeled=False, grid=False, axes=False)
+        for a, b in RATIOS:
+            sm = np.asarray(shrink(base, a, b), float); rho = a / b
+            for i, v in enumerate(ch["vals"]):
+                x0 = PX0 + i * SLOT + (SLOT - BARW) // 2; c0, c1 = math.ceil((x0 + 8) * rho), math.floor((x0 + BARW - 8) * rho)
+                ch_idx, bg, fg = (1, 255, RED[1]) if i == ch["red"] else (0, 255, BLUE[0])
+                cov = np.clip((bg - sm[:int(PY1 * rho), c0:c1, ch_idx]) / (bg - fg), 0, 1).mean(1).sum()
+                err[(a, b)].append(abs(100 * cov / (400 * rho) - v))
+    print("E0f 막대 길이를 잉크 합으로 읽은 평균 절대 오차(값 단위):", {f"{a}/{b}": round(float(np.mean(e)), 3) for (a, b), e in err.items()})
+    labs = [str(n) for n in range(10, 100)]; D = {}
+    for a, b in RATIOS:
+        ims = []
+        for s in labs:
+            im = Image.new("L", (64, 40), 255); ImageDraw.Draw(im).text((32, 20), s, font=FV, fill=0, anchor="mm")
+            ims.append(np.asarray(im.resize((64 * a // b, 40 * a // b), Image.LANCZOS), float).ravel())
+        X = np.stack(ims); G = X @ X.T; n2 = (X ** 2).sum(1)
+        dist = np.sqrt(np.maximum(n2[:, None] + n2[None] - 2 * G, 0) / X.shape[1]); iu = np.triu_indices(len(labs), 1)
+        D[(a, b)] = (dist[iu].min(), float((dist[iu] &lt; 2).mean()))
+    print("E0g 두 자리 값 라벨 90개 쌍(4005)의 최소 RMS 거리와 거리 2 미만인 쌍의 비율:",
+          {f"{a}/{b}": (round(float(m), 2), round(f, 4)) for (a, b), (m, f) in D.items()})
+    im = Image.new("L", (64, 40), 255); ImageDraw.Draw(im).text((32, 20), "8", font=FV, fill=0, anchor="mm")
+    bb = np.argwhere(np.asarray(im) &lt; 128); print("E0h 숫자 8의 높이(px, 원본):", int(bb[:, 0].max() - bb[:, 0].min() + 1))
+    for sw, sh in ((1920, 1080), (2560, 1440), (3840, 2160), (1280, 800)):
+        for tier, me, mt in (("표준", 1568, 1568), ("고해상도", 2576, 4784)):
+            rw, rh = resized_size(sw, sh, me, mt); rho = rw / sw
+            print(f"E0i 화면 {sw}x{sh} {tier}: {rw}x{rh} rho={rho:.3f} 토큰 {count_tokens(rw, rh)}  "
+                  f"모델 픽셀 하나={1 / rho:.2f} 원본 픽셀  보정 없이 쓰면 x=1800 지점의 오차={1800 * (1 - rho):.0f}px")
+
+
+# ---------- 모델 ----------
+def run_model():
+    import torch
+    from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+    torch.manual_seed(SEED)
+    model = Qwen2VLForConditionalGeneration.from_pretrained(NAME, revision=REV, dtype=torch.bfloat16).to("cuda").eval()
+    proc = AutoProcessor.from_pretrained(NAME, revision=REV); proc.tokenizer.padding_side = "left"
+
+    @torch.no_grad()
+    def ask(prompts, images=None):
+        out, ntok = [], set()
+        for i in range(0, len(prompts), BS):
+            P = prompts[i:i + BS]; I = None if images is None else images[i:i + BS]
+            msgs = [[{"role": "user", "content": ([{"type": "image"}] if I else []) + [{"type": "text", "text": p}]}] for p in P]
+            txt = [proc.apply_chat_template(m, add_generation_prompt=True) for m in msgs]
+            inp = proc(text=txt, images=I, padding=True, return_tensors="pt").to("cuda")
+            if I: ntok |= set((inp["image_grid_thw"].prod(1) // 4).tolist())
+            g = model.generate(**inp, max_new_tokens=12, do_sample=False)
+            out += proc.batch_decode(g[:, inp["input_ids"].shape[1]:], skip_special_tokens=True)
+        return out, ntok
+
+    r = np.random.default_rng(SEED + 3); charts = [make_chart(r) for _ in range(NCH)]
+    cfgs = [("table", None), ("ocr", None)] + [(f"img{a}/{b}", (a, b, lab)) for lab in (True, False) for a, b in RATIOS]
+    res, raw, summ = {}, {}, {}
+    for cfg, spec in cfgs:
+        t0 = time.time(); prompts, golds, meta, imgs = [], [], [], []
+        for ci_, ch in enumerate(charts):
+            for qn, qt, gold, kind in questions(ch):
+                if cfg == "table": prompts.append("Here is the data of a bar chart:\n" + table_text(ch["names"], ch["vals"]) + "\n\n" + qt)
+                elif cfg == "ocr": prompts.append("Here is the text extracted from a bar chart image, in reading order (top to bottom, left to right):\n" + ocr_text(ch["names"], ch["vals"]) + "\n\n" + qt)
+                else:
+                    a, b, lab = spec; prompts.append(qt)
+                    imgs.append(shrink(render(ch, labeled=lab), a, b))
+                golds.append(gold); meta.append((ci_, qn, kind, ch["names"]))
+        out, ntok = ask(prompts, imgs if imgs else None)
+        key = cfg + ("" if spec is None else "|lab" if spec[2] else "|nolab")
+        raw[key] = out; res[key] = {}
+        for qn in ("L", "A", "C", "Mn", "Mp"):
+            sel = [i for i, m in enumerate(meta) if m[1] == qn]
+            ok = [score(out[i], golds[i], meta[i][2], meta[i][3]) for i in sel]
+            res[key][qn] = np.array([p == g for p, g in ok], float)
+            if qn == "L": res[key]["L5"] = np.array([p is not None and abs(p - g) &lt;= 5 for p, g in ok], float)
+        st = {q: ci(res[key][q]) for q in ("L", "L5", "A", "C", "Mn", "Mp")}
+        none = float(np.mean([score(out[i], golds[i], meta[i][2], meta[i][3])[0] is None for i in range(len(out))]))
+        hedge = float(np.mean([bool(re.search(HEDGE, o, re.I)) for o in out]))
+        summ[key] = dict({q: [float(v) for v in st[q]] for q in st}, none=none, hedge=hedge, tokens=sorted(int(t) for t in ntok))
+        print(f"{key:14s} 토큰 {sorted(ntok) if ntok else '-'}  ({time.time() - t0:.0f}s)  " +
+              "  ".join(f"{q} %.3f [%.3f, %.3f]" % st[q] for q in st) + f"  무응답 {none:.3f}  유보 {hedge:.3f}", flush=True)
+    json.dump(raw, open("out10_raw.json", "w"), ensure_ascii=False); json.dump(summ, open("out10_res.json", "w"), ensure_ascii=False, indent=1)
+    return res
+
+
+if __name__ == "__main__":
+    if MODE in ("all", "e0"): e0()
+    if MODE in ("all", "model"): run_model()
+</code></pre>
+
+    <h3 id="h-res10">결과</h3>
+    <p>먼저 E0이다. (a) 구분자 없이 이은 셀 12, 24, 36, 60개의 가능한 표 모양은 6, 8, 9, 12가지로 약수의 개수와 같았다. (b) 글 추출 변환의 정확도 상한(<a class="ref" href="#thm-collide"></a>)은 값 집합 200개에서 값 읽기 0.227, 최고 항목 0.196, 가까운 두 막대의 비교 0.760, 색 질문 \(1/6=0.167\)이었다. 비교의 상한이 0.5보다 훨씬 큰 것은, 값이 가까운 두 막대의 라벨이 24 px 안에서 한 줄로 묶이면 좌우 순서가 글에 남기 때문이다. (c) 이미지 크기 규칙을 구현해 공식 문서가 밝힌 값과 견준 11개 가운데 10개가 같았고, 2000×1500의 표준 등급 폭만 1270(문서의 표는 1269)이었다. (d) 해상도 격자의 토큰은 960, 540, 240, 135, 60, 15개이다. (e) 폭 1 px 선을 1/2, 1/4, 1/8로 줄이면 최저 밝기가 128, 191, 223으로 예측 127.5, 191.2, 223.1과 같았다. (f) 막대 길이를 잉크 합으로 읽은 평균 오차는 \(\rho=1\), 3/4, 1/2, 3/8, 1/4, 1/8에서 0.000, 0.011, 0.030, 0.043, 0.094, 0.166이다. (g) 두 자리 라벨 쌍의 최소 거리는 19.2, 16.4, 13.1, 10.4, 6.5, 1.4이고, 1/8에서 거리 2 미만인 쌍이 4005쌍 중 16쌍이다. (h) 숫자 8의 높이는 원본에서 15 px이다. 따라서 \(\rho\)로 줄이면 15, 11.3, 7.5, 5.6, 3.8, 1.9 px이다. (i) 화면 크기별 값은 10.4절의 표이다.</p>
+    <p>다음은 글 경로이다. 값은 도표 80개의 평균과 95% 구간이고, 마지막 두 줄은 이론에서 나오는 정확도 상한이다(표 변환은 L, A, C를 보존하므로 1, 색은 담지 못하므로 \(1/6\)).</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>입력</th><th class="num">L 값</th><th class="num">A 최고</th><th class="num">C 비교</th><th class="num">Mn 이름</th><th class="num">Mp 위치</th><th class="num">답 없음</th></tr></thead><tbody>
+<tr><td>표 (table)</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.362 [0.263, 0.475]</td><td class="num">0.463 [0.350, 0.575]</td><td class="num">0.175 [0.100, 0.263]</td><td class="num">0.163 [0.087, 0.250]</td><td class="num">0.000</td></tr>
+<tr><td>글 추출 (ocr)</td><td class="num">0.100 [0.037, 0.175]</td><td class="num">0.138 [0.075, 0.212]</td><td class="num">0.637 [0.525, 0.738]</td><td class="num">0.212 [0.125, 0.300]</td><td class="num">0.150 [0.075, 0.237]</td><td class="num">0.010</td></tr>
+<tr><td>상한: 표 변환 (정리 10.1)</td><td class="num">1</td><td class="num">1</td><td class="num">1</td><td class="num">0.167</td><td class="num">0.167</td><td class="num">—</td></tr><tr><td>상한: 글 추출 변환 (E0b)</td><td class="num">0.227</td><td class="num">0.196</td><td class="num">0.760</td><td class="num">0.167</td><td class="num">0.167</td><td class="num">—</td></tr></tbody></table></div>
+    <p>이어서 이미지 경로이다. 값 라벨이 있는 도표의 결과를 먼저 보인다. 시각 토큰 수는 모델이 돌려준 이미지 격자에서 읽었고 모든 설정에서 \(\lceil w/28\rceil\lceil h/28\rceil\)과 같았다(960, 540, 240, 135, 60, 15).</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>입력</th><th class="num">L 값</th><th class="num">A 최고</th><th class="num">C 비교</th><th class="num">Mn 이름</th><th class="num">Mp 위치</th><th class="num">답 없음</th></tr></thead><tbody>
+<tr><td>960토큰 (ρ=1)</td><td class="num">0.988 [0.963, 1.000]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.562 [0.463, 0.663]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.537 [0.425, 0.650]</td><td class="num">0.000</td></tr>
+<tr><td>540토큰 (ρ=3/4)</td><td class="num">0.988 [0.963, 1.000]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.562 [0.463, 0.675]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.588 [0.475, 0.700]</td><td class="num">0.000</td></tr>
+<tr><td>240토큰 (ρ=1/2)</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.963 [0.912, 1.000]</td><td class="num">0.562 [0.450, 0.663]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.613 [0.512, 0.725]</td><td class="num">0.000</td></tr>
+<tr><td>135토큰 (ρ=3/8)</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.938 [0.875, 0.988]</td><td class="num">0.537 [0.425, 0.637]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.613 [0.512, 0.713]</td><td class="num">0.000</td></tr>
+<tr><td>60토큰 (ρ=1/4)</td><td class="num">0.812 [0.725, 0.900]</td><td class="num">0.787 [0.688, 0.875]</td><td class="num">0.500 [0.400, 0.613]</td><td class="num">0.562 [0.462, 0.675]</td><td class="num">0.463 [0.350, 0.575]</td><td class="num">0.005</td></tr>
+<tr><td>15토큰 (ρ=1/8)</td><td class="num">0.013 [0.000, 0.037]</td><td class="num">0.013 [0.000, 0.037]</td><td class="num">0.450 [0.338, 0.562]</td><td class="num">0.000 [0.000, 0.000]</td><td class="num">0.338 [0.237, 0.450]</td><td class="num">0.390</td></tr>
+</tbody></table></div>
+    <p>값 라벨이 없는 도표에서는 L을 막대의 높이와 눈금으로 읽어야 한다. 정확히 맞아야 하는 L과, ±5 안이면 맞는 L5를 함께 보인다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>입력</th><th class="num">L 값(정확히)</th><th class="num">L5 값(±5)</th><th class="num">A 최고</th><th class="num">C 비교</th><th class="num">Mn 이름</th><th class="num">Mp 위치</th><th class="num">답 없음</th></tr></thead><tbody>
+<tr><td>960토큰 (ρ=1)</td><td class="num">0.087 [0.037, 0.150]</td><td class="num">0.750 [0.662, 0.838]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.613 [0.500, 0.725]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.438 [0.325, 0.538]</td><td class="num">0.005</td></tr>
+<tr><td>540토큰 (ρ=3/4)</td><td class="num">0.087 [0.025, 0.150]</td><td class="num">0.738 [0.637, 0.825]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.588 [0.475, 0.700]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.400 [0.287, 0.500]</td><td class="num">0.003</td></tr>
+<tr><td>240토큰 (ρ=1/2)</td><td class="num">0.087 [0.025, 0.163]</td><td class="num">0.650 [0.550, 0.750]</td><td class="num">0.975 [0.938, 1.000]</td><td class="num">0.588 [0.475, 0.700]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.500 [0.400, 0.613]</td><td class="num">0.000</td></tr>
+<tr><td>135토큰 (ρ=3/8)</td><td class="num">0.087 [0.037, 0.163]</td><td class="num">0.650 [0.537, 0.762]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.550 [0.438, 0.662]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">0.463 [0.350, 0.575]</td><td class="num">0.000</td></tr>
+<tr><td>60토큰 (ρ=1/4)</td><td class="num">0.037 [0.000, 0.087]</td><td class="num">0.438 [0.325, 0.537]</td><td class="num">0.850 [0.775, 0.925]</td><td class="num">0.562 [0.450, 0.662]</td><td class="num">0.825 [0.738, 0.912]</td><td class="num">0.525 [0.412, 0.637]</td><td class="num">0.015</td></tr>
+<tr><td>15토큰 (ρ=1/8)</td><td class="num">0.000 [0.000, 0.000]</td><td class="num">0.000 [0.000, 0.000]</td><td class="num">0.013 [0.000, 0.037]</td><td class="num">0.425 [0.312, 0.537]</td><td class="num">0.000 [0.000, 0.000]</td><td class="num">0.350 [0.250, 0.463]</td><td class="num">0.395</td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 366" role="img" aria-label="시각 토큰 수에 따른 정확도. 왼쪽은 값 라벨이 있는 도표, 오른쪽은 값 라벨이 없는 도표이다. 가로축은 시각 토큰 15, 60, 135, 240, 540, 960개이고 세로축은 정확도이다. 다섯 질문(값 읽기, 가장 높은 항목, 가까운 두 막대 비교, 빨간 막대의 이름, 빨간 막대의 위치)의 정확도를 선으로 이었다.">
+  <text class="t-b" x="50" y="30">값 라벨 있음</text>
+  <path d="M50 250.0 H350" class="s-grid"/><text class="t-mono" x="42" y="254.0" text-anchor="end">0</text>
+  <path d="M50 200.0 H350" class="s-grid"/><text class="t-mono" x="42" y="204.0" text-anchor="end">0.25</text>
+  <path d="M50 150.0 H350" class="s-grid"/><text class="t-mono" x="42" y="154.0" text-anchor="end">0.5</text>
+  <path d="M50 100.0 H350" class="s-grid"/><text class="t-mono" x="42" y="104.0" text-anchor="end">0.75</text>
+  <path d="M50 50.0 H350" class="s-grid"/><text class="t-mono" x="42" y="54.0" text-anchor="end">1</text>
+  <path d="M50 216.7 H350" fill="none" style="stroke:var(--text-dim);stroke-width:1.5" stroke-dasharray="5 4"/>
+  <text class="t-dim" x="348" y="211.7" text-anchor="end">우연 1/6</text>
+  <text class="t-mono" x="75" y="268" text-anchor="middle">15</text><text class="t-mono" x="75" y="282" text-anchor="middle">1/8</text>
+  <text class="t-mono" x="125" y="268" text-anchor="middle">60</text><text class="t-mono" x="125" y="282" text-anchor="middle">1/4</text>
+  <text class="t-mono" x="175" y="268" text-anchor="middle">135</text><text class="t-mono" x="175" y="282" text-anchor="middle">3/8</text>
+  <text class="t-mono" x="225" y="268" text-anchor="middle">240</text><text class="t-mono" x="225" y="282" text-anchor="middle">1/2</text>
+  <text class="t-mono" x="275" y="268" text-anchor="middle">540</text><text class="t-mono" x="275" y="282" text-anchor="middle">3/4</text>
+  <text class="t-mono" x="325" y="268" text-anchor="middle">960</text><text class="t-mono" x="325" y="282" text-anchor="middle">1</text>
+  <polyline points="75.0,247.5 125.0,87.5 175.0,50.0 225.0,50.0 275.0,52.5 325.0,52.5" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <circle cx="75.0" cy="247.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="125.0" cy="87.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="175.0" cy="50.0" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="225.0" cy="50.0" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="275.0" cy="52.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="325.0" cy="52.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <polyline points="75.0,247.5 125.0,92.5 175.0,62.5 225.0,57.5 275.0,55.0 325.0,55.0" fill="none" style="stroke:var(--accent-2);stroke-width:2"/>
+  <rect x="71.0" y="243.5" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="121.0" y="88.5" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="171.0" y="58.5" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="221.0" y="53.5" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="271.0" y="51.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="321.0" y="51.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <polyline points="75.0,160.0 125.0,150.0 175.0,142.5 225.0,137.5 275.0,137.5 325.0,137.5" fill="none" style="stroke:var(--ok);stroke-width:2"/>
+  <polygon points="75.0,155.0 70.5,163.5 79.5,163.5" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="125.0,145.0 120.5,153.5 129.5,153.5" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="175.0,137.5 170.5,146.0 179.5,146.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="225.0,132.5 220.5,141.0 229.5,141.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="275.0,132.5 270.5,141.0 279.5,141.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="325.0,132.5 320.5,141.0 329.5,141.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polyline points="75.0,250.0 125.0,137.5 175.0,55.0 225.0,55.0 275.0,50.0 325.0,50.0" fill="none" style="stroke:var(--warn);stroke-width:2"/>
+  <polygon points="75.0,245.0 80.0,250.0 75.0,255.0 70.0,250.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="125.0,132.5 130.0,137.5 125.0,142.5 120.0,137.5" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="175.0,50.0 180.0,55.0 175.0,60.0 170.0,55.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="225.0,50.0 230.0,55.0 225.0,60.0 220.0,55.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="275.0,45.0 280.0,50.0 275.0,55.0 270.0,50.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="325.0,45.0 330.0,50.0 325.0,55.0 320.0,50.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polyline points="75.0,182.5 125.0,157.5 175.0,127.5 225.0,127.5 275.0,132.5 325.0,142.5" fill="none" style="stroke:var(--bad);stroke-width:2"/>
+  <path d="M71.0 178.5 L79.0 186.5 M79.0 178.5 L71.0 186.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M121.0 153.5 L129.0 161.5 M129.0 153.5 L121.0 161.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M171.0 123.5 L179.0 131.5 M179.0 123.5 L171.0 131.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M221.0 123.5 L229.0 131.5 M229.0 123.5 L221.0 131.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M271.0 128.5 L279.0 136.5 M279.0 128.5 L271.0 136.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M321.0 138.5 L329.0 146.5 M329.0 138.5 L321.0 146.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <text class="t-dim" x="200.0" y="302" text-anchor="middle">시각 토큰 수 (아래 줄은 축소 배율 ρ)</text>
+  <text class="t-b" x="450" y="30">값 라벨 없음</text>
+  <path d="M450 250.0 H750" class="s-grid"/><text class="t-mono" x="442" y="254.0" text-anchor="end">0</text>
+  <path d="M450 200.0 H750" class="s-grid"/><text class="t-mono" x="442" y="204.0" text-anchor="end">0.25</text>
+  <path d="M450 150.0 H750" class="s-grid"/><text class="t-mono" x="442" y="154.0" text-anchor="end">0.5</text>
+  <path d="M450 100.0 H750" class="s-grid"/><text class="t-mono" x="442" y="104.0" text-anchor="end">0.75</text>
+  <path d="M450 50.0 H750" class="s-grid"/><text class="t-mono" x="442" y="54.0" text-anchor="end">1</text>
+  <path d="M450 216.7 H750" fill="none" style="stroke:var(--text-dim);stroke-width:1.5" stroke-dasharray="5 4"/>
+  <text class="t-mono" x="475" y="268" text-anchor="middle">15</text><text class="t-mono" x="475" y="282" text-anchor="middle">1/8</text>
+  <text class="t-mono" x="525" y="268" text-anchor="middle">60</text><text class="t-mono" x="525" y="282" text-anchor="middle">1/4</text>
+  <text class="t-mono" x="575" y="268" text-anchor="middle">135</text><text class="t-mono" x="575" y="282" text-anchor="middle">3/8</text>
+  <text class="t-mono" x="625" y="268" text-anchor="middle">240</text><text class="t-mono" x="625" y="282" text-anchor="middle">1/2</text>
+  <text class="t-mono" x="675" y="268" text-anchor="middle">540</text><text class="t-mono" x="675" y="282" text-anchor="middle">3/4</text>
+  <text class="t-mono" x="725" y="268" text-anchor="middle">960</text><text class="t-mono" x="725" y="282" text-anchor="middle">1</text>
+  <polyline points="475.0,250.0 525.0,242.5 575.0,232.5 625.0,232.5 675.0,232.5 725.0,232.5" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <circle cx="475.0" cy="250.0" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="525.0" cy="242.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="575.0" cy="232.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="625.0" cy="232.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="675.0" cy="232.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="725.0" cy="232.5" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <polyline points="475.0,247.5 525.0,80.0 575.0,50.0 625.0,55.0 675.0,55.0 725.0,55.0" fill="none" style="stroke:var(--accent-2);stroke-width:2"/>
+  <rect x="471.0" y="243.5" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="521.0" y="76.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="571.0" y="46.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="621.0" y="51.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="671.0" y="51.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="721.0" y="51.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <polyline points="475.0,165.0 525.0,137.5 575.0,140.0 625.0,132.5 675.0,132.5 725.0,127.5" fill="none" style="stroke:var(--ok);stroke-width:2"/>
+  <polygon points="475.0,160.0 470.5,168.5 479.5,168.5" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="525.0,132.5 520.5,141.0 529.5,141.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="575.0,135.0 570.5,143.5 579.5,143.5" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="625.0,127.5 620.5,136.0 629.5,136.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="675.0,127.5 670.5,136.0 679.5,136.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polygon points="725.0,122.5 720.5,131.0 729.5,131.0" style="fill:var(--ok);stroke:var(--ok)"/>
+  <polyline points="475.0,250.0 525.0,85.0 575.0,50.0 625.0,50.0 675.0,50.0 725.0,50.0" fill="none" style="stroke:var(--warn);stroke-width:2"/>
+  <polygon points="475.0,245.0 480.0,250.0 475.0,255.0 470.0,250.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="525.0,80.0 530.0,85.0 525.0,90.0 520.0,85.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="575.0,45.0 580.0,50.0 575.0,55.0 570.0,50.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="625.0,45.0 630.0,50.0 625.0,55.0 620.0,50.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="675.0,45.0 680.0,50.0 675.0,55.0 670.0,50.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polygon points="725.0,45.0 730.0,50.0 725.0,55.0 720.0,50.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <polyline points="475.0,180.0 525.0,145.0 575.0,157.5 625.0,150.0 675.0,170.0 725.0,162.5" fill="none" style="stroke:var(--bad);stroke-width:2"/>
+  <path d="M471.0 176.0 L479.0 184.0 M479.0 176.0 L471.0 184.0" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M521.0 141.0 L529.0 149.0 M529.0 141.0 L521.0 149.0" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M571.0 153.5 L579.0 161.5 M579.0 153.5 L571.0 161.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M621.0 146.0 L629.0 154.0 M629.0 146.0 L621.0 154.0" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M671.0 166.0 L679.0 174.0 M679.0 166.0 L671.0 174.0" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <path d="M721.0 158.5 L729.0 166.5 M729.0 158.5 L721.0 166.5" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <text class="t-dim" x="600.0" y="302" text-anchor="middle">시각 토큰 수 (아래 줄은 축소 배율 ρ)</text>
+  <path d="M50 322 h20" style="stroke:var(--accent);stroke-width:2" fill="none"/><circle cx="60.0" cy="322.0" r="4" style="fill:var(--accent);stroke:var(--accent)"/>
+  <text class="t-dim" x="76" y="326">L 값 읽기</text>
+  <path d="M260 322 h20" style="stroke:var(--accent-2);stroke-width:2" fill="none"/><rect x="266.0" y="318.0" width="8" height="8" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <text class="t-dim" x="286" y="326">A 가장 높은 항목</text>
+  <path d="M470 322 h20" style="stroke:var(--ok);stroke-width:2" fill="none"/><polygon points="480.0,317.0 475.5,325.5 484.5,325.5" style="fill:var(--ok);stroke:var(--ok)"/>
+  <text class="t-dim" x="496" y="326">C 가까운 두 막대 비교</text>
+  <path d="M50 346 h20" style="stroke:var(--warn);stroke-width:2" fill="none"/><polygon points="60.0,341.0 65.0,346.0 60.0,351.0 55.0,346.0" style="fill:var(--warn);stroke:var(--warn)"/>
+  <text class="t-dim" x="76" y="350">Mn 빨간 막대의 이름</text>
+  <path d="M260 346 h20" style="stroke:var(--bad);stroke-width:2" fill="none"/><path d="M266.0 342.0 L274.0 350.0 M274.0 342.0 L266.0 350.0" fill="none" style="stroke:var(--bad);stroke-width:2.2"/>
+  <text class="t-dim" x="286" y="350">Mp 빨간 막대의 위치</text>
+</svg>
+      <figcaption><b>그림 10-4.</b> 시각 토큰 수(축소 배율)에 따른 정확도. 점은 도표 80개의 평균이다(95% 구간은 표에 있다). 점선은 6개 중 하나를 찍는 수준 1/6이다. 비교(C)의 우연 수준은 1/2이다.</figcaption>
+    </figure>
+    <p>'답 없음'은 응답에서 숫자나 후보 항목 이름을 찾지 못한 비율이다. 모델이 모른다거나 알 수 없다고 말하는 표현(<code>sorry</code>, <code>cannot</code>, <code>unclear</code> 등을 센 <code>HEDGE</code>)은 14개 설정, 5,600개 응답 어디에도 없었다. 표 설정의 최고 항목(A)이 낮은 이유를 보려고 실행 뒤에 추가한 분석이 아래이다. 코드는 <code>exp10.py</code>와 같은 폴더에 두고 실험을 실행한 폴더에서 <code>python -I -X utf8 post10.py .</code>로 돌린다(코드는 아래 첫 상자, 출력은 둘째 상자).</p>
+<pre><code>import collections, json, sys
+import numpy as np
+sys.path.insert(0, ".")
+import exp10 as e                                             # 같은 폴더의 실험 코드(도표 생성기와 채점)를 쓴다
+
+RUN = sys.argv[1] if len(sys.argv) &gt; 1 else "."               # out10_raw.json이 있는 폴더
+raw = json.load(open(f"{RUN}/out10_raw.json", encoding="utf8"))
+r = np.random.default_rng(e.SEED + 3); charts = [e.make_chart(r) for _ in range(e.NCH)]
+Q = [e.questions(ch) for ch in charts]                         # Q[도표][질문 순번] = (이름, 문장, 정답, 종류)
+idx = {"L": 0, "A": 1, "C": 2, "Mn": 3, "Mp": 4}
+
+
+def resp(key, qn): return [raw[key][5 * i + idx[qn]] for i in range(e.NCH)]
+
+
+# (1) table에서 A(가장 높은 항목)를 틀린 응답이 어느 행에 몰리는가: 응답한 항목의 행 번호(0~5)와 정답 행 번호의 분포
+ans_row, gold_row = [], []
+for ch, q, out in zip(charts, Q, resp("table", "A")):
+    got = e.score(out, q[1][2], "name", ch["names"])[0]
+    ans_row.append(ch["names"].index(got) if got else -1); gold_row.append(ch["names"].index(q[1][2]))
+print("table A 응답 행 번호 분포(0=첫째 행, 5=마지막 행, -1=이름 없음):", sorted(collections.Counter(ans_row).items()))
+print("table A 정답 행 번호 분포:", sorted(collections.Counter(gold_row).items()))
+print("table A 응답 항목의 값 순위(0=최댓값) 분포:", sorted(collections.Counter(
+    sorted(ch["vals"], reverse=True).index(ch["vals"][a]) for ch, a in zip(charts, ans_row) if a &gt;= 0).items()))
+
+# (2) 15 토큰(rho=1/8) 이미지에서 가장 흔한 응답: 후보 밖의 말을 지어내는가, 유보하는가
+for qn in ("L", "A", "Mn"):
+    c = collections.Counter(o.strip() for o in resp("img1/8|lab", qn))
+    print(f"15토큰 값 라벨 있음, {qn} 응답 상위 5개:", c.most_common(5))
+for key in ("ocr", "img1/8|lab", "img1/4|lab"):
+    allout = [o for k in range(len(raw[key])) for o in [raw[key][k]]]
+    print(f"{key}: 후보 이름이 하나도 없는 이름형 응답 수 / 이름형 질문 수 =",
+          sum(1 for i, ch in enumerate(charts) for qn in ("A", "C", "Mn") if e.score(resp(key, qn)[i], "", "name", ch["names"])[0] is None), "/", 3 * e.NCH)
+</code></pre>
+<pre><code>table A 응답 행 번호 분포(0=첫째 행, 5=마지막 행, -1=이름 없음): [(0, 1), (1, 2), (2, 10), (3, 23), (4, 16), (5, 28)]
+table A 정답 행 번호 분포: [(0, 13), (1, 11), (2, 11), (3, 27), (4, 10), (5, 8)]
+table A 응답 항목의 값 순위(0=최댓값) 분포: [(0, 29), (1, 12), (2, 9), (3, 13), (4, 9), (5, 8)]
+15토큰 값 라벨 있음, L 응답 상위 5개: [('1', 51), ('0.04', 7), ('100', 5), ('10', 4), ('6', 3)]
+15토큰 값 라벨 있음, A 응답 상위 5개: [('Cats', 4), ('Low', 3), ('Laptops', 3), ('Largest', 3), ('Jabber', 3)]
+15토큰 값 라벨 있음, Mn 응답 상위 5개: [('Categorical', 8), ('Largest', 7), ('2018', 5), ('Census', 5), ('Law', 5)]
+ocr: 후보 이름이 하나도 없는 이름형 응답 수 / 이름형 질문 수 = 4 / 240
+img1/8|lab: 후보 이름이 하나도 없는 이름형 응답 수 / 이름형 질문 수 = 156 / 240
+img1/4|lab: 후보 이름이 하나도 없는 이름형 응답 수 / 이름형 질문 수 = 2 / 240</code></pre>
+
+    <h3 id="h-limits10">해석과 한계</h3>
+    <ul>
+      <li><b>예상 가운데 E1은 기각되었다.</b> 표 설정에서 값 읽기(L)는 1.000이지만 최고 항목(A)은 0.362 [0.263, 0.475], 비교(C)는 0.463 [0.350, 0.575]로 기준 0.90에 한참 못 미친다. 실험 전에 적어 둔 규칙은 이 경우 E2, E3를 해석하지 않는다고 했다. 그 규칙의 이유는 모델이 글 표를 못 읽는다는 것이었는데, 실제로 틀린 것은 읽기(L=1.000)가 아니라 여섯 숫자를 견주는 일이다. 그래서 이 장은 L과 색 질문(Mn, Mp)은 해석하고, A와 C는 기록하되 글 경로의 정확도가 낮은 모델에서의 값으로만 읽는다. 이 구분은 결과를 본 뒤에 한 것이다. E2는 수학적 상한을 점검하는 것이어서 모델의 능력과 무관하게 해석할 수 있다. 글 추출의 5개 정확도(L 0.100, A 0.138, C 0.637, Mn 0.212, Mp 0.150) 모두 95% 구간의 하한이 상한(0.227, 0.196, 0.760, 0.167, 0.167) 아래에 있어 기각되지 않았다. Mn의 점추정 0.212는 \(1/6\)보다 크지만 구간 [0.125, 0.300]이 \(1/6\)을 포함한다. E3는 (a) 값 라벨이 있는 960토큰에서 L=0.988로 기각되지 않았고, (b) 값 라벨이 없는 도표의 L이 \(\rho\ge3/8\)의 네 해상도 모두에서 0.087로 라벨이 있는 도표(0.988~1.000)보다 낮아 기각되지 않았다. (c)는 예상한 모양이 아니었다. 15토큰에서 Mn은 구간이 \(1/6\)을 포함하는 것이 아니라 0.000 [0.000, 0.000]으로 우연 수준 아래였다. 기각 조건은 구간이 \(1/6\) 위에 있을 때였으므로 기각은 아니지만, 예상한 우연 수준 근처도 아니다. (d) 값 라벨이 있는 도표에서는 A와 L이 같은 해상도(60토큰)에서 0.9 아래로 내려가 '작거나 같다'를 만족하지만 A가 더 오래 버틴다는 강한 결과는 아니고, 라벨이 없는 도표에서는 A가 135토큰까지 0.9 이상(1.000)인 반면 L5는 960토큰에서도 0.750이어서 같은 방향이다.</li>
+      <li><b>질문에 대한 답: 글과 이미지는 서로 다른 것을 놓친다.</b> 표로 옮기면 값과 이름의 연결은 보존되어 L=1.000이지만 막대의 색을 담지 못해 Mn 0.175, Mp 0.163으로 \(1/6\) 수준이다(<a class="ref" href="#thm-collide"></a>이 예고한 바닥). 글 추출은 연결까지 지워 L이 1.000에서 0.100으로, A가 0.138로 내려갔고 모두 상한 아래이다. 이미지는 색을 남긴다. 960토큰에서 빨간 막대의 이름을 대는 Mn이 1.000이다. 대신 해상도가 모자라면 글자를 잃는다. 라벨이 있는 도표에서 L은 135토큰(숫자 높이 5.6 px)까지 1.000, 60토큰(3.8 px)에서 0.812, 15토큰(1.9 px)에서 0.013이다. 값 라벨이 없으면 정확한 값은 읽지 못하고(0.087), 막대 높이로 어림한 값이 ±5 안에 드는 비율이 960토큰에서 0.750, 60토큰에서 0.438, 15토큰에서 0이다.</li>
+      <li><b>정보의 상한과 독자의 능력은 다르다.</b> 표 변환은 A에 대해 \(B=1\)인데 모델이 낸 값은 0.362이고, 같은 모델이 이미지(막대 높이)에서는 A를 0.975로 맞힌다(960토큰, 값 라벨 있음). 응답을 보면 표 설정의 A는 마지막 행 쪽에 몰렸다. 응답한 행 번호가 5인 도표가 28개, 3이 23개, 4가 16개이고 첫째 행은 1개였으며, 최댓값의 항목을 맞힌 도표는 29개(0.362)였다. 정답의 행 번호 분포(0~5 가운데 3이 27개)와 다르다. 항목 이름이 없는 응답(-1)은 한 도표도 없어서, 이름을 지어내는 것이 아니라 도표 안의 틀린 항목을 고르는 실패이다. 응답한 항목의 값 순위는 0위(최댓값)가 29개, 1위가 12개, 3위가 13개 등으로 퍼져 있다. 다섯 숫자와 견주어 최댓값을 찾는 단계를 이 모델이 한 번에 하지 못하는 것으로 보이지만, 5장의 단계적 풀이로 고쳐지는지는 재지 않았다. 따라서 이 모델에서는 정보가 더 많은 글 경로가 정확도가 더 높은 경로가 아니다. 모델이 달라지면 이 순서가 바뀔 수 있다.</li>
+      <li><b>축소가 지우는 것은 E0의 순서와 대체로 맞지만, 모델의 문턱은 별개이다.</b> E0는 막대 길이는 1/8에서도 오차 0.17로 남고(f) 라벨 쌍의 최소 거리가 6.5(1/4)에서 1.4(1/8)로 준다고(g) 말했다. 모델의 값 읽기는 거리 10.4(3/8)까지 1.000이고 6.5(1/4)에서 0.812, 1.4(1/8)에서 0.013이다. 색의 위치를 묻는 Mp는 15토큰에서도 0.338 [0.237, 0.450]으로 \(1/6\) 위인 반면 이름을 묻는 Mn은 같은 토큰 수에서 0이다. 연속량(색의 위치)은 남고 기호(글자)는 사라진다는 방향이 모델의 응답에서도 보인다. 다만 이 일치가 E0의 양이 모델의 결정 요인이라는 증거는 아니다. 모델의 문턱은 글꼴, 모델, 패치 크기 28 px, 프롬프트에 달려 있다.</li>
+      <li><b>누락은 모른다는 말로 드러나지 않았다.</b> 15토큰에서 라벨 이름이 안 보이는 도표의 Mn 응답은 'Categorical'(8회), 'Largest'(7회), '2018'(5회), 'Census'(5회) 같이 도표에 없는 말이었고, 이름형 질문 240개 가운데 후보 이름이 하나도 들어 있지 않은 응답이 156개였다. 값 읽기(L)는 80개 가운데 51개가 '1'이었다. 모른다는 표현은 5,600개 응답에 없었다. 정보가 없는 글 추출에서도 이름 응답 240개 중 후보가 없는 응답은 4개뿐이어서 거의 언제나 후보 안에서 하나를 골랐다. <a class="ref" href="#thm-silent"></a>의 3번이 말하는 대로, 같은 표현 안에서 모델이 맞는 쪽과 틀린 쪽을 구별할 수 없고 칸 자체의 모호함도 이 모델은 드러내지 않았다. 이것은 이 모델의 관찰이며 모든 모델에 대한 말이 아니다.</li>
+      <li><b>값 라벨은 도움만 주지 않았다.</b> 60토큰에서 빨간 막대의 이름을 대는 Mn이 라벨이 없는 도표에서 0.825 [0.738, 0.912], 있는 도표에서 0.562 [0.462, 0.675]이다. 같은 해상도에서 막대 위의 숫자가 항목 이름을 읽는 데 방해가 되었을 가능성이 있지만 이유는 재지 않았다. 가까운 두 막대를 견주는 C는 960토큰에서도 0.562 [0.463, 0.663]으로 우연 수준 0.5와 구별되지 않았다(막대 길이 차이가 작아 바닥에 걸린 것이다). 빨간 막대의 위치를 세는 Mp도 960토큰에서 0.537에 그쳤다. 이 모델은 이름은 읽지만 몇 번째인지는 잘 세지 못한다.</li>
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> E1~E3의 예상과 기각 조건은 모델을 한 번도 돌리기 전에 파일에 적어 두었고, 질문, 프롬프트 문구, 채점, 도표 생성 설계는 첫 모델 실행 뒤 바꾸지 않았다. 그러나 밝힐 것이 있다. (1) E0는 코드 점검을 겸해 예상보다 먼저 실행해 결과를 보았다. E0f는 첫 실행에서 마지막 행 하나를 빼는 코드 오류로 평균 오차가 \(1/(4\rho)\)(0.25~2.06)로 나왔고 고쳤다. 고친 뒤의 값이 위 결과이다. (2) 모델 배선을 점검하려고 시드 99, 도표 8개로 스모크 테스트를 했고 그 출력의 일부를 보았다(표 설정의 A가 낮았고 15토큰에서 'JANUARY' 같은 말을 지어냈다). 이 결과로 바꾼 것은 배치 크기(8에서 2) 하나이다. 배치 8에서는 이미지 8장을 묶은 비전 인코더의 attention이 8 GB GPU의 메모리를 넘어 사실상 멈추었다. (3) 스모크 뒤에 '모른다' 표현을 세는 <code>HEDGE</code>를 코드에 추가했다(사전 예상 없음). (4) 표 설정의 A가 낮은 것을 보고 응답 행 분포를 보는 추가 분석을 작성했다. (5) E1이 기각된 뒤 L과 색 질문만 해석한다는 구분은 결과를 본 뒤에 정했다. 같은 코드를 두 번 따로 실행했고 14개 설정의 5,600개 응답이 두 번 모두 한 글자도 다르지 않았고, 구간을 포함한 요약 결과와 로그(소요 시간 제외)도 같았다. 같은 GPU와 라이브러리 버전에서의 확인이다.</li>
+      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 Qwen2-VL-2B 하나, 도표는 막대 6개의 합성 도표 한 족, 렌더러와 글꼴, 질문 문구가 각각 하나이다. 더 큰 모델, Claude, 단계적으로 풀게 하는 설정, 실제 문서(스캔, 겹친 글자, 표의 병합 셀)에서는 다를 수 있고 재지 않았다. 표본의 단위는 도표 80개이며 구간은 이를 군집으로 보았다. 정확도 0.000~0.010이나 1.000의 구간은 부트스트랩이 퇴화하여 [0.000, 0.000], [1.000, 1.000]으로 나오므로, 문자 그대로의 확신이 아니라 80개에서 변동이 없었다는 뜻이다. 변환(표, 글 추출)은 우리가 정한 규칙이고 실제 OCR이나 파서의 출력이 아니다. 옮겨지는 것은 구조 넷이다. 변환의 정확도 상한은 모델이 아니라 변환과 질문으로 정해진다. 글 경로의 정확도가 상한보다 한참 낮을 수 있으므로 상한과 실제 정확도를 따로 잰다. 해상도를 줄이면 글자가 연속량보다 먼저 사라진다. 정보가 없을 때 모델이 모른다고 말하는지는 모델마다 재야 한다.</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>문서와 화면의 정보는 글자, 배치, 그림에 나뉘어 담기고, 글로 옮기는 변환 \(f\)는 그 가운데 규칙이 담은 것만 남긴다. 변환이 질문을 보존하지 않으면(같은 글인데 정답이 다른 자료가 있으면) 변환된 글만 보는 어떤 독자도 \(B(f,q)=\sum_s\max_a\Pr[f=s,q=a]\)보다 정확할 수 없고, 모델을 키우거나 프롬프트를 고쳐도 이 상한은 그대로이다. 상한을 올리려면 변환을 바꾸거나 다른 변환을 더해야 한다(정리 10.1).</li>
+      <li>충돌의 흔한 예는 구분자 없는 표(셀 \(n\)개의 모양이 \(n\)의 약수의 개수만큼 가능)와 읽기 순서가 연관을 지우는 도표 추출이다. 그림 10-1의 도표에서는 막대 배치 720가지가 같은 글이 되어 값 읽기의 상한이 1/6이고, 분포 전체에서는 값 읽기 0.227, 최고 항목 0.196, 색 1/6이다. 표 변환은 값 질문을 보존하지만 색은 담지 못한다.</li>
+      <li>이미지를 직접 읽히는 길은 변환 대신 해상도 한도를 치른다. Claude는 이미지를 28×28 패치로 처리해 \(\lceil w/28\rceil\lceil h/28\rceil\)토큰을 쓰고, 긴 변과 토큰 한도를 넘으면 종횡비를 지킨 채 줄인다(표준 등급 1,568·1,568, 고해상도 등급 2,576·4,784, 2026년 11월 기준). 1920×1080은 표준 등급에서 1456×819(\(\rho=0.758\), 1,560토큰)로, 3840×2160은 \(\rho=0.379\)로 줄어든다. 한도 밖에서는 비용이 늘지 않고 \(\rho\)만 작아진다(정리 10.2).</li>
+      <li>축소는 정보의 종류마다 다르게 지운다. 1 px 선은 사라지지 않고 회색이 되며(밝기 \(255(1-\rho)\)), 막대 길이는 면적이 보존되어 1/8에서도 평균 오차 0.17이지만, 두 자리 숫자 라벨 쌍의 최소 거리는 19.2에서 1.4로 준다. 연속량보다 기호가 먼저 어려워진다. 다만 이 거리는 이상적인 판독기의 기준이며 모델이 읽는 해상도의 문턱이 아니다.</li>
+      <li>누락(표현에 정보가 없음)과 착각(정보가 있는데 틀리게 읽거나, 없는데 그럴듯한 답을 냄)은 다른 원인이고 고치는 방법도 다르다. 같은 표현 안에서는 모델의 답과 확신도의 분포가 같아서, 맞는 자료와 틀린 자료를 확신도로 가를 수 없다(정리 10.3). 착각에는 빈칸 채우기, 연관 실패, 이미지 속 글자에 이끌림, 세기·도표 추론의 실패가 있다.</li>
+      <li>모델이 내는 좌표는 줄어든 이미지 위의 값이므로 화면에 쓰려면 \(\rho\)로 되돌려야 한다. 되돌리지 않으면 오차 \(x(1-\rho)\)가 원점에서 멀수록 커지고 방향이 일정하며, 되돌려도 모델의 위치 오차 \(\delta\)가 목표 폭 \(t\)에 대해 적중 확률 \(\min(1,t\rho/(2\delta))\)를 만든다. 화면이 클수록, 목표가 작을수록, 등급이 낮을수록 놓친다(정리 10.4).</li>
+      <li>읽기 오류는 틀린 문장을 남기고 조작 오류는 틀린 행동을 남긴다. 같은 스크린샷을 모델에게 다시 보이는 확인은 같은 변환을 되풀이하는 것이어서 정보의 상한을 올리지 못한다. 확인이 효력을 가지려면 접근성 트리·DOM, 도구가 돌려주는 상태, 조작 전후 화면의 변화 같은 다른 경로가 필요하다.</li>
+      <li>실험(Qwen2-VL-2B, 합성 막대 도표 80개)에서 표로 옮긴 입력은 값 읽기가 1.000이지만 최고 항목이 0.362, 가까운 두 막대의 비교가 0.463이어서, 정보가 보존되면 모델이 읽는다는 예상(E1)은 기각되었다. 색 질문은 표에서 \(1/6\) 수준(0.175, 0.163)이고, 글 추출은 값 읽기가 0.100으로 떨어졌으며 다섯 질문 모두 이론 상한(0.227, 0.196, 0.760, 1/6, 1/6)을 넘지 않았다. 정보의 상한과 독자의 능력은 다르다(표 변환의 최고 항목은 \(B=1\)인데 0.362이고, 같은 모델이 이미지에서는 0.975).</li>
+      <li>이미지에서 값 라벨이 있는 도표의 값 읽기는 135토큰(숫자 높이 5.6 px)까지 1.000, 60토큰에서 0.812, 15토큰에서 0.013이다. 15토큰에서 빨간 막대의 이름은 0.000이었고 도표에 없는 말('Categorical', 'Largest')을 냈지만, 빨간 막대의 위치는 0.338로 우연(1/6) 위였다. 글자는 먼저 사라지고 색의 위치는 남는다. 모른다는 표현은 5,600개 응답에 한 번도 없었다. 모델 하나, 도표 한 족의 결과이다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 표의 셀 30개를 행 우선으로 구분자 없이 한 줄로 이은 글이 있다. 이 글이 나올 수 있는 표의 모양은 모두 몇 가지인가?</p><div class="opts">
+        <button class="opt">5가지</button>
+        <button class="opt" data-correct>8가지</button>
+        <button class="opt">30가지</button>
+      </div><div class="quiz-exp"><a class="ref" href="#ex-shape"></a>이다. \(r\times c=30\)인 모양의 수는 30의 약수의 개수 8이다(1, 2, 3, 5, 6, 10, 15, 30). 30가지는 셀의 수를 모양의 수로 착각한 값이다.</div></div>
+      <div class="quiz-q"><p>2. 변환 \(f\)가 질문 \(q\)를 보존하지 않는다. 이때 옳은 것은?</p><div class="opts">
+        <button class="opt">충분히 큰 모델을 쓰면 변환된 글만으로도 정확도 1에 이를 수 있다.</button>
+        <button class="opt" data-correct>어떤 독자도 \(B(f,q)\lt1\)을 넘을 수 없고, 넘으려면 변환을 바꾸거나 다른 변환을 더해야 한다.</button>
+        <button class="opt">프롬프트에 단계별로 생각하라고 적으면 \(B\)가 올라간다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-collide"></a>의 1~3번이다. \(B\)는 모델이 아니라 변환과 질문, 자료의 분포로 정해지는 값이다. 모델의 크기나 프롬프트는 \(B\) 안에서 독자가 얼마나 최선에 가까운지만 바꾼다.</div></div>
+      <div class="quiz-q"><p>3. 1920×1080 스크린샷을 표준 등급의 Claude 모델에 보내면 몇 개의 시각 토큰이 드는가(공식 문서의 규칙 기준)?</p><div class="opts">
+        <button class="opt">1,568개 (토큰 한도 그대로)</button>
+        <button class="opt" data-correct>1,560개 (1456×819로 줄어든다)</button>
+        <button class="opt">2,691개 (줄어들지 않는다)</button>
+      </div><div class="quiz-exp"><a class="ref" href="#ex-claude"></a>이다. 1456×819는 \(52\times30=1560\)토큰이다. 한도(1,568) 안에서 종횡비를 지키는 가장 큰 크기가 28 단위로 올림되어 1,560이 된다. 2,691은 줄어들지 않는 고해상도 등급의 값이다.</div></div>
+      <div class="quiz-q"><p>4. 흰 바탕의 폭 1 px 검은 선(밝기 0)을 상자 필터로 1/4로 줄였을 때, 선이 놓인 출력 픽셀의 밝기는?</p><div class="opts">
+        <button class="opt">0 (검은색 그대로)</button>
+        <button class="opt">64</button>
+        <button class="opt" data-correct>191</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-resize"></a>의 3번이다. \(255(1-1\cdot\tfrac14)=191.25\)이다. 선은 사라지지 않고 회색이 되며 배경과의 대비가 \(\rho\)배로 줄어든다. 64는 \(255\rho\)를 밝기로 착각한 값이다.</div></div>
+      <div class="quiz-q"><p>5. 모델이 낸 좌표를 화면 좌표로 되돌리지 않고(축소 배율 \(\rho\lt1\)) 그대로 클릭하면 어떤 증상이 나타나는가?</p><div class="opts">
+        <button class="opt">클릭이 무작위 방향으로 흩어진다.</button>
+        <button class="opt" data-correct>클릭이 항상 원점(왼쪽 위) 쪽으로 어긋나고, 원점에서 먼 목표일수록 더 많이 어긋난다.</button>
+        <button class="opt">화면 중앙에서 가장 크게 어긋나고 모서리에서는 맞는다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-click"></a>의 1번이다. 오차는 \(x(1-\rho)\)로 \(x\)에 비례하고 방향이 원점 쪽으로 일정하다. 공식 문서의 '클릭이 일정한 방향으로 계속 어긋난다'는 증상과 같다.</div></div>
+      <div class="quiz-q"><p>6. 에이전트가 클릭한 뒤 같은 스크린샷을 모델에게 다시 보이고 '맞게 눌렀는가'를 묻는 확인 단계를 넣었다. 이것이 정보 면에서 하는 일은?</p><div class="opts">
+        <button class="opt">새 정보를 더하므로 오류가 항상 줄어든다.</button>
+        <button class="opt" data-correct>같은 변환을 되풀이하는 것이어서 정확도의 상한 \(B\)는 늘지 않는다. 샘플링 변동 같은 독자 쪽 오차만 줄일 수 있다.</button>
+        <button class="opt">이미지 토큰이 두 배가 되므로 해상도가 올라간다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-collide"></a>의 3번과 <a class="ref" href="#thm-silent"></a>이다. 같은 이미지는 같은 표현이고, 표현이 같으면 두 자료의 출력 분포가 같다. 확인이 정보를 더하려면 접근성 트리나 도구가 돌려주는 상태 같은 다른 경로가 필요하다.</div></div>
+      <div class="quiz-q"><p>7. 어떤 화면이 모델에 보낼 때 \(\rho=0.5\)로 줄어든다. 이 화면에서 폭 6 px 목표를 누르려 한다. 모델이 중심을 \(\delta=3\) 모델 픽셀 안에서 균일하게 짚을 때 맞힐 확률은?</p><div class="opts">
+        <button class="opt">0.25</button>
+        <button class="opt" data-correct>0.5</button>
+        <button class="opt">1</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-click"></a>의 3번이다. \(\min(1,\,6\cdot0.5/(2\cdot3))=0.5\)이다. 화면에서의 오차 범위가 \(\pm\delta/\rho=\pm6\) px인데 목표의 반폭이 3 px이므로 절반만 들어온다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-shape" data-level="1"><p>셀 48개를 행 우선으로 구분자 없이 이은 글이 있다. (가) 가능한 표의 모양은 몇 가지인가? (나) 행이 끝날 때마다 줄바꿈 하나를 넣는 규칙으로 바꾸면 모양이 복원되는가? 복원되지 않는 경우를 하나 들라.</p>
+      <details class="sol"><summary>풀이</summary><p>(가) 48의 약수는 1, 2, 3, 4, 6, 8, 12, 16, 24, 48로 10가지이다(<a class="ref" href="#ex-shape"></a>). (나) 모든 행의 셀 수가 같고 빈 셀도 빈 글로 남는 표라면 줄 수와 한 줄의 셀 수로 모양이 복원된다. 복원되지 않는 경우는 병합 셀이다. 두 칸에 걸친 셀은 한 줄에서 한 번만 나타나므로 줄마다 셀 수가 다르고, 어느 열에 걸쳤는지는 글에 없다. 빈 셀을 아무 글자도 남기지 않는 규칙도 마찬가지로 열이 맞지 않는다.</p></details></div>
+    <div class="prob" id="prob-tokens" data-level="1"><p>다음 이미지를 표준 등급(긴 변 1,568, 토큰 1,568)과 고해상도 등급(긴 변 2,576, 토큰 4,784)에 보낼 때, 줄어든 크기, 축소 배율, 토큰 수를 구하라. (가) 1366×768 노트북 화면 (나) 2560×1600 화면 (다) 200 DPI로 스캔한 A4 쪽 1654×2339 (라) (나)의 스크린샷 10장의 토큰 수.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#def-patchtok"></a>의 규칙을 쓴다(실험 코드의 <code>resized_size</code>). (가) 두 등급 모두 줄지 않는다. \(\lceil1366/28\rceil\lceil768/28\rceil=49\times28=1372\)토큰이다. (나) 표준 등급은 1389×868, \(\rho=0.543\), 1,550토큰. 고해상도 등급은 2420×1512, \(\rho=0.945\), 4,698토큰이다(그대로는 5,336토큰이라 4,784를 넘는다). (다) 표준 등급은 924×1307, \(\rho=0.559\), 1,551토큰. 고해상도 등급은 1624×2296, \(\rho=0.982\), 4,756토큰이다(그대로는 5,040토큰). (라) 표준 등급 15,500토큰, 고해상도 등급 46,980토큰이다. 같은 화면도 고해상도 등급이 글자를 훨씬 덜 줄이는 대신 토큰은 약 세 배 쓴다.</p></details></div>
+    <div class="prob" id="prob-bound" data-level="2"><p>자료 네 개 \(d_1,\dots,d_4\)가 확률 0.4, 0.3, 0.2, 0.1로 나온다. 질문의 정답은 \(q(d_1)=a\), \(q(d_2)=b\), \(q(d_3)=a\), \(q(d_4)=a\)이다. 변환 \(f_1\)은 \(f_1(d_1)=f_1(d_2)=s_1\), \(f_1(d_3)=f_1(d_4)=s_2\)이고, 변환 \(f_2\)는 \(d_1,d_3\)을 \(t_1\)로, \(d_2,d_4\)를 \(t_2\)로 보낸다. (가) \(B(f_1,q)\)와 \(B(f_2,q)\)를 구하라. (나) 두 변환을 함께 주면 \(B\)는? (다) \(f_1\)만 두 번 주면?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-collide"></a>의 정의 \(B=\sum_s\max_a\Pr[f=s,q=a]\)를 쓴다. (가) \(f_1\): \(s_1\)에서 \(\Pr[s_1,a]=0.4\), \(\Pr[s_1,b]=0.3\)이므로 최댓값 0.4이고, \(s_2\)에서는 두 자료 모두 \(a\)이므로 0.3이다. \(B(f_1,q)=0.7\). \(f_2\): \(t_1\)에서 \(d_1,d_3\)이 모두 \(a\)이므로 \(0.4+0.2=0.6\), \(t_2\)에서 \(\Pr[t_2,b]=0.3\), \(\Pr[t_2,a]=0.1\)이므로 0.3이다. \(B(f_2,q)=0.9\). (나) 함께 주면 칸이 \(\{d_1\},\{d_2\},\{d_3\},\{d_4\}\)로 나뉘어 \(B=1\)이다. 둘의 최댓값 0.9 이상이라는 3번을 만족한다. (다) \(f_1\)을 두 번 주어도 칸이 그대로여서 \(B=0.7\)이다.</p></details></div>
+    <div class="prob" id="prob-three" data-level="2"><p>값 30, 55, 80인 막대 3개의 도표를 <a class="ref" href="#ex-order"></a>의 추출기로 읽는다. 값 라벨은 서로 다른 줄에 놓이고 항목 이름 줄은 따로 읽힌다. (가) 같은 글이 되는 배치는 몇 가지인가? (나) '항목 \(X\)의 값은?'(\(X\)는 세 항목 가운데 균등하게 골라진다)의 정확도 상한은? (다) '가장 높은 항목은?'의 상한은? (라) 이 상한을 넘으려면 추출기를 어떻게 바꾸어야 하는가?</p>
+      <details class="sol"><summary>풀이</summary><p>(가) 값 3개를 3개 막대에 놓는 \(3!=6\)가지이다(실험 코드로 세어 6가지가 모두 같은 글임을 확인했다). (나) 글이 같으므로 어느 항목이든 값은 3개 가운데 하나를 고르는 일이고, 상한은 \(1/3\)이다. (다) 마찬가지로 \(1/3\)이다. (라) 값 라벨과 그 아래 막대의 가로 위치를 이어 주는 정보를 글에 넣어야 한다. 값 라벨의 가로 좌표를 글상자와 함께 내보내거나(좌표 달린 글), 같은 가로 위치의 항목 이름 옆에 값을 붙여 한 줄로 만드는 규칙(표 변환)이 그런 방법이다. 둘 다 \(f\)를 바꾸어 질문을 보존하게 한 것이다.</p></details></div>
+    <div class="prob" id="prob-line" data-level="2"><p>흰 바탕에 폭 2 px의 검은 선이 있다. 상자 필터로 1/8로 줄일 때, (가) 선이 출력 픽셀 하나에 완전히 들어가면 그 픽셀의 밝기는? (나) 선이 두 출력 픽셀의 경계에 걸려 반반 나뉘면 두 픽셀의 밝기는? (다) 이미지에 흐린 글자가 있을 때 (나)의 경우가 읽기에 어떤 영향을 주는지 말하라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-resize"></a>의 3번이다. (가) \(255(1-2/8)=191.25\). (나) 선의 면적이 두 픽셀에 1 px씩(선 폭의 절반) 나뉘면 각 픽셀의 덮임이 \(1/8\)이어서 \(255(1-1/8)=223.1\)이다. 같은 선인데 위치에 따라 최저 밝기가 191과 223으로 달라진다. (다) 글자의 획 하나하나가 이런 식으로 위치에 따라 서로 다른 대비로 흐려지고, 획의 위치가 픽셀 경계에 걸리는지에 따라 같은 글자가 다르게 보인다. 판독기가 이 변동을 견뎌야 하므로, 원본에서의 획 폭이 \(1/\rho\) px보다 작을수록 글자의 모양이 불안정해진다.</p></details></div>
+    <div class="prob" id="prob-click" data-level="2"><p>2560×1440 화면을 표준 등급으로 보낸다(\(\rho=0.569\)). (가) 모델이 정확히 짚은 점이 화면의 (2200, 1200)일 때, 좌표를 되돌리지 않고 쓰면 클릭은 어디로 가고 얼마나 어긋나는가? (나) 모델의 위치 오차가 \(\delta=2\) 모델 픽셀일 때 폭 16 px 버튼과 6 px 아이콘을 맞힐 확률은? (다) 고해상도 등급으로 바꾸면?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-click"></a>을 쓴다. (가) 모델은 \((\rho\cdot2200,\rho\cdot1200)=(1251,683)\)을 내고, 되돌리지 않으면 클릭이 그 점으로 간다. 오차는 \(x\)로 \(2200(1-\rho)=949\) px, \(y\)로 \(1200(1-\rho)=518\) px이고 거리는 1,081 px이다(\(\rho=1456/2560=0.56875\)). 정답 점의 왼쪽 위로 일정하게 밀린다. (나) 폭 16 px는 \(16\cdot0.569/(2\cdot2)=2.28\)이어서 1이고, 폭 6 px는 \(6\cdot0.569/4=0.853\)이다. (다) 2560×1440은 고해상도 등급에서 줄지 않으므로(\(\rho=1\), 4,784토큰) 6 px도 \(6/4=1.5\)로 1이다. 대신 토큰이 약 3배(1,560 대 4,784)이다.</p></details></div>
+    <div class="prob" id="prob-verify" data-level="2"><p>조작 하나가 어긋날 확률이 \(\varepsilon=0.05\)이다. 확인 단계 A는 같은 스크린샷을 모델에게 다시 보여 \(v_A=0.2\)의 확률로 어긋난 조작을 잡는다(가상의 값). 확인 단계 B는 접근성 트리의 값과 대조해 \(v_B=0.9\)로 잡는다(가상의 값). (가) A만, B만 쓸 때 통과한 어긋난 조작의 확률은? (나) A와 B를 모두 거치면? 이때 어떤 가정이 필요한가? (다) A의 \(v_A\)가 작은 이유를 정리 10.1과 10.3으로 설명하라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#ex-verify"></a>의 \(\varepsilon(1-v)\)를 쓴다. (가) A: \(0.05\cdot0.8=0.040\), B: \(0.05\cdot0.1=0.005\). 8배 차이이다. (나) 두 단계가 어긋난 조작을 놓치는 일이 서로 독립이라고 가정하면 \(0.05\cdot0.8\cdot0.1=0.004\)이다. 독립이 아니면 값이 달라진다. 어긋난 조작을 두 단계가 모두 놓칠 확률은 0(A와 B가 잡는 조작이 겹치지 않을 때)에서 0.1(A가 잡는 조작이 B가 잡는 조작의 일부일 때)까지 가능하므로 통과한 어긋난 조작은 0에서 0.005 사이이다. A와 B는 서로 다른 변환을 보므로 독립에 가깝기를 기대하지만 확인한 것이 아니다. (다) A는 같은 표현을 다시 읽는 것이다. 어긋난 조작의 원인이 표현의 충돌(작은 목표가 축소로 뭉개짐)이면 두 번째 읽기도 같은 칸에서 같은 분포로 답하므로(<a class="ref" href="#thm-silent"></a>) 잡을 확률이 높아지지 않는다. 그래서 \(v_A\)는 샘플링 변동으로 잡히는 몫으로 제한된다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="3"><p>청구서 이미지에서 ① 합계 금액, ② 품목과 금액의 연결, ③ 서명 유무, ④ 취소선이 그어진 품목을 뽑는 에이전트를 만든다. 질문마다 세 경로(글로 변환, 이미지, 둘을 함께) 가운데 어느 것을 기본으로 할지 고르고 이유를 쓰라. 그리고 '글 변환만으로 충분한가'를 가르는 실험을 설계하라. 같게 할 것과 바꿀 것, 관측값, 예상과 기각 조건을 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. 경로 선택. ① 합계 금액은 정확한 문자열이므로 글 변환(좌표 포함)이 기본이고, 이미지는 확인용이다. ② 품목과 금액의 연결은 읽기 순서에서 깨지기 쉬워 좌표를 포함한 글 변환이나 이미지를 쓴다. 표 구조가 선으로 드러나는 청구서는 이미지가 낫다. ③ 서명 유무는 글 변환에 나타나지 않으므로(그림 정보) 이미지 경로가 필요하다. ④ 취소선은 글자 모양의 정보이므로 변환이 서식을 내보내지 않는 한 이미지 경로가 필요하다. 실험. 같은 청구서 \(n\)장, 같은 질문, 같은 모델과 프롬프트에서 입력만 바꾼다(글 변환, 이미지, 둘). 질문 종류마다 정확도를 청구서 단위 군집으로 짝지어 비교한다(<a href="ch08.html#thm-var">8장의 정리 8.1</a>). 변환의 상한은 정답이 갈리는 청구서 쌍을 만들어(같은 글이 되는 두 청구서, 곧 서명만 있고 없는) 우연 수준으로 내려가는지로 확인한다. 예상(정리 10.1에서): 글 변환만 준 입력의 ③과 ④의 정확도는 우연 수준(두 값이 같게 나올 확률)을 넘지 못하고, 둘을 함께 주면 이미지만 줄 때 이상이다. 기각 조건: 글 변환의 ③ 정확도의 95% 구간 하한이 우연 수준을 넘으면, 변환에 서명 정보가 새고 있거나(예: 서명란에 '서명됨'이라고 쓰는 OCR) 정답 생성에 오류가 있다. 해상도를 올리고 내리는 변인을 추가해 누락과 독자 실패를 가를 수 있다(10.3절).</p></details></div>
+    <div class="prob" id="prob-floor" data-level="3"><p>이 장의 실험에서 글 추출(ocr)의 값 읽기(L)의 정확도 상한은 0.227(E0b)이다. 도표 80개에서 작은 모델의 L 정확도가 24/80=0.30으로 나왔다고 하자. 이것은 상한 위반인가? 위반으로 보려면 어떤 증거가 필요한가? 이항분포로 계산하라.</p>
+      <details class="sol"><summary>풀이</summary><p>상한은 분포 위에서의 기댓값이고 80개 표본의 정확도는 표본 오차를 가진다. 정확도 상한에 딱 맞는 독자라도 80개에서 24개 이상 맞힐 확률은 이항분포 \(\Pr[X\ge24]\), \(n=80\), \(p=0.227\)에서 0.080이다. 8%는 드문 일이 아니므로 한 번의 0.30만으로는 위반이라고 하지 못한다. 위반으로 보려면 같은 설정에서 더 많은 도표(표본 오차를 줄여)로 같은 방향의 결과가 나오거나, 28개 이상(0.35)처럼 \(\Pr\)이 0.01 아래인 값이 나와야 한다(\(\Pr[X\ge28]=0.0083\)). 그때는 이 장의 기각 조건대로 변환이나 정답 생성에 정보가 새는 오류를 의심한다. 반대로 상한 위반이 아니라는 결론도 상한에 '가깝다'는 것을 보이지 않는다. 8장의 표본 오차와 같은 논리이다.</p></details></div>
   </section>
 </main>
 </body>
