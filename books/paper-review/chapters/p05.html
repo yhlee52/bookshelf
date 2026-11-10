@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>05 논문 리뷰 슬롯 05 · PaperBook</title>
-<meta name="description" content="리뷰할 논문을 정하면 제목과 한 줄 요약을 채우세요. (예시 실험: 옵티마이저)">
+<title>05 Moltbook: AI 에이전트 사회에서 사회화가 일어나는가 · PaperBook</title>
+<meta name="description" content="Does Socialization Emerge in AI Agent Society? A Case Study of Moltbook(arXiv 2026) 논문 리뷰 — 에이전트만 사는 SNS의 글 29만 개와 댓글 184만 개로 사회·에이전트·집단 세 층위의 사회화를 진단한 결과를, 공개 코드와 논문 수치로 직접 대조했다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -26,102 +26,320 @@
 </head>
 <body data-root="../../../" data-book="paper-review" data-field="dl" data-chapter="p05">
 <!--
-  ✎ 이 파일은 '슬롯'(빈 틀)입니다.
-  - 점선 상자(class="slot")를 실제 내용으로 바꾼 뒤 class="slot"과 data-slot을 지우세요.
-  - 장 제목·설명은 data/books.js에서 바꾸면 이 페이지에 자동 반영됩니다 (data-fill 속성).
-  - 실험 넣기:     <div data-sim="실험-id"></div>   (id 목록: 실험실 페이지, assets/sims/*.js)
-  - 수식(KaTeX):   인라인 \( a^2 + b^2 \),  블록 \[ ... \]
-  - 결과 차트:     <div data-chart='{"type":"bar","labels":["A","B"],"series":[{"name":"방법","data":[1,2]}]}'></div>
-  - 콜아웃:        <div class="callout tip|warn|deep"><strong>제목</strong><p>내용</p></div>
+  논문 리뷰 05 — Moltbook 사회화 (arXiv 2602.14299, v1 2026-02-15 · v2 2026-02-18)
+  출처: Li, Li, Zhou, "Does Socialization Emerge in AI Agent Society? A Case Study of Moltbook".
+        수치는 arXiv v2 PDF와 HTML 판(표 1–5), 그림 4의 히트맵 값(PDF 텍스트 추출)에서 옮겼다.
+        코드 대조는 github.com/tianyi-lab/Moltbook_Socialization 의 main(2026-02-17 마지막 커밋)을 2026-11-10에 받아 읽은 것이다.
+        '리뷰어 계산'은 논문 표와 그림에 적힌 값에서 다시 계산한 것이며, 논문 데이터(Hugging Face)로 임베딩을 다시 만들어 돌려 보지는 않았다.
+        배경 자료(Wiz 보고, 두 후속 연구)는 초록과 보고서 본문을 읽은 수준이다.
 -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Paper Review <span data-fill="chapter-num">05</span></div>
-    <h1 data-fill="chapter-title">논문 리뷰 슬롯 05</h1>
+    <h1 data-fill="chapter-title">Moltbook: AI 에이전트 사회에서 사회화가 일어나는가</h1>
     <div class="paper-card">
       <dl>
-        <dt>원제</dt><dd><span class="slot" data-slot="원제">Paper Title in English</span></dd>
-        <dt>저자</dt><dd><span class="slot" data-slot="저자">First Author, Second Author, …</span></dd>
-        <dt>발표</dt><dd><span class="slot" data-slot="학회 · 연도">학회 또는 저널, 연도</span></dd>
-        <dt>키워드</dt><dd><span class="pill slot">태그 1</span> <span class="pill slot">태그 2</span></dd>
+        <dt>원제</dt><dd>Does Socialization Emerge in AI Agent Society? A Case Study of Moltbook</dd>
+        <dt>저자</dt><dd>Ming Li, Xirui Li (공동 제1저자), Tianyi Zhou <span class="en">(University of Maryland · Mohamed bin Zayed University of AI)</span></dd>
+        <dt>발표</dt><dd>arXiv 프리프린트 v2 · 2026-02-18 <span class="en">(v1 2026-02-15, cs.CL) · 게재처는 확인되지 않음</span></dd>
+        <dt>키워드</dt><dd><span class="pill acc">에이전트 사회</span> <span class="pill acc">AI 사회화</span> <span class="pill acc">Moltbook</span> <span class="pill">개인 관성</span> <span class="pill">영향력 집중</span> <span class="pill">관찰 연구</span></dd>
       </dl>
-      <div class="links"><a class="btn" href="#" aria-disabled="true">arXiv ↗</a><a class="btn" href="#" aria-disabled="true">코드 ↗</a><a class="btn" href="#" aria-disabled="true">발표 영상 ↗</a></div>
+      <div class="links">
+        <a class="btn" href="https://arxiv.org/abs/2602.14299" rel="noopener">arXiv ↗</a>
+        <a class="btn" href="https://arxiv.org/pdf/2602.14299" rel="noopener">PDF ↗</a>
+        <a class="btn" href="https://github.com/tianyi-lab/Moltbook_Socialization" rel="noopener">코드 ↗</a>
+        <a class="btn" href="https://huggingface.co/datasets/AIcell/moltbook-data" rel="noopener">데이터 ↗</a>
+      </div>
     </div>
-    <p class="tldr"><span class="slot" data-slot="한 문장 요약">이 논문의 주장을 한 문장으로.</span></p>
+    <p class="tldr">에이전트만 글을 쓰는 SNS <b>Moltbook</b>의 개설 직후 12일치(글 290,251개 · 댓글 1,836,711개)를 분석해, 오래 상호작용하면 에이전트가 서로 닮아 가는 <b>'AI 사회화'</b>가 일어나는지 사회·에이전트·집단 세 층위로 진단한다. 결론은 ① 하루 평균 의미는 금방 굳지만 개별 글은 계속 다양하고 ② 에이전트는 피드백과 상호작용에 반응하지 않는 <b>관성</b>을 보이며 ③ 지속되는 영향력과 합의는 생기지 않는다는 것, 곧 <b>'규모와 상호작용 밀도만으로는 사회화가 안 된다'</b>이다. 코드와 데이터가 공개되어 있어 지표를 하나씩 대조해 보니, 방향은 그럴듯하지만 <b>증거가 결론만큼 강하지 않다</b>: 두 핵심 지표가 사실상 같은 숫자이고, 활동량과 이동량의 관계는 표본 잡음으로 설명되며, 슈퍼노드 규칙은 위계의 지속을 볼 수 없고, 효과 크기 없이 히스토그램 겹침만 보였으며, 에이전트가 신호를 받는지와 사람이 조종하는지는 확인되지 않았다.</p>
   </header>
 
   <section id="three-lines">
     <h2>세 줄 요약</h2>
     <ol>
-      <li class="slot" data-slot="요약">무엇을 했나</li>
-      <li class="slot" data-slot="요약">어떻게 했나</li>
-      <li class="slot" data-slot="요약">그래서 무엇이 좋아졌나</li>
+      <li><b>무엇을:</b> 'AI 사회화'를 <i>에이전트의 관측 행동이 AI끼리의 지속적 상호작용으로 적응하는 것(내재적 의미 드리프트와 외부 요인은 제외)</i>이라 정의하고, Moltbook(등록 에이전트 약 260만, 표 1)에서 <b>사회 수준의 의미 수렴 · 에이전트 수준의 적응 · 집단 수준의 안정화</b>를 재는 지표 묶음을 제안해 적용했다.</li>
+      <li><b>어떻게:</b> 글·댓글을 Sentence-BERT(<code>all-MiniLM-L6-v2</code>)로 임베딩하고, 일간 평균 벡터의 코사인 · 이웃 밀도 · n-gram 출생/사망률(사회), 앞/뒤 절반 평균의 이동량 · 피드백 순열 대조 · 댓글 사건 연구(에이전트), 일간 댓글 그래프의 PageRank와 '최대 간격' 슈퍼노드 · 45개 탐침 글(집단)로 본다.</li>
+      <li><b>그래서:</b> 세 층위 모두에서 '수렴 없음'이 나왔다. <b>다만</b> 이 리뷰가 지표를 코드까지 대조한 결과, 여러 '없음'이 지표의 성질이나 설계로도 나올 수 있다(같은 분포의 두 날도 글이 수천 개면 중심 코사인이 1에 붙는다 · 이동량은 글 수의 함수 · 슈퍼노드 수는 규칙이 항상 내놓는 값 · 히스토그램 겹침은 효과 없음이 아니다). 이 결론은 '12일 동안 이 창의 Moltbook에서 이 지표들로는 수렴이 보이지 않았다'까지만 지지된다.</li>
     </ol>
   </section>
 
   <section id="problem">
     <h2>어떤 문제를 푸는가</h2>
-    <p class="slot" data-slot="본문">논문이 겨냥한 문제와 그것이 왜 어려운지 설명하세요.</p>
-    <div class="callout warn"><strong>기존 방법의 한계</strong><p class="slot" data-slot="콜아웃">이전 연구가 막혀 있던 지점.</p></div>
+    <p>LLM 에이전트가 수천, 수만 개씩 모여 오래 상호작용하는 사회가 현실이 되고 있다. 인간 사회는 상호작용이 쌓이면 규범과 기대를 내면화하고 위계와 합의가 생긴다(저자들은 이를 '사회화'라 부른다). <b>에이전트 사회도 그럴까?</b> 선행 연구는 25명(Generative Agents)이나 1,000명(Project Sid) 규모의 시뮬레이션이거나 6.5만 개 AI 계정(Chirper.ai)이었다. Moltbook은 열려 있고, 계속 돌며, 글·댓글·추천을 에이전트만 하는 훨씬 큰 환경이라 처음으로 이 질문을 실제 데이터로 물을 수 있게 했다는 것이 논문의 동기다.</p>
+    <p>논문은 질문을 세 층으로 쪼갠다. <b>① 사회:</b> 글의 내용이 점점 한 곳으로 모이는가. <b>② 에이전트:</b> 개별 에이전트가 사회의 피드백과 상호작용에 맞춰 바뀌는가. <b>③ 집단:</b> 영향력의 위계와 합의가 안정적으로 서는가.</p>
+    <div class="callout warn"><strong>이 정의가 기대고 있는 두 가정 — 논문은 어느 쪽도 확인하지 않았다</strong>
+      <p>① <b>정말 AI끼리의 사회인가.</b> Wiz의 보안 조사(2026-02-02 공개)는 Moltbook이 내세운 등록 에이전트 150만 개의 뒤에 <b>사람 소유자가 약 17,000명(88 대 1)</b>뿐이고, 어떤 '에이전트'가 AI인지 사람의 스크립트인지 <b>검증할 수단이 플랫폼에 없다</b>고 보고했다. 별도 연구 <i>The Moltbook Illusion</i>(arXiv 2602.07432)은 OpenClaw 하트비트의 주기성을 이용해 14일치 글 226,938개 · 댓글 447,043개 · 에이전트 55,932개를 분류했고(초록 기준), 활동 에이전트의 <b>15.3%만 자율</b>(글 간격의 변동계수 &lt; 0.5), <b>54.8%는 사람이 개입</b>(&gt; 1.0)했으며 댓글의 32%를 계정 네 개가 거의 동시에 만들었다고 한다. 이 논문의 참고문헌에는 두 자료 모두 없다.<br>
+      ② <b>에이전트가 사회 신호를 받는가.</b> 에이전트는 가중치가 고정된 LLM에 지시문과 메모리 파일을 얹은 것이라, 행동이 바뀌려면 추천 수나 남의 댓글이 <b>자기 컨텍스트에 들어와야</b> 한다. 논문은 이를 확인하지 않아, 반응이 없다는 결과가 '들어와도 무시한다'인지 '들어오지 않는다'인지 가를 수 없다.</p>
+    </div>
   </section>
 
   <section id="method">
     <h2>핵심 아이디어와 방법</h2>
-    <p class="slot" data-slot="본문">핵심 아이디어를 그림 한 장과 수식 한두 개로 설명합니다.</p>
-    <figure class="diagram">
-      <div class="slot slot-figure" data-slot="아키텍처 그림"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 18 5-5 3 3 3-4 5 6"/></svg><p>모델 구조나 알고리즘 흐름을 SVG로 그려 넣으세요.</p></div></div>
-      <figcaption><b>그림 5-1.</b> <span class="slot" data-slot="캡션">그림 설명</span></figcaption>
+    <p>방법은 새 모델이 아니라 <b>측정 틀</b>이다. 같은 자료(Moltbook 개설일부터 2026-02-08까지, 글 290,251 · 댓글 1,836,711 · 글 작성자 38,830 · 댓글 작성자 18,285 — 표 2)에 세 층의 지표를 적용하고, 각 층에서 '수렴이 없다'는 모양을 찾는다. 텍스트는 Sentence-BERT <code>all-MiniLM-L6-v2</code>로 임베딩하고(공개 코드는 제목+본문), n-gram은 nltk로 센다.</p>
+
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 1000 480" role="img" aria-label="Moltbook 분석 틀: 데이터에서 사회·에이전트·집단 세 층의 지표를 거쳐 세 가지 결론으로, 그리고 이 리뷰가 각 지표에서 확인한 것">
+        <defs><marker id="mb-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <g transform="translate(14,40)">
+          <rect width="190" height="396" rx="10" class="f-surface"/>
+          <text x="95" y="26" text-anchor="middle" class="t-b">Moltbook 자료</text>
+          <text x="95" y="62" text-anchor="middle" class="t-mono">1월 28일 – 2월 8일</text>
+          <text x="95" y="82" text-anchor="middle" class="t-dim">(12일, 개설 직후)</text>
+          <text x="95" y="118" text-anchor="middle" class="t-mono">글 290,251</text>
+          <text x="95" y="140" text-anchor="middle" class="t-mono">댓글 1,836,711</text>
+          <text x="95" y="172" text-anchor="middle" class="t-mono">글 작성자 38,830</text>
+          <text x="95" y="194" text-anchor="middle" class="t-mono">댓글 작성자 18,285</text>
+          <text x="95" y="226" text-anchor="middle" class="t-dim">등록 에이전트 약 260만</text>
+          <text x="95" y="246" text-anchor="middle" class="t-dim">(표 1) → 활동한 계정은</text>
+          <text x="95" y="266" text-anchor="middle" class="t-dim">글 작성자 기준 1.5%</text>
+          <text x="95" y="312" text-anchor="middle" class="t-dim">임베딩: MiniLM(384차원)</text>
+          <text x="95" y="332" text-anchor="middle" class="t-dim">n-gram: nltk</text>
+          <text x="95" y="372" text-anchor="middle" class="t-dim">사람 개입 여부 · 컨텍스트</text>
+          <text x="95" y="390" text-anchor="middle" class="t-dim">노출은 확인 안 함</text>
+        </g>
+        <path d="M206 238 H236" class="s-acc" marker-end="url(#mb-arr)"/>
+        <g transform="translate(240,40)">
+          <rect width="470" height="124" rx="10" class="f-acc-soft"/>
+          <text x="14" y="24" class="t-b">4절 · 사회: 내용이 한곳으로 모이는가</text>
+          <text x="14" y="50" class="t-mono">중심 코사인 C · 쌍별 평균 P (식 6·7)</text>
+          <text x="14" y="72" class="t-mono">이웃 밀도 S₁₀ · 날짜 간 JS 발산 (식 8)</text>
+          <text x="14" y="94" class="t-mono">n-gram 출생률 · 사망률 (식 3·4)</text>
+          <text x="14" y="114" class="t-dim">확인: C와 P는 같은 행렬 (실험 1) · 어휘 변동은 비교 기준이 없다</text>
+        </g>
+        <g transform="translate(240,172)">
+          <rect width="470" height="152" rx="10" class="f-acc-soft"/>
+          <text x="14" y="24" class="t-b">5절 · 에이전트: 사회에 맞춰 바뀌는가</text>
+          <text x="14" y="50" class="t-mono">이동량 D · 방향 일관성 · 전역 중심으로의 이동 (식 10–12)</text>
+          <text x="14" y="72" class="t-mono">피드백 NP vs 점수 섞기 순열 (식 16)</text>
+          <text x="14" y="94" class="t-mono">댓글 전후 Δ vs 무작위 대상 (식 18)</text>
+          <text x="14" y="118" class="t-dim">확인: D는 글 수의 함수 (실험 2) · 히스토그램 겹침은 효과 없음이</text>
+          <text x="14" y="136" class="t-dim">아니다 (실험 4) · 동점 처리 · 피드백 시점 · 사건 중복</text>
+        </g>
+        <g transform="translate(240,332)">
+          <rect width="470" height="104" rx="10" class="f-acc-soft"/>
+          <text x="14" y="24" class="t-b">6절 · 집단: 위계와 합의가 서는가</text>
+          <text x="14" y="50" class="t-mono">일간 PageRank 상위 k 몫 · 최대 간격 슈퍼노드 수</text>
+          <text x="14" y="72" class="t-mono">탐침 글 45개 → 댓글 15 → 외부 참조 5 → 유효 1</text>
+          <text x="14" y="92" class="t-dim">확인: 두 지표 모두 위계의 지속을 못 본다 (실험 3) · 노출 33% 대 81%</text>
+        </g>
+        <path d="M712 102 H742" class="s-acc" marker-end="url(#mb-arr)"/>
+        <path d="M712 248 H742" class="s-acc" marker-end="url(#mb-arr)"/>
+        <path d="M712 384 H742" class="s-acc" marker-end="url(#mb-arr)"/>
+        <g transform="translate(746,40)">
+          <rect width="240" height="396" rx="10" class="f-surface" stroke-width="2"/>
+          <text x="120" y="26" text-anchor="middle" class="t-b">논문의 결론</text>
+          <text x="14" y="70" class="t-b">① 전역은 안정, 국소는 다양</text>
+          <text x="14" y="92" class="t-dim">동적 균형, 에코 챔버 아님</text>
+          <text x="14" y="142" class="t-b">② 개인 관성</text>
+          <text x="14" y="164" class="t-dim">상호작용은 있으나 영향이 없다</text>
+          <text x="14" y="186" class="t-dim">(socially hollow)</text>
+          <text x="14" y="236" class="t-b">③ 지속적 슈퍼노드 · 합의 없음</text>
+          <text x="14" y="258" class="t-dim">공유된 사회적 기억이 없다</text>
+          <text x="14" y="316" class="t-b">⇒ 규모와 상호작용 밀도만으로</text>
+          <text x="14" y="338" class="t-b">   사회화는 일어나지 않는다</text>
+          <text x="14" y="376" class="t-dim">이 리뷰: 12일 · 한 플랫폼 · 위 지표들</text>
+        </g>
+        <text x="500" y="466" text-anchor="middle" class="t-dim">논문의 4–6절 구성을 그림으로 옮기고, 회색 문장에 이 리뷰의 확인 결과를 붙임.</text>
+      </svg>
+      <figcaption><b>그림 5-1.</b> 분석 틀과 이 리뷰의 확인 지점. 논문의 서술은 오른쪽 결론이고, 가운데 상자 안의 회색 줄이 지표별로 이 리뷰가 확인한 것이다. 활동 계정이 등록 에이전트의 일부라는 점(왼쪽)은 모든 결론에 걸린다.</figcaption>
     </figure>
-    <div class="formula">\[ \theta^\star = \arg\min_\theta \; \mathbb{E}_{(x,y)\sim\mathcal{D}}\big[\,\ell\big(f_\theta(x),\, y\big)\big] \]<div class="where slot" data-slot="기호 설명">예시 수식입니다. 논문의 핵심 수식으로 바꾸고 기호를 설명하세요.</div></div>
+
+    <h3>① 사회 — 하루 평균 벡터의 두 얼굴</h3>
+    <p>하루 \( t \)의 글 임베딩 \( \mathbf v_p \)(단위 벡터)의 평균 \( \mathbf c_t \)를 일간 중심이라 하고, 두 날의 <b>중심 코사인</b>(거시 안정성)과 <b>쌍별 평균</b>(미시 동질성)을 잰다. 중심 코사인이 1에 붙고 쌍별 평균이 낮으면 '중심은 안정, 개별 글은 다양'이라고 읽는다.</p>
+    <div class="formula">\[ S_\text{centroid}(t_i,t_j)=\frac{\mathbf c_{t_i}\!\cdot\mathbf c_{t_j}}{\|\mathbf c_{t_i}\|\,\|\mathbf c_{t_j}\|},\qquad S_\text{pairwise}(t_i,t_j)=\frac{1}{N_{t_i}N_{t_j}}\sum_{p\in\mathcal P_{t_i}}\sum_{q\in\mathcal P_{t_j}}\cos(\mathbf v_p,\mathbf v_q)=\mathbf c_{t_i}\!\cdot\mathbf c_{t_j} \]
+      <div class="where">오른쪽 끝의 등식은 단위 벡터에서 성립하는 항등식이다(이 리뷰의 정리). 그래서 \( S_\text{centroid}=S_\text{pairwise}(t_i,t_j)\big/\sqrt{S_\text{pairwise}(t_i,t_i)\,S_\text{pairwise}(t_j,t_j)} \)이고, 두 히트맵은 같은 숫자의 두 가지 정규화다(첫 번째 실험).</div></div>
+    <p>이웃 밀도 \( S_K(p)=\tfrac1K\sum_{q\in\mathcal N_K(p)}\cos(\mathbf v_p,\mathbf v_q) \)(\( K=10 \), 같은 날 안의 이웃)의 날짜별 분포가 변하는지는 JS 발산으로, 어휘는 n-gram(1–5)의 출생률 \( |\mathcal B_t|/|\mathcal A_t| \)과 사망률 \( |\mathcal D_t|/|\mathcal A_{t-1}| \)로 본다.</p>
+
+    <h3>② 에이전트 — 이동량, 피드백, 상호작용</h3>
+    <p>글이 10개 이상인 에이전트를 시간순으로 앞·뒤 절반으로 나눠 평균 벡터의 코사인 거리를 <b>이동량</b> \( D_a \)로 삼고, 모든 에이전트의 이동 벡터 평균 \( \bar{\mathbf d} \)와의 코사인으로 <b>방향 일관성</b>을, 전체 글의 중심 \( \mathbf c_\text{global} \)에 가까워졌는지로 <b>수렴</b>을 잰다.</p>
+    <div class="formula">\[ D_a=1-\cos\big(\mathbf c_a^{\text{early}},\mathbf c_a^{\text{late}}\big),\qquad S_a^{\text{consistency}}=\cos(\mathbf d_a,\bar{\mathbf d}),\qquad \Delta S_a=\cos\big(\mathbf c_a^{\text{late}},\mathbf c_\text{global}\big)-\cos\big(\mathbf c_a^{\text{early}},\mathbf c_\text{global}\big) \]</div>
+    <p><b>피드백 적응</b>은 윈도우(글 10개)마다 추천−비추천 점수의 상위 30%와 하위 30% 글의 중심을 잡고, 다음 윈도우의 중심이 상위 쪽으로 다가가고 하위 쪽에서 멀어졌는지를 순 진전 \( NP=\Delta_\text{bot}-\Delta_\text{top} \)으로 잰다(\( \Delta_\text{top}=\text{dist}(c_\text{next},c_\text{top})-\text{dist}(c_\text{curr},c_\text{top}) \)). 점수를 윈도우 안에서 섞은 <b>순열 대조</b>와 분포를 비교한다. <b>상호작용 영향</b>은 에이전트가 글 \( v^\ast \)에 댓글을 단 시점 앞뒤 20개 글의 평균 유사도 차이 \( \Delta_\text{interact}=S(\mathcal W_\text{post},v^\ast)-S(\mathcal W_\text{pre},v^\ast) \)를, 같은 날의 무작위 글을 대상으로 계산한 대조 분포와 비교한다.</p>
+
+    <h3>③ 집단 — PageRank와 탐침 글</h3>
+    <p>하루마다 'i가 j에게 댓글을 달았다'를 가중 방향 간선으로 한 그래프에서 PageRank를 구해, 상위 \( k \)개(1, 3, 5, 10)가 가진 몫과 <b>슈퍼노드</b> 수를 본다. 슈퍼노드는 PageRank를 내림차순으로 정렬해 이웃 값의 차이 \( \delta_i=PR_i-PR_{i+1} \)가 가장 큰 자리 \( k=\arg\max_i\delta_i \)까지 상위 \( k \)개를 센다. 인지적 합의는 신입 말투로 '꼭 읽을 글 / 팔로우할 계정 / 이 커뮤니티 소개'를 묻는 <b>탐침 글 45개</b>(3종 × 5개 하위 포럼 × 3가지 표현)를 직접 올리고 달린 댓글을 센다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:9%">층위</th><th style="width:26%">지표 (식)</th><th style="width:21%">대조 · 기준</th><th style="width:44%">논문의 결론</th></tr></thead>
+      <tbody>
+        <tr><td>사회</td><td>중심 코사인, 쌍별 평균 (6·7)</td><td>없음 (날 사이 비교)</td><td>중심은 빨리 1에 붙고 쌍별은 낮게 유지 — 안정된 중심, 다양한 주변</td></tr>
+        <tr><td>사회</td><td>이웃 밀도 \( S_{10} \), JS 발산 (8)</td><td>없음</td><td>3일 뒤 포화, 점진적 조밀화 없음</td></tr>
+        <tr><td>사회</td><td>n-gram 출생·사망률 (3·4)</td><td>없음</td><td>초기 폭증 뒤에도 0이 되지 않음 — 어휘가 계속 교체됨</td></tr>
+        <tr><td>에이전트</td><td>이동량·방향·전역 중심 (10–12)</td><td>없음 (0 근처인지 눈으로)</td><td>이동은 작고, 활동 많을수록 더 작고, 방향은 제각각이며, 전역 중심으로 모이지 않음</td></tr>
+        <tr><td>에이전트</td><td>피드백 순 진전 NP (16)</td><td>점수 섞기 순열</td><td>관측과 순열이 겹침 — 피드백에 적응하지 않음</td></tr>
+        <tr><td>에이전트</td><td>댓글 전후 \( \Delta_\text{interact} \) (18)</td><td>같은 날 무작위 대상 (0.3 비율)</td><td>관측과 대조가 겹침 — 상호작용이 영향을 주지 않음</td></tr>
+        <tr><td>집단</td><td>PageRank 상위 몫, 슈퍼노드 수</td><td>없음 (일간 vs 누적 그래프)</td><td>몫이 빠르게 퍼지고 슈퍼노드는 한 자릿수에 머물며 정체가 날마다 바뀜</td></tr>
+        <tr><td>집단</td><td>탐침 글 45개</td><td>없음</td><td>댓글 15, 외부 참조 5, 유효 1 — 합의 없음</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 5-1. 논문의 분석 7종과 쓰인 대조. 대조 집단이 있는 것은 두 곳뿐이고, 사람 SNS처럼 같은 지표를 다른 사회에 적용한 기준선은 없다.</p>
   </section>
 
   <section id="lab">
     <h2>실험으로 이해하기</h2>
-    <p class="slot" data-slot="실험 안내">논문의 아이디어를 손으로 확인할 수 있는 실험을 넣습니다. 지금 들어 있는 실험은 형식을 보여 주는 예시입니다.</p>
-    <div data-sim="optimizers"></div>
-    <div data-sim="lr-schedule"></div>
-    <div data-sim="landscape3d"></div>
+    <p>지표 네 개를 장난감 모델로 옮겨, <b>각 지표가 무엇을 보고 무엇을 못 보는지</b>를 만져 볼 수 있게 했다. ① 중심 코사인과 쌍별 평균이 한 숫자의 두 정규화라는 것과 글이 수천 개면 같은 분포의 두 날도 중심 코사인이 1에 붙는다는 것, ② 활동량이 많을수록 이동량이 작아지는 현상이 이동이 전혀 없어도 나온다는 것, ③ PageRank 상위 몫과 최대 간격 슈퍼노드 수가 위계의 지속과 무관하다는 것, ④ 히스토그램이 겹쳐도 사건 수가 많으면 작은 효과가 검출된다는 것. <b>네 실험 모두 논문의 데이터가 아니라 식을 장난감 크기로 옮긴 계산</b>이다. 논문 수치를 재현하는 것이 아니라 '이 지표로 그 결론을 어디까지 말할 수 있는가'를 보는 용도다.</p>
+    <div data-sim="molt-centroid"></div>
+    <div data-sim="molt-drift"></div>
+    <div data-sim="molt-supernode"></div>
+    <div data-sim="molt-event"></div>
   </section>
 
   <section id="results">
     <h2>실험 결과</h2>
-    <p class="slot" data-slot="본문">논문의 주요 결과를 요약하고 기준선과 비교하세요.</p>
-    <figure>
-      <div data-chart='{"type":"bar","title":"예시 데이터 — 논문의 수치로 바꾸세요","labels":["벤치마크 1","벤치마크 2","벤치마크 3"],"series":[{"name":"기준선 A","data":[62.1,70.4,55.0]},{"name":"기준선 B","data":[66.8,72.9,58.2]},{"name":"제안 방법","data":[71.5,76.0,63.4]}],"highlight":"제안 방법","yLabel":"점수","yMin":0}'></div>
-      <figcaption><b>표 5-1.</b> <span class="slot" data-slot="캡션">결과 차트 설명 (위 숫자는 모두 가짜 예시입니다)</span></figcaption>
-    </figure>
+    <p>논문의 결과는 대부분 그림(히스토그램, 히트맵, 시계열)이고 본문에 적힌 숫자는 적다. 아래는 <b>표 1–5와 그림 4의 히트맵 값, 부록 표</b>에서 읽을 수 있는 숫자를 정리한 것이며, '리뷰어 계산'은 그 값에서 다시 계산했다.</p>
+
+    <h3>자료의 규모 — 등록 대비 활동 계정</h3>
     <div class="table-wrap"><table>
-      <thead><tr><th>방법</th><th class="num">지표 1</th><th class="num">지표 2</th></tr></thead>
+      <thead><tr><th>항목 (논문 표 1·2)</th><th class="num">값</th><th>리뷰어 계산</th></tr></thead>
       <tbody>
-        <tr><td>기준선 A</td><td class="num">—</td><td class="num">—</td></tr>
-        <tr class="best"><td>제안 방법</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td>등록 에이전트 (표 1)</td><td class="num">약 2,600,000</td><td>—</td></tr>
+        <tr><td>글 작성자 (표 2)</td><td class="num">38,830</td><td>등록의 1.49%</td></tr>
+        <tr><td>댓글 작성자 (표 2)</td><td class="num">18,285</td><td>등록의 0.70%, 계정당 댓글 평균 100.4개</td></tr>
+        <tr><td>글 · 댓글 (표 2)</td><td class="num">290,251 · 1,836,711</td><td>글 작성자당 평균 7.5개, 글당 댓글 6.33개</td></tr>
+        <tr><td>댓글이 달린 글 (표 2)</td><td class="num">234,894 (81%)</td><td>탐침 글은 15/45 = 33% (아래)</td></tr>
+        <tr><td>관찰 기간 (표 3, 그림 4)</td><td class="num">2026-01-28 ~ 02-08</td><td>12일(그림 4에는 01-27이 글 1개로 있음). 표 1의 'Duration: Months'와 다름</td></tr>
       </tbody>
     </table></div>
+    <p>표 5-2. '수백만 에이전트의 사회'라는 서술(서론)과 달리 <b>실제로 글을 쓴 계정은 4만 개 미만</b>이고, 방향 일관성이나 피드백 분석(글 10–20개 이상)에 들어간 계정은 그 일부다. 그 수는 논문에 없다.</p>
+
+    <h3>사회 수준 — 중심은 정말 '빨리 안정'되었나</h3>
+    <figure>
+      <div data-chart='{"type":"line","title":"그림 4의 히트맵 값 — 02-08과의 비교와 같은 날 쌍별 평균 (논문 값, 소수 둘째 자리)","labels":["01-28","01-29","01-30","01-31","02-01","02-02","02-03","02-04","02-05","02-06","02-07"],"series":[{"name":"02-08과의 중심 코사인 C","data":[0.84,0.91,0.94,0.93,0.97,0.99,0.99,1.0,1.0,1.0,1.0]},{"name":"02-08과의 쌍별 평균 P","data":[0.14,0.16,0.16,0.15,0.14,0.14,0.14,0.14,0.14,0.14,0.14]},{"name":"같은 날 쌍별 평균 P(i,i)","data":[0.2,0.23,0.21,0.21,0.15,0.15,0.15,0.15,0.14,0.14,0.14]}],"yMin":0,"yMax":1,"digits":2,"aspect":0.42,"xLabel":"날짜 (2026)"}'></div>
+      <figcaption><b>그림 5-2.</b> 논문 그림 4의 두 히트맵에서 02-08 열과 대각선만 뽑았다(PDF 텍스트 추출에서 읽은 소수 둘째 자리 값). <b>02-02 이후 02-08과의 쌍별 평균(0.14)이 같은 날 쌍별 평균(0.14–0.15)과 같아지고, 그때 중심 코사인이 0.99–1.00이 된다</b> — 항등식대로다. 한편 같은 날 쌍별 평균은 처음 나흘 0.20–0.23에서 02-01부터 0.15 이하로 <b>내려갔다</b>(글끼리 덜 닮게 됨). '낮은 쌍별 유사도가 유지된다'기보다 '초기보다 더 다양해진 뒤 일정해졌다'가 정확하다.</figcaption>
+    </figure>
+    <p>정리하면 후반 며칠의 데이터는 <b>날짜가 서로 교환 가능하다</b>(어느 날의 글이든 같은 날 글만큼 다른 날 글과 닮았다)는 정상성의 표시다. 그것은 '동적 균형'과도 '아무 일도 일어나지 않음'과도 같은 모양이어서, 사회화가 없다는 쪽으로만 읽히지는 않는다. 항등식으로 오른쪽 행렬의 소수 둘째 자리 값에서 왼쪽 행렬을 예측하면 78칸의 평균 절대 오차가 0.021(최대 0.067)이었고, 이는 반올림과 \( (1-P_{ii})/N \) 항의 크기와 같다(리뷰어 계산).</p>
+    <p>어휘의 출생·사망률(그림 3)에는 비교할 기준이 없다. 정상 상태의 지프 분포에서 매일 같은 어휘 분포로 글이 쏟아져도 출생률과 사망률은 0이 되지 않는다. 리뷰어가 단순한 모의(어휘 200만 · 하루 30만 토큰 · 12일 · 최소 빈도 2, 논문과 같은 정의)로 계산하면 출생률은 0.22(3일째)에서 0.03(10일째)로 내려가고 사망률은 0.02에서 0.15로 올라 7일째에 둘 다 약 0.07에서 만난다. 숫자는 가정에 따라 달라지지만, 창의 앞쪽은 '처음 본 것'이, 뒤쪽은 '마지막으로 본 것'이 몰리는 <b>관찰 창의 효과</b>만으로 '0이 아닌 변동'이 나온다는 것이 요점이다.</p>
+
+    <h3>에이전트 수준 — 숫자가 거의 없다</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:14%">그림</th><th style="width:42%">논문이 보인 것</th><th style="width:44%">논문에 없는 것</th></tr></thead>
+      <tbody>
+        <tr><td>6 (이동)</td><td>이동량 상자그림(글 수 구간별), 방향 일관성 평균 0.095, 전역 중심 이동 평균 0.026</td><td>에이전트 수, 구간별 인원, 순서를 섞은 대조, 평균의 신뢰구간</td></tr>
+        <tr><td>7 (피드백)</td><td>NP의 관측·순열 히스토그램(의미, n-gram)</td><td>윈도우 수, 에이전트 수, 평균과 신뢰구간, 동점 윈도우 비율</td></tr>
+        <tr><td>8 (상호작용)</td><td>\( \Delta_\text{interact} \)의 관측·대조 히스토그램(세로축 최대 25만)</td><td>사건 수, 평균과 표준편차, 에이전트당 사건 수, 검정</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 5-3. 에이전트 수준 세 그림에 대응하는 수치. 공개 코드는 사건 연구의 사건 수 · 평균 · 중앙값 · 10/90 분위수를 JSON으로 저장하지만(<code>_stats</code>) 논문에 옮기지 않았다. 따라서 <b>'겹친다'는 판단은 눈으로 한 것</b>이다. 사건이 100만 건이면 평균의 표준오차는 표준편차의 0.1% 정도(네 번째 실험)라 눈에 안 보이는 크기의 차이도 검출된다.</p>
+
+    <h3>집단 수준 — 노드 수가 19에서 23,262로 변한 날들</h3>
+    <div class="table-wrap"><table class="nowrap">
+      <thead><tr><th>날짜 (표 3)</th><th class="num">노드</th><th class="num">간선</th><th class="num">총 가중치</th><th class="num">균등이면 상위10 몫 10/N</th><th class="num">지프(γ=1)면 상위1 몫</th><th class="num">지프(γ=1)면 상위10 몫</th></tr></thead>
+      <tbody>
+        <tr><td>01-28</td><td class="num">19</td><td class="num">59</td><td class="num">88</td><td class="num">0.526</td><td class="num">0.282</td><td class="num">0.826</td></tr>
+        <tr><td>01-29</td><td class="num">205</td><td class="num">940</td><td class="num">1,283</td><td class="num">0.049</td><td class="num">0.169</td><td class="num">0.496</td></tr>
+        <tr><td>01-30</td><td class="num">3,254</td><td class="num">26,163</td><td class="num">38,917</td><td class="num">0.003</td><td class="num">0.115</td><td class="num">0.338</td></tr>
+        <tr><td>01-31</td><td class="num">6,753</td><td class="num">63,846</td><td class="num">95,632</td><td class="num">0.0015</td><td class="num">0.106</td><td class="num">0.312</td></tr>
+        <tr><td>02-02</td><td class="num">19,753</td><td class="num">106,628</td><td class="num">163,976</td><td class="num">0.0005</td><td class="num">0.096</td><td class="num">0.280</td></tr>
+        <tr><td>02-03</td><td class="num">7,783</td><td class="num">66,348</td><td class="num">118,858</td><td class="num">0.0013</td><td class="num">0.105</td><td class="num">0.307</td></tr>
+        <tr><td>02-04</td><td class="num">23,262</td><td class="num">153,726</td><td class="num">395,906</td><td class="num">0.0004</td><td class="num">0.094</td><td class="num">0.275</td></tr>
+        <tr><td>02-05</td><td class="num">12,373</td><td class="num">89,109</td><td class="num">437,684</td><td class="num">0.0008</td><td class="num">0.100</td><td class="num">0.293</td></tr>
+        <tr><td>02-06</td><td class="num">9,723</td><td class="num">64,274</td><td class="num">256,200</td><td class="num">0.0010</td><td class="num">0.102</td><td class="num">0.300</td></tr>
+        <tr><td>02-07</td><td class="num">10,257</td><td class="num">75,635</td><td class="num">143,352</td><td class="num">0.0010</td><td class="num">0.102</td><td class="num">0.298</td></tr>
+        <tr><td>02-08</td><td class="num">8,420</td><td class="num">64,646</td><td class="num">96,241</td><td class="num">0.0012</td><td class="num">0.104</td><td class="num">0.305</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 5-4. 앞 네 열은 논문 부록 표 3, 뒤 세 열은 리뷰어 계산이다. 뒤 두 열은 수신 순위 r의 몫이 \( r^{-1} \)에 비례하는 <b>고정된 지프 위계</b>에서 상위 1개와 10개가 갖는 몫(\( 1/H_N \), \( H_{10}/H_N \))으로, PageRank 값 그 자체가 아니라 같은 모양의 기준이다. <b>위계의 모양이 하루도 변하지 않아도</b> 노드가 19에서 3,254개로 늘 때 상위 1개 몫은 0.28에서 0.115로 줄어든다. 논문이 그림 9에서 보인 '처음 며칠 뒤 급격히 내려가 낮게 유지된다'는 모양은 이 기준에서도 나온다(그림 9의 실제 값은 읽지 못했다). 02-01 행이 표에 없고, 표에 있는 날들의 총 가중치 합은 1,748,137로 전체 댓글(1,836,711)의 95.2%다.</p>
+
+    <figure>
+      <div data-chart='{"type":"bar","title":"탐침 글 45개의 반응 (논문 그림 11)","labels":["올린 탐침 글","댓글이 달린 글","외부 참조가 든 글","유효한 참조가 든 글"],"series":[{"name":"글 수","data":[45,15,5,1]}],"yMin":0,"yMax":50,"digits":0,"aspect":0.4}'></div>
+      <figcaption><b>그림 5-3.</b> 신입 말투로 '꼭 읽을 글 / 팔로우할 계정 / 이 커뮤니티 소개'를 묻는 글 45개의 반응. <b>댓글이 달린 비율이 33%로, 플랫폼 전체에서 댓글이 달린 글의 81%(표 2)보다 많이 낮다.</b> 질문에 합의가 없는 것이 아니라 질문이 보이지 않았거나 답할 수단이 없었을 가능성이 먼저다. 유효 참조 1개는 20%(1/5)인데, 모집단 5개로 합의를 추정할 수 없다.</figcaption>
+    </figure>
+    <p>부록 표 5의 가장 활발한 댓글 작성자 10개의 가중 출차수를 합하면 765,784로 전체 댓글의 <b>41.7%</b>(상위 3개 계정만 456,405로 24.8%)다. 또 가장 많이 댓글을 받은 10개 중 세 계정(<code>FiverrClawOfficial</code>, <code>EnronEnjoyer</code>, <code>WinWard</code>)이 가장 활발한 댓글 작성자 10개에도 들어 있다(표 4와 표 5의 비교, 리뷰어 계산). 논문은 이를 '활동은 집중되어도 권위는 굳지 않는다'(부록 B.2)로 해석하지만, 이런 계정이 사건 연구와 그래프의 큰 몫을 차지한다는 점은 해석을 어렵게 한다.</p>
+  </section>
+
+  <section id="audit">
+    <h2>공개 코드와 논문 대조</h2>
+    <p>이번 논문은 코드(<code>tianyi-lab/Moltbook_Socialization</code>, 커밋 6개, 마지막 2026-02-17)와 데이터(Hugging Face <code>AIcell/moltbook-data</code>, 공개 · 게이트 없음)가 열려 있어 <b>지표가 실제로 무엇을 계산하는지</b> 읽을 수 있다. 저장소의 스크립트를 받아, 지표를 계산하는 여섯 개(일간 분포 · 이동량 · 피드백 · 상호작용 · 그래프 · n-gram 사망)는 계산 부분을 읽고 논문의 식과 맞춰 보았고, 나머지(이웃 밀도 · 임베딩 · 자료 변환)는 주석과 인자만 확인했다. 데이터를 받아 임베딩부터 다시 돌려 보지는 않았으므로, 아래는 모두 <b>코드를 읽어서 알 수 있는 것</b>이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:13%">지표</th><th style="width:44%">코드가 하는 일 (파일:줄)</th><th style="width:43%">논문과 비교</th></tr></thead>
+      <tbody>
+        <tr><td>이웃 밀도 \( S_{10} \)</td><td><code>daily_knn_density_from_embeddings.py:15-24</code>: 정확한 kNN이 아니라 32차원 무작위 사영 + BallTree로 후보를 뽑고, 후보에 대해서만 진짜 코사인을 평균. 주석에 '이웃의 정체가 아니라 추세와 꼬리를 보는 근사'라고 적혀 있다</td><td>4.4절은 '같은 날의 K = 10 최근접 이웃'이라고만 쓰고 근사임을 적지 않음. 근사 이웃은 진짜 이웃보다 덜 비슷해 밀도가 낮게 나오는 방향</td></tr>
+        <tr><td>중심 코사인 · 쌍별 평균</td><td><code>daily_diversity_from_embeddings.py:299-301</code>은 정규화한 일간 평균의 행렬곱, <code>:339-353</code>은 합 벡터의 외적을 \( n_in_j \)로 나눈 값(대각선은 자기 쌍을 뺀 평균)</td><td>식 (6)·(7)과 일치. <b>한 행렬의 두 정규화</b>임이 코드 주석(<code>:339-340</code>)에도 적혀 있다</td></tr>
+        <tr><td>이동량 \( D_a \)</td><td><code>agent_semantic_drift.py:304-343</code>: 글 10개 이상, 시간순 정렬 후 에이전트당 앞 1,000개까지, 앞 <code>n//2</code>와 나머지의 평균</td><td>식 (10)과 일치. 순서를 섞은 대조는 코드에 없음</td></tr>
+        <tr><td>전역 중심 이동 (그림 6 오른쪽)</td><td><code>:345-348</code>은 <code>delta_dist = dist_late − dist_early</code>, <code>:821 · :867-869</code>이 이를 '그림 6 오른쪽'으로 그림. 부호는 <b>양수 = 전역 중심에서 멀어짐</b></td><td><b>식 (12)와 부호가 반대</b>. 식대로면 그림의 평균 +0.026은 \( \Delta S_a=-0.026 \)(조금 멀어짐). 해석 방향이 바뀐다(크기는 작음)</td></tr>
+        <tr><td>방향 일관성 (그림 6 가운데)</td><td><code>:438-442 · :766-775</code>: 이동 벡터를 단위 벡터로 만든 뒤 평균 방향과의 내적의 평균</td><td>식 (11)과 조금 다름(정규화 먼저). 이 평균은 <b>정의상 음이 아니고</b> 방향이 무작위여도 \( \approx 1/\sqrt{M} \)다. 에이전트 수 M이 없어 0.095를 판단할 수 없음</td></tr>
+        <tr><td>피드백 NP</td><td><code>plot_progress_hists_combined_from_data.py:207-213</code>: 점수 = 추천 − 비추천(<b>수집 시점의 최종값</b>), <code>:261-263</code>: 안정 정렬 뒤 앞 3개 = 상위, 뒤 3개 = 하위, <code>:278-292</code>: 순열은 점수를 섞은 뒤 같은 규칙</td><td>식 (13)–(16)과 일치. <b>동점이면 시간순이 남아</b> 점수가 모두 같은 윈도우에서는 상위 = 앞 3개 · 하위 = 뒤 3개이고, 순열 결과도 똑같다(관측 = 순열이 구조적으로 겹침). 다음 윈도우 글이 점수가 쌓이기 전에 쓰였는지는 보지 않음</td></tr>
+        <tr><td>상호작용 \( \Delta_\text{interact} \)</td><td><code>interaction_influence_semantic_syntactic.py:271-276</code>: 창 20, 앞뒤 최소 5개, <b>사건 수 상한 · 에이전트당 상한 없음</b>(기본 None), <code>:461-469</code>: 창은 에이전트 <i>자신의 글</i> 순서로 잡음, <code>:488-499</code>: 대조는 같은 날 무작위 글(확률 0.3)</td><td>식 (17)·(18)과 일치. 댓글을 가장 많이 단 계정이 사건을 대량 차지하고 같은 앞뒤 창을 공유함. <code>:540-546</code>의 'p'는 대조 분포에서 관측 평균 이상인 비율일 뿐 평균 차이의 검정이 아니다</td></tr>
+        <tr><td>슈퍼노드 · 상위 k 몫</td><td><code>graph.py:309 · :371</code>: <code>networkx.pagerank(weight="weight")</code>(감쇠 기본 0.85), <code>:370-382</code>: 정렬한 PageRank의 연속 차이 <code>argmax</code>, <code>:286-337</code>: 고정 k의 누적 몫</td><td>6.1절의 서술과 일치. 통계적 검정은 코드에 없음 — <b>그림 10 캡션의 'statistically significant'과 다름</b>. 이 규칙은 위계가 없어도 항상 k ≥ 1을 돌려줌(세 번째 실험)</td></tr>
+        <tr><td>n-gram 사망</td><td><code>ngram_death_analysis.py:277-281</code>: 사망 = 마지막 관측일 + 1, 마지막 날에 끝난 것은 센서링해 제외</td><td>식 (1)–(4)와 일치. 활성 집합은 '처음~마지막 관측일 사이' 전체라 사후에만 정해짐</td></tr>
+        <tr><td>입력 파일 · 필터</td><td>모든 스크립트의 기본 입력이 <code>all_posts_before_2_8_aoe_<b>without_mbc</b>_with_comments.json</code>(<code>prep_hf_data/…:4, :403</code>). 필터의 기준은 코드 어디에도 없음</td><td>부록 A는 '1,000회 넘게 반복된 글 제거'만 적음. 'mbc'가 무엇인지 설명이 없음(이름으로 보아 7.2절의 토큰 발행 글일 수 있으나 확인 불가)</td></tr>
+        <tr><td>저장소 상태</td><td>README의 3단계는 4절–6.1절의 그림만 만든다. <b>6.2절 탐침 글 45개의 원문과 집계 코드가 없음.</b> 라이선스 파일 없음(GitHub API <code>license: null</code>)</td><td>README는 '비공개 데이터는 토큰이 필요'하다고 쓰지만 Hugging Face API 기준 데이터는 공개(<code>private: false</code>, <code>gated: false</code>, MIT 표기)</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 5-5. 코드와 논문의 대조. 가장 눈에 띄는 불일치는 그림 6 오른쪽의 부호 하나이고, 나머지는 '코드는 논문대로 계산하지만 그 계산이 주장을 받쳐 주는가'의 문제다.</p>
+
+    <h3>본문 주장과 숫자를 맞춰 보면</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:36%">논문의 서술</th><th style="width:44%">맞춰 본 것</th><th style="width:20%">판정</th></tr></thead>
+      <tbody>
+        <tr><td>"수백만 LLM 에이전트가 글 · 댓글 · 투표로 상호작용" (서론) · Moltbook은 '큰 사회'</td><td>글 작성자 38,830 (등록 2.6M의 1.5%), 댓글 작성자 18,285 (0.7%). 일간 그래프 노드는 최대 23,262</td><td>등록과 활동을 구분해야 함</td></tr>
+        <tr><td>표 1: 지속 기간 'Months'</td><td>자료는 1월 28일–2월 8일 12일(표 3 기준)</td><td>어긋남</td></tr>
+        <tr><td>"이동량은 활동이 많을수록 작다 — 많이 쓰는 에이전트는 개성이 일찍 굳는다" (5.1절)</td><td>순서를 섞은 대조가 없다. 같은 글로 무작위 반반을 나눠도 글 수에 반비례해 D가 줄어든다 (두 번째 실험)</td><td>해석을 받치지 못함 (논문도 '소수 표본의 분산일 수 있다'고 병기)</td></tr>
+        <tr><td>"방향 일관성이 0 근처에 몰려 있다" (그림 6)</td><td>그림의 평균은 0.095. 이 값은 음수가 될 수 없고 무작위여도 \( 1/\sqrt{M} \)</td><td>M이 없어 판단 불가</td></tr>
+        <tr><td>"그림 10: 통계적으로 유의한 슈퍼노드 수는 한 자릿수" (6.1절)</td><td>방법은 최대 간격 규칙이고 검정이 없다. 위계가 없는 그래프에서도 1–3개를 찾는다</td><td>서술과 방법이 다름</td></tr>
+        <tr><td>"에이전트는 상호작용 상대의 국소적 기억을 보인다" (6.2절 마지막 문단)</td><td>이 주장을 보이는 분석이 논문에 없다</td><td>근거 없는 문장</td></tr>
+        <tr><td>"탐침 글에 달린 합의가 없다" (6.2절)</td><td>45개 중 댓글 15(33%), 플랫폼 평균 81%. 외부 참조 5, 유효 1</td><td>노출 부족과 합의 부재를 가를 수 없음</td></tr>
+        <tr><td>"일간 그래프에서 influence가 퍼진다" (그림 9)</td><td>노드가 19에서 최대 23,262로 늘어남. 같은 모양의 위계도 몫이 줄어든다 (표 5-4)</td><td>노드 수의 효과와 분리되지 않음</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 5-6. '어긋남'과 '근거 없는 문장'은 논문이 틀렸다는 단정이 아니라 논문의 본문 · 표 · 방법 사이에서 이 리뷰가 확인할 수 없었던 곳이다.</p>
   </section>
 
   <section id="critique">
     <h2>강점과 한계</h2>
     <div class="pro-con">
-      <div class="pro"><h4>강점</h4><ul><li class="slot" data-slot="강점">강점 1</li><li class="slot" data-slot="강점">강점 2</li></ul></div>
-      <div class="con"><h4>한계 · 의문점</h4><ul><li class="slot" data-slot="한계">한계 1</li><li class="slot" data-slot="한계">한계 2</li></ul></div>
+      <div class="pro"><h4>강점</h4><ul>
+        <li><b>질문을 측정 가능한 형태로 만들었다.</b> '사회화'를 관측 행동의 적응이라 정의하고 사회 · 에이전트 · 집단 세 층위에 지표를 하나씩 대응시켰다. 후속 연구가 같은 틀 위에서 지표를 고치고 확장할 수 있다.</li>
+        <li><b>코드와 데이터를 열었다.</b> 스크립트가 논문의 그림 단위로 나뉘어 있고 입력 파일 이름과 기본 인자가 모두 적혀 있어, 이 리뷰처럼 지표를 하나씩 따라가 볼 수 있다. 이런 규모의 관찰 연구에서 흔한 일이 아니다.</li>
+        <li><b>부정적 결과를 그대로 보고했다.</b> '수렴 없음'이라는 결과를 부풀리지 않고, 활동이 일부 계정에 집중되어 있다는 점(부록 B.2)과 활동이 많은 에이전트의 이동량이 작은 것이 표본 분산 때문일 수 있다는 점도 적었다.</li>
+        <li><b>두 곳에 대조를 넣었다.</b> 피드백 분석에는 점수 순열, 상호작용 분석에는 같은 날 무작위 대상을 두어, 날짜별 주제 변화 같은 흔한 교란을 일부 걸렀다.</li>
+        <li><b>자료를 시간에 따라 본다.</b> 한 시점의 스냅숏이 아니라 일간 시계열로 안정 여부를 묻는다는 점이 선행 연구(Chirper.ai 등)와 다르다.</li>
+      </ul></div>
+      <div class="con"><h4>한계 · 의문점</h4><ul>
+        <li><b>창이 너무 짧고 초기다.</b> 자료는 개설 직후 12일이며 처음 며칠은 가입과 글이 폭증하는 시기다(그림 2). 표 1은 지속 기간을 'Months'로 적었다. 인간 사회에서도 몇 주 안에 사회화가 안 보인다고 '사회화가 일어나지 않는다'고 말할 수는 없다. 사람 SNS의 개설 12일을 같은 지표로 본 기준선이 없다.</li>
+        <li><b>AI끼리의 사회라는 가정이 검증되지 않았다.</b> 사람 소유자 약 17,000명(Wiz), 자율 에이전트 15.3%(<i>Moltbook Illusion</i>)라는 보고가 있다. '에이전트의 관성'이 실제로는 운영자의 프롬프트와 스케줄의 관성일 수 있고, 반대로 사람이 시킨 글이 섞여 중심 안정성을 키웠을 수도 있다. 논문은 이를 가르지 않았다.</li>
+        <li><b>에이전트가 신호를 받는지 모른다.</b> 피드백과 댓글이 에이전트의 입력에 들어가야 적응이 가능하다. 입력되지 않는다면 반응 없음은 사회화의 부재가 아니라 <b>노출의 부재</b>다. 가중치가 고정된 LLM에서 '적응'은 컨텍스트와 메모리 파일을 통해서만 일어나므로 이것이 핵심 변수인데 로그가 없다. 그래서 '공유된 사회적 기억이 없다'(Finding 3)는 서술도 에이전트의 메모리 구조를 조사하지 않고 내린 해석이다.</li>
+        <li><b>측정 도구가 한 가지다.</b> 주제 중심의 문장 임베딩 하나(MiniLM, 256 토큰을 넘는 글은 잘림)로 '행동'을 쟀다. 규범 · 말투 · 밈의 채택, 서로를 인용하는 습관, 행동(추천 · 팔로우) 변화는 이 도구에 거의 안 잡힌다. n-gram을 '구문(syntactic)' 특징이라 부르지만 어휘 분포다.</li>
+        <li><b>지표가 결론을 가를 만큼 날카롭지 않다.</b> 중심 코사인은 글이 수천 개면 분포가 같은 날끼리도 1에 붙고 쌍별 평균과 같은 숫자다(첫 번째 실험). 이동량은 글 수의 함수다(두 번째). 슈퍼노드 규칙은 위계의 지속을 보지 못하고 상위 몫은 노드 수와 섞인다(세 번째). 어휘 변동에는 기준이 없다. 이 지표들에서 '수렴 없음'이 나왔다는 사실이 가리키는 범위는 좁다.</li>
+        <li><b>통계가 없다.</b> 어느 그림에도 평균 · 신뢰구간 · 검정 · 효과 크기가 없다. 사건 연구는 사건이 100만 건 안팎으로 많고(그림 8의 세로축으로 본 추정) 댓글을 대량으로 단 소수 계정이 사건을 차지하며 댓글 대상 선택의 편향도 통제하지 않아, '분포가 겹친다'가 작은 진짜 효과를 숨길 수 있다(네 번째 실험). 에이전트를 단위로 한 집계와 군집 표준오차가 필요하다.</li>
+        <li><b>탐침 설계가 약하다.</b> 연구자가 플랫폼에 직접 글을 올린 개입 연구인데 윤리 · 통제 설명이 없고, 45개 중 30개가 댓글을 받지 못해(33% 대 81%) 노출이 부족한 듯하다. 유효 참조가 든 글은 1개라 합의 여부를 추정할 표본이 못 된다. 원문과 집계 코드도 저장소에 없다.</li>
+        <li><b>결론이 데이터보다 크다.</b> '규모와 상호작용 밀도만으로 사회화가 안 일어난다'는 일반 명제인데, 근거는 한 플랫폼 · 한 시기 · 한 임베딩 · 대조 사회 없음이다. 기억 장치가 있는 에이전트 사회나 사람이 개입하지 않는 사회는 검증되지 않았다.</li>
+      </ul></div>
     </div>
   </section>
 
   <section id="impl">
     <h2>구현 노트</h2>
-    <p class="slot" data-slot="본문">재현할 때 주의할 점, 하이퍼파라미터, 공개 코드와 다른 점 등을 기록합니다.</p>
-<pre><code># 핵심 구현을 짧게 적어 두는 자리 (예시)
-def forward(x):
-    ...
-</code></pre>
+    <p>코드가 열려 있어서 <b>논문에 없는 값은 거의 없다</b>. 핵심 설정을 저장소에서 확인한 대로 적는다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>설정 (논문 · 저장소)</th></tr></thead>
+      <tbody>
+        <tr><td>자료</td><td>Hugging Face <code>AIcell/moltbook-data</code> → <code>prep_hf_data/download_and_convert.sh</code>로 통합 JSON. 2026-02-08(AoE)까지, 필터 후 글 290,251 · 댓글 1,836,711</td></tr>
+        <tr><td>임베딩</td><td><code>all-MiniLM-L6-v2</code>(<b>최대 256 토큰, 넘으면 잘림</b> — <code>compute_embeddings.py:7-8</code>), 기본 <code>title_content</code>, 분석 단계에서 단위 길이로 정규화. 하루 모든 글의 평균을 일간 중심으로 사용</td></tr>
+        <tr><td>이웃 밀도</td><td>\( K=10 \), 32차원 무작위 사영 + BallTree 근사(<code>--proj-dim 32</code>), 후보에 진짜 코사인을 계산해 평균. 날짜 간 분포 비교는 JS 발산</td></tr>
+        <tr><td>이동량</td><td>글 10개 이상, 에이전트당 앞 1,000개, 앞 <code>n//2</code> vs 나머지</td></tr>
+        <tr><td>피드백</td><td>윈도우 10, 상위 · 하위 비율 0.3, 에이전트당 윈도우 2개 이상(글 20개 이상), 점수 = 추천−비추천, 순열 30회(의미) · 20회(n-gram)</td></tr>
+        <tr><td>상호작용</td><td>창 20, 앞뒤 최소 5, 자기 글에 단 댓글 제외, 사건 상한 없음, 대조 표본 확률 0.3. '구문(syntactic)' 특징은 상위 5만 개 어휘의 <b>unigram 빈도 벡터</b>(<code>--counts-key unigrams_counts</code>), 곧 어휘 분포다</td></tr>
+        <tr><td>그래프</td><td>하루 단위 방향 가중 그래프(댓글 → 글 · 부모 댓글 작성자, 자기 자신 제외), <code>networkx</code> PageRank 기본 감쇠, 독립/누적 두 가지</td></tr>
+        <tr><td>실행</td><td>README 3단계의 <code>bash …/rq1_*.sh</code>, <code>rq2_*.sh</code>, <code>run_graph.sh</code>. Python 3.11 이상, <code>requirements.txt</code>(sentence-transformers 등)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout deep"><strong>이 리뷰가 하지 않은 것</strong>
+      <p>데이터를 내려받아 임베딩을 다시 만들거나 스크립트를 실행하지는 않았다. 그래서 그림의 히스토그램을 재현했다거나 코드가 문제없이 돈다고는 말할 수 없다. 위 대조는 코드를 읽어서 알 수 있는 것(계산 정의, 기본 인자, 부호, 동점 처리)과 논문 표 · 그림 4 수치의 산술이다. 가장 값싼 후속 확인은 같은 데이터로 ① 이동량의 순서 섞기 대조, ② 사건 연구의 평균 차이와 에이전트 단위 신뢰구간, ③ 슈퍼노드의 날짜 간 상위 집합 겹침, ④ 피드백의 동점 윈도우 비율을 계산하는 것이다.</p>
+    </div>
+    <div class="callout tip"><strong>직접 에이전트 사회 실험을 한다면</strong>
+      <p>① <b>에이전트의 입력을 기록</b>하자. 추천 수 · 남의 댓글 · 메모리 파일이 컨텍스트에 들어간 시점과 내용을 남기면 '무시한다'와 '못 봤다'가 갈린다. ② 가능하면 <b>무작위 노출</b>(일부 에이전트에게만 특정 글이나 피드백을 보여 주기)로 인과를 직접 재자. 관찰만으로는 댓글 대상 선택의 편향이 남는다. ③ 모든 '이동' 지표에 <b>시간 순서를 섞은 대조</b>와 같은 표본 크기 조건을 붙이자. ④ <b>에이전트를 분석 단위</b>로 하고(한 에이전트에 한 값), 평균 · 신뢰구간 · 효과 크기를 적자. ⑤ 사람 개입과 자율 실행, 메모리 있는 에이전트와 없는 에이전트를 나눠서 보자. ⑥ 창을 충분히 길게 잡고, 사람 SNS 같은 다른 사회를 같은 지표로 비교하는 기준선을 두자. ⑦ 위계의 지속은 <b>날짜 간 상위 집합의 겹침</b>(자카드)이나 순위 상관으로 직접 재자.</p>
+    </div>
   </section>
 
   <section id="rating">
     <h2>나의 평가</h2>
+    <!-- 점수는 data-radar 속성에서 바꾼다 (1–5) -->
     <div class="review-grid">
-      <div data-radar='{"신규성":3,"명확성":3,"실험 충실도":3,"재현 가능성":3,"실용성":3}' data-max="5"></div>
+      <div data-radar='{"신규성":4,"명확성":4,"실험 충실도":2,"재현 가능성":4,"실용성":3}' data-max="5"></div>
       <div>
-        <p class="slot" data-slot="총평">총평 — 누구에게 이 논문을 권하는지, 다시 읽을 가치가 있는지. 왼쪽 점수는 data-radar 속성에서 바꿉니다.</p>
+        <p><b>질문의 설정과 공개 방식은 좋고, 증거는 아직 약하다.</b> '규모가 곧 사회화는 아니다'를 데이터로 물은 첫 시도이고, 세 층위 틀이 깔끔하며, 코드와 데이터를 열어 두어 이 리뷰 같은 검증이 가능했다. 읽기도 쉽다. 반면 여러 핵심 지표가 구조적으로 '변화 없음'을 내기 쉽거나(중심 코사인, 이동량, 슈퍼노드), 눈으로 비교한 히스토그램에 기대고(효과 크기 없음), 가정 두 개(AI끼리의 사회, 신호가 에이전트에 들어감)를 확인하지 않았다.</p>
+        <p><b>그래도 방향은 다른 보고와 어긋나지 않는다.</b> 별도 연구(<i>Agents in the Wild</i>, 초록 기준)는 9일치 에이전트 27,269개를 분석해 상호 댓글 비율(reciprocity)이 4.1%, 88.8%가 얕은 댓글이라며 '사회성의 착시'를 보고했고, <i>The Moltbook Illusion</i>은 서사의 다수가 사람이 만든 것임을 보였다. 이 논문의 '상호작용은 많은데 영향이 없다'는 인상은 이런 결과와 맞는다. 다만 그것은 이 논문의 지표가 입증한 것이 아니다.</p>
+        <p><b>추천 대상:</b> 에이전트 사회를 관찰하거나 실험하려는 사람. 이 논문은 결론보다 <b>지표 설계의 반면교사와 측정 틀</b>로 읽고, 후속 연구에서 순서 섞기 · 효과 크기 · 에이전트 단위 집계를 붙인 판이 나오는지 보자.</p>
       </div>
     </div>
   </section>
@@ -129,17 +347,25 @@ def forward(x):
   <section id="related">
     <h2>함께 읽을 논문</h2>
     <ul>
-      <li class="slot" data-slot="관련 논문">선행 논문 — 왜 같이 읽으면 좋은지</li>
-      <li class="slot" data-slot="관련 논문">후속 논문</li>
+      <li><b>Li (Ning), "The Moltbook Illusion: Separating Human Influence from Emergent Behavior in AI Agent Societies" (arXiv 2602.07432)</b> — OpenClaw 하트비트의 주기성으로 에이전트를 자율/사람 개입으로 나누고, 44시간 중단을 자연 실험으로 검증했다. 이 논문에 빠진 '사람 개입' 통제의 직접 후속.</li>
+      <li><b>Zhang et al., "Agents in the Wild: Safety, Society, and the Illusion of Sociality on Moltbook" (arXiv 2602.13284)</b> — 9일치 글 137,485개 · 댓글 345,580개에서 거버넌스 · 경제 · 종교가 며칠 만에 생긴 것처럼 보이지만 상호작용은 구조적으로 얕다고 보고한다. 같은 대상을 다른 지표로 본 사례.</li>
+      <li><b>Jiang et al., "'Humans welcome to observe': A first look at the agent social network Moltbook" (arXiv 2602.10127)</b> · <b>Lin et al., "Exploring silicon-based societies: An early study of the Moltbook agent community" (arXiv 2602.02613)</b> · <b>Manik &amp; Wang, "OpenClaw agents on Moltbook: Risky instruction sharing and norm enforcement in an agent-only social network" (arXiv 2602.02625)</b> — 이 논문이 인용한 Moltbook 초기 관찰 연구들.</li>
+      <li><b>Wiz, "Hacking Moltbook: The AI Social Network Any Human Can Control" (2026-02-02)</b> — 데이터베이스 노출과 등록 에이전트 대 사람 소유자 88:1의 근거. 이 데이터가 어떻게 만들어졌는지 이해하는 데 필수.</li>
+      <li><b>Ashery, Aiello, Baronchelli, "Emergent social conventions and collective bias in LLM populations" (Science Advances 2025)</b> — 통제된 게임 환경에서 LLM 집단이 사회적 규약을 형성한다는 보고(이 논문이 인용). 관찰 자료가 아니라 설계된 실험이라는 점에서 이 논문의 결론과 비교할 만하다.</li>
+      <li><b>Park et al., "Generative Agents" (UIST 2023)</b> · <b>AL et al., "Project Sid" (arXiv 2411.00114)</b> — 25명, 1,000명 규모 에이전트 사회 시뮬레이션. 기억 구조가 설계된 사회와 Moltbook의 차이를 생각하게 한다.</li>
+      <li><b>이 서재의 <a href="../../llm-agents/">LLM에서 자율 에이전트까지</a></b> — 에이전트의 상태와 메모리(16장)와 컨텍스트 관리(20장)가 '사회적 기억'의 실체다. 이 두 장은 아직 빈 슬롯이다.</li>
+      <li><b>이 서재의 <a href="p03.html">리뷰 03 OpenTSLM</a> · <a href="p04.html">리뷰 04 TSAlign</a></b> — 같은 방식(논문 수치 재계산 + 공개물 대조)으로 읽은 다른 리뷰.</li>
     </ul>
   </section>
 
   <section class="keypoints" id="keypoints">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점 1</li>
-      <li class="slot" data-slot="요점">요점 2</li>
-      <li class="slot" data-slot="요점">요점 3</li>
+      <li>논문은 Moltbook 12일치(글 29만 · 댓글 184만)에서 <b>사회 · 에이전트 · 집단</b> 세 층위 모두 수렴이 없다고 보고하며, 결론은 '규모와 상호작용 밀도만으로 사회화는 일어나지 않는다'이다.</li>
+      <li>중심 코사인과 쌍별 평균은 <b>같은 행렬의 두 정규화</b>(\( S_\text{centroid}=P_{ij}/\sqrt{P_{ii}P_{jj}} \))이고, 같은 분포의 두 날도 글이 수천 개면 중심 코사인은 1이다. 이는 날들이 교환 가능하다는 뜻일 뿐이다.</li>
+      <li>이동량 \( D \)가 활동량에 따라 줄어드는 것은 반쪽 평균의 표본 잡음으로 설명된다. 진짜 이동은 <b>순서를 섞은 대조와의 차이</b>로 재야 한다. 그림 6 오른쪽은 코드에서 식 (12)와 부호가 반대다.</li>
+      <li>'최대 간격' 슈퍼노드 수와 고정 k의 PageRank 몫은 위계가 지속되는 세계와 매일 뒤섞이는 세계를 구별하지 못하고, 노드 수가 19에서 23,262로 늘어난 효과와 섞인다.</li>
+      <li>'분포가 겹친다'는 효과 없음의 증거가 아니다. 사건 연구에는 평균 차이 · 에이전트 단위 신뢰구간 · 선택 편향 통제가 필요하고, 두 가정(AI끼리의 사회, 신호가 에이전트에 도달)이 확인돼야 '관성'을 말할 수 있다.</li>
     </ol>
   </section>
 
@@ -147,17 +373,40 @@ def forward(x):
     <h2>확인 퀴즈</h2>
     <p class="quiz-score"></p>
     <div class="quiz">
-      <div class="quiz-q"><p>1. (퀴즈 슬롯) 질문을 적으세요. 정답 보기에는 <code>data-correct</code> 속성을 붙입니다.</p><div class="opts">
-        <button class="opt">보기 A</button>
-        <button class="opt" data-correct>보기 B (정답 예시)</button>
-        <button class="opt">보기 C</button>
-        <button class="opt">보기 D</button>
-      </div><div class="quiz-exp">해설 슬롯 — 왜 이것이 정답인지 설명하세요.</div></div>
-      <div class="quiz-q"><p>2. (퀴즈 슬롯) 두 번째 질문.</p><div class="opts">
-        <button class="opt" data-correct>보기 A (정답 예시)</button>
-        <button class="opt">보기 B</button>
-        <button class="opt">보기 C</button>
-      </div><div class="quiz-exp">해설 슬롯.</div></div>
+      <div class="quiz-q"><p>1. 논문 그림 4에서 두 날의 중심 코사인이 1.00이고 두 날 사이 쌍별 평균이 같은 날의 쌍별 평균(0.14)과 같다. 올바른 해석은?</p><div class="opts">
+        <button class="opt">두 지표는 서로 독립이라 같은 결론을 두 번 확인한 것이다.</button>
+        <button class="opt" data-correct>두 지표는 같은 행렬의 다른 정규화여서 날 사이 글이 같은 날 글만큼 닮았다는, 곧 날들이 교환 가능하다는 한 가지 사실을 두 번 적은 것이다.</button>
+        <button class="opt">모든 글이 같은 주제를 이야기한다는 뜻이다.</button>
+        <button class="opt">에이전트가 서로 닮아 간다는 직접 증거다.</button>
+      </div><div class="quiz-exp">단위 벡터에서 쌍별 평균은 두 평균 벡터의 내적이고 중심 코사인은 그것을 길이로 나눈 값이다. 글이 수천 개면 같은 분포의 두 날도 중심 코사인이 0.99를 넘는다(첫 번째 실험, 점선과 실선이 겹침). 정상성을 보일 뿐 수렴이나 사회화의 방향을 알려 주지 않는다.</div></div>
+
+      <div class="quiz-q"><p>2. 글이 많은 에이전트일수록 앞/뒤 절반의 이동량 D가 작다. 이것이 '활동이 많을수록 개성이 굳는다'의 증거가 되려면 무엇이 필요한가?</p><div class="opts">
+        <button class="opt">에이전트 수를 늘린다.</button>
+        <button class="opt" data-correct>같은 글을 시간 순서와 상관없이 무작위로 반반 나눈 값(순서를 섞은 대조)과 비교해 그 차이를 이동량으로 본다.</button>
+        <button class="opt">임베딩 차원을 늘린다.</button>
+        <button class="opt">추천 수가 많은 글만 쓴다.</button>
+      </div><div class="quiz-exp">반쪽 평균의 잡음은 글 수에 반비례해 줄므로 이동이 전혀 없어도 D와 글 수는 −0.8 안팎의 음의 상관을 낸다(두 번째 실험, θ = 0). 이동이 있어도 상관의 부호는 거의 그대로이고, 변하는 것은 관측과 섞음의 <b>차이</b>다.</div></div>
+
+      <div class="quiz-q"><p>3. 일간 PageRank의 '최대 간격' 규칙으로 센 슈퍼노드가 매일 한 자릿수였다. 이로부터 말할 수 있는 것은?</p><div class="opts">
+        <button class="opt">영향력 있는 소수 계정이 지속적으로 존재한다.</button>
+        <button class="opt">영향력 있는 계정이 존재하지 않는다.</button>
+        <button class="opt" data-correct>이 규칙은 위계가 없어도 항상 1개 이상을 돌려주므로 위계의 유무도 지속도 알려 주지 않는다. 지속은 날 사이 상위 집합의 겹침처럼 정체를 비교하는 지표가 있어야 한다.</button>
+        <button class="opt">슈퍼노드의 수는 노드 수에 정확히 비례한다.</button>
+      </div><div class="quiz-exp">세 번째 실험에서 γ = 0(위계 없음)에서도 규칙은 1–3개를 찾고, 같은 위계가 이어지는 세계와 매일 섞이는 세계에서 슈퍼노드 수와 상위 몫이 같게 나온다. 다른 것은 이틀 연속 상위 5개의 겹침뿐이다. 논문의 '정체가 날마다 바뀐다'는 이 겹침을 재야 말할 수 있다.</div></div>
+
+      <div class="quiz-q"><p>4. 댓글 전후 변화 \( \Delta_\text{interact} \)의 관측 분포와 무작위 대상 대조 분포가 히스토그램에서 겹친다. 가장 적절한 판단은?</p><div class="opts">
+        <button class="opt">겹치므로 상호작용의 영향은 없다고 결론낸다.</button>
+        <button class="opt" data-correct>겹침은 효과 없음의 증거가 아니다. 사건이 많으면 아주 작은 평균 차이도 검출되므로 평균 차이와 에이전트 단위 신뢰구간이 필요하고, 선택 편향과 일부 계정의 사건 독점도 따져야 한다.</button>
+        <button class="opt">겹치지 않아야만 통계적으로 의미가 있다.</button>
+        <button class="opt">히스토그램의 빈 폭을 줄이면 해결된다.</button>
+      </div><div class="quiz-exp">네 번째 실험의 기본값(사건 100만 건, σ = 0.1, 진짜 효과 0.01, 봇 사건 25%)에서 두 분포는 97%가 겹치지만 평균 차이의 z값은 30을 넘는다. 반대로 선택 편향이 효과와 상쇄되면 진짜 효과가 있어도 평균 차이가 0이 된다. 논문은 사건 수 · 평균 · 신뢰구간을 적지 않았다.</div></div>
+
+      <div class="quiz-q"><p>5. 이 논문의 결론 '규모와 상호작용 밀도만으로는 사회화가 일어나지 않는다'에 대한 가장 적절한 평가는?</p><div class="opts">
+        <button class="opt">모든 AI 에이전트 사회에 적용되는 일반 법칙으로 받아들인다.</button>
+        <button class="opt" data-correct>개설 직후 12일, 한 플랫폼, 한 임베딩, 사람 개입 · 컨텍스트 노출 미확인이라는 조건에서 '이 지표들로는 수렴이 보이지 않았다'까지만 지지된다.</button>
+        <button class="opt">이 논문의 지표가 틀렸으므로 반대 결론이 맞다.</button>
+        <button class="opt">자료가 12일이라 모든 분석이 무효다.</button>
+      </div><div class="quiz-exp">리뷰가 짚은 문제는 결론이 틀렸다는 것이 아니라 증거가 결론보다 약하다는 것이다. 별도 연구들의 방향은 이 논문과 어긋나지 않지만, 사람의 개입(자율 15.3%), 에이전트의 입력 노출, 기억 구조는 이 논문의 지표로 가려지지 않았다.</div></div>
     </div>
   </section>
 </main>
