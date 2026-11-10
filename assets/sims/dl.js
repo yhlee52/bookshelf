@@ -7,6 +7,7 @@
    tslm-tokens · flamingo-xattn · tslm-noise (논문 리뷰 p03)
    bigram-decode (LLM에서 자율 에이전트까지 1장)
    tsalign-align · tsalign-fusion · tsalign-cost (논문 리뷰 p04)
+   molt-centroid · molt-drift · molt-supernode · molt-event (논문 리뷰 p05)
    ========================================================================== */
 (function () {
   "use strict";
@@ -2362,6 +2363,377 @@
       S.range({ label: "그림 한 장의 토큰 (가정)", min: 100, max: 2000, step: 20, value: st.img, onInput: (v) => { st.img = v; upd(); } });
       S.check({ label: "그림을 변수마다 한 장씩", value: st.perVar, onChange: (v) => { st.perVar = v; upd(); } });
       S.check({ label: "TSAlign이 보기마다 따로 읽는다면 (× 4.5)", value: st.kPass, onChange: (v) => { st.kPass = v; upd(); } });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     23. Moltbook — 하루 평균 벡터의 두 얼굴: 중심 코사인과 쌍별 유사도 (논문 리뷰 p05)
+     논문 식 (5)–(7)을 장난감 임베딩(24차원)으로 옮겼다. 두 히트맵이 같은 행렬의 다른 정규화라는 것과,
+     같은 분포의 두 날도 글이 수천 개면 중심 코사인이 1에 붙는다는 것을 본다.
+     ====================================================================== */
+  Lab.register({
+    id: "molt-centroid", field: "dl", thumb: "heat", layout: "stack",
+    title: "중심 유사도는 왜 거의 1일까 — 하루 평균 벡터의 두 얼굴 (Moltbook)",
+    desc: "하루치 글 임베딩의 평균 벡터로 만든 '중심 코사인'과 '쌍별 평균 코사인'이 사실상 같은 숫자의 다른 정규화이고, 글이 수천 개면 같은 분포의 두 날도 중심 코사인이 1에 붙는다는 것을 장난감 계산으로 확인합니다.",
+    tags: ["Moltbook", "중심 코사인", "쌍별 유사도", "표본 크기", "임베딩"],
+    note: "논문 식 (5)–(7)을 <b>장난감 크기</b>(임베딩 24차원, 주제 10개)로 옮긴 계산입니다. 글 하나는 '모든 글이 공유하는 방향(콘 효과) + 주제 방향 + 글마다의 잡음'을 합쳐 단위 길이로 만든 벡터이고, A·B 두 날은 주제 구성 가중치만 다릅니다(Δ = 0이면 같은 분포, Δ = 1이면 서로 다른 주제 절반씩). 실제 Sentence-BERT 임베딩이 아니라서 숫자는 논문과 무관하고, 같은 구조의 식이 어떻게 움직이는지를 보는 용도입니다. <b>중심 코사인 C</b>는 두 날 평균 벡터의 코사인, <b>쌍별 평균 P</b>는 두 날의 글을 하나씩 짝지어 코사인을 평균한 값(같은 날끼리는 서로 다른 글 쌍)입니다. 단위 벡터에서는 P<sub>AB</sub> = m<sub>A</sub>·m<sub>B</sub>이고 P<sub>AA</sub> ≈ |m<sub>A</sub>|²이므로 <b>C = P<sub>AB</sub> ÷ √(P<sub>AA</sub>·P<sub>BB</sub>)</b>입니다(마지막 칸). 논문 그림 4의 두 히트맵(왼쪽 C, 오른쪽 P)과 공개 코드(daily_diversity_from_embeddings.py)가 정확히 이 두 식입니다. 논문 오른쪽 행렬의 소수 둘째 자리 값으로 왼쪽 행렬을 예측하면 78칸 평균 절대 오차가 0.021(최대 0.067)로, 반올림과 1/N 항으로 설명되는 크기입니다. <b>해볼 것</b> ① Δ = 0으로 두고 N을 키워 보세요. 같은 분포에서 뽑은 두 날도 N ≥ 1,000이면 C가 0.99를 넘습니다 — 점선(같은 날을 반반 나눈 값)과 실선이 겹칩니다. 그래서 'C ≈ 1'은 \"두 날의 분포가 같다\"는 것 이상을 말하지 않습니다. ② Δ를 0.3으로 올려도(N = 3,000) C는 0.96 안팎이고 쌍별 평균 P<sub>AA</sub>는 0.16으로 거의 그대로입니다. 주제 구성이 3할 바뀌는 큰 변화가 소수 둘째 자리의 차이로만 보인다는 뜻입니다. ③ 콘 효과를 키우면 모든 글이 서로 더 닮아(P↑) C의 변화는 더 작아 보입니다. ④ N = 10 근처에서는 C가 크게 흔들리고 항등식도 어긋납니다(1/N 항).",
+    mount(S) {
+      const D = 24, K = 10, NMAX = 10000, SC = 350;
+      const st = { lgN: Math.log10(3000), sigma: 1.2, cone: 0.6, delta: 0.3, seed: 1 };
+      const GRID = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
+      const nrm = (a) => Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+      const dotv = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+      const cosv = (a, b) => dotv(a, b) / (nrm(a) * nrm(b) || 1);
+      let G = null;
+      function gen() {
+        const r = VZ.rng(st.seed * 101 + 7);
+        const rv = () => Array.from({ length: D }, () => VZ.randn(r));
+        const unit = (v) => { const n = nrm(v) || 1; return v.map((x) => x / n); };
+        const u0 = unit(rv()), T = Array.from({ length: K }, () => unit(rv()));
+        const w0 = Array.from({ length: K }, (_, k) => (k < K / 2 ? 0.18 : 0.02)), s0 = w0.reduce((a, b) => a + b, 0);
+        const wA = w0.map((v) => v / s0), wB = wA.map((v, k) => (1 - st.delta) * v + st.delta * wA[K - 1 - k]);
+        const cdf = (w) => { let c = 0; return w.map((v) => (c += v)); };
+        const pick = (c) => { const x = r(); for (let k = 0; k < K; k++) if (x < c[k]) return k; return K - 1; };
+        const make = (w) => {
+          const c = cdf(w), V = new Float64Array(NMAX * D), P = new Float64Array((NMAX + 1) * D), v = new Array(D);
+          for (let i = 0; i < NMAX; i++) {
+            const k = pick(c); let s = 0;
+            for (let j = 0; j < D; j++) { v[j] = st.cone * u0[j] + T[k][j] + (st.sigma * VZ.randn(r)) / Math.sqrt(D); s += v[j] * v[j]; }
+            const n = Math.sqrt(s);
+            for (let j = 0; j < D; j++) { V[i * D + j] = v[j] / n; P[(i + 1) * D + j] = P[i * D + j] + v[j] / n; }
+          }
+          return { V, P };
+        };
+        const A = make(wA), B = make(wB);
+        // 산점도용 주성분 2개 (앞 350개씩)
+        const rows = [];
+        for (let i = 0; i < SC; i++) { rows.push(Array.from(A.V.subarray(i * D, (i + 1) * D))); rows.push(Array.from(B.V.subarray(i * D, (i + 1) * D))); }
+        const mu = Array.from({ length: D }, (_, j) => VZ.mean(rows.map((x) => x[j])));
+        let Cv = Array.from({ length: D }, (_, a) => Array.from({ length: D }, (_, b) => rows.reduce((s, x) => s + (x[a] - mu[a]) * (x[b] - mu[b]), 0) / rows.length));
+        const axes = [];
+        for (let c = 0; c < 2; c++) {
+          let v = Array.from({ length: D }, (_, k) => Math.cos(k * 1.7 + 1 + c * 2));
+          for (let it = 0; it < 120; it++) { v = Cv.map((row) => dotv(row, v)); const n = nrm(v) || 1; v = v.map((x) => x / n); }
+          const lam = dotv(v, Cv.map((row) => dotv(row, v)));
+          axes.push(v);
+          Cv = Cv.map((row, a) => row.map((x, b) => x - lam * v[a] * v[b]));
+        }
+        G = { A, B, mu, axes };
+      }
+      const sumP = (X, a, b) => Array.from({ length: D }, (_, j) => X.P[b * D + j] - X.P[a * D + j]);
+      function stats(N) {
+        const sa = sumP(G.A, 0, N), sb = sumP(G.B, 0, N), h = Math.floor(N / 2);
+        const PAB = dotv(sa, sb) / (N * N), PAA = (dotv(sa, sa) - N) / (N * (N - 1)), PBB = (dotv(sb, sb) - N) / (N * (N - 1));
+        return { C: cosv(sa, sb), Cn: cosv(sumP(G.A, 0, h), sumP(G.A, h, N)), PAA, PAB, PBB, pred: PAB / Math.sqrt(Math.max(1e-9, PAA * PBB)), sa, sb };
+      }
+      const curN = () => Math.round(10 ** st.lgN);
+      gen();
+      const [left, right] = S.split(2);
+      const cvC = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), N = curN(), cur = GRID.map(stats), me = stats(N);
+        const lo = Math.min(...cur.map((s) => Math.min(s.C, s.Cn)));
+        VZ.chart(ctx, null, {
+          x: [10, NMAX], logX: true, y: [VZ.clamp(Math.floor((lo - 0.04) * 20) / 20, 0.2, 0.9), 1.005], title: "두 날의 중심 코사인 C — 하루 글 수 N에 따라",
+          xLabel: "하루 글 수 N (로그 축)", yLabel: "C", xTicks: [10, 100, 1000, 10000], xFmt: (v) => v.toLocaleString(), margin: { l: 44, r: 26 },
+          series: [
+            { data: GRID.map((n, i) => [n, cur[i].C]), color: P.text, width: 2.6 },
+            { data: GRID.map((n, i) => [n, cur[i].Cn]), color: P.warn, width: 2.4, dash: [6, 4] },
+          ],
+          hlines: [{ y: 0.99, color: P.faint }], vlines: [{ x: N, color: P.faint, dash: [3, 3] }],
+          points: [{ x: N, y: me.C, color: P.text, r: 4.5 }, { x: N, y: me.Cn, color: P.warn, r: 4.5 }],
+        });
+      });
+      const cvP = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), me = stats(curN());
+        const proj = (v) => { const c = v.map((x, k) => x - G.mu[k]); return [dotv(c, G.axes[0]), dotv(c, G.axes[1])]; };
+        const pts = (X) => Array.from({ length: SC }, (_, i) => proj(Array.from(X.V.subarray(i * D, (i + 1) * D))));
+        const pa = pts(G.A), pb = pts(G.B), ca = proj(me.sa.map((v) => v / curN())), cb = proj(me.sb.map((v) => v / curN()));
+        const all = [...pa, ...pb], ax = Math.max(...all.map((p) => Math.abs(p[0]))) * 1.1, ay = Math.max(...all.map((p) => Math.abs(p[1]))) * 1.1;
+        VZ.chart(ctx, null, {
+          x: [-ax, ax], y: [-ay, ay], title: "글 하나하나(점)와 하루 평균(큰 원) — 주성분 2개", xLabel: "주성분 1", yLabel: "주성분 2", margin: { l: 44 },
+          series: [{ type: "scatter", data: pa, color: VZ.alpha(P.accent, 0.5), r: 2.3 }, { type: "scatter", data: pb, color: VZ.alpha(P.accent2, 0.5), r: 2.3 }],
+          points: [{ x: ca[0], y: ca[1], color: P.accent, r: 10 }, { x: cb[0], y: cb[1], color: P.accent2, r: 5 }],
+        });
+      });
+      S.legend([{ label: "왼쪽: A와 B (Δ만큼 다른 두 날)", color: (P) => P.text }, { label: "왼쪽: 같은 날(A)을 반반 나눈 값 = 변화 0", color: (P) => P.warn }, { label: "오른쪽: A의 글 · 평균(큰 원)", color: (P) => P.accent }, { label: "오른쪽: B의 글 · 평균(작은 원)", color: (P) => P.accent2 }]);
+      const set = S.stats([{ k: "c", label: "중심 코사인 C (A, B)" }, { k: "cn", label: "같은 날 반반 C (변화 0일 때)" }, { k: "paa", label: "같은 날 쌍별 평균 P_AA" }, { k: "pab", label: "날 사이 쌍별 평균 P_AB" }, { k: "id", label: "P_AB ÷ √(P_AA·P_BB)" }]);
+      function upd(re) {
+        if (re) gen();
+        cvC.redraw(); cvP.redraw();
+        const s = stats(curN());
+        set("c", s.C.toFixed(3)); set("cn", s.Cn.toFixed(3)); set("paa", s.PAA.toFixed(3)); set("pab", s.PAB.toFixed(3)); set("id", s.pred.toFixed(3));
+      }
+      S.range({ label: "하루 글 수 N", min: 1, max: 4, step: 0.05, value: st.lgN, fmt: (v) => Math.round(10 ** v).toLocaleString(), onInput: (v) => { st.lgN = v; upd(false); } });
+      S.range({ label: "글마다 다른 정도 σ (클수록 쌍별 평균이 낮음)", min: 0.3, max: 2.5, step: 0.1, value: st.sigma, fmt: (v) => v.toFixed(1), onInput: (v) => { st.sigma = v; upd(true); } });
+      S.range({ label: "모든 글이 공유하는 방향의 세기 (콘 효과)", min: 0, max: 1.5, step: 0.1, value: st.cone, fmt: (v) => v.toFixed(1), onInput: (v) => { st.cone = v; upd(true); } });
+      S.range({ label: "두 날의 주제 구성이 다른 정도 Δ (0 = 같은 분포)", min: 0, max: 1, step: 0.05, value: st.delta, fmt: (v) => v.toFixed(2), onInput: (v) => { st.delta = v; upd(true); } });
+      S.button("다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     24. Moltbook — 활동량과 이동량: 표본 평균의 잡음 (논문 리뷰 p05)
+     논문 식 (9)–(11)을 옮긴 계산. 앞/뒤 절반 평균의 코사인 거리는 글이 적을수록 커진다.
+     ====================================================================== */
+  Lab.register({
+    id: "molt-drift", field: "dl", thumb: "scatter", layout: "stack",
+    title: "활동량이 많을수록 '안정적'인 까닭 — 앞뒤 절반 평균의 잡음 (Moltbook)",
+    desc: "에이전트별 이동량 D(앞 절반과 뒤 절반 평균의 코사인 거리)가 글이 많을수록 작아지는 현상이 진짜 이동이 전혀 없어도 나타남을 보이고, 시간 순서를 섞은 대조와의 차이만이 이동량이라는 것을 확인합니다.",
+    tags: ["Moltbook", "개인 이동량", "표본 잡음", "순서 섞기 대조", "방향 일관성"],
+    note: "에이전트 200명이 각자 '말머리'(고정된 단위 벡터)를 갖고 글을 쓰는 <b>장난감 계산</b>입니다(24차원). 글 수는 10–600을 로그 균등으로 뽑고, 글 하나는 말머리에 잡음 σ를 더해 단위 길이로 만든 벡터입니다. <b>진짜 이동 θ</b>는 글을 쓰는 동안 말머리가 에이전트마다 정해진 방향으로 θ만큼 천천히 움직이는 정도입니다. 논문 식 (10)처럼 시간 순서로 앞 절반·뒤 절반 평균의 코사인 거리 D를 재고, 대조로 <b>같은 글을 무작위로 반반 나눈</b> 값 D<sub>섞음</sub>도 같이 그립니다. 논문 그림 6 왼쪽의 '글이 많을수록 D가 작다'는 모양이 θ = 0에서도 그대로 나옵니다(두 상관계수 모두 −0.8 안팎) — 반쪽 평균의 잡음이 글 수에 반비례해 줄기 때문입니다. 논문도 이를 '소수 표본의 분산 탓일 수 있다'고 적었지만 순서를 섞은 대조는 하지 않았습니다. <b>해볼 것</b> ① θ를 0.6까지 올려도 상관계수는 −0.8 근처에 남지만 '평균 초과 이동'은 0에서 올라갑니다 — 이동의 증거는 상관의 부호가 아니라 관측과 섞음의 <b>차이</b>입니다. ② 오른쪽은 식 (11)의 방향 일관성 S = cos(d<sub>a</sub>, d̄)의 분포입니다. 이 평균은 정의상 0 이상이고, 방향이 모두 제각각이어도 0.05–0.07쯤 나옵니다(점선은 1/√M ≈ 0.07). 논문의 평균 0.095를 해석하려면 에이전트 수 M이 필요한데 본문에 없습니다. ③ '이동 방향 공유'를 올리면 S가 0.5를 넘습니다 — 같은 방향으로 가는 사회라면 이 지표에 크게 드러납니다. 실제 논문의 에이전트 수·글 수 분포와 임베딩의 이방성은 이 장난감과 다르므로 숫자를 그대로 옮기면 안 됩니다.",
+    mount(S) {
+      const D = 24, M = 200;
+      const st = { theta: 0, common: 0, sigma: 1.2, seed: 1 };
+      const BINS = [[10, 20], [20, 50], [50, 100], [100, 500], [500, 1e9]], BX = [14, 31, 70, 220, 550];
+      const nrm = (a) => Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+      const dotv = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+      const cosv = (a, b) => dotv(a, b) / (nrm(a) * nrm(b) || 1);
+      const corr = (a, b) => {
+        const ma = VZ.mean(a), mb = VZ.mean(b);
+        let sab = 0, saa = 0, sbb = 0;
+        a.forEach((v, i) => { const p = v - ma, q = b[i] - mb; sab += p * q; saa += p * p; sbb += q * q; });
+        return saa > 1e-12 && sbb > 1e-12 ? sab / Math.sqrt(saa * sbb) : NaN;
+      };
+      let AG = [];
+      function gen() {
+        const r = VZ.rng(st.seed * 31 + 5);
+        const rv = () => Array.from({ length: D }, () => VZ.randn(r));
+        const unit = (v) => { const n = nrm(v) || 1; return v.map((x) => x / n); };
+        const g0 = unit(rv()), out = [];
+        for (let a = 0; a < M; a++) {
+          const n = Math.round(10 ** (1 + r() * Math.log10(60)));
+          const p = unit(rv()), h = unit(rv()), g = unit(g0.map((x, i) => st.common * x + (1 - st.common) * h[i]));
+          const posts = Array.from({ length: n }, (_, t) => {
+            const f = n > 1 ? t / (n - 1) : 0.5;
+            return unit(p.map((x, i) => x + st.theta * (f - 0.5) * g[i] + (st.sigma * VZ.randn(r)) / Math.sqrt(D)));
+          });
+          const cen = (idx) => { const s = new Array(D).fill(0); idx.forEach((i) => { for (let j = 0; j < D; j++) s[j] += posts[i][j]; }); return s.map((v) => v / idx.length); };
+          const half = Math.floor(n / 2), ord = Array.from({ length: n }, (_, i) => i), sh = ord.slice();
+          for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
+          const e = cen(ord.slice(0, half)), l = cen(ord.slice(half)), e2 = cen(sh.slice(0, half)), l2 = cen(sh.slice(half));
+          out.push({ n, D: 1 - cosv(e, l), Ds: 1 - cosv(e2, l2), d: l.map((v, i) => v - e[i]) });
+        }
+        const dbar = new Array(D).fill(0);
+        out.forEach((o) => o.d.forEach((v, i) => { dbar[i] += v / M; }));
+        out.forEach((o) => { o.S = cosv(o.d, dbar); });
+        AG = out;
+      }
+      const binMean = (key, i) => { const xs = AG.filter((o) => o.n >= BINS[i][0] && o.n < BINS[i][1]); return xs.length ? VZ.mean(xs.map((o) => o[key])) : NaN; };
+      gen();
+      const [left, right] = S.split(2);
+      const cvD = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), ymax = Math.max(0.12, Math.min(1, Math.max(...AG.map((o) => o.D)) * 1.08));
+        VZ.chart(ctx, null, {
+          x: [10, 600], logX: true, y: [0, ymax], title: "에이전트별 이동량 D — 글 수에 따라", xLabel: "에이전트의 글 수 (로그 축)", yLabel: "D", xTicks: [10, 20, 50, 100, 200, 500], margin: { l: 44 },
+          series: [
+            { type: "scatter", data: AG.map((o) => [o.n, o.Ds]), color: P.faint, r: 2, alpha: 0.6 },
+            { type: "scatter", data: AG.map((o) => [o.n, o.D]), color: P.accent, r: 2.4, alpha: 0.6 },
+            { data: BX.map((x, i) => [x, binMean("Ds", i)]), color: P.warn, width: 2.4, dash: [6, 4] },
+            { data: BX.map((x, i) => [x, binMean("D", i)]), color: P.accent, width: 2.8 },
+          ],
+        });
+      });
+      const NB = 24, LO = -0.6, HI = 1.0;
+      const cvS = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), cnt = new Array(NB).fill(0), w = (HI - LO) / NB;
+        AG.forEach((o) => { cnt[VZ.clamp(Math.floor((o.S - LO) / w), 0, NB - 1)]++; });
+        VZ.chart(ctx, null, {
+          x: [LO, HI], y: [0, Math.max(...cnt) * 1.15 + 1], title: `방향 일관성 S = cos(d_a, 평균 d̄) · 에이전트 ${M}명`, xLabel: "S", yLabel: "에이전트 수", margin: { l: 44 },
+          series: [{ type: "bar", data: cnt.map((c, i) => [LO + (i + 0.5) * w, c]), color: VZ.alpha(P.accent2, 0.8), barWidth: w * 0.9 }],
+          vlines: [{ x: 0, color: P.faint, dash: [2, 3] }, { x: VZ.mean(AG.map((o) => o.S)), color: P.text, dash: [], width: 2 }, { x: 1 / Math.sqrt(M), color: P.dim, dash: [5, 4], width: 1.6 }],
+        });
+      });
+      S.legend([{ label: "왼쪽: 관측 D (시간 순서대로 반반)", color: (P) => P.accent }, { label: "왼쪽: 대조 D (무작위로 반반)", color: (P) => P.warn }, { label: "오른쪽: S의 평균 (실선)", color: (P) => P.text }, { label: "오른쪽: 1/√M (점선)", color: (P) => P.dim }]);
+      const set = S.stats([{ k: "ro", label: "log(글 수)–D 상관 · 관측" }, { k: "rs", label: "같은 상관 · 순서를 섞은 대조" }, { k: "lo", label: "평균 D · 글 10–19개 (관측 / 섞음)" }, { k: "hi", label: "평균 D · 글 100–499개 (관측 / 섞음)" }, { k: "ex", label: "평균 초과 이동 (D − D섞음)" }, { k: "sm", label: "평균 S · 잡음만이면 대략 1/√M = 0.07" }]);
+      const f3 = (v) => (isFinite(v) ? v.toFixed(3) : "—");
+      function upd(re) {
+        if (re) gen();
+        cvD.redraw(); cvS.redraw();
+        const ln = AG.map((o) => Math.log10(o.n));
+        set("ro", f3(corr(ln, AG.map((o) => o.D)))); set("rs", f3(corr(ln, AG.map((o) => o.Ds))));
+        set("lo", `${f3(binMean("D", 0))} / ${f3(binMean("Ds", 0))}`); set("hi", `${f3(binMean("D", 3))} / ${f3(binMean("Ds", 3))}`);
+        set("ex", f3(VZ.mean(AG.map((o) => o.D - o.Ds)))); set("sm", f3(VZ.mean(AG.map((o) => o.S))));
+      }
+      S.range({ label: "진짜 이동 θ (글을 쓰는 동안 말머리가 움직인 정도)", min: 0, max: 1.5, step: 0.05, value: st.theta, fmt: (v) => v.toFixed(2), onInput: (v) => { st.theta = v; upd(true); } });
+      S.range({ label: "이동 방향을 모두가 공유하는 정도 (0 = 제각각)", min: 0, max: 1, step: 0.05, value: st.common, fmt: (v) => v.toFixed(2), onInput: (v) => { st.common = v; upd(true); } });
+      S.range({ label: "글마다 다른 정도 σ", min: 0.5, max: 2, step: 0.1, value: st.sigma, fmt: (v) => v.toFixed(1), onInput: (v) => { st.sigma = v; upd(true); } });
+      S.button("에이전트 다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     25. Moltbook — PageRank 슈퍼노드 지표는 위계의 지속성을 보지 못한다 (논문 리뷰 p05)
+     논문 6.1절: 상위 k개 PageRank 몫과 '최대 간격' 슈퍼노드 수. 같은 위계가 매일 이어지는 세계와
+     매일 뒤섞이는 세계에서 두 지표가 같은 값을 내는지 본다.
+     ====================================================================== */
+  Lab.register({
+    id: "molt-supernode", field: "dl", thumb: "network", layout: "stack",
+    title: "슈퍼노드 지표가 보지 못하는 것 — 위계가 이어지는 날과 섞이는 날 (Moltbook)",
+    desc: "하루 댓글 그래프의 PageRank 상위 몫과 '최대 간격' 슈퍼노드 수가 노드 수에 따라 어떻게 변하는지, 같은 위계가 이어지는 세계와 매일 뒤섞이는 세계에서 두 지표가 구별되지 않는다는 것을 장난감 그래프로 확인합니다.",
+    tags: ["Moltbook", "PageRank", "슈퍼노드", "최대 간격", "위계의 지속성"],
+    note: "하루 댓글 그래프를 만드는 <b>장난감 계산</b>입니다. 노드 N개, 댓글 6N개이고, 댓글을 다는 쪽은 균등하게, 받는 쪽은 순위 r에 대해 r<sup>−γ</sup>에 비례하게 뽑습니다(γ = 0이면 위계 없음, γ = 1이면 지프 분포). 그 위에서 PageRank(감쇠 0.85, 30회 반복)를 계산하고 논문 6.1절과 같이 상위 k개 몫과 '정렬한 PageRank의 연속 간격 중 가장 큰 곳까지를 슈퍼노드로 센다'는 규칙(공개 코드 graph.py의 argmax)을 적용합니다. 둘째 날은 두 세계로 만듭니다: <b>지속</b> — 같은 순위표(같은 노드가 같은 위계)에서 댓글만 새로 뽑음, <b>섞음</b> — 위계의 모양은 같고 누가 높은지를 매일 새로 섞음. 왼쪽 그림에서 세 곡선(첫날, 둘째 날 지속, 둘째 날 섞음)이 겹쳐 보이고 슈퍼노드 수도 같게 나옵니다. 달라지는 것은 마지막 두 칸의 '이틀 연속 상위 5개 겹침'뿐입니다. 논문의 그림 9·10은 상위 몫과 슈퍼노드 수만 보여 주므로, 이 두 세계를 구별하지 못합니다. 논문은 '슈퍼노드의 정체가 날마다 바뀐다'고 서술하지만 겹침 같은 숫자는 없습니다. <b>해볼 것</b> ① γ = 1로 두고 N을 25에서 20,000까지 키우면 상위 1개 몫이 0.20에서 0.08 안팎으로 줄어듭니다(왼쪽 아래 숫자, 오른쪽 그림) — 위계 모양이 그대로여도 노드가 늘면 고정된 k의 몫은 줄므로 논문의 '몫이 급격히 분산됐다'는 노드 수가 19에서 23,262로 늘어난 효과와 섞여 있습니다. ② γ = 0(위계 없음)으로 내려도 최대 간격 규칙은 슈퍼노드를 1–3개 찾아냅니다 — 항상 몇 개든 찾는 규칙이라 '한 자릿수'는 위계의 증거가 아닙니다. ③ 순위표가 지속되면 상위 5개 중 2–4개가 이틀 연속 겹치고(PageRank는 상위 노드가 가리키는 노드에도 값을 나눠 주어 5위 안이 조금 흔들립니다), 섞이면 0에 가깝습니다. N이 아주 작으면 우연히 겹치기도 합니다. 실제 Moltbook 그래프는 이 장난감보다 훨씬 복잡하므로 숫자는 방향만 참고하세요.",
+    mount(S) {
+      const EPN = 6, ITER = 30, DAMP = 0.85, GRIDN = [30, 100, 300, 1000, 3000, 10000, 20000];
+      const st = { lgN: 3.5, gamma: 1.0, seed: 1 };
+      function shuffled(n, r) { const a = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+      function day(N, gamma, perm, r) {
+        const w = new Float64Array(N); let tot = 0;
+        for (let i = 0; i < N; i++) { w[perm[i]] = Math.pow(i + 1, -gamma); tot += w[perm[i]]; }
+        const cdf = new Float64Array(N); let c = 0;
+        for (let i = 0; i < N; i++) { c += w[i] / tot; cdf[i] = c; }
+        const E = Math.round(N * EPN), src = new Int32Array(E), dst = new Int32Array(E);
+        for (let e = 0; e < E; e++) {
+          src[e] = Math.floor(r() * N);
+          const x = r(); let lo = 0, hi = N - 1;
+          while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < x) lo = m + 1; else hi = m; }
+          dst[e] = lo === src[e] ? (lo + 1) % N : lo;
+        }
+        return { N, src, dst, E };
+      }
+      function pagerank(g) {
+        const { N, src, dst, E } = g, out = new Float64Array(N);
+        for (let e = 0; e < E; e++) out[src[e]]++;
+        let pr = new Float64Array(N).fill(1 / N), nx = new Float64Array(N);
+        for (let k = 0; k < ITER; k++) {
+          nx.fill(0); let dang = 0;
+          for (let i = 0; i < N; i++) if (out[i] === 0) dang += pr[i];
+          for (let e = 0; e < E; e++) nx[dst[e]] += pr[src[e]] / out[src[e]];
+          const base = (1 - DAMP) / N + (DAMP * dang) / N;
+          for (let i = 0; i < N; i++) nx[i] = base + DAMP * nx[i];
+          [pr, nx] = [nx, pr];
+        }
+        return pr;
+      }
+      function analyse(pr) {
+        const N = pr.length, idx = Array.from({ length: N }, (_, i) => i).sort((a, b) => pr[b] - pr[a]), sorted = idx.map((i) => pr[i]);
+        let best = -1, k = 1;
+        for (let i = 0; i < N - 1; i++) { const gp = sorted[i] - sorted[i + 1]; if (gp > best) { best = gp; k = i + 1; } }
+        const cum = (m) => sorted.slice(0, m).reduce((a, b) => a + b, 0);
+        return { top: idx.slice(0, 5), sorted, k, m1: cum(1), m10: cum(10) };
+      }
+      const overlap = (a, b) => { const A = new Set(a.top); return b.top.filter((x) => A.has(x)).length; };
+      let W = null, CV = null;
+      function build() {
+        const N = Math.round(10 ** st.lgN), r = VZ.rng(st.seed * 977 + N), p1 = shuffled(N, r), p2 = shuffled(N, r);
+        const m1 = analyse(pagerank(day(N, st.gamma, p1, r))), mP = analyse(pagerank(day(N, st.gamma, p1, r))), mS = analyse(pagerank(day(N, st.gamma, p2, r)));
+        W = { N, m1, mP, mS };
+      }
+      function curve() {
+        CV = GRIDN.map((n) => { const r = VZ.rng(st.seed * 13 + n), m = analyse(pagerank(day(n, st.gamma, shuffled(n, r), r))); return [n, m.m1, m.m10]; });
+      }
+      const rankSample = (N) => { const s = new Set(); for (let i = 0; i <= 120; i++) s.add(Math.min(N, Math.max(1, Math.round(Math.pow(N, i / 120))))); return [...s].sort((a, b) => a - b); };
+      build(); curve();
+      const [left, right] = S.split(2);
+      const cvR = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), N = W.N, rs = rankSample(N), line = (m) => rs.map((k) => [k, m.sorted[k - 1]]);
+        VZ.chart(ctx, null, {
+          x: [1, N], logX: true, y: [W.m1.sorted[N - 1] * 0.8, W.m1.sorted[0] * 1.4], logY: true, title: `PageRank를 큰 순서로 (N = ${N.toLocaleString()})`, xLabel: "순위 (로그 축)", yLabel: "PageRank", margin: { l: 52 },
+          xFmt: (v) => v.toLocaleString(), yFmt: (v) => (v >= 0.01 ? v.toFixed(2) : v.toExponential(0)),
+          series: [
+            { data: line(W.mS), color: P.warn, width: 2, dash: [2, 3] },
+            { data: line(W.mP), color: P.accent2, width: 2.4, dash: [6, 4] },
+            { data: line(W.m1), color: P.accent, width: 2.8 },
+          ],
+          points: [{ x: W.m1.k, y: W.m1.sorted[W.m1.k - 1], color: P.text, r: 5 }],
+        });
+      });
+      const cvM = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), N = W.N;
+        VZ.chart(ctx, null, {
+          x: [GRIDN[0], GRIDN[GRIDN.length - 1]], logX: true, y: [1e-4, 1], logY: true, title: "노드 수가 늘면 상위 k개 몫은 줄어든다 (같은 γ)", xLabel: "하루 노드 수 N (로그 축)", yLabel: "상위 k개의 PageRank 몫", margin: { l: 52 },
+          xTicks: [30, 100, 300, 1000, 3000, 10000], xFmt: (v) => v.toLocaleString(), yTicks: [1e-4, 1e-3, 1e-2, 1e-1, 1], yFmt: (v) => (v >= 0.1 ? v.toFixed(1) : v.toExponential(0)),
+          series: [
+            { data: CV.map(([n, a]) => [n, a]), color: P.ok, width: 2.6 },
+            { data: CV.map(([n, , b]) => [n, b]), color: P.text, width: 2.6 },
+            { data: GRIDN.map((n) => [n, 10 / n]), color: P.dim, width: 1.6, dash: [4, 4] },
+          ],
+          vlines: [{ x: N, color: P.faint, dash: [3, 3] }],
+        });
+      });
+      S.legend([{ label: "왼쪽: 첫날", color: (P) => P.accent }, { label: "왼쪽: 둘째 날 · 같은 위계 지속", color: (P) => P.accent2 }, { label: "왼쪽: 둘째 날 · 위계를 매일 섞음", color: (P) => P.warn }, { label: "왼쪽 검은 점: 첫날 최대 간격(슈퍼노드 수 k)", color: (P) => P.text, dot: true }, { label: "오른쪽: 상위 1개 몫", color: (P) => P.ok }, { label: "오른쪽: 상위 10개 몫", color: (P) => P.text }, { label: "오른쪽 점선: 균등일 때 10/N", color: (P) => P.dim }]);
+      const set = S.stats([{ k: "m1", label: "상위 1개 PageRank 몫 (첫날)" }, { k: "m10", label: "상위 10개 몫 (첫날) · 균등이면 10/N" }, { k: "kp", label: "슈퍼노드 수 · 지속 세계 (첫날 / 둘째 날)" }, { k: "ks", label: "슈퍼노드 수 · 매일 섞는 세계" }, { k: "op", label: "상위 5개 중 이틀 연속 겹침 · 지속" }, { k: "os", label: "상위 5개 중 이틀 연속 겹침 · 섞음" }]);
+      function upd(reBuild, reCurve) {
+        if (reBuild) build();
+        if (reCurve) curve();
+        cvR.redraw(); cvM.redraw();
+        const N = W.N;
+        set("m1", W.m1.m1.toFixed(4)); set("m10", `${W.m1.m10.toFixed(4)} <small>(10/N = ${(10 / N).toFixed(4)})</small>`);
+        set("kp", `${W.m1.k} / ${W.mP.k}`); set("ks", `${W.m1.k} / ${W.mS.k}`);
+        set("op", `${overlap(W.m1, W.mP)} / 5`); set("os", `${overlap(W.m1, W.mS)} / 5`);
+      }
+      S.range({ label: "하루 노드 수 N (논문: 19 → 23,262)", min: 1.4, max: 4.3, step: 0.05, value: st.lgN, fmt: (v) => Math.round(10 ** v).toLocaleString(), onInput: (v) => { st.lgN = v; upd(true, false); } });
+      S.range({ label: "위계의 쏠림 γ (0 = 위계 없음, 1 = 지프 분포)", min: 0, max: 1.5, step: 0.05, value: st.gamma, fmt: (v) => v.toFixed(2), onInput: (v) => { st.gamma = v; upd(true, true); } });
+      S.button("그래프 다시 뽑기", () => { st.seed++; upd(true, true); }, { primary: true });
+      upd(false, false);
+    },
+  });
+
+  /* ======================================================================
+     26. Moltbook — '분포가 겹친다'와 '효과가 없다'는 다르다 (논문 리뷰 p05)
+     논문 5.3절의 사건 연구: 관측 Δ와 무작위 대조 Δ의 히스토그램이 겹친다는 서술을 검정력과 희석으로 따져 본다.
+     ====================================================================== */
+  Lab.register({
+    id: "molt-event", field: "dl", thumb: "curve", layout: "stack",
+    title: "히스토그램이 겹쳐도 효과가 있을 수 있다 — 사건 연구의 검정력 (Moltbook)",
+    desc: "댓글을 단 뒤 글이 대상 글을 닮아 가는 정도(Δ)의 관측 분포와 무작위 대조 분포가 겹쳐 보여도, 사건이 수백만 건이면 아주 작은 평균 차이가 뚜렷이 검출된다는 것과, 영향 없는 봇 이벤트·선택 편향이 그 차이를 어떻게 지우는지 계산으로 봅니다.",
+    tags: ["Moltbook", "사건 연구", "검정력", "희석", "선택 편향"],
+    note: "논문 5.3절의 설계(식 18)를 정규분포 <b>장난감 모델</b>로 옮긴 계산입니다. 사건마다 Δ는 평균 주위로 흩어지고(표준편차 σ), 무작위 대상 글로 계산한 대조 Δ는 평균 0입니다. 관측 Δ의 평균 차이는 <b>(1 − f) × μ − b</b>입니다 — μ는 영향이 있는 사건의 진짜 효과, f는 영향이 없는 템플릿 봇이 낸 사건의 비율, b는 '댓글 대상이 에이전트 최근 글과 이미 닮은 글이라서' 생기는 선택 편향(뒤 글이 평균으로 돌아가며 Δ가 작아짐)입니다. 논문은 두 분포가 '겹친다'는 것을 히스토그램으로만 보였고, 사건 수 · σ · 평균 차이 · 신뢰구간은 적지 않았습니다(공개 코드는 사건 수 · 평균 · 중앙값 · 분위수를 JSON으로 저장하지만 논문에 없습니다). 그림 8의 세로축(빈 하나에 최대 25만 건)으로 보아 사건은 백만 건 안팎으로 보입니다(리뷰어 추정). 그리고 공개 코드의 기본값은 사건 수 상한이 없고 에이전트당 상한도 없어, 댓글을 수만 건 단 계정이 사건을 대량으로 차지합니다. 논문 부록 표 5에서 상위 3개 계정의 댓글(가중 출차수 합 456,405)이 전체 댓글 1,836,711건의 24.8%인데, 이 계정들이 사건 연구에 들어가려면 글이 10개 이상이어야 하므로 실제 f는 알 수 없습니다(기본값 0.25는 가정). <b>해볼 것</b> ① 기본값(N = 100만, σ = 0.1, μ = 0.01, f = 0.25)에서 두 분포는 97%가 겹치지만 평균 차이의 z값은 30을 넘습니다 — '겹쳐 보인다'는 효과 없음의 증거가 아닙니다. ② N을 1,000으로 줄이면 같은 효과가 노이즈에 묻힙니다 — 검정력은 사건 수의 문제입니다. ③ 선택 편향 b를 0.0075로 올리면 (1 − f) × μ − b ≈ 0이 되어 진짜 효과가 있어도 평균 차이가 사라집니다. 대조가 '무작위 같은 날 글'이면 이 편향을 통제하지 못합니다(댓글 대상 선택이 에이전트의 관심에 따르므로). ④ f를 올리면 효과가 희석됩니다. 에이전트별 평균으로 먼저 줄이거나 에이전트당 사건 수를 제한하지 않으면 소수 계정이 결과를 좌우합니다.",
+    mount(S) {
+      const st = { lgN: 6, sigma: 0.1, mu: 0.01, f: 0.25, bias: 0, z0: 0.6 };
+      const RATE = 0.3;
+      const phi = (x) => 0.5 * (1 + erf(x / Math.SQRT2));
+      const pdf = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
+      function calc() {
+        const N = Math.round(10 ** st.lgN), Nb = Math.max(2, Math.round(N * RATE));
+        const dTrue = (1 - st.f) * st.mu - st.bias, se = st.sigma * Math.sqrt(1 / N + 1 / Nb), est = dTrue + se * st.z0;
+        return { N, dTrue, se, est, z: est / se, ovl: 2 * phi(-Math.abs(dTrue) / (2 * st.sigma)), mde: 2.8 * se, need: dTrue > 0 ? Math.pow((2.8 * st.sigma) / dTrue, 2) * (1 + 1 / RATE) : Infinity };
+      }
+      const [left, right] = S.split(2);
+      const cvH = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), c = calc(), R = 4 * st.sigma, xs = Array.from({ length: 161 }, (_, i) => -R + (2 * R * i) / 160);
+        VZ.chart(ctx, null, {
+          x: [-R, R], y: [0, pdf(0, 0, st.sigma) * 1.15], title: "사건별 Δ의 분포 — 관측과 무작위 대조", xLabel: "Δ = S(뒤 글, 대상) − S(앞 글, 대상)", yLabel: "밀도", margin: { l: 44 }, yTicks: [],
+          series: [
+            { data: xs.map((x) => [x, pdf(x, 0, st.sigma)]), color: P.warn, width: 2.4, fill: VZ.alpha(P.warn, 0.18) },
+            { data: xs.map((x) => [x, pdf(x, c.dTrue, st.sigma)]), color: P.accent, width: 2.4, fill: VZ.alpha(P.accent, 0.18) },
+          ],
+          vlines: [{ x: 0, color: P.warn, dash: [3, 3] }, { x: c.dTrue, color: P.accent, dash: [3, 3] }],
+        });
+      });
+      const cvC = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), c = calc(), lim = Math.max(Math.abs(c.est) + 1.96 * c.se, c.mde * 1.3, st.mu * 1.15, 1e-4) * 1.25;
+        const C2 = VZ.chart(ctx, null, {
+          x: [-lim, lim], y: [0, 1], yTicks: [], title: "평균 차이(관측 − 대조)와 95% 신뢰구간", xLabel: "평균 차이", margin: { l: 20 },
+          bands: [{ x0: -c.mde, x1: c.mde, color: VZ.alpha(P.faint, 0.18) }],
+          vlines: [{ x: 0, color: P.text, dash: [], width: 1.6 }, { x: st.mu, color: P.ok, dash: [5, 4], label: "진짜 μ", align: "right" }],
+          xFmt: (v) => v.toFixed(Math.abs(lim) < 0.02 ? 4 : 3),
+        });
+        const y = C2.Y(0.5), x0 = C2.X(c.est - 1.96 * c.se), x1 = C2.X(c.est + 1.96 * c.se), xm = C2.X(c.est);
+        ctx.strokeStyle = P.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.moveTo(x0, y - 7); ctx.lineTo(x0, y + 7); ctx.moveTo(x1, y - 7); ctx.lineTo(x1, y + 7); ctx.stroke();
+        ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(xm, y, 5.5, 0, 7); ctx.fill();
+        ctx.fillStyle = P.text; ctx.font = VZ.font(11, false, 600); ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillText("이번 표본의 평균 차이", VZ.clamp(xm, C2.X(-lim) + 70, C2.X(lim) - 70), y - 12);
+        ctx.fillStyle = P.dim; ctx.font = VZ.font(10.5, false); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+        ctx.fillText("회색 띠: 이 사건 수로 80% 검정력으로 잡을 수 있는 최소 차이(±)", C2.X(-lim) + 6, C2.Y(0.04));
+      });
+      S.legend([{ label: "관측 Δ", color: (P) => P.accent }, { label: "무작위 대조 Δ", color: (P) => P.warn }]);
+      const set = S.stats([{ k: "ovl", label: "두 분포가 겹치는 비율" }, { k: "d", label: "기대 평균 차이 (1−f)μ − b" }, { k: "ci", label: "이번 표본의 95% 신뢰구간" }, { k: "z", label: "z 값" }, { k: "mde", label: "최소 검출 차이 (80% 검정력)" }, { k: "need", label: "진짜 차이를 잡는 데 필요한 사건 수" }]);
+      function upd() {
+        cvH.redraw(); cvC.redraw();
+        const c = calc();
+        set("ovl", (c.ovl * 100).toFixed(1) + "%"); set("d", (c.dTrue >= 0 ? "+" : "") + c.dTrue.toFixed(4));
+        set("ci", `[${(c.est - 1.96 * c.se).toFixed(4)}, ${(c.est + 1.96 * c.se).toFixed(4)}]`);
+        set("z", c.z.toFixed(1)); set("mde", c.mde.toFixed(4));
+        set("need", isFinite(c.need) ? (c.need >= 1e7 ? (c.need / 1e6).toFixed(0) + "백만" : Math.round(c.need).toLocaleString()) : "불가 (기대 차이 ≤ 0)");
+      }
+      S.range({ label: "사건 수 N", min: 2, max: 6.3, step: 0.05, value: st.lgN, fmt: (v) => Math.round(10 ** v).toLocaleString(), onInput: (v) => { st.lgN = v; upd(); } });
+      S.range({ label: "사건별 Δ의 흩어짐 σ", min: 0.03, max: 0.2, step: 0.01, value: st.sigma, fmt: (v) => v.toFixed(2), onInput: (v) => { st.sigma = v; upd(); } });
+      S.range({ label: "진짜 영향 μ (영향이 있는 사건의 평균 Δ)", min: 0, max: 0.03, step: 0.001, value: st.mu, fmt: (v) => v.toFixed(3), onInput: (v) => { st.mu = v; upd(); } });
+      S.range({ label: "영향 없는 템플릿 봇 사건의 비율 f (가정)", min: 0, max: 0.9, step: 0.05, value: st.f, fmt: (v) => v.toFixed(2), onInput: (v) => { st.f = v; upd(); } });
+      S.range({ label: "선택 편향 b (대상이 이미 닮은 글이라 생기는 감소)", min: 0, max: 0.03, step: 0.0005, value: st.bias, fmt: (v) => v.toFixed(4), onInput: (v) => { st.bias = v; upd(); } });
+      S.button("표본 다시 뽑기", () => { const r = VZ.rng(Math.floor(Math.random() * 1e9)); st.z0 = VZ.randn(r); upd(); }, { primary: true });
       upd();
     },
   });
