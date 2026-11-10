@@ -6,6 +6,7 @@
    charm-gating · charm-jepa (논문 리뷰 p01)
    tslm-tokens · flamingo-xattn · tslm-noise (논문 리뷰 p03)
    bigram-decode (LLM에서 자율 에이전트까지 1장)
+   tsalign-align · tsalign-fusion · tsalign-cost (논문 리뷰 p04)
    ========================================================================== */
 (function () {
   "use strict";
@@ -2077,6 +2078,290 @@
         lock(); upd();
       });
       lock();
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     20. TSAlign — 언어 공간에 맞추기: 교체 · 잔차 · 게이트 잔차 (논문 리뷰 p04)
+     논문 식 (3)(4)를 장난감 크기(임베딩 C = 6)로 옮긴 계산이다. 수치는 논문의 값이 아니다.
+     ====================================================================== */
+  Lab.register({
+    id: "tsalign-align", field: "dl", thumb: "scatter", layout: "stack",
+    title: "언어 공간에 맞추기 — 교체 · 잔차 · 게이트 잔차 (TSAlign)",
+    desc: "시계열 패치 벡터를 언어 임베딩의 주성분 방향에 맞출 때, 방향으로 '교체'하면 언어 부분공간에는 들어가지만 패치 구조가 무너지고, '잔차'와 '게이트 잔차'는 구조를 지킨다는 것을 장난감 계산으로 봅니다.",
+    tags: ["TSAlign", "정렬", "게이트", "PCA", "NSPE"],
+    note: "논문 식 (3)·(4)를 <b>장난감 크기</b>(임베딩 차원 C = 6, 패치 8 · 보폭 4)로 옮긴 계산입니다. 패치 특징 H는 [평균, 표준편차, 범위, 기울기, 위치 sin·cos], 의미 방향 D̂는 직교 단위 벡터 R개(× 크기), 게이트의 w<sub>g</sub>는 고정 난수입니다. 실제 모델은 이것들을 학습하고 C가 수천이라 숫자는 논문과 무관합니다. 오른쪽 그림에서 속 빈 원은 인코더 출력 H, 채운 원은 정렬 뒤 H̃(색 = 시간 순서), 선은 이동, ◆는 의미 방향입니다. <b>NSPE</b>는 H̃가 의미 방향이 이루는 부분공간 밖에 있는 비율(논문 부록 H의 정의), <b>구조 보존 r</b>은 패치 쌍 거리가 H와 H̃에서 얼마나 닮았는지(상관계수)입니다. <b>해볼 것</b> ① '교체'를 고르면 H̃가 ◆들이 이루는 도형 안으로 들어와 NSPE가 0이 되지만(언어 부분공간에 완전히 들어옴) r이 크게 떨어집니다. 의미 방향을 1개로 줄이면 모든 패치가 한 점으로 무너집니다. ② '잔차'는 r을 지키지만 NSPE는 조금밖에 줄지 않습니다. ③ '게이트 잔차'에서 편향을 −4 ~ +4로 움직이면 '정렬 없음'과 '잔차' 사이를 오갑니다 — 게이트는 그 둘 사이의 손잡이입니다. ④ 의미 방향의 크기를 키우면 잔차의 보정이 커져 구조가 흐려집니다. 논문 표 4(TSAlign-3B, QA 정확도)는 교체형 어텐션 65.8 &lt; 잔차 75.3 &lt; 게이트 79.4로, 이 장난감은 '정보 손실' 설명이 계산으로는 자연스럽다는 것만 보여 줄 뿐 실제 모델이 그렇게 되는지는 증명하지 않습니다. 논문은 R, D̂의 크기(정규화 여부), w<sub>g</sub>의 형태(스칼라 게이트인지 채널별인지)를 밝히지 않았습니다.",
+    mount(S) {
+      const C = 6, PL = 8, STRIDE = 4, LEN = 100, NP = Math.floor((LEN - PL) / STRIDE) + 1;
+      const MODES = { none: "정렬 없음 · H̃ = H", replace: "교체 · H̃ = Z", resid: "잔차 · H̃ = H + Z", gated: "게이트 잔차 · H̃ = H + g ⊙ Z" };
+      const st = { type: "season", mode: "gated", R: 3, scale: 2, bias: 2, seed: 1 };
+      const dotv =(a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+      const nrm = (a) => Math.sqrt(dotv(a, a));
+      const softmax = (a) => { const m = Math.max(...a), e = a.map((v) => Math.exp(v - m)), s = e.reduce((x, y) => x + y, 0); return e.map((v) => v / s); };
+      // 고정된 직교 기저 Q: 의미 방향의 '방향' 부분. 게이트 가중치 w_g도 고정
+      const Q = (() => {
+        const r = VZ.rng(77), out = [];
+        for (let k = 0; k < C; k++) {
+          let v = Array.from({ length: C }, () => VZ.randn(r));
+          out.forEach((u) => { const p = dotv(v, u); v = v.map((x, i) => x - p * u[i]); });
+          const n = nrm(v);
+          out.push(v.map((x) => x / n));
+        }
+        return out;
+      })();
+      const WG = (() => { const r = VZ.rng(5); return Array.from({ length: C }, () => 0.5 * VZ.randn(r)); })();
+      function makeSeries() {
+        const r = VZ.rng(11 + st.seed * 7);
+        const x = Array.from({ length: LEN }, (_, t) => {
+          if (st.type === "season") return 0.025 * t + Math.sin((2 * Math.PI * t) / 20) + 0.15 * VZ.randn(r);
+          if (st.type === "regime") return (t < 50 ? 0.6 * Math.sin((2 * Math.PI * t) / 9) : 1.6 + 1.1 * Math.sin((2 * Math.PI * t) / 26)) + 0.15 * VZ.randn(r);
+          return 0.2 * VZ.randn(r) + (t === 28 || t === 29 ? 3.2 : 0) + (t === 66 ? -3 : 0) + (t >= 80 && t < 84 ? 1.8 : 0);
+        });
+        const m = VZ.mean(x), s = VZ.std(x) || 1;
+        return x.map((v) => (v - m) / s);
+      }
+      const patchFeats = (x) => Array.from({ length: NP }, (_, i) => {
+        const seg = x.slice(i * STRIDE, i * STRIDE + PL);
+        return [VZ.mean(seg), VZ.std(seg) * 2, Math.max(...seg) - Math.min(...seg), (seg[PL - 1] - seg[0]) * 0.8, Math.sin((2 * Math.PI * i) / NP), Math.cos((2 * Math.PI * i) / NP)];
+      });
+      /** H의 상위 2개 주성분 (거듭제곱법) — 그림 좌표용 */
+      function pca2(H) {
+        const mu = Array.from({ length: C }, (_, k) => VZ.mean(H.map((h) => h[k])));
+        const X = H.map((h) => h.map((v, k) => v - mu[k]));
+        let Mx = Array.from({ length: C }, (_, a) => Array.from({ length: C }, (_, b) => X.reduce((s, x) => s + x[a] * x[b], 0) / X.length));
+        const axes = [];
+        for (let c = 0; c < 2; c++) {
+          let v = Array.from({ length: C }, (_, k) => Math.cos(k * 1.3 + 1 + c * 2));
+          for (let it = 0; it < 200; it++) { v = Mx.map((row) => dotv(row, v)); const n = nrm(v) || 1; v = v.map((x) => x / n); }
+          const lam = dotv(v, Mx.map((row) => dotv(row, v)));
+          axes.push(v);
+          Mx = Mx.map((row, a) => row.map((x, b) => x - lam * v[a] * v[b]));
+        }
+        return { mu, axes };
+      }
+      const dist = (Mx) => { const d = []; for (let i = 0; i < Mx.length; i++) for (let j = i + 1; j < Mx.length; j++) d.push(nrm(Mx[i].map((v, k) => v - Mx[j][k]))); return d; };
+      const corr = (a, b) => {
+        const ma = VZ.mean(a), mb = VZ.mean(b);
+        let sab = 0, saa = 0, sbb = 0;
+        a.forEach((v, i) => { const p = v - ma, q = b[i] - mb; sab += p * q; saa += p * p; sbb += q * q; });
+        return saa > 1e-12 && sbb > 1e-12 ? sab / Math.sqrt(saa * sbb) : NaN;
+      };
+      let M = null;
+      function calc() {
+        const x = makeSeries(), H = patchFeats(x), pc = pca2(H);
+        const D = Q.slice(0, st.R).map((q) => q.map((v) => v * st.scale));
+        const A = H.map((h) => softmax(D.map((d) => dotv(h, d) / Math.sqrt(C))));
+        const Z = A.map((a) => Array.from({ length: C }, (_, k) => a.reduce((s, p, j) => s + p * D[j][k], 0)));
+        const g = H.map((h) => 1 / (1 + Math.exp(-(dotv(h, WG) + st.bias))));
+        const Ht = H.map((h, i) => st.mode === "none" ? h.slice() : st.mode === "replace" ? Z[i].slice() : st.mode === "resid" ? h.map((v, k) => v + Z[i][k]) : h.map((v, k) => v + g[i] * Z[i][k]));
+        const U = Q.slice(0, st.R);
+        const nspe = (Mx) => {
+          const vals = Mx.map((h) => {
+            const n = nrm(h);
+            if (n < 1e-9) return NaN;
+            const res = h.slice();
+            U.forEach((u) => { const p = dotv(h, u); for (let k = 0; k < C; k++) res[k] -= p * u[k]; });
+            return nrm(res) / n;
+          }).filter(isFinite);
+          return vals.length ? VZ.mean(vals) : NaN;
+        };
+        return { x, H, Z, g, D, Ht, pc, nspe: nspe(Ht), nspe0: nspe(H), r: corr(dist(H), dist(Ht)), gm: VZ.mean(g), zr: VZ.mean(Z.map(nrm)) / VZ.mean(H.map(nrm)) };
+      }
+      const proj = (v) => { const c = v.map((x, k) => x - M.pc.mu[k]); return [dotv(c, M.pc.axes[0]), dotv(c, M.pc.axes[1])]; };
+      const colorAt = (i, a) => VZ.rgb(VZ.viridis(i / (NP - 1)), a);
+      M = calc();
+      const [left, right] = S.split(2);
+      const cvS = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), lim = Math.max(...M.x.map(Math.abs)) * 1.1;
+        const C2 = VZ.chart(ctx, null, {
+          x: [0, LEN - 1], y: [-lim * 1.45, lim], yTicks: [0], title: `시계열과 패치 (길이 ${PL}, 보폭 ${STRIDE} → N = ${NP})`,
+          series: [{ data: M.x.map((v, t) => [t, v]), color: P.text, width: 1.6 }],
+        });
+        for (let i = 0; i < NP; i++) {
+          const x0 = C2.X(i * STRIDE), x1 = C2.X((i + 1) * STRIDE);
+          ctx.fillStyle = colorAt(i, 0.9);
+          ctx.fillRect(x0 + 0.5, C2.box.y + C2.box.h - 12, x1 - x0 - 1, 10);
+        }
+      });
+      const cvE = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette();
+        const p0 = M.H.map(proj), p1 = M.Ht.map(proj), pa = M.D.map(proj);
+        const all = [...p0, ...p1, ...pa];
+        const ax = Math.max(0.6, ...all.map((p) => Math.abs(p[0]))) * 1.15, ay = Math.max(0.6, ...all.map((p) => Math.abs(p[1]))) * 1.15;
+        const C2 = VZ.chart(ctx, null, { x: [-ax, ax], y: [-ay, ay], title: MODES[st.mode], xLabel: "H의 주성분 1", yLabel: "주성분 2", margin: { l: 44 } });
+        if (st.mode !== "none") {
+          ctx.lineWidth = 1;
+          p0.forEach((p, i) => { ctx.strokeStyle = colorAt(i, 0.3); ctx.beginPath(); ctx.moveTo(C2.X(p[0]), C2.Y(p[1])); ctx.lineTo(C2.X(p1[i][0]), C2.Y(p1[i][1])); ctx.stroke(); });
+        }
+        p0.forEach((p, i) => { ctx.strokeStyle = colorAt(i, 0.75); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(C2.X(p[0]), C2.Y(p[1]), 4, 0, 7); ctx.stroke(); });
+        p1.forEach((p, i) => { ctx.fillStyle = colorAt(i, 0.95); ctx.beginPath(); ctx.arc(C2.X(p[0]), C2.Y(p[1]), 3.6, 0, 7); ctx.fill(); });
+        pa.forEach((p, j) => {
+          const x = C2.X(p[0]), y = C2.Y(p[1]);
+          ctx.fillStyle = P.warn; ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 7); ctx.lineTo(x - 6, y); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = P.text; ctx.font = VZ.font(10.5, false, 600); ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.fillText("D̂" + (j + 1), x + 8, y - 4);
+        });
+      });
+      S.legend([{ label: "인코더 출력 H (속 빈 원)", color: (P) => P.dim, dot: true }, { label: "정렬 뒤 H̃ (채운 원, 색 = 시간 순서)", color: (P) => P.accent, dot: true }, { label: "의미 방향 D̂ (◆)", color: (P) => P.warn, dot: true }]);
+      const set = S.stats([{ k: "n", label: "NSPE (낮을수록 언어 부분공간 안)" }, { k: "n0", label: "NSPE · 정렬 없음일 때" }, { k: "r", label: "구조 보존 r (1 = 그대로)" }, { k: "g", label: "평균 게이트 g" }, { k: "z", label: "보정 크기 ‖Z‖ ÷ ‖H‖" }]);
+      let bCtl;
+      function upd(re) {
+        if (re) M = calc();
+        cvS.redraw(); cvE.redraw();
+        const fx = (v) => (isFinite(v) ? v.toFixed(3) : "—");
+        set("n", fx(M.nspe)); set("n0", fx(M.nspe0));
+        set("r", isFinite(M.r) ? M.r.toFixed(3) : "<span style=\"color:var(--bad)\">붕괴 (모두 같은 점)</span>");
+        set("g", st.mode === "gated" ? M.gm.toFixed(2) : "—"); set("z", st.mode === "none" ? "—" : M.zr.toFixed(2));
+        bCtl.el.disabled = st.mode !== "gated"; bCtl.el.closest(".ctrl").style.opacity = st.mode === "gated" ? 1 : 0.45;
+      }
+      S.seg({ label: "정렬 방식", options: [["none", "정렬 없음"], ["replace", "교체"], ["resid", "잔차"], ["gated", "게이트 잔차"]], value: st.mode, onChange: (v) => { st.mode = v; upd(true); } });
+      S.select({ label: "시계열", options: [["season", "추세 + 계절"], ["regime", "레짐 전환"], ["spike", "스파이크"]], value: st.type, onChange: (v) => { st.type = v; upd(true); } });
+      S.range({ label: "의미 방향 개수 R", min: 1, max: 5, step: 1, value: st.R, onInput: (v) => { st.R = v; upd(true); } });
+      S.range({ label: "의미 방향의 크기", min: 0.2, max: 3, step: 0.1, value: st.scale, fmt: (v) => v.toFixed(1), onInput: (v) => { st.scale = v; upd(true); } });
+      bCtl = S.range({ label: "게이트 편향 (−4 = 닫힘, +4 = 열림)", min: -4, max: 4, step: 0.1, value: st.bias, fmt: (v) => v.toFixed(1), onInput: (v) => { st.bias = v; upd(true); } });
+      S.button("시계열 다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     21. TSAlign — 다변량 융합: 가중치 모양과 변수 구분 (논문 리뷰 p04)
+     논문 식 (5)를 그대로 옮긴 계산. 소프트맥스 융합과 게이트 융합의 가중치를 비교하고,
+     변수 번호가 토큰에 없을 때 어느 변수가 먼저 움직였는지가 사라지는지 본다.
+     ====================================================================== */
+  Lab.register({
+    id: "tsalign-fusion", field: "dl", thumb: "bars", layout: "stack",
+    title: "다변량 융합 — 가중치의 모양과 사라지는 변수 구분 (TSAlign)",
+    desc: "변수마다 게이트를 매겨 가중 평균으로 합치는 식 (5)를 소프트맥스 융합과 비교하고, 변수 번호 없이 합친 토큰에서는 어느 변수가 먼저 움직였는지 알 수 없다는 것을 계산으로 확인합니다.",
+    tags: ["TSAlign", "융합", "게이트", "소프트맥스", "변수 구분"],
+    note: "위 그림은 변수 4개의 게이트 로짓 z를 슬라이더로 정했을 때 방식마다 가중치가 어떻게 달라지는지입니다. 논문은 소프트맥스 융합이 '경쟁 정규화로 유용한 신호를 누른다'고 설명하고 자기 게이트 융합은 '경쟁이 없다'고 하지만, 식 (5)는 게이트의 합 Σg로 나누므로 <b>가중치의 합이 1인 정규화 평균</b>입니다(초록 막대는 나누지 않은 경우로 합이 1이 아님). <b>해볼 것</b> ① z₁을 올려 보세요 — 두 정규화 방식 모두 나머지 변수의 몫이 줄어듭니다(경쟁은 있습니다). 차이는 모양입니다: 같은 로짓에서 시그모이드 비율은 소프트맥스보다 훨씬 평평해서(로짓 (3, 0, 0, 0)이면 변수 1의 몫이 소프트맥스 0.87, 게이트 0.39) 한 변수가 독차지하기 어렵습니다. ② 아래 그림은 두 변수 A·B가 한 번씩 계단처럼 오르는 시계열을 합친 결과입니다. 왼쪽은 A가 먼저, 오른쪽은 B가 먼저 오릅니다. 게이트가 각 변수 <b>자기 내용</b>의 요약(여기서는 평균)에서만 나오고 변수 번호나 이름표가 토큰에 들어가지 않으면, 융합 결과는 둘이 <b>똑같습니다</b>(굵은 선이 겹침). 논문 식 (5)를 그대로 읽은 결과이며, 변수 임베딩이나 변수별 인코더가 있다면 달라지는데 논문은 이를 적지 않았습니다. 질문 글에 변수 이름이 있어도 토큰 쪽에는 '누가 먼저'가 남지 않는다는 뜻입니다. κ = 0이면 게이트가 모두 0.5라 균등 평균이 됩니다.",
+    mount(S) {
+      const NV = 4, LEN = 100;
+      const st = { z: [2.5, 0.5, -1, -3], kappa: 1.5 };
+      const sg = (x) => 1 / (1 + Math.exp(-x));
+      const weights = () => {
+        const z = st.z, e = z.map(Math.exp), se = e.reduce((a, b) => a + b, 0), g = z.map(sg), sgm = g.reduce((a, b) => a + b, 0);
+        return { uni: z.map(() => 1 / NV), sm: e.map((v) => v / se), gn: g.map((v) => v / sgm), gs: g };
+      };
+      const step = (t0) => Array.from({ length: LEN }, (_, t) => (t >= t0 ? 1 : 0));
+      const early = step(30), late = step(60);
+      const gate = (x) => sg(st.kappa * VZ.mean(x));
+      function demo(aFirst) {
+        const A = aFirst ? early : late, B = aFirst ? late : early, gA = gate(A), gB = gate(B);
+        return { A, B, gA, gB, f: A.map((v, t) => (gA * v + gB * B[t]) / (gA + gB)) };
+      }
+      const SETS = (W, P) => [["균등 1/D", W.uni, P.dim], ["소프트맥스", W.sm, P.warn], ["게이트 ÷ Σg (식 5)", W.gn, P.accent], ["게이트 (나누지 않음)", W.gs, P.ok]];
+      const cvW = S.canvas({ aspect: 0.4, minHeight: 210, maxHeight: 300 }, (ctx) => {
+        const P = VZ.palette(), W = weights();
+        VZ.chart(ctx, null, {
+          x: [-0.6, NV - 0.4], y: [0, 1.05], yTicks: [0, 0.25, 0.5, 0.75, 1], title: "변수별 융합 가중치 — 같은 게이트 로짓 z에서",
+          xTicks: Array.from({ length: NV }, (_, i) => i), xFmt: (i) => `변수 ${i + 1} (z = ${st.z[i].toFixed(1)})`,
+          series: SETS(W, P).map(([, arr, col], i) => ({ type: "bar", data: arr.map((v, k) => [k, v]), color: col, barWidth: 0.17, offset: i - 1.5 })),
+        });
+      });
+      S.legend([{ label: "균등 1/D", color: (P) => P.dim }, { label: "소프트맥스", color: (P) => P.warn }, { label: "게이트 ÷ Σg (식 5)", color: (P) => P.accent }, { label: "게이트 (나누지 않음)", color: (P) => P.ok }]);
+      const cvD = S.canvas({ aspect: 0.36, minHeight: 190, maxHeight: 260 }, (ctx, w, h) => {
+        const P = VZ.palette();
+        [true, false].forEach((aFirst, k) => {
+          const d = demo(aFirst);
+          VZ.chart(ctx, { x: (k * w) / 2, y: 0, w: w / 2, h }, {
+            x: [0, LEN - 1], y: [-0.05, 1.12], yTicks: [0, 0.5, 1], title: aFirst ? "A가 먼저 (t = 30), B가 나중 (t = 60)" : "B가 먼저 (t = 30), A가 나중 (t = 60)",
+            series: [
+              { data: d.A.map((v, t) => [t, v]), color: P.accent, width: 1.6, dash: [5, 3] },
+              { data: d.B.map((v, t) => [t, v]), color: P.accent2, width: 1.6, dash: [5, 3] },
+              { data: d.f.map((v, t) => [t, v]), color: P.text, width: 3 },
+            ],
+          });
+        });
+      });
+      const set = S.stats([{ k: "sm", label: "소프트맥스: 최대 ÷ 최소 몫" }, { k: "gn", label: "게이트 ÷ Σg: 최대 ÷ 최소 몫" }, { k: "gs", label: "Σg (나누지 않으면 합이 1이 아님)" }, { k: "ge", label: "게이트: 먼저 오른 변수 / 나중에 오른 변수" }, { k: "df", label: "두 그림 융합 결과의 최대 차이" }]);
+      const ratio = (a) => { const r = Math.max(...a) / Math.min(...a); return r > 1000 ? "&gt; 1000×" : r.toFixed(1) + "×"; };
+      function upd() {
+        cvW.redraw(); cvD.redraw();
+        const W = weights(), a = demo(true), b = demo(false);
+        const diff = Math.max(...a.f.map((v, t) => Math.abs(v - b.f[t])));
+        set("sm", ratio(W.sm)); set("gn", ratio(W.gn)); set("gs", W.gs.reduce((x, y) => x + y, 0).toFixed(2));
+        set("ge", `${gate(early).toFixed(2)} / ${gate(late).toFixed(2)}`); set("df", diff.toFixed(3));
+      }
+      st.z.forEach((v, i) => S.range({ label: `변수 ${i + 1}의 게이트 로짓 z`, min: -6, max: 6, step: 0.1, value: v, fmt: (x) => x.toFixed(1), onInput: (x) => { st.z[i] = x; upd(); } }));
+      S.range({ label: "게이트 민감도 κ (g = σ(κ · 평균))", min: 0, max: 4, step: 0.1, value: st.kappa, fmt: (v) => v.toFixed(1), onInput: (v) => { st.kappa = v; upd(); } });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     22. TSAlign — 입력 비용: 글자 · 그림 · 패치 토큰 (논문 리뷰 p04)
+     논문이 보고한 토큰 비율(16.79배 · 2.96배)과 논문에 없는 패치 설정(P, S)을 함께 본다.
+     ====================================================================== */
+  Lab.register({
+    id: "tsalign-cost", field: "dl", thumb: "windows",
+    title: "시계열 입력 비용 — 글자 · 그림 · 패치 토큰 (TSAlign)",
+    desc: "다변량 시계열 샘플 하나가 LLM 문맥에 차지하는 토큰 수를 숫자 글자·선 그래프·패치 토큰으로 어림하고, 논문이 보고한 토큰 비율이 나오려면 패치 설정이 어때야 하는지 거꾸로 따져 봅니다.",
+    tags: ["TSAlign", "토큰", "효율", "패치", "비용"],
+    note: "샘플 하나가 LLM 문맥에 차지하는 토큰 수의 <b>어림</b>입니다. <b>글자 입력</b>은 값 하나를 숫자 글자 여러 개로 적고(기본 6토큰, 가정), <b>그림 입력</b>은 변수마다 선 그래프 한 장(기본 640토큰, 약 840×600 픽셀을 28×28 픽셀당 1토큰으로 센 가정), <b>TSAlign</b>은 변수를 융합한 뒤 패치 N = ⌊(L − P)/S⌋ + 1개만 넣으므로 변수 수와 무관합니다. 지시문·배경·질문·보기 같은 부가 토큰은 600으로 가정했습니다. 논문은 입력 토큰이 그림보다 2.96배, 글자보다 16.79배 적다고 보고하는데(어떤 샘플로 쟀는지는 적지 않았고, TSCognition의 평균은 길이 785 · 변수 4.9개), <b>패치 길이 P와 보폭 S는 논문에 없습니다</b>. 그래서 '역산' 칸은 그 비율이 나오려면 N이 얼마여야 하는지를 보여 줍니다. 기본 가정에서는 보폭 1 안팎이 나오지만 값당 토큰·부가 토큰·그림 토큰을 바꾸면 크게 달라지므로, P · S를 추정하는 근거로 쓰면 안 됩니다. <b>해볼 것</b> ① 아래 그림에서 변수 수를 보세요: 글자·그림은 변수에 비례해 늘지만 TSAlign은 변하지 않습니다. ② '보기마다 따로 읽기'를 켜면(논문 식 s<sub>k</sub> = f(E<sub>k</sub>)를 문자 그대로 구현할 때) TSAlign의 처리 토큰이 평균 보기 수 4.5배가 되어 속도 비교의 의미가 달라집니다. 논문은 어느 쪽인지 밝히지 않았습니다(그림 10의 프롬프트에는 보기가 모두 들어 있습니다).",
+    mount(S) {
+      const st = { L: 785, D: 5, tpv: 6, ov: 600, P: 8, stride: 4, img: 640, perVar: true, kPass: false };
+      const KAVG = 4.5, RT = 16.79, RV = 2.96;
+      const fmtK = (v) => (v >= 1e4 ? (v / 1000).toFixed(v >= 1e5 ? 0 : 1) + "k" : Math.round(v).toLocaleString());
+      const count = (o) => {
+        const s = Math.max(1, Math.min(o.stride, o.P)), N = Math.max(1, Math.floor((o.L - o.P) / s) + 1);
+        const text = o.ov + o.D * o.L * o.tpv, vis = o.ov + (o.perVar ? o.D : 1) * o.img, ts = o.ov + N;
+        return { N, s, text, vis, ts, tsAll: o.kPass ? ts * KAVG : ts };
+      };
+      const cvT = S.canvas({ aspect: 0.3, minHeight: 170, maxHeight: 230 }, (ctx, w, h) => {
+        const P = VZ.palette(), c = count(st), lo = 2, hi = 6, m = { l: 150, r: 16, t: 26, b: 26 };
+        const X = (v) => m.l + ((Math.log10(Math.max(100, v)) - lo) / (hi - lo)) * (w - m.l - m.r);
+        const rows = [["숫자 글자 (TS-Text)", c.text, P.warn], ["선 그래프 (Vision-Text)", c.vis, P.accent2], [st.kPass ? "TSAlign (보기마다 따로)" : "TSAlign (패치 토큰)", c.tsAll, P.accent]];
+        const bh = (h - m.t - m.b) / rows.length;
+        ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 700); ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("샘플 하나의 입력 토큰 수 (로그 축)", 8, 4);
+        for (let e = lo; e <= hi; e++) {
+          const x = X(10 ** e);
+          ctx.strokeStyle = P.grid; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, h - m.b); ctx.stroke();
+          ctx.fillStyle = P.dim; ctx.font = VZ.font(10.5); ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(fmtK(10 ** e), x, h - m.b + 4);
+        }
+        rows.forEach(([name, v, col], i) => {
+          const y = m.t + i * bh;
+          ctx.fillStyle = P.text; ctx.font = VZ.font(12, false, 600); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(name, m.l - 10, y + bh / 2);
+          ctx.fillStyle = col; ctx.fillRect(m.l, y + bh * 0.22, X(v) - m.l, bh * 0.56);
+          ctx.fillStyle = P.text; ctx.font = VZ.font(11, true, 700); ctx.textAlign = "left";
+          const label = fmtK(v);
+          ctx.fillText(label, Math.min(X(v) + 6, w - m.r - ctx.measureText(label).width), y + bh / 2);
+        });
+      });
+      const cvD = S.canvas({ aspect: 0.4, minHeight: 200, maxHeight: 280 }, (ctx) => {
+        const P = VZ.palette(), Ds = Array.from({ length: 10 }, (_, i) => i + 1);
+        const line = (key) => Ds.map((d) => [d, count({ ...st, D: d })[key]]);
+        VZ.chart(ctx, null, {
+          x: [1, 10], y: [100, 1e6], logY: true, title: "변수 수 D에 따른 입력 토큰 수", xLabel: "변수 수 D", xTicks: Ds, yFmt: fmtK,
+          series: [{ data: line("text"), color: P.warn, width: 2.4 }, { data: line("vis"), color: P.accent2, width: 2.4 }, { data: line("tsAll"), color: P.accent, width: 2.4 }],
+          vlines: [{ x: st.D, color: P.text, dash: [3, 3] }],
+        });
+      });
+      S.legend([{ label: "숫자 글자", color: (P) => P.warn }, { label: "선 그래프", color: (P) => P.accent2 }, { label: "TSAlign", color: (P) => P.accent }]);
+      const set = S.stats([{ k: "n", label: "TSAlign 패치 토큰 N" }, { k: "rt", label: "글자 ÷ TSAlign (이 설정)" }, { k: "rv", label: "그림 ÷ TSAlign (이 설정)" }, { k: "pp", label: "논문 보고 (글자 / 그림)" }, { k: "need", label: "역산: 글자 16.79배가 되려면 N" }, { k: "needv", label: "역산: 그림 2.96배가 되려면 N" }]);
+      const need = (total, r, c) => {
+        const n = total / r - st.ov;
+        if (n < 1) return "불가 (부가 토큰만으로 초과)";
+        const s = n > 1 ? (st.L - st.P) / (n - 1) : Infinity;
+        return `${Math.round(n).toLocaleString()}<small> (보폭 ≈ ${isFinite(s) ? s.toFixed(1) : "—"})</small>`;
+      };
+      function upd() {
+        cvT.redraw(); cvD.redraw();
+        const c = count(st);
+        set("n", `${c.N.toLocaleString()}<small> (P = ${st.P}, S = ${c.s})</small>`);
+        set("rt", (c.text / c.tsAll).toFixed(1) + "×"); set("rv", (c.vis / c.tsAll).toFixed(1) + "×");
+        set("pp", `${RT}× / ${RV}×`); set("need", need(c.text, RT)); set("needv", need(c.vis, RV));
+      }
+      S.range({ label: "시계열 길이 L (논문 평균 785)", min: 100, max: 2000, step: 5, value: st.L, onInput: (v) => { st.L = v; upd(); } });
+      S.range({ label: "변수 수 D (논문 평균 4.9)", min: 1, max: 10, step: 1, value: st.D, onInput: (v) => { st.D = v; upd(); } });
+      S.range({ label: "값 하나당 글자 토큰 (가정)", min: 2, max: 10, step: 0.5, value: st.tpv, fmt: (v) => v.toFixed(1), onInput: (v) => { st.tpv = v; upd(); } });
+      S.range({ label: "부가 토큰 (지시문 · 배경 · 질문 · 보기, 가정)", min: 100, max: 2000, step: 50, value: st.ov, onInput: (v) => { st.ov = v; upd(); } });
+      S.range({ label: "패치 길이 P (논문에 없음)", min: 2, max: 32, step: 1, value: st.P, onInput: (v) => { st.P = v; upd(); } });
+      S.range({ label: "보폭 S (논문에 없음, S ≤ P)", min: 1, max: 32, step: 1, value: st.stride, onInput: (v) => { st.stride = v; upd(); } });
+      S.range({ label: "그림 한 장의 토큰 (가정)", min: 100, max: 2000, step: 20, value: st.img, onInput: (v) => { st.img = v; upd(); } });
+      S.check({ label: "그림을 변수마다 한 장씩", value: st.perVar, onChange: (v) => { st.perVar = v; upd(); } });
+      S.check({ label: "TSAlign이 보기마다 따로 읽는다면 (× 4.5)", value: st.kPass, onChange: (v) => { st.kPass = v; upd(); } });
       upd();
     },
   });
