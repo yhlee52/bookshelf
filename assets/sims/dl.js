@@ -8,6 +8,7 @@
    bigram-decode (LLM에서 자율 에이전트까지 1장)
    tsalign-align · tsalign-fusion · tsalign-cost (논문 리뷰 p04)
    molt-centroid · molt-drift · molt-supernode · molt-event (논문 리뷰 p05)
+   kumo-darr · kumo-lagflow · kumo-curriculum · kumo-pa (논문 리뷰 p06)
    ========================================================================== */
 (function () {
   "use strict";
@@ -2734,6 +2735,380 @@
       S.range({ label: "영향 없는 템플릿 봇 사건의 비율 f (가정)", min: 0, max: 0.9, step: 0.05, value: st.f, fmt: (v) => v.toFixed(2), onInput: (v) => { st.f = v; upd(); } });
       S.range({ label: "선택 편향 b (대상이 이미 닮은 글이라 생기는 감소)", min: 0, max: 0.03, step: 0.0005, value: st.bias, fmt: (v) => v.toFixed(4), onInput: (v) => { st.bias = v; upd(); } });
       S.button("표본 다시 뽑기", () => { const r = VZ.rng(Math.floor(Math.random() * 1e9)); st.z0 = VZ.randn(r); upd(); }, { primary: true });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     27. Kumo-Forecast — DARR retrieval: context stride와 위상, α, level shift (논문 리뷰 p06)
+     공개 코드(sdk/forecasting.py)의 build_context_memory · knn_forecast · 혼합식 α·직접 + (1−α)·retrieval을
+     장난감 시계열로 옮겼다. 임베딩은 MOMENT가 아니라 z 정규화 window(RevIN처럼 level·크기를 지운 모양)이다.
+     ====================================================================== */
+  Lab.register({
+    id: "kumo-darr", field: "dl", thumb: "windows", layout: "stack",
+    title: "DARR가 과거에서 이웃을 찾는 법 — context stride, α, level shift (Kumo-Forecast)",
+    desc: "과거 보관 데이터를 일정한 stride로 잘라 임베딩을 저장하고 코사인 kNN으로 '뒤 72스텝'을 평균 내는 DARR 경로를 장난감 시계열로 옮겨, stride가 주기의 배수일 때 위상이 사라지는 것과 level shift가 retrieval 예측에 그대로 실리는 것을 확인합니다.",
+    tags: ["Kumo-Forecast", "DARR", "kNN retrieval", "context stride", "위상", "level shift"],
+    note: "공개 코드 <code>sdk/forecasting.py</code>의 DARR 경로(<code>build_context_memory</code> → <code>knn_forecast</code> → 혼합)를 <b>장난감 시계열</b>로 옮긴 계산입니다. 주기 24, window 120, 예측 72(모델의 직접 예측 길이)이고, 과거 보관 데이터(2,400스텝)를 <b>stride s마다</b> 잘라 'window의 임베딩'과 '그 뒤 72스텝'을 저장해 둡니다. 임베딩은 실제 MOMENT 출력이 아니라 <b>window의 z 정규화 벡터</b>(level과 크기를 지운 모양, 코사인 = 상관계수)이고, 가중치는 상위 k개에 softmax(유사도 ÷ T)입니다. 이웃의 '뒤 72스텝'은 <b>level을 보정하지 않은 절대값</b>으로 평균을 내며(코드 그대로), 최종 예측은 α × 직접 + (1 − α) × retrieval입니다. 주황 점선 '직접'(범례 참고)은 실제 Kumo-Forecast의 출력이 아니라 <b>최근 5개 주기의 평균 모양을 반복</b>하는 stand-in입니다. 따라서 이 실험은 DARR 쪽 동작을 보는 것이지 DARR와 직접 예측 중 무엇이 낫다는 비교가 아닙니다. <b>해볼 것</b> ① 기본값(stride 72, α 0.01)에서 쿼리 위상을 0 아닌 값으로 두면 오른쪽 점이 한 위상(0)에만 있고 retrieval 예측이 위상만큼 어긋납니다 — stride가 주기의 배수면 모든 context window의 위상이 같기 때문입니다(NVIDIA 문서가 <code>context_stride</code>에 달아 둔 주의와 같은 현상). stride를 7이나 1로 바꾸면 24개 위상이 모두 채워져 오차가 내려갑니다. ② α를 0.01에서 0.2로 바꿔도 retrieval이 80%라 오차의 대부분이 남습니다(루트 README의 '20% 직접' 예시는 코드 기본값과 다릅니다). ③ level shift Δ를 키우면 직접 stand-in은 level을 따라가지만 retrieval은 컨텍스트의 level을 그대로 가져옵니다. 'level 보정' 상자는 <b>코드에 없는 가상의 변형</b>(이웃 window 평균과 쿼리 평균의 차를 더함)으로, 이 약점이 구조적임을 보이려는 것입니다. ④ 온도 T는 코사인 차이 T만큼마다 가중치를 e배로 바꿉니다. 상위 k개의 유사도가 서로 비슷하면(stride 1에서는 모두 0.97–0.98) T = 0.05에서도 사실상 균등 평균이라 통계의 '유효 이웃 수'가 k에 가깝습니다. ⑤ 기본 stride에서는 가장 높은 유사도가 0 아래일 수 있는데도 코드는 유사도에 하한을 두지 않고 이웃의 미래를 그대로 평균합니다. 숫자는 이 장난감 시계열의 것이며 Kumo-Forecast의 성능과 무관합니다.",
+    mount(S) {
+      const PER = 24, L = 120, H = 72, NC = 2400, TOT = NC + 420, HIST = 48, REP = 5;
+      const st = { phase: 7, stride: 72, alpha: 0.01, k: 64, lgT: Math.log10(0.05), noise: 0.4, shift: 0, fix: false, seed: 1 };
+      let E = null, R = null;
+      const seasonal = (t) => { const w = (2 * Math.PI * t) / PER; return (10 * Math.sin(w) + 4 * Math.sin(2 * w + 1.0) + 2.5 * Math.sin(3 * w + 0.3)) * (1 + 0.12 * Math.sin((2 * Math.PI * t) / (7 * PER))); };
+      function gen() {
+        const r = VZ.rng(st.seed * 7919 + 13);
+        E = new Float64Array(TOT);
+        let e = 0;
+        for (let t = 0; t < TOT; t++) { e = 0.5 * e + Math.sqrt(0.75) * VZ.randn(r); E[t] = e; }
+      }
+      function znorm(a, off, n) {
+        let m = 0;
+        for (let i = 0; i < n; i++) m += a[off + i];
+        m /= n;
+        let v = 0;
+        for (let i = 0; i < n; i++) { const d = a[off + i] - m; v += d * d; }
+        const s = Math.sqrt(v / n) || 1, z = new Float64Array(n), c = Math.sqrt(n);
+        for (let i = 0; i < n; i++) z[i] = (a[off + i] - m) / s / c;
+        return { z, mean: m };
+      }
+      function compute() {
+        const Y = new Float64Array(TOT);
+        for (let t = 0; t < TOT; t++) Y[t] = 50 + seasonal(t) + 3 * st.noise * E[t] + (t >= NC ? st.shift : 0);
+        const qb = NC + 240, q = qb + ((((st.phase - qb) % PER) + PER) % PER);
+        const qw = Y.slice(q - L, q), truth = Y.slice(q, q + H), zq = znorm(qw, 0, L);
+        const wins = [];
+        for (let s = 0; s + L + H <= NC; s += st.stride) {
+          const zw = znorm(Y, s, L);
+          let sim = 0;
+          for (let i = 0; i < L; i++) sim += zq.z[i] * zw.z[i];
+          wins.push({ s, sim, mean: zw.mean, ph: (s + L) % PER });
+        }
+        const N = wins.length, kk = Math.min(st.k, N), T = Math.pow(10, st.lgT);
+        const order = wins.map((_, i) => i).sort((a, b) => wins[b].sim - wins[a].sim).slice(0, kk), smax = wins[order[0]].sim;
+        let zs = 0;
+        const w = order.map((i) => { const e = Math.exp((wins[i].sim - smax) / T); zs += e; return e; }).map((e) => e / zs);
+        const knn = new Float64Array(H);
+        order.forEach((i, j) => { const off = st.fix ? zq.mean - wins[i].mean : 0; for (let h = 0; h < H; h++) knn[h] += w[j] * (Y[wins[i].s + L + h] + off); });
+        const direct = new Float64Array(H);
+        for (let h = 0; h < H; h++) { let a = 0; for (let j = 1; j <= REP; j++) a += qw[L - j * PER + (h % PER)]; direct[h] = a / REP; }
+        const hyb = direct.map((d, h) => st.alpha * d + (1 - st.alpha) * knn[h]);
+        const mae = (p) => { let a = 0; for (let h = 0; h < H; h++) a += Math.abs(p[h] - truth[h]); return a / H; };
+        const qph = q % PER;
+        const gap = wins.reduce((g, x) => { const d = Math.abs(x.ph - qph); return Math.min(g, Math.min(d, PER - d)); }, PER);
+        R = { q, qph, qw, truth, direct, knn, hyb, wins, order, w, N, kk, effK: 1 / w.reduce((a, b) => a + b * b, 0), phases: new Set(wins.map((x) => x.ph)).size, gap, best: smax, maeD: mae(direct), maeK: mae(knn), maeH: mae(hyb) };
+      }
+      gen(); compute();
+      const [left, right] = S.split(2);
+      const cvF = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), r = R;
+        const line = (arr) => Array.from({ length: H }, (_, h) => [h, arr[h]]);
+        const hist = Array.from({ length: HIST }, (_, i) => [i - HIST, r.qw[L - HIST + i]]);
+        const vals = [...hist.map((p) => p[1]), ...r.truth, ...r.direct, ...r.knn, ...r.hyb], lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 1;
+        VZ.chart(ctx, null, {
+          x: [-HIST, H], y: [lo - pad, hi + pad], title: "예측 72스텝 — 정답과 세 가지 예측", xLabel: "쿼리 끝 이후 시점 (0 = 예측 시작)", yLabel: "값", margin: { l: 50 }, xTicks: [-48, -24, 0, 24, 48, 72],
+          series: [
+            { data: hist, color: P.dim, width: 2 },
+            { data: line(r.truth), color: P.text, width: 2.6 },
+            { data: line(r.direct), color: P.warn, width: 2, dash: [6, 4] },
+            { data: line(r.knn), color: P.accent2, width: 2, dash: [2, 3] },
+            { data: line(r.hyb), color: P.accent, width: 3 },
+          ],
+          vlines: [{ x: 0, color: P.faint }],
+        });
+      });
+      const cvP = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), r = R, lo = Math.max(-1, Math.min(...r.wins.map((x) => x.sim)) - 0.05);
+        VZ.chart(ctx, null, {
+          x: [-0.5, PER - 0.5], y: [lo, 1.0], title: `context window ${r.N}개 — 끝 위상별 유사도`, xLabel: "window 끝의 위상 (시각 mod 24)", yLabel: "코사인 유사도", margin: { l: 50 }, xTicks: [0, 4, 8, 12, 16, 20],
+          series: [
+            { type: "scatter", data: r.wins.map((x) => [x.ph, x.sim]), color: VZ.alpha(P.dim, 0.45), r: 2.2 },
+            { type: "scatter", data: r.order.map((i) => [r.wins[i].ph, r.wins[i].sim]), color: P.accent, r: 3.8 },
+          ],
+          vlines: [{ x: r.qph, color: P.warn, dash: [4, 3], width: 1.8 }],
+        });
+      });
+      S.legend([{ label: "왼쪽: 쿼리 window 끝부분", color: (P) => P.dim }, { label: "정답", color: (P) => P.text }, { label: "직접 (stand-in: 최근 5주기 평균 반복)", color: (P) => P.warn, dash: true }, { label: "retrieval만 (kNN)", color: (P) => P.accent2, dash: true }, { label: "혼합 α·직접 + (1−α)·retrieval", color: (P) => P.accent }, { label: "오른쪽: 선택된 이웃 (주황선 = 쿼리 위상)", color: (P) => P.accent, dot: true }]);
+      const set = S.stats([{ k: "n", label: "context window 수 N (k는 N까지만)" }, { k: "ph", label: "context window가 덮는 위상 수 / 24" }, { k: "gap", label: "쿼리 위상과 가장 가까운 window의 위상 차 (시간)" }, { k: "eff", label: "유효 이웃 수 1/Σw²" }, { k: "best", label: "가장 높은 유사도" }, { k: "mae", label: "정답과의 MAE · 직접 / retrieval / 혼합" }]);
+      function upd(re) {
+        if (re) gen();
+        compute();
+        cvF.redraw(); cvP.redraw();
+        const r = R;
+        set("n", `${r.N} <small>(k = ${r.kk})</small>`); set("ph", `${r.phases} / ${PER}`); set("gap", String(r.gap)); set("eff", r.effK.toFixed(1)); set("best", r.best.toFixed(3));
+        set("mae", `${r.maeD.toFixed(2)} / ${r.maeK.toFixed(2)} / <b>${r.maeH.toFixed(2)}</b>`);
+      }
+      S.range({ label: "쿼리 끝의 위상 (시각 mod 24)", min: 0, max: 23, step: 1, value: st.phase, onInput: (v) => { st.phase = v; upd(); } });
+      S.select({ label: "context_stride (기본값 72 = 주기의 3배)", options: [["1", "1"], ["7", "7"], ["12", "12"], ["24", "24 (= 주기)"], ["36", "36"], ["72", "72 (기본값)"]], value: String(st.stride), onChange: (v) => { st.stride = Number(v); upd(); } });
+      S.select({ label: "혼합 비율 α (직접 예측의 몫)", options: [["0", "0 (retrieval만)"], ["0.01", "0.01 (코드·문서 기본값)"], ["0.2", "0.2 (루트 README 예시)"], ["0.5", "0.5"], ["1", "1 (직접만)"]], value: String(st.alpha), onChange: (v) => { st.alpha = Number(v); upd(); } });
+      S.range({ label: "이웃 수 k (기본값 64)", min: 1, max: 64, step: 1, value: st.k, onInput: (v) => { st.k = v; upd(); } });
+      S.range({ label: "온도 T (기본값 0.05)", min: -2, max: 0, step: 0.05, value: st.lgT, fmt: (v) => Math.pow(10, v).toFixed(3), onInput: (v) => { st.lgT = v; upd(); } });
+      S.range({ label: "잡음의 크기", min: 0, max: 1.5, step: 0.05, value: st.noise, fmt: (v) => v.toFixed(2), onInput: (v) => { st.noise = v; upd(); } });
+      S.range({ label: "level shift Δ (지금 시계열이 과거 보관 데이터보다 높은 정도)", min: -15, max: 15, step: 1, value: st.shift, onInput: (v) => { st.shift = v; upd(); } });
+      S.check({ label: "이웃 미래를 level 보정 (코드에 없는 가상 변형)", value: st.fix, onChange: (v) => { st.fix = v; upd(); } });
+      S.button("잡음 다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     28. Kumo-Forecast — Lag–Horizon attribution 행렬: 누적합의 단조성과 hard-coded kernel (논문 리뷰 p06)
+     공개 코드(interpretability.py)의 lag_horizon_attribution(기본 flow_kind='delta_l2')과
+     sdk/forecasting.py의 _topk_lag_steps_per_horizon을 식 그대로 옮겼다. 입력 m은 모델이 아니라 사용자가 정한다.
+     ====================================================================== */
+  Lab.register({
+    id: "kumo-lagflow", field: "dl", thumb: "heat", layout: "stack",
+    title: "Lag–Horizon attribution 행렬이 말해 주는 것 — 단조성과 hard-coded kernel (Kumo-Forecast)",
+    desc: "semantic flow(flow magnitude)의 누적합을 lag에 대해 softmax한 attribution 행렬이 구조적으로 가장 오래된 lag 쪽으로 단조 증가한다는 것과, flow magnitude에 정보가 없어도 horizon별 패턴이 커널 때문에 생긴다는 것을 식 그대로 계산해 봅니다.",
+    tags: ["Kumo-Forecast", "해석 가능성", "semantic flow", "Lag–Horizon", "단조성"],
+    note: "공개 코드 <code>interpretability.py</code>의 기본 경로(<code>flow_kind = 'delta_l2'</code>)를 식 그대로 옮긴 계산입니다. 입력은 모델이 아니라 <b>사용자가 정하는 'flow magnitude' m<sub>a</sub></b>(a = 가장 최근 transition부터의 age)입니다. 실제로 m은 sliding window 임베딩의 연속 차이 ‖Z<sub>t+1</sub> − Z<sub>t</sub>‖이고, 코드 주석에 '출력 민감도 없음'이라고 적혀 있듯이 <b>예측 헤드의 출력과 무관하게</b> 계산됩니다. 점수는 S(j, h) = Σ<sub>a&lt;j</sub> m<sub>a</sub>·exp(−a/s<sub>h</sub>)이고 s<sub>h</sub>는 horizon h에 따라 4에서 K(= n_lags)까지 선형으로 커집니다. attribution A(j, h)는 lag j에 대한 softmax(S/τ)입니다. <b>왼쪽 히트맵이 A</b>이고, 오른쪽은 SDK의 top-k 표가 쓰는 'per-step 몫' softmax<sub>a</sub>(m<sub>a</sub>·w<sub>h</sub>(a))(τ 없음)입니다. <b>해볼 것</b> ① 범프(특정 lag에서 flow magnitude가 급증)를 키워도 왼쪽은 가장 오래된 lag(맨 위 행)이 가장 밝습니다 — S가 0 이상인 항의 누적합이라 j에 대해 단조 증가하고 softmax도 단조이기 때문입니다(통계의 '단조 비율' 100%). ② '정보 없음(m 상수)'을 켜도 horizon마다 다른 패턴이 나옵니다. 모델이 아니라 hard-coded kernel s<sub>h</sub>가 만드는 패턴입니다. ③ 오른쪽에서 범프는 먼 horizon(s<sub>h</sub> 큼)에서만 드러나고 가까운 horizon에서는 커널이 최근 lag로 몰아 가립니다. ④ m의 크기와 τ를 바꿔 보세요. 코드는 m을 정규화하지 않으므로 τ = 1에서의 결과가 m의 절대 크기에 좌우됩니다 — m이 작으면 거의 균등하고, 크면 한 칸에 몰립니다(히트맵은 이 차이가 보이도록 열마다 최댓값 대비 log₁₀로 그립니다). 이 실험은 코드를 읽어 옮긴 계산이며 실제 Kumo-Forecast 임베딩으로 돌려 본 것이 아닙니다.",
+    mount(S) {
+      const H = 72, MIN_S = 4, KMAX = 128;
+      const st = { K: 128, a0: 40, bump: 8, lgBase: -1, noise: 0.25, lgTau: 0, kern: true, flat: false, seed: 1 };
+      let Zr = null, R = null;
+      const gen = () => { const r = VZ.rng(st.seed * 131 + 3); Zr = Array.from({ length: KMAX }, () => VZ.randn(r)); };
+      function compute() {
+        const K = st.K, base = Math.pow(10, st.lgBase), tau = Math.pow(10, st.lgTau), a0 = Math.min(st.a0, K);
+        const m = Array.from({ length: K }, (_, a) => (st.flat ? base : Math.max(0, base * (1 + st.noise * Zr[a]) + base * st.bump * Math.exp(-Math.pow((a + 1 - a0) / 1.5, 2)))));
+        const A = new Float64Array(K * H), Pm = new Float64Array(K * H);
+        for (let h = 0; h < H; h++) {
+          const s = MIN_S + (h / (H - 1)) * (K - MIN_S), step = new Array(K), cum = new Array(K);
+          let c = 0;
+          for (let r = 0; r < K; r++) { step[r] = m[r] * (st.kern ? Math.exp(-r / s) : 1); c += step[r]; cum[r] = c; }
+          const mx = Math.max(...cum.map((v) => v / tau)); let z = 0;
+          for (let r = 0; r < K; r++) { const e = Math.exp(cum[r] / tau - mx); A[r * H + h] = e; z += e; }
+          for (let r = 0; r < K; r++) A[r * H + h] /= z;
+          const mx2 = Math.max(...step); let z2 = 0;
+          for (let r = 0; r < K; r++) { const e = Math.exp(step[r] - mx2); Pm[r * H + h] = e; z2 += e; }
+          for (let r = 0; r < K; r++) Pm[r * H + h] /= z2;
+        }
+        let mono = 0, tot = 0;
+        for (let h = 0; h < H; h++) for (let r = 0; r < K - 1; r++) { tot++; if (A[(r + 1) * H + h] >= A[r * H + h] - 1e-12) mono++; }
+        const argmax = (arr, h) => { let b = 0; for (let r = 1; r < K; r++) if (arr[r * H + h] > arr[b * H + h]) b = r; return b + 1; };
+        const aMax = Array.from({ length: H }, (_, h) => argmax(A, h)), pMax = Array.from({ length: H }, (_, h) => argmax(Pm, h));
+        let lo = Infinity, hi = -Infinity;
+        for (let i = 0; i < A.length; i++) { if (A[i] < lo) lo = A[i]; if (A[i] > hi) hi = A[i]; }
+        R = { K, a0, m, A, Pm, mono: mono / tot, aMax, pMax, lo, hi, hit: pMax.filter((v) => Math.abs(v - a0) <= 2).length };
+      }
+      gen(); compute();
+      const [left, right] = S.split(2);
+      const cvH = S.canvas({ parent: left, aspect: 0.85, maxHeight: 340 }, (ctx) => {
+        const P = VZ.palette(), r = R, K = r.K;
+        const C = VZ.chart(ctx, null, { x: [1, H], y: [1, K], title: "attribution A(j, h) — 열마다 최댓값 대비 log₁₀ (8자릿수)", xLabel: "예측 horizon h", yLabel: "lag j (위쪽 = 오래된 과거)", margin: { l: 50 }, xTicks: [1, 12, 24, 36, 48, 60, 72], yTicks: [1, 32, 64, 96, 128].filter((v) => v <= K) });
+        const b = C.box, lcm = Array.from({ length: H }, (_, h) => Math.log10(Math.max(1e-300, r.A[(K - 1) * H + h])));
+        VZ.field(ctx, b.x, b.y, b.w, b.h, H, K, (i, j) => 1 + (Math.log10(Math.max(1e-300, r.A[(K - 1 - j) * H + i])) - lcm[i]) / 8, (v) => VZ.viridis(VZ.clamp(v, 0, 1)), false);
+        ctx.strokeStyle = P.axis; ctx.lineWidth = 1; ctx.strokeRect(b.x, b.y, b.w, b.h);
+        if (!st.flat) { ctx.strokeStyle = P.warn; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(b.x, C.Y(r.a0)); ctx.lineTo(b.x + b.w, C.Y(r.a0)); ctx.stroke(); ctx.setLineDash([]); }
+      });
+      const cvP = S.canvas({ parent: right, aspect: 0.85, maxHeight: 340 }, (ctx) => {
+        const P = VZ.palette(), r = R, K = r.K, col = (h) => Array.from({ length: K }, (_, i) => [i + 1, r.Pm[i * H + h]]);
+        const mx = Math.max(...[0, 35, 71].map((h) => Math.max(...col(h).map((p) => p[1]))));
+        VZ.chart(ctx, null, {
+          x: [1, K], y: [0, mx * 1.15], title: "per-step 몫 (top-k 표의 기준) — horizon 3곳", xLabel: "lag j", yLabel: "softmax 몫", margin: { l: 50 }, xTicks: [1, 32, 64, 96, 128].filter((v) => v <= K), yFmt: (v) => v.toFixed(3),
+          series: [{ data: col(0), color: P.accent, width: 2.4 }, { data: col(35), color: P.accent2, width: 2.4 }, { data: col(71), color: P.warn, width: 2.4 }],
+          hlines: [{ y: 1 / K, color: P.faint }], vlines: st.flat ? [] : [{ x: r.a0, color: P.dim, dash: [4, 3] }],
+        });
+      });
+      S.legend([{ label: "왼쪽 점선: 범프의 lag", color: (P) => P.warn, dash: true }, { label: "오른쪽: h = 1", color: (P) => P.accent }, { label: "h = 36", color: (P) => P.accent2 }, { label: "h = 72", color: (P) => P.warn }, { label: "점선: 균등 1/K", color: (P) => P.faint, dash: true }]);
+      const set = S.stats([{ k: "mono", label: "A가 lag에 대해 단조 증가한 칸의 비율" }, { k: "am", label: "A가 가장 큰 lag (horizon 전체의 범위)" }, { k: "flat", label: "A의 최대 ÷ 최소 (1이면 평평)" }, { k: "pm", label: "per-step 몫이 가장 큰 lag · h = 1 / 36 / 72" }, { k: "hit", label: "그 lag이 범프 ±2 안인 horizon 수 / 72" }]);
+      function upd(re) {
+        if (re) gen();
+        compute();
+        cvH.redraw(); cvP.redraw();
+        const r = R, mn = Math.min(...r.aMax), mxx = Math.max(...r.aMax);
+        set("mono", (r.mono * 100).toFixed(1) + "%"); set("am", mn === mxx ? String(mn) : `${mn} – ${mxx}`);
+        set("flat", r.lo > 0 ? (r.hi / r.lo).toPrecision(3) : "∞"); set("pm", `${r.pMax[0]} / ${r.pMax[35]} / ${r.pMax[71]}`);
+        set("hit", st.flat ? "— (범프 없음)" : `${r.hit} / ${H}`);
+      }
+      S.range({ label: "범프의 lag (flow magnitude가 급증한 과거 시점)", min: 1, max: 128, step: 1, value: st.a0, onInput: (v) => { st.a0 = v; upd(); } });
+      S.range({ label: "범프의 크기 (평소 대비 배수)", min: 0, max: 20, step: 0.5, value: st.bump, onInput: (v) => { st.bump = v; upd(); } });
+      S.range({ label: "평소 flow magnitude의 크기 (로그 축; 실제 크기는 모름)", min: -2, max: 1.5, step: 0.05, value: st.lgBase, fmt: (v) => Math.pow(10, v).toFixed(2), onInput: (v) => { st.lgBase = v; upd(); } });
+      S.range({ label: "softmax 온도 τ (기본값 1)", min: -1, max: 1.5, step: 0.05, value: st.lgTau, fmt: (v) => Math.pow(10, v).toFixed(2), onInput: (v) => { st.lgTau = v; upd(); } });
+      S.range({ label: "n_lags K (기본값 128)", min: 32, max: 128, step: 16, value: st.K, onInput: (v) => { st.K = v; upd(); } });
+      S.check({ label: "horizon 커널 exp(−a/s_h) 사용 (기본값 켜짐)", value: st.kern, onChange: (v) => { st.kern = v; upd(); } });
+      S.check({ label: "정보 없음: flow magnitude를 모든 lag에서 같게 (m 상수)", value: st.flat, onChange: (v) => { st.flat = v; upd(); } });
+      S.button("잡음 다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     29. Kumo-Anomaly — diffusion corruption과 커리큘럼: 마스킹 비율 × noise level (논문 리뷰 p06)
+     논문 식 (3)의 forward corruption X_t = M_cond·X_0 + M_tar·(√ᾱ_t X_0 + √(1−ᾱ_t) ε)를 한 채널에 적용한다.
+     스케줄 둘: 논문의 코사인 1000스텝(표준 코사인 s=0.008을 가정)과 공개 설정의 선형 500스텝(β 1e-4→1e-2, linspace).
+     ====================================================================== */
+  Lab.register({
+    id: "kumo-curriculum", field: "dl", thumb: "wave", layout: "stack",
+    title: "무엇을 얼마나 가리고 얼마나 흐려 복원하게 하나 — diffusion corruption과 커리큘럼 (Kumo-Anomaly)",
+    desc: "condition(보이는 값)과 target(가린 값 + 노이즈)로 나눈 forward corruption 식을 한 채널에 적용해, 마스킹 비율 m과 diffusion timestep t가 복원 문제의 난이도를 어떻게 정하는지, 논문의 코사인 1000스텝과 공개 설정의 선형 500스텝이 어떻게 다른지 봅니다.",
+    tags: ["Kumo-Anomaly", "conditional diffusion", "커리큘럼", "마스킹 비율", "노이즈 스케줄"],
+    note: "논문 3절의 forward corruption 식 X<sub>t</sub> = M<sub>cond</sub>⊙X<sub>0</sub> + M<sub>tar</sub>⊙(√ᾱ<sub>t</sub> X<sub>0</sub> + √(1−ᾱ<sub>t</sub>) ε)를 길이 100의 한 채널에 적용한 <b>장난감 계산</b>입니다. 모델은 없습니다 — '무엇을 얼마나 가린 채 얼마나 흐려진 값으로 복원하라는 문제인가'만 보입니다. 오른쪽에서 회색 선이 원래 신호이고, 두 색의 점이 condition(공개된 값)과 target(가려진 위치에 노이즈가 섞인 값)입니다(범례 참고). 왼쪽은 두 스케줄의 ᾱ<sub>t</sub>: 논문이 말한 <b>코사인 1,000스텝</b>(끝값이 논문에 없어 표준 코사인 s = 0.008을 가정)과, 공개 체크포인트에 저장된 설정의 <b>선형 500스텝</b>(β 1e-4 → 1e-2, 공개 코드의 <code>linspace</code>)입니다. 점선은 논문이 t를 3등분한 경계입니다. <b>해볼 것</b> ① 선형 500스텝은 마지막 단계(u = 1)에서도 ᾱ ≈ 0.08이라 신호 진폭이 28% 남습니다. 코사인은 0까지 갑니다(표준 DDPM의 선형 스케줄은 ᾱ<sub>T</sub> ≈ 4×10<sup>−5</sup>). ② 마스킹 비율 m을 0.1에서 0.5로 올리면 '선형 보간 오차'(노이즈 없이 보이는 값만으로 이어 붙였을 때의 오차)가 커집니다. 난이도의 한 축입니다. ③ '단계' 버튼은 논문의 m<sub>k</sub> = 0.1 / 0.3 / 0.5와 t의 각 3분의 1 구간 가운데를 불러옵니다. 공개 설정 <code>curriculum_medium.yaml</code>의 단계별 마스킹 비율(0.1–0.3 / 0.3–0.6 / 0.6–0.8)과 noise_ratio(0.0001–0.1 / 0.1–0.3 / 0.3–0.5)는 저장소의 어떤 코드에서도 읽히지 않아(커리큘럼 학습 코드가 공개돼 있지 않음) 여기에 그리지 않았습니다. 난이도 지표 D(m, t) = m(1−ᾱ)/(ᾱ + ε(1−ᾱ))의 ε 값이 논문에 없어 0.01로 두었습니다(가정).",
+    mount(S) {
+      const L = 100, NCOS = 1000, NLIN = 500;
+      const st = { sched: "cos", m: 0.3, u: 0.5, stage: "free", seed: 1, eps: 0.01 };
+      const abarCos = () => { const f = (t) => Math.pow(Math.cos(((t / NCOS + 0.008) / 1.008) * Math.PI * 0.5), 2), f0 = f(0); return Array.from({ length: NCOS + 1 }, (_, t) => Math.max(0, f(t) / f0)); };
+      const abarLin = () => { const out = [1]; let c = 1; for (let i = 0; i < NLIN; i++) { c *= 1 - (1e-4 + ((1e-2 - 1e-4) * i) / (NLIN - 1)); out.push(c); } return out; };
+      const AC = abarCos(), AL = abarLin();
+      let X0 = null, EPS = null, PERM = null;
+      function gen() {
+        const r = VZ.rng(st.seed * 53 + 9);
+        const raw = Array.from({ length: L }, (_, i) => Math.sin((2 * Math.PI * i) / 27) + 0.5 * Math.sin((2 * Math.PI * i) / 9 + 1) + 0.015 * (i - 50) + 0.08 * VZ.randn(r));
+        const mu = VZ.mean(raw), sd = VZ.std(raw) || 1;
+        X0 = raw.map((v) => (v - mu) / sd);
+        EPS = Array.from({ length: L }, () => VZ.randn(r));
+        PERM = Array.from({ length: L }, (_, i) => i);
+        for (let i = L - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [PERM[i], PERM[j]] = [PERM[j], PERM[i]]; }
+      }
+      const abarAt = (sched, u) => (sched === "cos" ? AC[Math.round(u * NCOS)] : AL[Math.round(u * NLIN)]);
+      function calc() {
+        const nt = Math.round(st.m * L), tar = new Set(PERM.slice(0, nt)), ab = abarAt(st.sched, st.u), sa = Math.sqrt(ab), sb = Math.sqrt(1 - ab);
+        const xt = X0.map((v, i) => (tar.has(i) ? sa * v + sb * EPS[i] : v));
+        let err = 0;
+        for (const i of tar) {
+          let l = i - 1, rr = i + 1;
+          while (l >= 0 && tar.has(l)) l--;
+          while (rr < L && tar.has(rr)) rr++;
+          const pl = l >= 0 ? X0[l] : null, pr = rr < L ? X0[rr] : null;
+          const it = pl != null && pr != null ? pl + ((pr - pl) * (i - l)) / (rr - l) : (pl != null ? pl : pr);
+          err += Math.abs(it - X0[i]);
+        }
+        return { nt, tar, ab, sa, xt, interp: nt ? err / nt : 0, snr: ab / Math.max(1e-12, 1 - ab), D: (st.m * (1 - ab)) / (ab + st.eps * (1 - ab)) };
+      }
+      gen();
+      const [left, right] = S.split(2);
+      const cvA = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), c = calc();
+        VZ.chart(ctx, null, {
+          x: [0, 1], y: [0, 1.02], title: "누적 신호 비율 ᾱ_t — 정규화한 시점 u = t / N", xLabel: "u = t / N", yLabel: "ᾱ_t", margin: { l: 44 },
+          series: [
+            { data: AC.map((v, t) => [t / NCOS, v]), color: P.accent, width: 2.6 },
+            { data: AL.map((v, t) => [t / NLIN, v]), color: P.accent2, width: 2.6 },
+          ],
+          vlines: [{ x: 1 / 3, color: P.faint }, { x: 2 / 3, color: P.faint }, { x: st.u, color: P.warn, dash: [], width: 1.8 }],
+          points: [{ x: st.u, y: c.ab, color: st.sched === "cos" ? P.accent : P.accent2, r: 5.5 }],
+          hlines: [{ y: AL[NLIN], color: P.accent2, dash: [2, 4] }],
+        });
+      });
+      const cvX = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), c = calc(), vals = [...X0, ...c.xt], lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.06;
+        const cond = [], tar = [];
+        c.xt.forEach((v, i) => (c.tar.has(i) ? tar : cond).push([i, v]));
+        VZ.chart(ctx, null, {
+          x: [0, L - 1], y: [lo - pad, hi + pad], title: `corrupted 입력 X_t — target ${c.nt}개 (m = ${st.m.toFixed(2)})`, xLabel: "시점 (window 길이 100)", yLabel: "표준화한 값", margin: { l: 44 },
+          series: [
+            { data: X0.map((v, i) => [i, v]), color: P.faint, width: 1.8 },
+            { type: "scatter", data: cond, color: P.accent2, r: 3 },
+            { type: "scatter", data: tar, color: P.warn, r: 3.4 },
+          ],
+        });
+      });
+      S.legend([{ label: "왼쪽: 코사인 1,000스텝 (논문, s = 0.008 가정)", color: (P) => P.accent }, { label: "선형 500스텝 (공개 설정, 점선 = 끝값)", color: (P) => P.accent2 }, { label: "오른쪽: 원래 신호 X₀", color: (P) => P.faint }, { label: "condition (보이는 값)", color: (P) => P.accent2, dot: true }, { label: "target (가림 + 노이즈)", color: (P) => P.warn, dot: true }]);
+      const set = S.stats([{ k: "ab", label: "ᾱ_t · 신호 진폭 비율 √ᾱ_t" }, { k: "snr", label: "SNR = ᾱ / (1−ᾱ)" }, { k: "end", label: "마지막 단계 ᾱ_N · 코사인 / 선형" }, { k: "ip", label: "선형 보간 오차 (노이즈 없는 기준)" }, { k: "D", label: "난이도 지표 D(m, t) (ε = 0.01 가정)" }]);
+      let sM, sU;
+      function upd(re) {
+        if (re) gen();
+        cvA.redraw(); cvX.redraw();
+        const c = calc();
+        set("ab", `${c.ab.toFixed(3)} · ${c.sa.toFixed(3)}`); set("snr", c.snr < 1e4 ? c.snr.toFixed(3) : c.snr.toExponential(1));
+        set("end", `${AC[NCOS].toExponential(1)} / ${AL[NLIN].toFixed(3)}`); set("ip", c.interp.toFixed(3)); set("D", c.D < 1e3 ? c.D.toFixed(2) : c.D.toExponential(1));
+      }
+      S.seg({ label: "노이즈 스케줄", options: [["cos", "코사인 1000"], ["lin", "선형 500"]], value: st.sched, onChange: (v) => { st.sched = v; upd(); } });
+      const stageSeg = S.seg({ label: "논문의 단계 불러오기 (m_k, t의 3분의 1 구간 가운데)", options: [["free", "직접"], ["1", "1단계"], ["2", "2단계"], ["3", "3단계"]], value: st.stage, onChange: (v) => { st.stage = v; if (v !== "free") { const k = Number(v); sM.set([0.1, 0.3, 0.5][k - 1], false); sU.set([1 / 6, 0.5, 5 / 6][k - 1], false); st.m = [0.1, 0.3, 0.5][k - 1]; st.u = [1 / 6, 0.5, 5 / 6][k - 1]; } upd(); } });
+      sM = S.range({ label: "마스킹 비율 m (target의 몫)", min: 0.05, max: 0.9, step: 0.05, value: st.m, fmt: (v) => v.toFixed(2), onInput: (v) => { st.m = v; stageSeg.set("free", false); st.stage = "free"; upd(); } });
+      sU = S.range({ label: "diffusion timestep u = t / N", min: 0, max: 1, step: 0.01, value: st.u, fmt: (v) => v.toFixed(2), onInput: (v) => { st.u = v; stageSeg.set("free", false); st.stage = "free"; upd(); } });
+      S.button("노이즈·마스크 다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
+      upd(false);
+    },
+  });
+
+  /* ======================================================================
+     30. Kumo-Anomaly — point-adjusted(PA) F1과 임계값 (논문 리뷰 p06)
+     논문 4–5절의 모든 결과표는 EasyTSAD의 PA 지표다. 무작위 점수도 긴 이상 구간에서는 PA-F1이 높게 나오는 것과,
+     분산이 바뀌는 시계열에서 전역 임계값이 어긋나는 것을 본다. 구간별 분위수는 SCS와 같은 발상의 단순 버전일 뿐 SCS가 아니다.
+     ====================================================================== */
+  Lab.register({
+    id: "kumo-pa", field: "dl", thumb: "curve", layout: "stack",
+    title: "PA-F1은 무엇을 부풀리나 — 무작위 점수와 임계값 (Kumo-Anomaly)",
+    desc: "이상 구간 안에서 한 점만 맞아도 구간 전체를 맞힌 것으로 치는 point adjustment(PA)가 이상을 구분하지 못하는 무작위 점수의 F1을 얼마나 끌어올리는지, 그리고 분산이 바뀌는 시계열에서 전역 임계값과 구간별 임계값이 어떻게 다른지 장난감 시계열로 확인합니다.",
+    tags: ["Kumo-Anomaly", "PA", "PA-F1", "임계값", "무작위 baseline"],
+    note: "논문 4–5절의 <b>모든 결과표가 point adjustment(PA) 지표</b>(EasyTSAD 프로토콜)입니다. 길이 2,000의 시계열에 길이 ℓ인 이상 구간 n개를 놓고, 점수를 |잡음| + d × (이상이면 1)로 만듭니다(reconstruction error MAE처럼 0 이상). 경보 비율로 임계값을 정하고, PA는 예측이 구간 안에서 한 점이라도 맞으면 그 구간 전체를 맞힌 것으로 바꿉니다(Kim et al. 2022가 지적한 방식). 점선으로 그린 '무작위 점수'는 같은 잡음에 d = 0을 준 것으로, 이상을 전혀 구분하지 못하는 점수입니다. <b>해볼 것</b> ① d를 0으로 내리고 구간 길이를 80 이상으로 키워 보세요. 경보 비율 몇 %에서 무작위 점수의 PA-F1이 0.8 안팎까지 올라가지만 pointwise F1은 낮은 그대로입니다. 논문 표 4의 NAB(재현율 1.0000, F1 0.984)처럼 긴 이상 구간에서는 재현율이 쉽게 1이 되고 F1이 정밀도에 좌우됩니다. ② 구간 길이를 1–5로 줄이면 PA가 pointwise F1에 가까워집니다. 데이터셋마다 이상 구간의 길이와 비율이 다르면 PA-F1은 데이터셋 사이의 비교에 쓰기 어렵습니다. ③ '표준편차가 후반에 커짐'을 켜고 전역 임계값과 구간별 분위수를 번갈아 보세요. 전역 임계값은 잡음이 큰 쪽에 경보를 몰고, 구간별 분위수는 구간마다 같은 비율의 경보를 강제합니다(이상이 없는 구간에도). 논문이 임계값을 병목으로 꼽는 이유를 보여 주는 단순한 모델입니다. 구간별 분위수는 SCS와 같은 발상의 <b>단순 버전</b>일 뿐이고, 실제 SCS는 APCA 분할과 confidence sequence를 씁니다.",
+    mount(S) {
+      const T = 2000, W = 250, NQ = 70;
+      const st = { len: 80, nseg: 4, d: 1.5, lgRate: Math.log10(5), drift: false, local: false, seed: 1 };
+      let Zn = null, Us = null, D = null;
+      const gen = () => { const r = VZ.rng(st.seed * 29 + 11); Zn = Array.from({ length: T }, () => VZ.randn(r)); Us = Array.from({ length: 10 }, () => r()); };
+      function build() {
+        const slot = T / st.nseg, len = Math.min(st.len, Math.floor(slot) - 10), segs = [], lab = new Uint8Array(T);
+        for (let i = 0; i < st.nseg; i++) { const a = Math.floor(i * slot + 5 + (slot - len - 10) * Us[i]); segs.push([a, a + len]); for (let t = a; t < a + len; t++) lab[t] = 1; }
+        const sig = (t) => (st.drift && t >= T / 2 ? 2.5 : 1);
+        const sc1 = new Float64Array(T), sc0 = new Float64Array(T);
+        for (let t = 0; t < T; t++) { sc0[t] = Math.abs(sig(t) * Zn[t]); sc1[t] = sc0[t] + st.d * lab[t]; }
+        const srt = (a) => Float64Array.from(a).sort();
+        const mk = (sc) => ({ sc, g: srt(sc), w: Array.from({ length: Math.ceil(T / W) }, (_, i) => srt(sc.subarray(i * W, Math.min(T, (i + 1) * W)))) });
+        D = { segs, lab, len, det: mk(sc1), rnd: mk(sc0) };
+      }
+      const thr = (o, q, t) => { if (!st.local) return o.g[Math.min(T - 1, Math.floor(q * T))]; const w = Math.floor(t / W), s = o.w[w]; return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
+      function predict(o, q) { const out = new Uint8Array(T); for (let t = 0; t < T; t++) out[t] = o.sc[t] >= thr(o, q, t) ? 1 : 0; return out; }
+      function adjust(pred) { const out = Uint8Array.from(pred); D.segs.forEach(([a, b]) => { let hit = false; for (let t = a; t < b; t++) if (pred[t]) { hit = true; break; } if (hit) for (let t = a; t < b; t++) out[t] = 1; }); return out; }
+      function prf(pred) { let tp = 0, fp = 0, fn = 0; for (let t = 0; t < T; t++) { if (pred[t] && D.lab[t]) tp++; else if (pred[t]) fp++; else if (D.lab[t]) fn++; } const p = tp + fp ? tp / (tp + fp) : 0, r = tp + fn ? tp / (tp + fn) : 0; return { p, r, f: p + r ? (2 * p * r) / (p + r) : 0 }; }
+      const RATES = Array.from({ length: NQ }, (_, i) => Math.pow(10, Math.log10(0.05) + ((Math.log10(50) - Math.log10(0.05)) * i) / (NQ - 1)));
+      let CV = null, CUR = null;
+      function compute() {
+        const cur = (o, q) => { const p = predict(o, q); return { pt: prf(p), pa: prf(adjust(p)), pred: p }; };
+        CV = RATES.map((rt) => { const q = 1 - rt / 100, a = cur(D.det, q), b = cur(D.rnd, q); return { rt, ptD: a.pt.f, paD: a.pa.f, ptR: b.pt.f, paR: b.pa.f }; });
+        const rate = Math.pow(10, st.lgRate), q = 1 - rate / 100;
+        CUR = { rate, q, det: cur(D.det, q), rnd: cur(D.rnd, q), maxR: Math.max(...CV.map((c) => c.paR)) };
+        const pa = adjust(CUR.det.pred);
+        CUR.hits = D.segs.filter(([a, b]) => { for (let t = a; t < b; t++) if (CUR.det.pred[t]) return true; return false; }).length;
+        CUR.paPred = pa;
+      }
+      gen(); build(); compute();
+      const [left, right] = S.split(2);
+      const cvC = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette();
+        VZ.chart(ctx, null, {
+          x: [0.05, 50], logX: true, y: [0, 1.02], title: "F1 — 경보 비율에 따라 (같은 시계열)", xLabel: "경보 비율 % (로그 축)", yLabel: "F1", margin: { l: 44 }, xTicks: [0.1, 1, 10], xFmt: (v) => String(v),
+          series: [
+            { data: CV.map((c) => [c.rt, c.paD]), color: P.accent, width: 2.8 },
+            { data: CV.map((c) => [c.rt, c.ptD]), color: P.accent2, width: 2.4 },
+            { data: CV.map((c) => [c.rt, c.paR]), color: P.warn, width: 2.4, dash: [6, 4] },
+            { data: CV.map((c) => [c.rt, c.ptR]), color: P.dim, width: 1.8, dash: [2, 3] },
+          ],
+          vlines: [{ x: CUR.rate, color: P.faint, dash: [3, 3] }],
+        });
+      });
+      const cvT = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), o = D.det, mx = Math.max(...o.sc) * 1.08, flagged = [];
+        for (let t = 0; t < T; t++) if (CUR.det.pred[t]) flagged.push([t, o.sc[t]]);
+        const stepLine = Array.from({ length: T }, (_, t) => [t, thr(o, CUR.q, t)]);
+        VZ.chart(ctx, null, {
+          x: [0, T], y: [0, mx], title: "점수와 임계값 — 음영 = 실제 이상 구간", xLabel: "시점", yLabel: "점수 (reconstruction error처럼 0 이상)", margin: { l: 44 }, xTicks: [0, 500, 1000, 1500, 2000],
+          bands: D.segs.map(([a, b]) => ({ x0: a, x1: b, color: VZ.alpha(P.warn, 0.2) })),
+          series: [
+            { data: Array.from(o.sc, (v, t) => [t, v]), color: VZ.alpha(P.dim, 0.7), width: 1 },
+            { data: stepLine, color: P.accent, width: 2, type: "step" },
+            { type: "scatter", data: flagged, color: P.bad, r: 2.2 },
+          ],
+        });
+      });
+      S.legend([{ label: "왼쪽: 탐지기의 PA-F1", color: (P) => P.accent }, { label: "탐지기의 pointwise F1", color: (P) => P.accent2 }, { label: "무작위 점수의 PA-F1", color: (P) => P.warn, dash: true }, { label: "무작위 점수의 pointwise F1", color: (P) => P.dim, dash: true }, { label: "오른쪽: 임계값 (파랑 선)과 경보 (빨강 점)", color: (P) => P.bad, dot: true }]);
+      const set = S.stats([{ k: "pt", label: "pointwise 정밀도 / 재현율 / F1" }, { k: "pa", label: "PA 정밀도 / 재현율 / F1" }, { k: "rnd", label: "무작위 점수 · PA-F1 (이 경보 비율)" }, { k: "rmax", label: "무작위 점수 · PA-F1 최댓값 (모든 비율)" }, { k: "hit", label: "경보가 닿은 이상 구간 수" }]);
+      const f = (x) => x.toFixed(2);
+      function upd(mode) {
+        if (mode === "gen") gen();
+        if (mode === "gen" || mode === "build") build();
+        compute();
+        cvC.redraw(); cvT.redraw();
+        const a = CUR.det;
+        set("pt", `${f(a.pt.p)} / ${f(a.pt.r)} / <b>${f(a.pt.f)}</b>`); set("pa", `${f(a.pa.p)} / ${f(a.pa.r)} / <b>${f(a.pa.f)}</b>`);
+        set("rnd", f(CUR.rnd.pa.f)); set("rmax", f(CUR.maxR)); set("hit", `${CUR.hits} / ${D.segs.length}`);
+      }
+      S.range({ label: "이상 구간 길이 ℓ", min: 1, max: 150, step: 1, value: st.len, onInput: (v) => { st.len = v; upd("build"); } });
+      S.range({ label: "이상 구간 수 n", min: 1, max: 10, step: 1, value: st.nseg, onInput: (v) => { st.nseg = v; upd("build"); } });
+      S.range({ label: "separability d (0 = 무작위 점수)", min: 0, max: 4, step: 0.1, value: st.d, fmt: (v) => v.toFixed(1), onInput: (v) => { st.d = v; upd("build"); } });
+      S.range({ label: "경보 비율 (임계값, 로그 축)", min: Math.log10(0.05), max: Math.log10(50), step: 0.02, value: st.lgRate, fmt: (v) => Math.pow(10, v).toFixed(2) + "%", onInput: (v) => { st.lgRate = v; upd(); } });
+      S.check({ label: "표준편차가 후반에 2.5배로 커짐 (비정상)", value: st.drift, onChange: (v) => { st.drift = v; upd("build"); } });
+      S.check({ label: "구간별 분위수 임계값 (구간 250, SCS의 단순 버전)", value: st.local, onChange: (v) => { st.local = v; upd(); } });
+      S.button("시계열 다시 뽑기", () => { st.seed++; upd("gen"); }, { primary: true });
       upd();
     },
   });
