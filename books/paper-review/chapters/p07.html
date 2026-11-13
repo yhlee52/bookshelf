@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07 W₁-ACAS: 시계열 파운데이션 모델 위에 얹는 적응형 컨포멀 이상 탐지 · PaperBook</title>
+<meta name="description" content="IBM Research의 W₁-ACAS(ICLR 2026) 리뷰 — 사전학습 시계열 모델의 예측 오차를 가중 conformal p-value로 바꿔, 파인튜닝도 라벨도 없이 '거짓 경보율을 직접 읽을 수 있는 정상 범위(가드밴드)'를 만드는 후처리. 논문 전문과 IBM의 공개 코드를 2026-11-13 기준으로 대조했다.">
+<link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
+<script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../../../assets/css/base.css">
+<link rel="stylesheet" href="../../../assets/css/book.css">
+<script defer src="../../../data/site.js"></script>
+<script defer src="../../../data/books.js"></script>
+<script defer src="../../../assets/js/viz.js"></script>
+<script defer src="../../../assets/js/core.js"></script>
+<script defer src="../../../assets/js/lab.js"></script>
+<script defer src="../../../assets/sims/dl.js"></script>
+<script defer src="../../../assets/sims/ts.js"></script>
+<script defer src="../../../assets/sims/phys.js"></script>
+<script defer src="../../../assets/sims/math.js"></script>
+<script defer src="../../../assets/js/widgets.js"></script>
+<script defer src="../../../assets/js/book.js"></script>
+</head>
+<body data-root="../../../" data-book="paper-review" data-field="dl" data-chapter="p07">
+<!--
+  논문 리뷰 07 — W₁-ACAS (Adaptive Conformal Anomaly Detection with Time Series Foundation Models), 2026-11-13 기준
+  논문: arXiv 2604.20122 (v1, 2026-04-22), ICLR 2026 — arXiv HTML 원문(본문 · 부록 A–D)을 받아 텍스트로 바꿔 끝까지 읽음. 그림(그림 1–11)은 캡션과 본문 서술로만 확인했다.
+  코드: github.com/ibm-granite/granite-tsfm main 31fa2f0 (2026-11-13에 읽음). 핵심 구현은 tsfm_public/toolkit/w1acas.py · conformal.py, 데모는 notebooks/hfdemo/adaptive_conformal_tsad/.
+        두 구현 파일의 마지막 수정은 3f36273 (2026-02-27). PyPI granite-tsfm 0.3.12 (2026-10-29) wheel의 w1acas.py · conformal.py를 받아 열어 보니 main과 내용이 같다(sha1 일치).
+  읽은 방식: 저장소 코드는 읽기만 했고 실행하지 않았다(이 환경에는 torch · numpy가 없다). wheel은 압축을 풀지 않고 파일 목록과 해시만 확인했다.
+        '리뷰어 계산' · '리뷰어 유도'는 논문의 식이나 코드를 읽어 다시 계산 · 도출한 값이다. 모델의 성능은 어느 것도 다시 재지 않았다.
+  네 개의 실험은 모두 식 · 코드를 장난감 크기로 옮긴 계산이며 W₁-ACAS의 성능과 무관하다. 수치는 기본 시드 기준으로 헤드리스 하네스에서 확인한 값이다.
+  논문 표 2–4(데이터셋별 결과)를 파싱해 보니 W₁-ACAS와 비-TSFM 기준선만 있고 Gaussian · Conformal 행은 없었다(표 추출이 완전하다고 보장하지는 못한다).
+-->
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Paper Review <span data-fill="chapter-num">07</span></div>
+    <h1 data-fill="chapter-title">W₁-ACAS: 시계열 파운데이션 모델 위에 얹는 적응형 컨포멀 이상 탐지</h1>
+    <div class="paper-card">
+      <dl>
+        <dt>대상</dt><dd><b>W₁-ACAS</b> <span class="en">(1-Wasserstein Adaptive Conformal Anomaly Score)</span> — 사전학습 시계열 모델의 예측 오차를 conformal p-value로 바꾸는 post-hoc 이상 탐지</dd>
+        <dt>저자</dt><dd>Natalia Martinez Gil, Fearghal O'Donncha, Wesley M. Gifford, Nianjun Zhou, Dhaval C. Patel, Roman Vaculin <span class="en">(IBM Research)</span></dd>
+        <dt>발표</dt><dd>ICLR 2026 <span class="en">(README 기준 accepted)</span> · arXiv 2604.20122 <span class="en">(v1, 2026-04-22)</span> · 코드 Apache-2.0 <span class="en">(granite-tsfm)</span></dd>
+        <dt>키워드</dt><dd><span class="pill acc">conformal anomaly detection</span> <span class="pill acc">시계열 파운데이션 모델</span> <span class="pill acc">가드밴드 (정상 범위)</span> <span class="pill">p-value 교정</span> <span class="pill">1-Wasserstein</span> <span class="pill">비지도</span> <span class="pill">TTM · Chronos · TiRex</span></dd>
+      </dl>
+      <div class="links">
+        <a class="btn" href="https://arxiv.org/abs/2604.20122" rel="noopener">arXiv ↗</a>
+        <a class="btn" href="https://iclr.cc/virtual/2026/poster/10011253" rel="noopener">ICLR 2026 ↗</a>
+        <a class="btn" href="https://github.com/ibm-granite/granite-tsfm/tree/main/notebooks/hfdemo/adaptive_conformal_tsad" rel="noopener">코드 (데모) ↗</a>
+        <a class="btn" href="https://github.com/ibm-granite/granite-tsfm/blob/main/tsfm_public/toolkit/w1acas.py" rel="noopener">w1acas.py ↗</a>
+        <a class="btn" href="https://github.com/ibm-granite/granite-tsfm/blob/main/tsfm_public/toolkit/conformal.py" rel="noopener">conformal.py ↗</a>
+        <a class="btn" href="https://pypi.org/project/granite-tsfm/" rel="noopener">PyPI ↗</a>
+      </div>
+    </div>
+    <p class="tldr">IBM Research의 <b>W₁-ACAS</b>를 논문 전문(부록 포함)과 공개 코드로 대조해 읽었다. 사전학습 시계열 모델(TTM · Chronos-Bolt-Small · TiRex)이 낸 \(d\)-스텝 예측의 오차 \(|y-\hat y|\)를 nonconformity score로 보고, 과거 오차에 lag별 가중치를 둬서 <i>'이만큼 큰 오차를 과거에 본 비율'</i>인 <b>conformal p-value</b>를 이상 점수로 낸다. 가중치는 p-value 표본이 \(U[0,1]\)에 가까워지도록(1-Wasserstein 거리 최소화) 온라인으로 배운다. 파인튜닝도 라벨도 필요 없고, 점수가 곧 거짓 경보율이라서 <b>정상 범위(가드밴드)를 '교정된 확률'로 말하는 후처리 계층</b>이다. 다만 증거에는 짚을 곳이 있다. ① 표 1의 PA-F1 · FPR · CalErr는 <b>라벨로 고른 오라클 임계값</b>에서 쟀고, 그 FPR은 7.7–8.4%로 설계 목표 \(\alpha_c=1\%\)보다 훨씬 크다. ② 실데이터 표에는 <b>단순 창(가중치 1) baseline이 없어</b> W₁ 학습의 기여를 따로 볼 수 없다 — 우리 장난감에서는 정상 구간에서 단순 창이 이미 가장 균등했다. ③ 공개 코드의 p-value는 논문 식 (7)과 '자기 자신' 항이 달라 \(p=0\)이 가능하고, 데모의 <code>--n_epochs</code>는 무시되며, 기본 합산 방식도 논문과 다르다. <b>반도체 자료는 쓰지 않았고, 멀티모달 · 에이전트 요소도 없다.</b></p>
+  </header>
+
+  <section id="three-lines">
+    <h2>세 줄 요약</h2>
+    <ol>
+      <li><b>무엇을:</b> TSFM 예측의 절대 오차 \(S\)를 과거 오차 집합과 비교해 \(\beta=(1+\sum_{S_i\ge S}w_i)/(\lVert w\rVert_1+1)\)로 바꾼다. \(\beta\lt\alpha\)이면 경보이고, 이 판정은 가중 conformal 분위수 판정과 같으므로(명제 4.1) 거짓 경보율을 \(\alpha\)로 직접 지정할 수 있다. 모델 재학습이 없다.</li>
+      <li><b>어떻게:</b> 가중치 \(w\in[0,1]^n\)을 lag마다 하나씩 두고, 최근 \(n_b=10\)개 p-value의 경험 분포와 \(U[0,1]\) 사이의 \(\mathcal W_1\)을 줄이도록 Adam(논문 본문은 ADAM, 코드는 AdamW)으로 갱신한 뒤 \(\lVert w\rVert_1\ge 1/\alpha_c-1\)로 사영한다. 예측 horizon 15개마다 독립으로 돌려 <b>중앙값</b>을 취하고, 다변량은 채널별 실행 뒤 Fisher(F) 또는 harmonic mean(H)으로 합친다.</li>
+      <li><b>그래서:</b> TTM · Chronos · TiRex 위에서 7개 단변량 데이터셋 평균 PA-F1이 0.889–0.925로 Gaussian(0.714–0.733)과 offline Conformal(0.851–0.878)보다 높다. 그러나 이 수치는 오라클 임계값 위에서 쟀고, threshold 없는 VUS-PR에는 차이가 거의 없다(0.438–0.449). <b>정상 범위를 확률로 말하는 도구로는 쓸 만하지만, 'W₁ 학습이 효과를 낸다'는 증거는 얇다.</b></li>
+    </ol>
+  </section>
+
+  <section id="problem">
+    <h2>어떤 문제를 푸는가</h2>
+    <p>설비 모니터링에서 이상 탐지 시스템에 가장 흔히 제기되는 요구는 두 가지다. ① 점수가 <i>무슨 뜻인지</i> 설명할 수 있어야 한다 — '0.83'이 아니라 '정상일 때 이만큼 클 확률이 1%'. ② 데이터가 모자라고 학습 인프라가 없는 현장에서도 바로 쓸 수 있어야 한다. 예측 기반 이상 탐지는 정상 패턴을 예측 모델로 배우고 예측과 실제의 어긋남을 점수로 삼는데, 그 점수는 보통 임의의 크기라서 임계값을 전체 데이터의 통계로 정한다(비인과, 스트리밍에 부적합). 논문은 이 자리에 <b>사전학습 TSFM의 제로샷 예측</b>과 <b>conformal 보정</b>을 놓는다.</p>
+    <p>conformal 방법은 분포 가정 없이 유한 표본 보장을 주지만 점수열이 교환 가능(exchangeable)해야 한다. 시계열에서는 이 가정이 깨진다. 논문이 겨냥한 한계는 세 가지다. ① 기존 conformal 이상 탐지는 <i>임의의 점수에 임계값을 얹는 것</i>이라 비정상 시계열에 약하다. ② 분포 이동에 대응하는 online conformal(Gibbs &amp; Candès 계열)은 <b>하나의 오류율</b>만 맞추도록 설계됐다 — 논문은 이를 '모든 오류율에서 동시에 교정된 점수'를 만드는 것과 구분한다. ③ 가중치를 쓰는 conformal은 가중치를 어떻게 정하느냐가 열린 문제다 — Barber 외(2023)는 지수 감쇠 \(w_i=\gamma^{n-i}\)를 예시로 들었고, 이 논문은 가중치를 <b>데이터에서 배운다</b>.</p>
+
+    <div class="callout warn"><strong>이 리뷰가 이 논문을 고른 이유와, 이 논문에 없는 것</strong>
+      <p>이 장은 '시계열 이상 탐지에서 <b>정상 범위(가드밴드)</b>를 어떻게 추론하는가'를 보려고 골랐다. 이 논문은 그 요구에 정면으로 닿는다 — 후처리, 비지도(교정 구간에 라벨이 필요 없음), 점수가 곧 거짓 경보율. 반면 <b>멀티모달(텍스트 · 이미지)이나 LLM 에이전트는 다루지 않고</b>, 반도체 공정 자료도 쓰지 않았다(11개 데이터셋은 모두 TSB-AD의 일반 벤치마크). 반도체 적용은 아래 '확장과 변형' 절에서 <b>리뷰어의 판단</b>으로 따로 다룬다. 아래 판단은 <b>논문 arXiv v1 · granite-tsfm main 31fa2f0(2026-11-13)</b>을 기준으로 한다.</p>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:15%">날짜</th><th style="width:60%">사건</th><th style="width:25%">출처</th></tr></thead>
+      <tbody>
+        <tr><td>2026-02-26</td><td>커밋 <code>added signed error p value</code> — 부호 있는 오차(<code>error</code>)와 양측 p-value 경로 추가. 논문 본문에는 없는 기능</td><td>GitHub 커밋</td></tr>
+        <tr><td>2026-02-27</td><td>README 갱신 · <code>w1acas.py</code> / <code>conformal.py</code> 마지막 수정 <code>3f36273</code></td><td>GitHub 커밋</td></tr>
+        <tr><td>2026-04-22</td><td>arXiv v1 (cs.LG) 게시. 코드 링크는 granite-tsfm의 <code>adaptive_conformal_tsad</code> 노트북 폴더</td><td>arXiv</td></tr>
+        <tr><td>2026-10-29</td><td>PyPI <code>granite-tsfm</code> 0.3.12. 받아 열어 본 wheel의 <code>tsfm_public/toolkit/w1acas.py</code> (17,380바이트) · <code>conformal.py</code> (105,102바이트)가 main과 해시가 같음 → <code>pip install granite-tsfm</code>으로 이 구현을 받는다</td><td>PyPI</td></tr>
+        <tr><td>2026-11-13</td><td>이 리뷰가 읽은 시점. 저장소 main <code>31fa2f0</code>, 별 919개</td><td>GitHub API</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 7-1. 읽은 대상의 시점. 구현 파일이 9개월 가까이 그대로라서 '일주일 뒤에 달라져 있을' 가능성은 p06의 Kumo-TS보다 훨씬 낮다. 대신 <b>논문 v1과 코드 사이의 차이</b>가 굳어 있다는 뜻이기도 하다.</p>
+  </section>
+
+  <section id="method">
+    <h2>핵심 아이디어와 방법</h2>
+
+    <figure class="diagram scroll">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="W₁-ACAS 파이프라인: TSFM 예측, 오차 점수, 가중 conformal p-value, horizon과 센서 합산, 경보. 아래에 W₁ 가중치 학습 루프와 가드밴드로 읽는 방법">
+        <defs><marker id="ac-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <text x="14" y="22" class="t-acc">W₁-ACAS — 학습하는 것은 TSFM이 아니라 과거 오차에 붙이는 lag별 가중치 w뿐이다</text>
+        <g transform="translate(6,34)"><rect width="180" height="112" rx="10" class="f-surface"/>
+          <text x="90" y="24" text-anchor="middle" class="t-b">① TSFM 예측</text>
+          <text x="90" y="46" text-anchor="middle" class="t-mono">TTM · Chronos-Bolt · TiRex</text>
+          <text x="90" y="66" text-anchor="middle" class="t-dim">context 52 → horizon d = 1…15</text>
+          <text x="90" y="86" text-anchor="middle" class="t-dim">제로샷 · 파인튜닝 없음</text></g>
+        <path d="M188 90 H208" class="s-acc" marker-end="url(#ac-arr)"/>
+        <g transform="translate(210,34)"><rect width="180" height="112" rx="10" class="f-surface"/>
+          <text x="90" y="24" text-anchor="middle" class="t-b">② 오차 점수</text>
+          <text x="90" y="46" text-anchor="middle" class="t-mono">S_d = |y − ŷ_d|</text>
+          <text x="90" y="66" text-anchor="middle" class="t-dim">horizon · 채널마다 따로</text>
+          <text x="90" y="86" text-anchor="middle" class="t-dim">(코드: 부호 있는 error도 가능)</text></g>
+        <path d="M392 90 H412" class="s-acc" marker-end="url(#ac-arr)"/>
+        <g transform="translate(414,34)"><rect width="180" height="112" rx="10" class="f-acc-soft"/>
+          <text x="90" y="24" text-anchor="middle" class="t-b">③ 가중 conformal</text>
+          <text x="90" y="46" text-anchor="middle" class="t-mono">β = (1+Σ_{S_i≥S} w_i)/(‖w‖+1)</text>
+          <text x="90" y="66" text-anchor="middle" class="t-dim">w: lag별 가중치 ∈ [0,1]</text>
+          <text x="90" y="86" text-anchor="middle" class="t-dim">β = '이 오차 이상을 본 비율'</text></g>
+        <path d="M596 90 H616" class="s-acc" marker-end="url(#ac-arr)"/>
+        <g transform="translate(618,34)"><rect width="180" height="112" rx="10" class="f-surface"/>
+          <text x="90" y="24" text-anchor="middle" class="t-b">④ 합산</text>
+          <text x="90" y="46" text-anchor="middle" class="t-mono">horizon: median (식 15)</text>
+          <text x="90" y="66" text-anchor="middle" class="t-mono">센서: Fisher(F) · HMP(H)</text>
+          <text x="90" y="86" text-anchor="middle" class="t-dim">코드는 Cauchy 등도 제공</text></g>
+        <path d="M800 90 H820" class="s-acc" marker-end="url(#ac-arr)"/>
+        <g transform="translate(822,34)"><rect width="172" height="112" rx="10" class="f-surface"/>
+          <text x="86" y="24" text-anchor="middle" class="t-b">⑤ 경보</text>
+          <text x="86" y="46" text-anchor="middle" class="t-mono">β̄ &lt; α  →  이상</text>
+          <text x="86" y="66" text-anchor="middle" class="t-dim">α = 거짓 경보율 목표</text>
+          <text x="86" y="86" text-anchor="middle" class="t-dim">p-value = 경보율로 읽힘</text></g>
+
+        <path d="M504 148 V176" class="s-acc" marker-end="url(#ac-arr)" stroke-dasharray="4 4"/>
+        <g transform="translate(6,178)"><rect width="486" height="132" rx="10" class="f-surface"/>
+          <text x="14" y="24" class="t-b">W₁ 학습 루프 (Algorithm 1) — w를 온라인으로 갱신</text>
+          <text x="14" y="46" class="t-dim">최근 n_b = 10개의 β를 모아 정렬 → 경험 분포와 U[0,1]의 거리</text>
+          <text x="14" y="66" class="t-mono">W₁ = Σ_k ∫_{(k−1)/n_b}^{k/n_b} |β_(k) − a| da</text>
+          <text x="14" y="86" class="t-dim">∂β/∂w_k = (−β + 1[S_k ≥ S]) / (‖w‖₁ + 1) → Adam → 사영</text>
+          <text x="14" y="106" class="t-mono">w ∈ [0,1]ⁿ, ‖w‖₁ ≥ 1/α_c − 1   (논문 α_c = 0.01 → 99)</text>
+          <text x="14" y="124" class="t-dim">과거 점수가 비슷한 분포인 lag에 가중치가 몰린다 (논문 그림 1c · 4)</text></g>
+        <g transform="translate(508,178)"><rect width="486" height="132" rx="10" class="f-acc-soft" stroke-dasharray="5 4"/>
+          <text x="14" y="24" class="t-b">가드밴드로 읽기 — 리뷰어 유도 (논문은 p-value만 낸다)</text>
+          <text x="14" y="46" class="t-dim">명제 4.1: β &lt; α ⇔ S &gt; q̂ (가중 conformal 분위수)</text>
+          <text x="14" y="66" class="t-mono">정상 범위 = [ ŷ − q̂_{1−α}(s, w) , ŷ + q̂_{1−α}(s, w) ]</text>
+          <text x="14" y="86" class="t-dim">horizon별 구간은 가능하나 median 규칙은 '과반 거절' 투표</text>
+          <text x="14" y="106" class="t-dim">W₁ 경로 코드에는 구간 출력이 없고, 균일 · 지수 감쇠 가중</text>
+          <text x="14" y="124" class="t-dim">경로(WeightedConformalWrapper)에만 predict_interval이 있다</text></g>
+      </svg>
+      <figcaption><b>그림 7-1.</b> 위: 한 채널 · 한 horizon의 p-value를 만드는 흐름과 합산. 아래 왼쪽: 가중치를 배우는 루프(논문 식 8–14). 아래 오른쪽: 정상 범위(밴드)로 읽는 방법은 식 (4)의 동치에서 <b>이 리뷰가 유도한 것</b>이다. 점선 테두리는 논문이 직접 말하지 않은 부분을 뜻한다.</figcaption>
+    </figure>
+
+    <h3>① 설정 — 예측 오차를 nonconformity score로</h3>
+    <p>예측기 \(h_d\)가 길이 \(n_c\)의 context를 받아 \(d\)스텝 앞을 예측한다. 점수는 horizon \(d\)마다 따로 정의한다.</p>
+    <div class="formula">\[ \hat Y^{d}_{t+1}=h_d\!\big(X_{t-n_c-d:\,t-d+1}\big),\qquad S^{d}_{t+1}=\big|Y_{t+1}-\hat Y^{d}_{t+1}\big| \]
+      <div class="where">논문 실험은 context 52, \(d=1,\dots,15\)로 고정했다. 같은 시점 \(t+1\)에 대해 15개의 서로 다른 예측(시점 \(t+1-d\)에서 낸 \(d\)스텝 예측)이 모이고, 각각의 오차 열이 따로 conformal 변환을 거친다.</div></div>
+    <p>비정상(anomalous) 시점의 오차는 클 것이므로 '평소 오차 분포에서 이만큼 큰 값이 얼마나 드문가'를 묻는 것이 이상 판정이다. 정상 분포에서의 거짓 경보율을 \(\alpha\) 이하로 막는 판정 함수 \(C_\alpha\)가 목표다: \(\mathbb P(C_\alpha=1)\le\alpha\).</p>
+
+    <h3>② 가중 conformal 분위수 — 과거에 '가중치'를 준다</h3>
+    <p>표준 split conformal은 정상 오차 \(S_1,\dots,S_n\)의 \((1-\alpha)\) 분위수에 '무한대 질량 하나'를 더해 보수적으로 만든다. 가중 버전은 각 과거 점수에 \(w_i\in[0,1]\)을 주고 분모를 \(\lVert w\rVert_1+1\)로 둔다. 모든 \(w_i=1\)이면 표준 split conformal로 돌아간다.</p>
+    <div class="formula">\[ C_\alpha=\mathbf 1\big[S_{n+1}\gt\hat q^{\,w}_\alpha\big],\qquad \hat q^{\,w}_\alpha=Q_{1-\alpha}\!\Big(\sum_{i=1}^{n}\frac{w_i}{\lVert w\rVert_1+1}\,\delta_{S_i}+\frac{1}{\lVert w\rVert_1+1}\,\delta_{\infty}\Big) \]
+      <div class="where">명제 3.1(Barber 외 2023의 정리 2 · 3의 직접 적용): \(\mathbb P(C_\alpha=1)\le \alpha+\sum_i\tfrac{w_i}{\lVert w\rVert_1+1}\,d_{TV}(\mathbf s,\mathbf s^{\,i})\). \(\mathbf s^{\,i}\)는 \(i\)번째 과거 점수와 검정 점수를 맞바꾼 열이다. 즉 <b>검정 점수와 교환에 가까운 과거에 큰 가중치를</b> 주면 경계가 좁아진다. 하한에는 \(-\tfrac{1}{\lVert w\rVert_1+1}\)이 붙어, \(\lVert w\rVert_1\)을 크게(가중치를 1에 가깝게) 두라고 요구한다.</div></div>
+    <p>여기서 읽어 둘 것: 경계의 \(d_{TV}\)는 알 수 없는 양이다. 논문도 \(w\)를 정하려면 이 값(의 상계)에 대한 사전 지식이 필요하다고 쓰고, 그 대신 \(w\)를 데이터에서 배운다. 그런데 <b>명제 3.1은 \(w\)를 주어진 벡터로 놓고 세운 경계</b>이고, 데이터에서 배운 \(w\)가 이 경계를 그대로 물려받는다는 증명은 읽은 범위(본문 · 부록 B)에 없다. 부록 B가 증명하는 것은 명제 4.1(아래의 동치)뿐이다.</p>
+
+    <h3>③ p-value — 임계값을 정하지 않고 '경보율'로 번역한다</h3>
+    <p>분위수를 \(\alpha\)마다 따로 구하는 대신, 검정 점수 \(S\)가 가중 분위수를 넘지 않는 가장 큰 \(\alpha\)를 점수로 삼는다. 이것이 conformal p-value다.</p>
+    <div class="formula">\[ \beta_w(S)=\sup\{\alpha\in[0,1]:\,S\le\mathbb Q_{1-\alpha}(\mathbf s,w)\}=\frac{1+\sum_{i:\,S_i\ge S}w_i}{\lVert w\rVert_1+1} \]
+      <div class="where">오른쪽 등식은 논문 식 (7)을 지시함수로 다시 쓴 것이다(논문은 정렬 순열 \(\pi\)의 색인으로 쓰고, 식 (7)은 \(S\le S_i\), 알고리즘 1은 \(S\lt s\)로 적어 동점 처리가 다르다). 명제 4.1: \(\mathbf 1[\beta_w(S)\lt\alpha]\)는 위 분위수 판정과 같은 사건이므로 같은 보장을 가진다. \(\beta\)는 \(\alpha_c=1/(\lVert w\rVert_1+1)\)보다 작아질 수 없다 — <b>이 값이 p-value의 해상도</b>다.</div></div>
+
+    <h3>④ 가중치를 배운다 — p-value 표본이 균등분포가 되도록</h3>
+    <p>잘 교정된 점수라면 정상 데이터에서 \(\mathbb P(\beta\le\alpha)=\alpha\)가 모든 \(\alpha\)에서 성립해야 한다. 즉 \(\beta\sim U[0,1]\). 논문은 이 조건을 1-Wasserstein 거리로 바꿔 \(w\)를 푼다.</p>
+    <div class="formula">\[ \min_{w}\ \mathcal W_1\!\big(F_{\beta(w)},F_U\big)\ \ \text{s.t.}\ \ \lVert w\rVert_1\gt \tfrac1{\alpha_c}-1,\ w_i\in[0,1],\qquad \mathcal W_1=\mathbb E_{\alpha\sim U[0,1]}\big|\mathbb P(\beta(w)\le\alpha)-\alpha\big| \]
+      <div class="where">두 번째 등식(식 9)이 핵심이다: \(\mathcal W_1\)을 줄이는 것은 <b>모든 \(\alpha\)에 대한 교정 오차 \(|\mathbb P(\beta\le\alpha)-\alpha|\)의 평균</b>을 줄이는 것이다. 유한 표본에서는 최근 \(n_b\)개 \(\beta\)를 정렬해 구간별 적분의 합(식 11)으로 근사하고, 기울기는 닫힌 꼴(식 13 · 14)이며, 갱신은 \(w\leftarrow\Pi[w-\gamma\nabla\mathcal W_1]\) (\(\Pi\): 상자와 \(\lVert w\rVert_1\ge n_c\)로의 사영, \(n_c=1/\alpha_c-1\))이다.</div></div>
+    <p>기울기의 모양이 직관을 준다. \(\partial\beta_{t+i}/\partial w_k\propto -\beta_{t+i}+\mathbf 1[S_k\ge S_{t+i}]\)이므로, <b>검정 점수보다 큰 과거 점수의 가중치를 낮추면 \(\beta\)가 올라가고</b> 전체 질량 \(\lVert w\rVert_1\)을 줄여도 올라간다. 최근 \(\beta\)들이 너무 작게(경보 쪽으로 치우쳐) 나오면 가중치가 그 쪽을 완화하도록 움직인다. 사영 조건 \(\lVert w\rVert_1\ge n_c\)는 '\(\alpha_c\)만큼의 해상도를 유지할 표본'을 보장하는 장치다.</p>
+
+    <h3>⑤ horizon과 센서를 합친다</h3>
+    <p>horizon 15개 각각에 알고리즘 1을 따로 돌려 \(\beta^1,\dots,\beta^{15}\)를 얻고 <b>중앙값</b>을 최종 점수로 삼는다(식 15). 이는 '과반의 horizon 검출기가 동의해야 이상'이라는 규칙이다. 다변량은 부록 C.2.4에서 <b>채널마다 독립으로</b> 위 과정을 돌린 뒤 \(\bar\beta^{f}\)를 Fisher(‑F)나 harmonic mean(‑H)으로 합친다. 채널 사이의 상관을 모형에 넣는 부분은 없고, 다음 실험에서 보듯 그 합산 방식의 선택이 결과를 좌우한다.</p>
+
+    <h3>⑥ 가드밴드로 읽기 — 이 리뷰의 유도 (논문의 주장이 아님)</h3>
+    <p>논문의 출력은 p-value 열이지 밴드가 아니다. 그러나 명제 4.1의 동치를 한 horizon에 적용하면 밴드가 따라 나온다. 절대 오차 점수라면 경보 조건 \(|y-\hat y|\gt\hat q^{\,w}_{\alpha}\)는 \(y\notin[\hat y-\hat q^{\,w}_{\alpha},\ \hat y+\hat q^{\,w}_{\alpha}]\)와 같다. <b>이 구간이 '거짓 경보율 \(\alpha\)로 교정된 정상 범위'</b>이고, 가중치가 바뀌면 폭이 바뀐다(첫 번째 실험의 파란 선). 세 가지 단서가 붙는다.</p>
+    <ul>
+      <li><b>horizon 합산은 구간이 아니라 투표다.</b> 식 (15)의 중앙값이 \(\alpha\) 미만이라는 것은 15개 중 8개 이상의 horizon이 거절한다는 뜻인데, horizon마다 \(\hat y^{d}\)와 \(\hat q^{d}\)가 달라서 단일 구간으로 합친 보장은 논문에 없다.</li>
+      <li><b>보장의 모양이 다르다.</b> 밴드가 지켜 주는 것은 정상 점수에 대한 거짓 경보율이지 제품 규격이나 공정 한계가 아니다. 그리고 앞서 읽었듯 학습된 \(w\)에 대한 유한 표본 보장은 증명되지 않았다.</li>
+      <li><b>코드에는 이 구간을 내는 길이 W₁ 경로에 없다.</b> <code>WeightedConformalWrapper.predict_interval</code>과 <code>conformal_set</code>이 구간(<code>y_low</code> · <code>y_high</code>)을 내지만 균일 · 지수 감쇠 가중용이고, W₁ 가중치를 쓰는 <code>AdaptiveWeightedConformalScoreWrapper</code>는 p-value만 돌려준다(코드를 읽어 확인, 실행 안 함). 부호 있는 <code>error</code> 점수를 쓰면 위·아래 한계가 따로 있는 <b>비대칭 밴드</b>가 자연스럽지만(<code>conformal_set</code>의 <code>y_low</code> = <code>score_threshold[0]</code> + <code>y_pred</code>), 논문 본문에는 없는 기능이다.</li>
+    </ul>
+  </section>
+
+  <section id="lab">
+    <h2>실험으로 이해하기</h2>
+    <p>핵심 동작과 읽으면서 걸린 곳 네 가지를 장난감 계산으로 옮겼다. ① <b>정상 범위를 어떻게 긋나</b> — Gaussian ±\(z\sigma\), 고정 conformal, 최근 \(n\)개 창의 conformal을 오차의 꼬리와 분산 드리프트를 바꿔 가며 거짓 경보율로 비교한다. ② <b>W₁로 가중치를 배운다</b> — 논문의 알고리즘 1을 작은 창으로 구현해, 주기적인 오차 분산과 척도 변화에서 학습한 가중치가 언제 도움이 되는지 본다. ③ <b>p-value에 '자기 자신'을 세는가</b> — 논문 식 (7)과 공개 코드의 \(1-\beta\)가 같은 임계값에서 거짓 경보율이 얼마나 다른지 정확한 확률로 센다. ④ <b>센서의 p-value를 합친다</b> — 상관된 센서에서 Fisher · HMP · Cauchy · Tippett · median의 거짓 경보율과 검출력. <b>네 실험 모두 모델(TSFM)이 없는 장난감 계산</b>이며 W₁-ACAS의 성능과 무관하다. '이 구조에서 이런 일이 생길 수 있다'를 만져 보는 용도다.</p>
+    <div data-sim="acas-band"></div>
+    <div data-sim="acas-w1"></div>
+    <div data-sim="acas-offset"></div>
+    <div data-sim="acas-combine"></div>
+  </section>
+
+  <section id="results">
+    <h2>실험 결과</h2>
+    <p>논문의 본 실험은 TSB-AD(Liu &amp; Paparrizos, 2024)에서 고른 <b>단변량 7개</b>(YAHOO · NEK · NAB · MSL · IOPS · STOCK · WSD)와 <b>다변량 4개</b>(TAO · GECCO · LTDB · Genesis)다. 각 데이터셋은 앞쪽의 이상 없는 구간을 교정(또는 학습)에 쓰고 뒤쪽 test split에서 평가한다. 지표는 pointwise(AUC, PA-F1)와 range-wise(VUS-PR, Affiliation-F1)이며, <b>threshold 의존 지표(PA-F1, Affiliation-F)는 라벨을 써서 63개 임계값 격자 중 가장 좋은 값을 고르는 '오라클' 방식</b>이다(격자: [0.001, 0.01] 21개, [0.02, 0.1] 21개, [0.2, 1] 21개). 그 지점의 FPR과 교정 오차 CalErr = |FPR − α*|도 함께 보고한다.</p>
+
+    <h3>단변량 — 같은 TSFM 위에서 세 방법을 비교 (표 1)</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Forecaster</th><th>방법</th><th class="num">PA-F1 ↑</th><th class="num">Affiliation-F ↑</th><th class="num">FPR ↓</th><th class="num">CalErr ↓</th><th class="num">AUC-PR ↑</th><th class="num">VUS-PR ↑</th></tr></thead>
+      <tbody>
+        <tr class="best"><td>Chronos</td><td><b>W₁-ACAS</b></td><td class="num">0.912</td><td class="num">0.893</td><td class="num">0.077</td><td class="num">0.025</td><td class="num">0.355</td><td class="num">0.440</td></tr>
+        <tr><td>Chronos</td><td>Conformal (offline)</td><td class="num">0.863</td><td class="num">0.891</td><td class="num">0.111</td><td class="num">0.038</td><td class="num">0.310</td><td class="num">0.420</td></tr>
+        <tr><td>Chronos</td><td>Gaussian</td><td class="num">0.716</td><td class="num">0.842</td><td class="num">0.123</td><td class="num">0.075</td><td class="num">0.265</td><td class="num">0.438</td></tr>
+        <tr class="best"><td>TTM</td><td><b>W₁-ACAS</b></td><td class="num">0.889</td><td class="num">0.886</td><td class="num">0.082</td><td class="num">0.029</td><td class="num">0.342</td><td class="num">0.449</td></tr>
+        <tr><td>TTM</td><td>Conformal (offline)</td><td class="num">0.851</td><td class="num">0.885</td><td class="num">0.120</td><td class="num">0.044</td><td class="num">0.317</td><td class="num">0.448</td></tr>
+        <tr><td>TTM</td><td>Gaussian</td><td class="num">0.733</td><td class="num">0.849</td><td class="num">0.128</td><td class="num">0.081</td><td class="num">0.270</td><td class="num">0.450</td></tr>
+        <tr class="best"><td>TiRex</td><td><b>W₁-ACAS</b></td><td class="num">0.925</td><td class="num">0.897</td><td class="num">0.084</td><td class="num">0.025</td><td class="num">0.344</td><td class="num">0.438</td></tr>
+        <tr><td>TiRex</td><td>Conformal (offline)</td><td class="num">0.878</td><td class="num">0.890</td><td class="num">0.107</td><td class="num">0.038</td><td class="num">0.308</td><td class="num">0.429</td></tr>
+        <tr><td>TiRex</td><td>Gaussian</td><td class="num">0.714</td><td class="num">0.837</td><td class="num">0.119</td><td class="num">0.090</td><td class="num">0.270</td><td class="num">0.432</td></tr>
+        <tr><td>–</td><td>POLY</td><td class="num">0.527</td><td class="num">0.848</td><td class="num">0.334</td><td class="num">0.282</td><td class="num">0.044</td><td class="num">0.377</td></tr>
+        <tr><td>–</td><td>Sub-KNN</td><td class="num">0.479</td><td class="num">0.786</td><td class="num">0.451</td><td class="num">0.174</td><td class="num">0.118</td><td class="num">0.321</td></tr>
+        <tr><td>–</td><td>KShape</td><td class="num">0.533</td><td class="num">0.789</td><td class="num">0.508</td><td class="num">0.176</td><td class="num">0.125</td><td class="num">0.303</td></tr>
+        <tr><td>–</td><td>PCA</td><td class="num">0.536</td><td class="num">0.826</td><td class="num">0.374</td><td class="num">0.248</td><td class="num">0.100</td><td class="num">0.417</td></tr>
+        <tr><td>–</td><td>SAND</td><td class="num">0.460</td><td class="num">0.790</td><td class="num">0.511</td><td class="num">0.134</td><td class="num">0.101</td><td class="num">0.289</td></tr>
+        <tr><td>–</td><td>CNN* (semi-supervised)</td><td class="num">0.858</td><td class="num">0.881</td><td class="num">0.083</td><td class="num">0.643</td><td class="num">0.269</td><td class="num">0.423</td></tr>
+        <tr><td>–</td><td>OmniAnomaly*</td><td class="num">0.674</td><td class="num">0.855</td><td class="num">0.209</td><td class="num">0.571</td><td class="num">0.166</td><td class="num">0.429</td></tr>
+        <tr><td>–</td><td>USAD*</td><td class="num">0.498</td><td class="num">0.809</td><td class="num">0.425</td><td class="num">0.324</td><td class="num">0.088</td><td class="num">0.398</td></tr>
+        <tr><td>–</td><td>MOMENT (zero-shot)</td><td class="num">0.596</td><td class="num">0.867</td><td class="num">0.261</td><td class="num">0.417</td><td class="num">0.110</td><td class="num">0.461</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 7-2. 논문 표 1의 평균값(7개 데이터셋 그룹을 먼저 평균한 뒤 동일 가중으로 평균). 표준편차는 PA-F1에서 W₁-ACAS 0.048–0.108, Conformal 0.085–0.124, Gaussian 0.240–0.264로 <b>그룹 사이 산포가 크다</b>. * = 정상 구간으로 학습하는 semi-supervised 방법. 표의 머리글은 'AUC-PR · VUC-PR'이고 본문과 부록은 'AUC · VUS-PR'이라 적어 표기가 어긋난다. 표 2–4(데이터셋별)에는 W₁-ACAS와 비-TSFM 기준선만 있고 Gaussian · Conformal 행이 없어(파싱 기준), 데이터셋마다 세 방법의 순위가 일관된지는 확인하지 못했다.</p>
+
+    <figure>
+      <div data-chart='{"type":"bar","title":"PA-F1 — 같은 forecaster 위의 세 방법 (논문 표 1)","labels":["Chronos","TTM","TiRex"],"series":[{"name":"W1-ACAS","data":[0.912,0.889,0.925]},{"name":"Conformal (offline)","data":[0.863,0.851,0.878]},{"name":"Gaussian","data":[0.716,0.733,0.714]}],"highlight":"W1-ACAS","yMin":0,"yMax":1,"digits":3,"aspect":0.42}'></div>
+      <figcaption><b>그림 7-2.</b> threshold 의존 지표(오라클 임계값)에서는 W₁-ACAS가 같은 forecaster 위의 두 방법보다 높다. 차이는 Conformal 대비 0.038–0.049로, 표준편차(0.048–0.124)보다 작다.</figcaption>
+    </figure>
+    <figure>
+      <div data-chart='{"type":"bar","title":"VUS-PR — threshold가 필요 없는 지표 (논문 표 1)","labels":["Chronos","TTM","TiRex"],"series":[{"name":"W1-ACAS","data":[0.440,0.449,0.438]},{"name":"Conformal (offline)","data":[0.420,0.448,0.429]},{"name":"Gaussian","data":[0.438,0.450,0.432]}],"highlight":"W1-ACAS","yMin":0,"yMax":0.6,"digits":3,"aspect":0.42}'></div>
+      <figcaption><b>그림 7-3.</b> threshold 없는 range 지표에서는 세 방법이 거의 같다(TTM에서는 Gaussian 0.450이 W₁-ACAS 0.449보다 높다). 표 전체의 VUS-PR 최고는 zero-shot MOMENT의 0.461이다. 논문 본문은 이를 '경쟁력 있다(competitive)'고 쓰지만, 결론의 '일관되게 앞선다'와는 맞지 않는다.</figcaption>
+    </figure>
+    <figure>
+      <div data-chart='{"type":"bar","title":"오라클 임계값에서의 FPR (논문 표 1) — 설계 목표 α_c는 0.01","labels":["Chronos","TTM","TiRex"],"series":[{"name":"W1-ACAS","data":[0.077,0.082,0.084]},{"name":"Conformal (offline)","data":[0.111,0.120,0.107]},{"name":"Gaussian","data":[0.123,0.128,0.119]}],"highlight":"W1-ACAS","yMin":0,"yMax":0.15,"digits":3,"aspect":0.42}'></div>
+      <figcaption><b>그림 7-4.</b> PA-F1이 가장 좋은 임계값을 라벨로 고르면 W₁-ACAS도 정상 점의 약 8%에 경보를 낸다. 설계 목표 \(\alpha_c=1\%\)의 8배다. 이 표는 '\(\alpha=1\%\)로 정하고 돌렸을 때 실제 거짓 경보율'을 보여 주지 않는다.</figcaption>
+    </figure>
+
+    <div class="callout warn"><strong>'교정 오차(CalErr)'는 교정을 재는 값이 아니다</strong>
+      <p>CalErr은 <b>오라클이 고른 임계값 \(\alpha^*\) 한 점</b>에서 \(|\mathrm{FPR}(\alpha^*)-\alpha^*|\)를 잰 값이다. FPR이 0이면 정의상 \(\mathrm{CalErr}=\alpha^*\)가 되어, 오라클이 작은 \(\alpha^*\)를 고르면 교정이 나빠도 작게 나오고 큰 \(\alpha^*\)를 고르면 FPR이 0이어도 크게 나온다. 표 6의 TAO가 이 모양이다 — Fisher 변형은 FPR 0.000에 CalErr 0.026–0.029, HMP 변형은 FPR 0.000에 CalErr 0.251–0.257(곧 \(\alpha^*\approx0.25\)). 또 CNN · USAD · OmniAnomaly 같은 기준선은 min–max 정규화한 점수의 \(1-\text{점수}\)를 p-value 대신 쓴 것이라 CalErr(0.32–0.64)이 '교정이 나쁘다'기보다 <b>애초에 p-value가 아니라서 크게 나오는 값</b>이다. 교정을 진짜로 재려면 정상 데이터만 있는 구간에서 여러 \(\alpha\)의 실현 FPR을 보는 논문의 그림 3(FPR 대 임계값 곡선)이 맞는데, 이 리뷰는 그림을 읽지 못하고 캡션만 확인했다.</p>
+    </div>
+
+    <h3>다변량 — 채널별 실행 뒤 p-value 합산 (표 6)</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>방법</th><th class="num">TAO</th><th class="num">GECCO</th><th class="num">LTDB</th><th class="num">Genesis</th></tr></thead>
+      <tbody>
+        <tr><td>CNN* (semi-supervised)</td><td class="num">0.998</td><td class="num">0.583</td><td class="num">0.910</td><td class="num">0.649</td></tr>
+        <tr><td>OmniAnomaly*</td><td class="num">0.377</td><td class="num">0.579</td><td class="num">0.875</td><td class="num">0.473</td></tr>
+        <tr><td>USAD*</td><td class="num">0.172</td><td class="num">0.561</td><td class="num">0.639</td><td class="num">0.094</td></tr>
+        <tr class="best"><td>W₁-ACAS-F · Chronos</td><td class="num">1.000</td><td class="num">0.704</td><td class="num">0.845</td><td class="num">0.793</td></tr>
+        <tr class="best"><td>W₁-ACAS-F · TiRex</td><td class="num">1.000</td><td class="num">0.742</td><td class="num">0.888</td><td class="num">0.850</td></tr>
+        <tr><td>W₁-ACAS-H · Chronos</td><td class="num">0.999</td><td class="num">0.606</td><td class="num">0.910</td><td class="num">0.850</td></tr>
+        <tr><td>W₁-ACAS-H · TiRex</td><td class="num">0.999</td><td class="num">0.587</td><td class="num">0.937</td><td class="num">0.873</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 7-3. 논문 표 6의 PA-F1(평균, 표준편차 생략). TAO 13개 · LTDB 5개 시계열의 평균이고 GECCO(9변수, 13.8만 점) · Genesis(18변수, 1.6만 점)는 시계열 하나라 한 점 추정이다. 예측기는 context를 최대한 길게(최소 52) 쓴 'allctx' 변형이다.</p>
+    <figure>
+      <div data-chart='{"type":"bar","title":"다변량 PA-F1 (논문 표 6)","labels":["TAO","GECCO","LTDB","Genesis"],"series":[{"name":"CNN*","data":[0.998,0.583,0.910,0.649]},{"name":"ACAS-F (Chronos)","data":[1.000,0.704,0.845,0.793]},{"name":"ACAS-F (TiRex)","data":[1.000,0.742,0.888,0.850]},{"name":"ACAS-H (TiRex)","data":[0.999,0.587,0.937,0.873]}],"highlight":"ACAS-F (TiRex)","yMin":0,"yMax":1.05,"digits":3,"aspect":0.45}'></div>
+      <figcaption><b>그림 7-5.</b> 다변량에서는 semi-supervised CNN이 TAO에서 거의 같고(0.998 대 1.000) LTDB에서는 Chronos 기반 Fisher 변형(0.845)보다 높다(0.910). F와 H 중 어느 쪽이 나은지는 데이터셋마다 다르다. 즉 <b>센서를 합치는 방식이 성능을 좌우하는데 논문은 그 선택의 근거를 주지 않는다</b>(세 번째 실험).</figcaption>
+    </figure>
+
+    <h3>그 밖의 실험</h3>
+    <ul>
+      <li><b>합성 분포 이동(부록 C.1).</b> 평균이 연속으로 흘러가거나(random shift) 500스텝마다 1씩 뛰는(jump shift) 길이 6,000의 정규 오차에서, 정답 p-value를 알 수 있는 상황으로 15회 평균했다. W₁-ACAS(창 2,000)가 (i) 같은 창에 가중치 1을 준 방법과 (ii) 앞 100점만으로 한 번 교정한 split conformal보다 정답 p-value에 가깝다고 그림으로 보였다(숫자 표는 없다). <b>이 장면은 이 논문에서 '단순 창' baseline이 등장하는 유일한 곳</b>이다.</li>
+      <li><b>민감도(부록 C.2.3).</b> horizon을 10개 넘게 합치면 성능이 안정되고, 학습률은 작으면 변동이 없으며, 배치 \(n_b\)에는 약간 민감하고(작을수록 일부 데이터셋에서 약간 좋음), \(\alpha_c\)는 p-value 해상도를 정한다 — 작은 \(\alpha_c\)는 더 많은 정상 과거 표본이 필요하나 탐지할 수 있는 가장 작은 이상 수준에 하한을 주지는 않는다고 적었다.</li>
+      <li><b>예측 오차(표 5).</b> 세 TSFM의 MAE · RMSE는 데이터셋별로 비슷하고, TTM이 YAHOO에서 눈에 띄게 크다(MAE 481.91 대 Chronos 280.75 · TiRex 250.80). 논문은 이것이 TTM의 낮은 YAHOO 탐지 성능과 맞는다고 해석한다. 표 5의 캡션은 'per Multivariate Dataset'이라 적혔지만 내용은 단변량 7개 데이터셋이다.</li>
+      <li><b>계산 시간.</b> V100 한 장에서 표본 · 특징당 평균 0.025 ± 0.012초(15스텝 예측, 15개 예측기를 직렬로 갱신 — 병렬화하면 줄어든다고 적음). TSFM 예측 시간을 포함하는지는 서술에서 가려지지 않는다. <b>리뷰어 계산:</b> 센서 100개를 1 Hz로 직렬 처리하면 새 표본당 2.5초로 실시간보다 느리다.</li>
+    </ul>
+  </section>
+
+  <section id="audit">
+    <h2>공개물끼리 맞춰 보기</h2>
+    <p>이번 대상은 <b>논문 · 구현 코드 · 데모 스크립트 · README · 테스트 · PyPI 패키지</b>가 모두 따로 있어 서로 맞춰 볼 수 있다. 논문은 HTML 원문을 끝까지(부록 포함) 읽었고 저장소는 읽기만 했다. 아래는 모두 <b>읽어서 알 수 있는 것</b>이며 코드를 실행해 확인한 것은 없다.</p>
+
+    <h3>논문의 서술 대 공개 코드</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:13%">항목</th><th style="width:30%">논문 (arXiv 2604.20122 v1)</th><th style="width:37%">공개 코드 (main 31fa2f0)</th><th style="width:20%">비고</th></tr></thead>
+      <tbody>
+        <tr><td>p-value</td><td>식 (7): \(\beta=(1+\sum_{S_i\ge S}w_i)/(\lVert w\rVert_1+1)\), 최솟값 \(1/(\lVert w\rVert_1+1)\)</td><td><code>get_beta</code>가 \((\sum_{S_i\le S}w_i+1)/(\lVert w\rVert_1+1)\)을 만들고 <code>predict</code>가 <b>1 − 그 값</b>을 돌려줌 → \(p=\sum_{S_i\gt S}w_i/(\lVert w\rVert_1+1)\). 자기 자신이 분자에 없어 <b>p = 0 가능</b>. 부호 있는 <code>error</code>는 Beta(1,1) 평활화 + 양측 변환이라 최솟값 \(2/(\lVert w\rVert_1+2)\)</td><td>세 번째 실험. 저장소 예시 출력의 <code>score_threshold</code>가 abs 설정에서 1e-14 이하(p ≈ 0)</td></tr>
+        <tr><td>최적화기</td><td>식 (12)는 사영 경사 하강, 실험 절은 ADAM, \(\gamma=0.001\)</td><td><code>torch.optim.AdamW</code>(lr 0.001)에 <code>weight_decay</code> 지정 없음 → PyTorch 기본값 0.01이 적용됨(코드를 읽어 도출) + <code>project_l1_box_torch</code> 사영</td><td>AdamW의 decoupled decay는 논문에 없음</td></tr>
+        <tr><td>학습 목적</td><td>식 (8): 식 (7)의 \(\beta\)(분자 +1 포함)에 대한 \(\mathcal W_1\)</td><td>손실은 <code>conformal_weights_update=False</code>(문서: 'Recommended: False')로 +1 보정 없는 \(\beta\)를 쓰고, 출력 p-value는 +1 보정 경로(<code>conformal_weights=True</code>)</td><td>목적함수와 출력이 서로 다른 \(\beta\)</td></tr>
+        <tr><td>갱신 횟수</td><td>배치당 한 번 갱신으로 서술</td><td>클래스는 <code>"epochs"</code> 키를 읽고 기본값 2. 래퍼 <code>w1acas.py</code>는 <code>"n_epochs"</code> 키로 넘김 → <b>CLI의 <code>--n_epochs</code>(기본 1)는 무시되고 항상 2</b></td><td>단위 테스트는 <code>"epochs"</code>로 직접 호출해 못 잡음</td></tr>
+        <tr><td>가중치 초기값</td><td>\(w_i=\mathbf 1[i\le n_c]\), \(n_c=1/\alpha_c-1=99\)</td><td>교정 구간(<code>ceil(1/α)</code> = 100점)에 1, 나머지 0. 데모 기본 <code>prior_past_weights_value</code> = <code>"proximity"</code>(새 슬롯에 이웃 가중치 복사), 라이브러리 함수 기본은 0</td><td>데모와 함수의 기본값이 다름</td></tr>
+        <tr><td>과거 창 길이</td><td>실험의 \(n\) 미기재(합성 실험은 2,000)</td><td><code>min(max(ceil(1/α)+h, 시계열 길이), 5000)</code> — 긴 시계열이면 5,000</td><td>논문에 없는 상한</td></tr>
+        <tr><td>설정</td><td>context 52, horizon 15, \(\alpha_c=0.01\), \(n_b=10\)</td><td>데모 기본 context 90, README 예시는 TTM에 context 512 · horizon 10, 나머지는 같음</td><td>README로 돌리면 논문 설정이 아님</td></tr>
+        <tr><td>horizon 합산</td><td>중앙값 (식 15)</td><td>함수 기본 <code>median</code>, <b>데모 스크립트 기본은 Cauchy</b></td><td>논문에 Cauchy 없음</td></tr>
+        <tr><td>센서 합산</td><td>Fisher(‑F) · HMP(‑H): \(n_f/\sum(1/\bar\beta)\)</td><td>median · mean · min · max · Fisher · HMC · Tippett · Cauchy. HMC는 \(\min(1,\ \mathrm{hmp}\cdot e\cdot\ln k)\) (Wilson 2019의 보수적 보정). <b>\(k=1\)이면 \(\ln 1=0\)이라 p = 0</b></td><td>네 번째 실험. 논문의 H는 보정 없음</td></tr>
+        <tr><td>임계값</td><td>오라클 격자 탐색 (부록 C.2.2)</td><td>데모도 <code>PA-F1_point</code>의 오라클 임계값으로 <code>pred_labels</code>를 만듦. <code>significance_level</code>은 p-value 해상도(창 · 교정 길이)에만 쓰이고 경보 임계값이 아님</td><td>데모가 '\(\alpha\)=1%로 경보'를 보여 주지 않음</td></tr>
+        <tr><td>예측기</td><td>TTM · Chronos-Bolt-Small · TiRex</td><td>+ <code>flowstate</code>(Granite FlowState), 코드에만 있음</td><td>논문 표에 없음</td></tr>
+        <tr><td>구간 출력</td><td>없음 (p-value만)</td><td>W₁ 경로에 없음. 균일 · 지수 감쇠 가중의 <code>predict_interval</code>이 따로 있음</td><td>가드밴드 용도에는 직접 유도 필요</td></tr>
+        <tr><td>README</td><td>TiRex는 Auer 외(2025, xLSTM 기반)</td><td>README 참고문헌은 'Woo, G., et al. (2024). TiRex: Time Series Representation Learning with Extreme Compression'. 또 README는 <code>dataset/</code>에 예시 데이터가 있다고 하지만 저장소에는 없고(<code>.gitignore</code>가 CSV를 제외) 직접 내려받으라고 적음</td><td>문서 오류</td></tr>
+        <tr><td>테스트</td><td>–</td><td><code>tests/toolkit/test_conformal.py</code>에 <code>test_adaptive_conformal_wrapper</code>가 있음. 가중치 길이 · 합 · 출력 모양만 단언하고 교정(실현 FPR)은 확인하지 않음. <code>w1acas.py</code>의 함수를 부르는 곳은 데모뿐이고(저장소 코드 검색) 이 함수의 테스트는 없음</td><td>교정 보장의 회귀 검증 없음</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 7-4. 논문과 공개 코드의 차이. 어느 쪽이 논문 표 1 · 6을 낸 구현인지는 이 자료만으로는 알 수 없다. 다만 표 1이 쓰는 \(\alpha\)는 오라클 격자라서 p-value 정의의 \(1/(n+1)\) 차이가 거기서는 크게 드러나지 않을 가능성이 높다(리뷰어 추정). 그래도 <b>사용자가 \(\alpha\)를 정해 쓰는 운영</b>에서는 세 번째 실험처럼 작은 창 · 작은 \(\alpha\)에서 실제 거짓 경보율이 목표의 두 배가 될 수 있다.</p>
+
+    <h3>논문 안의 서술과 숫자를 맞춰 보면</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:32%">서술</th><th style="width:48%">맞춰 본 것</th><th style="width:20%">판정</th></tr></thead>
+      <tbody>
+        <tr><td>"비지도 단변량 이상 탐지" (6절)</td><td>배포 시점에는 라벨이 필요 없다. 그러나 평가의 threshold 의존 지표는 <b>라벨로 고른 최적 임계값</b>이고, 교정 구간이 이상 없는 앞부분이라는 사전 정보(TSB-AD의 train 구간)도 쓴다</td><td>배포는 비지도, 평가는 라벨 사용</td></tr>
+        <tr><td>"우리 방법이 임계값 의존 지표에서 가장 강하다" (결과)</td><td>PA-F1에서 W₁-ACAS 0.889–0.925, Conformal 0.851–0.878. 차이 0.038–0.049 &lt; 표준편차. 지표가 PA라 무작위 점수도 긴 이상 구간에서 크게 나올 수 있다(이 책의 <a href="p06.html">리뷰 06</a> 네 번째 실험)</td><td>방향은 일관, 크기는 불확실</td></tr>
+        <tr><td>"일관되게 기준선을 앞선다" (결론)</td><td>VUS-PR 최고는 MOMENT_ZS 0.461, TTM에서 Gaussian 0.450 &gt; W₁-ACAS 0.449. 본문 결과 절은 'competitive'라 적어 결론보다 조심스럽다</td><td>결론이 과함</td></tr>
+        <tr><td>"안정적 거짓 경보 제어" (초록)</td><td>표 1의 오라클 FPR은 7.7–8.4%. 사용자가 정한 \(\alpha\)에서의 실현 FPR은 그림 3(FPR 대 임계값)에만 있고 숫자로는 없음. 부록 C.1의 합성 실험은 정규 오차 · 평균 이동만 다룸</td><td>숫자 근거 부족</td></tr>
+        <tr><td>"가중치가 주기 등 오차 패턴을 포착한다" (그림 1c · 4)</td><td>캡션만 확인(그림은 못 읽음). 이 리뷰의 장난감에서는 정상 구간에서 창 전체가 이미 가장 균등했고 가중치가 주기에 몰려도 \(\mathcal W_1\)은 낮아지지 않았다. 목적함수가 p-value의 <b>전체 분포</b>만 보기 때문(두 번째 실험)</td><td>실데이터에서의 기여 분리가 필요</td></tr>
+        <tr><td>"단순 창 대비 이점"</td><td>실데이터 표(1–6)에 가중치 1의 창, 지수 감쇠 같은 단순 online 가중이 baseline으로 없다. 합성 실험 C.1에만 등장. 라이브러리에는 <code>EXPONENTIAL_DECAY</code> 가중이 이미 있다</td><td>핵심 ablation 부재</td></tr>
+        <tr><td>식 (7) 대 알고리즘 1</td><td>동점 처리가 다름(\(S\le S_i\) 대 \(S\lt s\)). 식 (12) 경사 하강 대 6절의 ADAM. 'parametric mapping'이라 부르나 가중치는 자유 변수 \(n\)개</td><td>표기 불일치</td></tr>
+        <tr><td>부록 C.2.4의 Fisher 식</td><td>\(Z=-2\sum_f\bar\beta^f\)로 적혀 <b>\(\ln\)이 빠졌고</b>, 합친 p-value도 카이제곱 분포함수의 역함수로 표기됨. 코드는 \(-2\sum\ln p\)를 쓴다 → 오타로 읽힘</td><td>표기 오류</td></tr>
+        <tr><td>채널 사이의 독립</td><td>다변량은 채널별로 독립 실행 후 합산. Fisher는 p-value의 독립을 가정하는데 상관 처리에 대한 서술이 없다(네 번째 실험: 상관이 커지면 Fisher의 거짓 경보율이 크게 부풀음)</td><td>가정이 명시되지 않음</td></tr>
+        <tr><td>"실시간 · 자원 제약 환경에 적합" (초록)</td><td>0.025초/표본/특징(V100, 직렬). 고주파 · 다채널에서는 병렬화가 필수. TSFM 추론 시간 포함 여부 미기재</td><td>규모 한계 미기재</td></tr>
+      </tbody>
+    </table></div>
+    <p>표 7-5. '판정'은 논문이 틀렸다는 단정이 아니라 이 리뷰가 서술과 숫자 사이에서 확인할 수 없었거나 어긋난 곳의 표시다.</p>
+  </section>
+
+  <section id="critique">
+    <h2>강점과 한계</h2>
+    <div class="pro-con">
+      <div class="pro"><h4>강점</h4><ul>
+        <li><b>점수가 확률이다.</b> 이상 점수를 임의의 크기가 아니라 '정상에서 이만큼 극단적일 확률'로 바꿔 주기 때문에, 운영자가 임계값을 거짓 경보율 예산(예: 1일 1건)으로 말할 수 있다. 경보를 사람이 처리해야 하는 현장에서 가장 실용적인 성질이다.</li>
+        <li><b>학습 없이 붙는 후처리.</b> TSFM을 건드리지 않고 예측만 받아서 쓴다. 교정에 정상 표본이 약 \(1/\alpha_c\)개 필요할 뿐 라벨도 파인튜닝도 필요 없다. 예측기를 바꿔도 같은 방법이 그대로 적용된다(TTM · Chronos · TiRex 모두 시험).</li>
+        <li><b>분포 이동에 열려 있다.</b> 고정 교정이 아니라 과거 창을 따라 움직이므로 오차 분산이 변하는 시계열에서 거짓 경보가 폭증하지 않는다(첫 번째 실험의 ×2 분산에서 고정 방법은 약 19–20배, 적응형은 약 2배).</li>
+        <li><b>코드가 PyPI에 있고 구현이 읽을 만하다.</b> Apache-2.0, <code>pip install granite-tsfm</code>으로 받는 wheel의 구현이 main과 같다. 합산 방식(8종) · 부호 있는 오차 등 논문보다 넓은 옵션이 있고, 닫힌 꼴 기울기 대신 autograd로 구현해 읽기 쉽다.</li>
+        <li><b>평가에서 정직하게 쓴 부분.</b> 임계값 의존 지표는 오라클이라는 점, 정상 구간 가정, 비교 방법이 post-hoc인지 semi-supervised인지를 표에서 구분했고, 부록에서 민감도 분석과 합성 교정 실험을 보였다.</li>
+      </ul></div>
+      <div class="con"><h4>한계 · 의문점</h4><ul>
+        <li><b>가장 핵심적인 ablation이 실데이터에 없다.</b> 표 1은 W₁-ACAS를 Gaussian · offline Conformal과만 비교한다. 최근 \(n\)개 창이나 지수 감쇠 같은 단순 online 가중이 없어 '적응형'의 이득과 'W₁로 배운 가중치'의 이득이 섞여 있다. 우리 장난감에서는 오차 분산이 변하지 않으면 창 전체가 가장 균등했고, 변할 때만 학습이 앞섰다.</li>
+        <li><b>평가가 운영 모습이 아니다.</b> 핵심 지표는 라벨로 고른 임계값의 PA-F1이고 그 FPR은 약 8%다. 사용자가 \(\alpha=1\%\)나 \(0.1\%\)로 정했을 때의 실현 FPR · 재현율은 숫자로 없다. PA의 부풀림(이 책의 리뷰 06)과 CalErr의 성격(위 경고 상자)을 함께 읽어야 한다.</li>
+        <li><b>이론적 보장이 학습된 가중치까지 닿지 않는다.</b> 명제 3.1은 주어진 \(w\)의 경계이고 \(d_{TV}\)는 모르는 양이며, 학습된 \(w\)가 같은 보장을 가진다는 증명은 없다. 초록의 'out-of-sample guarantees 보존'은 명제 4.1(사건의 동치)까지만 증명된 것으로 읽어야 한다.</li>
+        <li><b>정상 교정 구간이 필요하고, 학습 중 이상이 섞인다.</b> 처음 \(1/\alpha_c\)개는 이상이 없다고 가정한다. 이후에는 이상 점수도 과거 집합에 들어가 가중치와 분위수를 오염시킨다(각주: 이상 비율 \(\alpha'\)가 있으면 해석이 \(\alpha+\alpha'\)가 됨).</li>
+        <li><b>적응하는 만큼 서서히 진행되는 열화를 흡수한다.</b> 분포가 서서히 변하면 창이 새 분포를 '정상'으로 받아들이므로 변화 자체를 이상으로 보려는 목적(예: 설비 열화 추적)에는 약점이 된다. 첫 번째 실험에서 분산이 커진 뒤 같은 크기의 이상이 덜 잡힌 것이 이 효과다(리뷰어 해석).</li>
+        <li><b>다변량 처리가 단순하다.</b> 채널을 독립으로 보고 p-value를 합친다. 센서 상관을 모형에 넣지 않으며, 합산 방식의 선택(Fisher · HMP · Cauchy · median)에 따라 거짓 경보율과 검출력이 크게 달라진다(네 번째 실험).</li>
+        <li><b>논문과 코드 · 문서의 불일치.</b> p-value 정의, <code>--n_epochs</code> 무시, 데모의 Cauchy 기본값과 context 90, README 인용 오류. 논문 표를 그대로 재현하려면 설정을 직접 맞춰야 한다.</li>
+        <li><b>범위의 한계.</b> 단일 숫자 시계열의 점 이상에 가깝다. 멀티모달 증거(로그 · 이미지), 원인 설명, 구간(contextual) 이상의 길이 정보는 다루지 않는다. 반도체 자료를 쓰지 않았다.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section id="impl">
+    <h2>구현 노트</h2>
+    <p>구현은 <b>패키지 안(<code>tsfm_public/toolkit</code>)</b>에 있고, 노트북 폴더(<code>adaptive_conformal_tsad</code>)는 예측을 만들어 넘기고 평가 · 그림을 그리는 281줄짜리 데모다. 쓰기 전에 알아 둘 것을 적는다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>확인한 내용 (코드 · 문서)</th></tr></thead>
+      <tbody>
+        <tr><td>설치</td><td><code>pip install granite-tsfm</code>(필수), Chronos는 <code>chronos-forecasting</code>, TiRex는 <code>tirex-ts</code>, TSB-AD 지표는 <code>TSB-AD</code>. README는 Python 3.12 권장</td></tr>
+        <tr><td>데모 입력</td><td>TSB-AD 형식 CSV — <b>마지막 열이 <code>Label</code></b>, 나머지가 특징. 파일 이름이 <code>…_tr_{train_index}_1st_{첫 이상 위치}.csv</code> 꼴이어야 하고 <code>train_index</code>를 이름에서 뽑는다(<code>split("_")[-3]</code>). 교정 구간 앞부분의 p-value는 1로 덮어쓴다</td></tr>
+        <tr><td>라이브러리 입력</td><td><code>{"y_pred": (N, H, F), "y_true": (N, H, F)}</code> — 시점 \(N\), 예측 horizon \(H\), 특징 \(F\). <code>align_forecast=True</code>면 같은 관측에 대한 horizon별 예측을 내부에서 정렬. 출력은 \(p\)-value(낮을수록 이상), 합산 인자에 따라 모양이 달라짐</td></tr>
+        <tr><td>교정 길이</td><td>horizon마다 처음 <code>ceil(1/α)</code>개 점수로 <code>fit</code>(그 구간의 p-value는 자기 자신을 포함한 표본 내 값이라 코드 주석이 '무시해야 한다'고 적음)한 뒤 나머지를 <code>predict</code>로 온라인 처리. 가중치 갱신은 과거 점수가 <code>1/α − 1 + n_b</code>개 이상 쌓인 뒤에 시작</td></tr>
+        <tr><td>경보 규칙</td><td>p-value가 \(\alpha\) 미만(또는 이하)인 점. 읽은 W₁ 경로(<code>w1acas.py</code> · 데모)에는 \(\alpha\)로 직접 경보를 내는 곳이 없고 데모는 오라클 임계값으로 만든다 → <b>운영용 경보 규칙은 직접 써야 한다</b></td></tr>
+        <tr><td>예시 출력</td><td>저장소의 <code>output/</code>에 YAHOO 시계열 하나(<code>672_YAHOO_id_122…</code>)의 세 모델 × 두 점수의 결과가 있다. 모두 AUC-PR 1.0 · PA-F1 1.0 · FPR 0.0이라 <b>변형들을 구분하는 근거로는 쓸 수 없다</b>(포화된 쉬운 사례 하나)</td></tr>
+      </tbody>
+    </table></div>
+<pre><code># 라이브러리 함수 직접 호출 — 읽은 시그니처 기준 (이 리뷰는 실행하지 않았다)
+from tsfm_public.toolkit.w1acas import get_forecast_conformal_adaptive_online_score
+
+# y_pred, y_true: (N, H, F). 논문 설정: H = 15, context 52로 만든 TSFM 예측
+p = get_forecast_conformal_adaptive_online_score(
+    {"y_pred": y_pred, "y_true": y_true},
+    significance_level=0.01,                 # α_c: p-value 해상도 = 최소 ceil(1/α) 정상 점수
+    aggregation_forecast_horizon="median",   # 논문 식 (15)
+    aggregation_features="Fisher",           # 논문의 -F. 센서 상관이 크면 "Cauchy"도 비교 (네 번째 실험)
+    nonconformity_score="absolute_error",    # "error"면 부호 있는 오차 · 양측 p-value
+    forecast_steps=15, n_batch_update=10, lr=1e-3,
+    prior_past_weights_value=0,              # 라이브러리 기본. 데모 기본은 "proximity"
+)
+alarm = p &lt; 0.01                              # 코드에는 이 한 줄이 없다
+
+# 같은 조건에서 '가중치 1'(단순 창) 대조군이 필요하면 lr=0 으로 두고 결과를 비교하는 것이 가장 값싼 ablation이다</code></pre>
+    <div class="callout deep"><strong>이 리뷰가 하지 않은 것</strong>
+      <p>저장소의 코드를 <b>실행하지 않았다</b>(이 환경에는 PyTorch · NumPy가 없다). 그래서 위 조각이 문제없이 돈다거나 표 7-4의 불일치가 실제로 그렇게 동작한다고는 말할 수 없다 — 코드를 읽어 도출한 것이며, 저장소에 올라 있는 예시 출력(<code>score_threshold</code> ≈ 1e-14)이 p-value 0을 뒷받침하는 유일한 실행 증거다. 논문의 그림 11장은 캡션으로만 확인했고, 표 2–4의 데이터셋별 숫자는 읽지 않았다. TSFM의 예측 정확도와 논문 표 1 · 6의 수치도 다시 재지 않았다. 네 실험은 모두 장난감 계산이다. 가장 값싼 후속 확인은 ① 같은 데이터에서 <b>단순 창(가중치 1)</b> 대조군을 W₁-ACAS와 나란히 돌려 학습의 기여를 분리하는 것, ② 라벨 없는 정상 구간에서 \(\alpha=1\%,\,0.1\%\)로 정한 실현 FPR을 재는 것, ③ p-value 정의와 <code>--n_epochs</code>를 저자에게 묻는 것이다.</p>
+    </div>
+    <div class="callout tip"><strong>직접 써 본다면</strong>
+      <p>① 먼저 <b>정상만 있는 구간으로 \(\alpha\)별 실현 FPR</b>을 재자(1%, 0.1%). 표 1의 FPR 8%는 운영 FPR이 아니다. ② <b>단순 창 · 지수 감쇠 대조군</b>을 같이 돌려서 W₁ 학습이 값을 하는지 확인하자. ③ 센서가 많으면 합산 방식을 <b>정상 데이터로 거짓 경보율을 먼저 확인</b>하고 고르자(Fisher는 상관된 센서에서 부풀 수 있다). ④ 정상 교정 구간에 <b>이상이 섞이지 않았는지</b> 점검하자. ⑤ 데모 스크립트의 기본값(context 90, Cauchy, <code>proximity</code>)이 논문 설정이 아님을 알고 쓰자. ⑥ 구현이 p-value 0을 낼 수 있음을 알고, 로그 변환 · 순위 비교를 하는 후속 처리는 0을 다루도록 하자. ⑦ <b>커밋과 패키지 버전을 적어 두자</b>(main 31fa2f0, granite-tsfm 0.3.12).</p>
+    </div>
+  </section>
+
+  <section id="extend">
+    <h2>확장과 변형 — 반도체 공정에 적용한다면</h2>
+    <p><b>먼저 못 박아 둘 것:</b> 이 논문은 반도체 공정 자료를 쓰지 않았다(TSB-AD의 일반 벤치마크 11개). 아래는 논문이 말한 것이 아니라 <b>방법의 구조를 보고 리뷰어가 따져 본 적용 가능성</b>이다. 근거는 논문 본문 · 부록, <code>w1acas.py</code> · <code>conformal.py</code>, 위 네 실험이다. 반도체 장비의 센서 자료 구조에 대한 서술은 일반적인 지식에서 온 것이며 이 리뷰가 자료로 확인한 것이 아니다.</p>
+
+    <h3>잘 맞는 점</h3>
+    <ul>
+      <li><b>거짓 경보 예산을 말할 수 있다.</b> 장비 모니터링은 거짓 경보 1건이 곧 엔지니어의 시간이다. \(\alpha\)를 '센서 · 스텝 · 웨이퍼당 거짓 경보율'로 정하고 p-value로 바로 비교하는 모양이 맞다.</li>
+      <li><b>라벨이 거의 없다.</b> 정상 구간 \(\approx 1/\alpha\)개만 있으면 된다. 이상 라벨을 모으기 어려운 환경에 맞다.</li>
+      <li><b>드리프트가 일상이다.</b> 소모품 마모 · 챔버 조건 변화로 정상 분포가 움직이는 환경에서 고정 교정은 거짓 경보가 폭증한다(첫 번째 실험).</li>
+      <li><b>정상 범위를 숫자로 줄 수 있다.</b> ⑥에서 유도한 밴드는 센서마다 \([\hat y\pm\hat q]\)로 시각화하기 쉽다.</li>
+    </ul>
+
+    <h3>어긋나거나 위험한 점</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:20%">항목</th><th>따져 본 것</th></tr></thead>
+      <tbody>
+        <tr><td>무엇을 '시간'으로 놓나</td><td>설비 trace는 레시피 step마다 분포가 다르고 웨이퍼마다 반복된다. step이 섞인 한 줄의 시계열에 창을 적용하면 교환 가능성이 처음부터 깨진다. <b>제안:</b> step별 요약 특성(평균 · 기울기 등)을 챔버별 <i>웨이퍼 순서</i>의 시계열로 만들어 적용하거나, step 안의 trace는 step별로 따로 창을 둔다. 후자는 이 논문의 설정이 아니라 별도 검증이 필요한 설계다.</td></tr>
+        <tr><td>교정 구간</td><td>시작 구간이 이상 없다는 가정이 필요하다. PM 직후 · 골든 런 같은 '깨끗한' 구간을 어떻게 고르는지가 방법의 일부가 된다. 표본이 모자라면(\(\alpha=10^{-3}\)이면 정상 점수 약 1,000개) 해상도가 \(\alpha\)에 못 미친다.</td></tr>
+        <tr><td>센서 수와 상관</td><td>FDC는 센서가 수십~수백 개이고 서로 강하게 상관된다. 네 번째 실험에서 Fisher는 상관 센서에서 거짓 경보가 크게 부풀고(\(\rho=0.8\), 10채널, 약 12배) median은 센서 하나의 고장을 거의 못 잡는다(검출력 0.004). 논문은 채널 상관을 다루지 않는다. 센서 수천 개에서의 <b>다중 비교 예산</b>도 따로 설계해야 한다.</td></tr>
+        <tr><td>서서히 진행되는 열화</td><td>적응형은 천천히 변하는 분포를 '새 정상'으로 받아들인다. 마모 · 오염 추적이 목적이라면 변화 자체를 감시하는 별도 장치(절대 스펙 한계, 추세 검정)가 필요하다. 첫 번째 실험에서 분산이 커진 뒤 같은 크기의 이상이 덜 잡힌 것과 같은 효과다.</td></tr>
+        <tr><td>TSFM의 예측 품질</td><td>밴드의 폭은 TSFM 예측 오차의 분포로 정해진다. 고주파 · step 경계가 뚜렷한 trace에서 제로샷 예측이 얼마나 나쁠지는 이 논문에서 알 수 없다. 최근 한 사전 보고(Uray 외, arXiv 2607.12454)는 SWaT(수처리 설비)에서 TimesFM 제로샷 예측 오차를 임계값으로 쓰는 단순한 이상 탐지가 기존 baseline에 못 미치고 지속되는 이상은 정상처럼 보인다고 적었다 — 읽은 것은 초록 수준이다.</td></tr>
+        <tr><td>규모와 지연</td><td>표본 · 특징당 0.025초(V100, 직렬)는 센서 100개를 1 Hz로 처리하기에 부족하다(리뷰어 계산 2.5초/표본). 병렬화 · 배치화가 필수다. 웨이퍼 단위의 저주파 요약 시계열이라면 문제가 작다.</td></tr>
+        <tr><td>평가</td><td>오라클 임계값 · PA-F1로 평가해서는 안 된다. 과거 excursion 이력으로 \(\alpha\)별 실현 거짓 경보율과 사건 단위 재현율을 따로 재야 한다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout tip"><strong>추천 경로 — 비용이 낮은 것부터</strong>
+      <p>① <b>단순 창 conformal 밴드</b>(가중치 1, 최근 \(n\)개)부터 시작한다 — 정상 구간의 \(\alpha\)별 실현 FPR이 목표에 맞는지 먼저 본다. ② 맞으면 <b>W₁ 가중치 학습</b>을 얹어 ①보다 나아지는지 비교한다(표 1에 없는 ablation). ③ 센서가 여럿이면 상관을 확인한 뒤 합산 방식을 <b>정상 데이터의 거짓 경보율로</b> 고른다. 센서별 밴드 · 경보를 그대로 쓰는 편이 합산보다 안전한 경우가 많다. ④ 예측기는 TTM · Chronos · TiRex를 같은 조건에서 비교한다. ⑤ 운영에서는 p-value 위에 절대 스펙 한계를 함께 둔다.</p>
+    </div>
+
+    <div class="callout agent"><strong>이 책의 다른 주제와 이어 보면 (리뷰어 제안)</strong>
+      <p>이 방법은 에이전트도 멀티모달도 아니지만 <b>에이전트가 부를 수 있는 '교정된 도구'</b>로는 좋은 모양이다. LLM이 판단 근거로 쓰기에 '점수 0.83'보다 'p = 0.004, 정상 범위 \([\hat y\pm\hat q]\)'가 낫기 때문이다. 같은 p-value를 텍스트 로그나 레시피 정보와 함께 읽는 일은 이 책의 <a href="p03.html">OpenTSLM</a> · <a href="p04.html">TSAlign</a> 리뷰가 다룬 시계열–언어 모델의 영역이고, 이 논문 자체가 다루지는 않는다. 예측 모델 위에 임계값 교정층을 얹는 발상은 <a href="p06.html">Kumo-TS 리뷰</a>가 '임계값이 병목'이라고 짚은 자리와도 맞닿는다 — Kumo-Anomaly의 복원 오차에 이 p-value 변환을 얹는 것은 가능한 후속 실험이지만 이 리뷰가 시험하지는 않았다.</p>
+    </div>
+
+    <div class="review-grid">
+      <div data-radar='{"TSFM 교체":4,"밴드 출력":3,"다변량 · 상관":2,"반도체 근거":1,"코드 · 문서":3}' data-max="5"></div>
+      <div>
+        <p><b>확장성 평가: 예측기를 바꾸는 쪽은 열려 있고, 반도체에 가져가는 쪽은 아직 비어 있다.</b> 입력이 \((N,H,F)\) 배열 하나라서 어떤 예측기든 붙일 수 있다(TSFM 교체 4). 밴드는 식으로 유도할 수 있고 <code>error</code> 경로로 비대칭 한계도 만들 수 있으나 공식 출력이 없다(3). 다변량은 채널 독립 + 합산뿐이고 상관 처리가 없다(2). 반도체 자료로 검증된 근거가 없다(1). 코드는 PyPI에 있고 읽기 쉽지만 논문과 기본값이 다르고 알려진 불일치가 있다(3).</p>
+        <p>반도체에 쓰려면 ① 무엇을 시간축으로 놓을지, ② 센서 상관을 반영한 합산, ③ 절대 한계와의 결합, ④ 실현 FPR을 기준으로 한 평가를 직접 설계해야 한다. 아이디어(교정된 확률로 정상 범위를 긋기)는 옮길 만하다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="rating">
+    <h2>나의 평가</h2>
+    <!-- 점수는 data-radar 속성에서 바꾼다 (1–5) -->
+    <div class="review-grid">
+      <div data-radar='{"신규성":3,"명확성":3,"실험 충실도":3,"재현 가능성":4,"실용성":4}' data-max="5"></div>
+      <div>
+        <p><b>쓸 만한 후처리이고, 새 기여의 몫은 아직 분리되지 않았다.</b> 점수를 거짓 경보율로 바꾸고 그 변환을 분포 이동에 맞춰 움직이게 한다는 구성은 실용적이며, 후처리라 기존 TSFM에 그대로 붙는다. 반면 새 아이디어(W₁로 가중치 학습)의 몫은 실데이터 표에서 단순 창과 분리되어 있지 않고, 핵심 지표가 오라클 임계값 · PA 위에 놓여 있으며, 논문과 코드의 p-value 정의가 다르다. 신규성은 3(기존 가중 conformal에 W₁ 목적을 얹음), 명확성은 3(식·알고리즘·본문 사이의 표기 불일치), 실험 충실도는 3(11개 데이터셋 · 3개 TSFM · 다수 기준선이 있으나 핵심 ablation이 없음), 재현 가능성은 4(구현이 PyPI에 있고 데이터는 공개 벤치마크이나 기본값이 다름), 실용성은 4(학습 없이 확률로 말하는 정상 범위).</p>
+        <p><b>그래서 어떻게 읽을까.</b> '정상 범위를 교정된 확률로 만드는 후처리 틀'로 읽고, <b>W₁ 학습의 이득은 자기 데이터에서 단순 창 대조군과 비교해 확인</b>하자. 표 1의 수치를 운영 성능으로 읽지 말고 \(\alpha\)를 정한 상태의 실현 거짓 경보율로 먼저 재자.</p>
+        <p><b>추천 대상:</b> 정상 범위 · 임계값을 확률로 설명해야 하는 이상 탐지 엔지니어, conformal 방법을 시계열에 쓰려는 사람. 이 책의 <a href="p06.html">Kumo-TS 리뷰</a>(임계값이 병목인 복원 기반 탐지), <a href="p02.html">Timestral 리뷰</a>(확률 예측)와 함께 읽으면 '예측 모델이 낸 불확실성을 어떻게 경보 규칙으로 바꾸는가'를 세 방향에서 볼 수 있다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="related">
+    <h2>함께 읽을 논문</h2>
+    <ul>
+      <li><b>Barber, Candès, Ramdas &amp; Tibshirani, "Conformal prediction beyond exchangeability" (Annals of Statistics 51(2), 2023)</b> — 명제 3.1의 원천. 가중 conformal의 경계와 '교환에 가까운 과거에 큰 가중치' 원리, 지수 감쇠 가중이 여기서 나온다.</li>
+      <li><b>Bates, Candès, Lei, Romano &amp; Sesia, "Testing for outliers with conformal p-values" (Annals of Statistics 51(1), 2023)</b> — 이상 탐지를 conformal p-value 검정으로 보는 틀. W₁-ACAS의 p-value 해석의 배경.</li>
+      <li><b>Angelopoulos &amp; Bates, "A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification" (arXiv 2107.07511)</b> — split conformal, 분위수 보정, 유한 표본 보장을 처음부터 따라가기 좋은 입문.</li>
+      <li><b>Gibbs &amp; Candès, "Adaptive Conformal Inference Under Distribution Shift" (NeurIPS 2021)</b> — online으로 \(\alpha\)를 조정해 분포 이동에 대응. 논문이 '단일 오류율만 맞춘다'고 대비한 쪽.</li>
+      <li><b>Ekambaram et al., TTM (arXiv 2401.03955) · Ansari et al., Chronos (arXiv 2403.07815) · Auer et al., TiRex (arXiv 2505.23719)</b> — 논문이 쓴 세 예측기. 오차 분포가 곧 밴드의 폭이므로 어떤 데이터로 사전학습했는지가 중요하다.</li>
+      <li><b>Liu &amp; Paparrizos, "The Elephant in the Room: Towards A Reliable Time-Series Anomaly Detection Benchmark" (NeurIPS 2024, TSB-AD)</b> — 논문의 11개 데이터셋 출처이자 PA 대신 VUS-PR 등을 권하는 평가 기준.</li>
+      <li><b>Kim et al., "Towards a Rigorous Evaluation of Time-series Anomaly Detection" (arXiv 2109.05257)</b> — PA가 무작위 점수도 높게 만든다는 지적. 이 책의 <a href="p06.html">리뷰 06</a> 네 번째 실험과 같은 주제.</li>
+      <li><b>Wilson, "The harmonic mean p-value for combining dependent tests" (PNAS 2019) · Liu &amp; Xie, "Cauchy combination test" (JASA 2020)</b> — 코드의 HMC와 Cauchy 합산의 원천. 상관된 검정을 합칠 때 Fisher가 왜 위험한지 읽을 수 있다.</li>
+      <li><b>이 서재의 <a href="p06.html">리뷰 06 Kumo-TS</a> · <a href="p02.html">리뷰 02 Timestral</a></b> — 임계값이 병목인 복원 기반 이상 탐지, 확률 예측. <b><a href="p03.html">리뷰 03 OpenTSLM</a></b> · <b><a href="p04.html">리뷰 04 TSAlign</a></b> — 시계열과 언어를 잇는 쪽.</li>
+      <li><b>이 서재의 <a href="../../timeseries-dl/">시계열 딥러닝</a></b> — 예측 지표와 정규화의 기본기, <b><a href="../../statistics/">머신러닝을 위한 통계</a></b> — p-value, 다중 비교, 분포 검정의 배경.</li>
+    </ul>
+  </section>
+
+  <section class="keypoints" id="keypoints">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>W₁-ACAS는 TSFM 예측의 오차를 <b>가중 conformal p-value</b> \(\beta=(1+\sum_{S_i\ge S}w_i)/(\lVert w\rVert_1+1)\)로 바꾸는 <b>post-hoc 이상 탐지</b>다. \(\beta\lt\alpha\) 판정은 가중 분위수 판정과 같아(명제 4.1) 점수가 곧 거짓 경보율이고, 이를 한 horizon에 적용하면 정상 범위 \([\hat y\pm\hat q]\)(가드밴드)가 따라 나온다(리뷰어 유도, 논문과 W₁ 경로 코드에는 구간 출력이 없다).</li>
+      <li>가중치 \(w\)는 lag별 자유 변수이고, 최근 \(n_b\)개 \(\beta\)의 경험 분포와 \(U[0,1]\) 사이의 \(\mathcal W_1\)(=모든 \(\alpha\)에 대한 교정 오차의 평균)을 줄이도록 Adam과 사영으로 배운다. 이 목적은 p-value의 <b>전체 분포</b>만 보므로 정상 구간에서는 창 전체가 이미 균등해 학습이 이득을 못 주고, 오차 척도가 바뀔 때 이득이 난다(두 번째 실험, 장난감).</li>
+      <li>7개 단변량 평균 PA-F1은 0.889–0.925로 Gaussian · offline Conformal보다 높지만, 이는 <b>라벨로 고른 오라클 임계값</b>에서의 값이며 그 FPR은 7.7–8.4%(설계 \(\alpha_c=1\%\)의 8배)다. threshold 없는 VUS-PR는 세 방법이 거의 같다(0.438–0.449). CalErr은 오라클 한 점의 값이라 교정을 재는 지표가 아니다.</li>
+      <li>실데이터 표에는 <b>단순 창(가중치 1) · 지수 감쇠 baseline이 없어</b> 'W₁ 학습'의 기여를 분리할 수 없다. 이론 보장(명제 3.1)도 주어진 \(w\)의 경계이고 학습된 \(w\)로 확장된 증명은 읽은 범위에 없다.</li>
+      <li>공개 코드는 PyPI wheel과 main이 같고 읽기 쉽지만 논문과 다르다: p-value가 자기 자신을 세지 않아 <b>p = 0 가능</b>(n = 100, \(\alpha=1\%\)에서 정확한 거짓 경보율 약 2%), <code>--n_epochs</code> 무시, 데모의 Cauchy · context 90 기본값. 합산 방식은 상관된 센서에서 결과를 좌우한다(Fisher 약 12배 부풀음, median은 센서 하나의 이상을 못 잡음).</li>
+      <li><b>반도체 적용:</b> 아이디어(교정된 확률로 정상 범위 긋기, 라벨 없음, 드리프트 대응)는 옮길 만하나 반도체 자료 근거는 없다. 시간축 선택, 센서 상관, 서서히 진행되는 열화의 흡수, 규모를 직접 설계해야 하며 평가는 \(\alpha\)를 정한 상태의 실현 거짓 경보율로 해야 한다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 오차 분산이 중간에 2배로 커지는 열에서, 교정 구간(앞 200점)에서 한 번 구한 고정 conformal 밴드의 거짓 경보율이 목표 α = 1%의 약 19배가 되었다(Gaussian ±zσ도 비슷, 최근 300개 창을 쓰는 적응형은 약 2배). 가장 직접적인 원인은?</p><div class="opts">
+        <button class="opt">교정 표본 200개가 너무 적어서 분위수 추정 오차가 크다.</button>
+        <button class="opt" data-correct>교정 구간과 이후의 분포가 달라져 교환 가능성이 깨졌고, 고정된 q는 새 분포의 꼬리를 덮지 못한다. 적응형은 창이 새 분산으로 채워지면서 q를 따라간다.</button>
+        <button class="opt">conformal은 분포를 가정하지 않으므로 분산 변화에도 거짓 경보율이 유지된다.</button>
+        <button class="opt">이상이 섞여 있어서 분위수가 커졌다.</button>
+      </div><div class="quiz-exp">첫 번째 실험의 기본 설정(정규 오차, 배율 2, α 1%, n 300)에서 드리프트 뒤 거짓 경보율은 Gaussian 20.09%, 고정 conformal 19.30%, 적응형 2.08%다. 교정 표본 수(200)는 드리프트 이전 구간에서 세 방법이 모두 약 1%인 것으로 충분함을 보여 준다. conformal의 유한 표본 보장은 교정과 검정이 교환 가능할 때의 것이다. 이 실험은 이상이 없는 열의 평균이다.</div></div>
+
+      <div class="quiz-q"><p>2. 오차 분산에 주기가 있지만 시간에 따라 변하지 않는(정상) 열에서, 창 전체에 가중치 1을 준 단순 창과 W₁로 학습한 가중치의 p-value 균등성(W₁ 거리)을 비교했다. 결과와 이유는?</p><div class="opts">
+        <button class="opt">학습한 가중치가 주기의 배수 lag에 몰리므로 항상 더 균등하다.</button>
+        <button class="opt" data-correct>단순 창이 같거나 더 균등하다. W₁ 목적은 p-value의 전체 분포만 보는데, 정상 주기 열에서는 여러 위상을 섞은 창이 이미 주변분포로 균등하기 때문이다.</button>
+        <button class="opt">학습률이 작아서 학습이 되지 않았기 때문이다.</button>
+        <button class="opt">단순 창은 p-value가 0이 되어 계산할 수 없다.</button>
+      </div><div class="quiz-exp">두 번째 실험의 시드 1에서 배율 1, A = 2일 때 W₁ 거리는 최근 n<sub>c</sub>개 0.026, 창 전체 0.005, 학습 0.010이다(A = 0이면 0.027 · 0.004 · 0.008). 학습한 가중치는 P의 배수 lag에 몰리지만(비율 25% 대 13%) 목적함수는 그것을 보상하지 않는다. 오차 척도가 2배로 바뀌면 창 전체 0.018, 학습 0.012로 학습이 앞선다. 장난감의 한 설정이며 실제 TSFM 오차에 대한 결론이 아니다.</div></div>
+
+      <div class="quiz-q"><p>3. 창 n = 100, α = 1%에서 논문 식 (7)의 p-value와 공개 코드의 1 − β(absolute_error 경로)를 같은 임계값 α로 비교하면, 점수가 교환 가능하고 동점이 없을 때 정확한 거짓 경보율은?</p><div class="opts">
+        <button class="opt">둘 다 정확히 1%이다.</button>
+        <button class="opt" data-correct>논문식은 1/101 ≈ 0.99%, 코드식은 2/101 ≈ 1.98%로 약 두 배이다. 코드의 p-value는 검정 점수 자신을 세지 않아 0이 될 수 있다.</button>
+        <button class="opt">논문식이 더 크다. 자기 자신을 더해 보수적이므로 경보가 더 많다.</button>
+        <button class="opt">코드식은 경보를 전혀 내지 못한다.</button>
+      </div><div class="quiz-exp">세 번째 실험에서 논문식 ⌊α(n+1)⌋/(n+1) = 1/101, 코드식 (⌊α(n+1)⌋+1)/(n+1) = 2/101이다. 몬테카를로 4,000회에서도 0.83% · 2.08%로 이 계산과 맞는다. 창이 5,000까지 커지면 차이가 1/(n+1) 수준으로 줄어 거의 사라진다. 저장소 예시 출력의 score_threshold가 1e-14 이하인 것도 p ≈ 0을 가리킨다. 코드를 읽어 도출한 것이고 실행하지 않았다.</div></div>
+
+      <div class="quiz-q"><p>4. 센서 10개가 서로 상관 ρ = 0.8로 움직인다. 각 센서의 p-value는 개별로는 정확히 교정되어 있다. α = 1%에서 합산 방법을 비교한 결과로 옳은 것은?</p><div class="opts">
+        <button class="opt">Fisher가 가장 믿을 만하다. 정보를 가장 많이 쓰기 때문이다.</button>
+        <button class="opt" data-correct>Fisher는 p-value의 독립을 가정해 거짓 경보율이 α의 약 12배로 부풀고, median은 거짓 경보는 적지만 센서 하나만 어긋나는 이상을 거의 잡지 못한다(검출력 0.004). Cauchy는 상관에 훨씬 덜 민감하다(약 1.07배).</button>
+        <button class="opt">median이 가장 좋다. 거짓 경보가 가장 적기 때문이다.</button>
+        <button class="opt">상관이 있으면 어떤 합산 방법도 거짓 경보율을 α 이하로 둘 수 없다.</button>
+      </div><div class="quiz-exp">네 번째 실험의 k = 10, α = 1%, 한 센서 4σ 이동, 기본 난수 시드에서: Tippett 0.53배 · 검출력 0.766, Fisher 12.14배 · 0.364, HMP(코드) 0.17배 · 0.590, HMP(논문식) 1.07배 · 0.771, Cauchy 1.07배 · 0.763, median 0.45배 · 0.004. median은 논문이 같은 센서의 horizon 15개를 합칠 때 쓴 방식이며, 서로 다른 센서에 그대로 쓰는 것은 다른 문제다. k = 1이면 코드의 HMC는 항상 p = 0이다.</div></div>
+
+      <div class="quiz-q"><p>5. 데모 스크립트를 <code>--n_epochs 1</code>로 돌렸다. 코드를 읽어 보면 가중치 갱신 횟수는?</p><div class="opts">
+        <button class="opt">배치마다 1번이다.</button>
+        <button class="opt" data-correct>배치마다 2번이다. 래퍼가 "n_epochs" 키로 넘기지만 클래스는 "epochs" 키를 읽고(기본 2), 단위 테스트도 "epochs"로 직접 호출해 이 불일치를 못 잡는다.</button>
+        <button class="opt">갱신하지 않는다. 학습률이 0.001이기 때문이다.</button>
+        <button class="opt">GPU가 있을 때만 2번이다.</button>
+      </div><div class="quiz-exp">w1acas.py는 weighting_params에 "n_epochs"를 넣고, conformal.py의 AdaptiveWeightedConformalScoreWrapper는 "epochs"가 없으면 2로 두고 predict에서 그 값을 읽는다(코드를 읽어 도출, 실행 안 함). 논문은 배치당 한 번 갱신으로 서술한다.</div></div>
+
+      <div class="quiz-q"><p>6. 논문 표 1에서 TiRex 위의 W₁-ACAS는 PA-F1 0.925, FPR 0.084이다. 이 값을 어떻게 읽어야 하나?</p><div class="opts">
+        <button class="opt">α = 1%로 정하고 돌렸을 때의 성능이다.</button>
+        <button class="opt" data-correct>라벨을 써서 63개 임계값 격자 중 PA-F1이 최대인 α*를 고른 지점의 값이며, 그 지점에서 정상 점의 약 8%가 경보된다. 사용자가 정한 α에서의 운영 성능이 아니다.</button>
+        <button class="opt">교차 검증으로 고른 임계값의 값이다.</button>
+        <button class="opt">FPR이 α_c = 1%를 넘는 것은 논문의 보장이 깨졌다는 증거이다.</button>
+      </div><div class="quiz-exp">부록 C.2.2는 임계값 의존 지표를 'oracle strategy'로 정의한다. FPR 0.084는 그 α*에서의 값이고 CalErr = |FPR − α*|도 같은 점에서 잰다. 이는 보장이 깨졌다는 증거가 아니라, 표가 보장을 시험하는 설계가 아니라는 뜻이다. 보장은 정상 구간에서 α별 실현 FPR을 재야 확인된다.</div></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
