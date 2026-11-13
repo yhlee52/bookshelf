@@ -86,7 +86,7 @@
         <tr><td>2026-11-13</td><td>이 리뷰가 읽은 시점. 저장소 main <code>31fa2f0</code>, 별 919개</td><td>GitHub API</td></tr>
       </tbody>
     </table></div>
-    <p>표 7-1. 읽은 대상의 시점. 구현 파일이 9개월 가까이 그대로라서 '일주일 뒤에 달라져 있을' 가능성은 p06의 Kumo-TS보다 훨씬 낮다. 대신 <b>논문 v1과 코드 사이의 차이</b>가 굳어 있다는 뜻이기도 하다.</p>
+    <p>표 1-1. 읽은 대상의 시점. 구현 파일이 9개월 가까이 그대로라서 '일주일 뒤에 달라져 있을' 가능성은 p06의 Kumo-TS보다 훨씬 낮다. 대신 <b>논문 v1과 코드 사이의 차이</b>가 굳어 있다는 뜻이기도 하다.</p>
   </section>
 
   <section id="method">
@@ -142,7 +142,7 @@
           <text x="14" y="106" class="t-dim">W₁ 경로 코드에는 구간 출력이 없고, 균일 · 지수 감쇠 가중</text>
           <text x="14" y="124" class="t-dim">경로(WeightedConformalWrapper)에만 predict_interval이 있다</text></g>
       </svg>
-      <figcaption><b>그림 7-1.</b> 위: 한 채널 · 한 horizon의 p-value를 만드는 흐름과 합산. 아래 왼쪽: 가중치를 배우는 루프(논문 식 8–14). 아래 오른쪽: 정상 범위(밴드)로 읽는 방법은 식 (4)의 동치에서 <b>이 리뷰가 유도한 것</b>이다. 점선 테두리는 논문이 직접 말하지 않은 부분을 뜻한다.</figcaption>
+      <figcaption><b>그림 1-1.</b> 위: 한 채널 · 한 horizon의 p-value를 만드는 흐름과 합산. 아래 왼쪽: 가중치를 배우는 루프(논문 식 8–14). 아래 오른쪽: 정상 범위(밴드)로 읽는 방법은 식 (4)의 동치에서 <b>이 리뷰가 유도한 것</b>이다. 점선 테두리는 논문이 직접 말하지 않은 부분을 뜻한다.</figcaption>
     </figure>
 
     <h3>① 설정 — 예측 오차를 nonconformity score로</h3>
@@ -217,19 +217,19 @@
         <tr><td>–</td><td>MOMENT (zero-shot)</td><td class="num">0.596</td><td class="num">0.867</td><td class="num">0.261</td><td class="num">0.417</td><td class="num">0.110</td><td class="num">0.461</td></tr>
       </tbody>
     </table></div>
-    <p>표 7-2. 논문 표 1의 평균값(7개 데이터셋 그룹을 먼저 평균한 뒤 동일 가중으로 평균). 표준편차는 PA-F1에서 W₁-ACAS 0.048–0.108, Conformal 0.085–0.124, Gaussian 0.240–0.264로 <b>그룹 사이 산포가 크다</b>. * = 정상 구간으로 학습하는 semi-supervised 방법. 표의 머리글은 'AUC-PR · VUC-PR'이고 본문과 부록은 'AUC · VUS-PR'이라 적어 표기가 어긋난다. 표 2–4(데이터셋별)에는 W₁-ACAS와 비-TSFM 기준선만 있고 Gaussian · Conformal 행이 없어(파싱 기준), 데이터셋마다 세 방법의 순위가 일관된지는 확인하지 못했다.</p>
+    <p>표 1-2. 논문 표 1의 평균값(7개 데이터셋 그룹을 먼저 평균한 뒤 동일 가중으로 평균). 표준편차는 PA-F1에서 W₁-ACAS 0.048–0.108, Conformal 0.085–0.124, Gaussian 0.240–0.264로 <b>그룹 사이 산포가 크다</b>. * = 정상 구간으로 학습하는 semi-supervised 방법. 표의 머리글은 'AUC-PR · VUC-PR'이고 본문과 부록은 'AUC · VUS-PR'이라 적어 표기가 어긋난다. 표 2–4(데이터셋별)에는 W₁-ACAS와 비-TSFM 기준선만 있고 Gaussian · Conformal 행이 없어(파싱 기준), 데이터셋마다 세 방법의 순위가 일관된지는 확인하지 못했다.</p>
 
     <figure>
       <div data-chart='{"type":"bar","title":"PA-F1 — 같은 forecaster 위의 세 방법 (논문 표 1)","labels":["Chronos","TTM","TiRex"],"series":[{"name":"W1-ACAS","data":[0.912,0.889,0.925]},{"name":"Conformal (offline)","data":[0.863,0.851,0.878]},{"name":"Gaussian","data":[0.716,0.733,0.714]}],"highlight":"W1-ACAS","yMin":0,"yMax":1,"digits":3,"aspect":0.42}'></div>
-      <figcaption><b>그림 7-2.</b> threshold 의존 지표(오라클 임계값)에서는 W₁-ACAS가 같은 forecaster 위의 두 방법보다 높다. 차이는 Conformal 대비 0.038–0.049로, 표준편차(0.048–0.124)보다 작다.</figcaption>
+      <figcaption><b>그림 1-2.</b> threshold 의존 지표(오라클 임계값)에서는 W₁-ACAS가 같은 forecaster 위의 두 방법보다 높다. 차이는 Conformal 대비 0.038–0.049로, 표준편차(0.048–0.124)보다 작다.</figcaption>
     </figure>
     <figure>
       <div data-chart='{"type":"bar","title":"VUS-PR — threshold가 필요 없는 지표 (논문 표 1)","labels":["Chronos","TTM","TiRex"],"series":[{"name":"W1-ACAS","data":[0.440,0.449,0.438]},{"name":"Conformal (offline)","data":[0.420,0.448,0.429]},{"name":"Gaussian","data":[0.438,0.450,0.432]}],"highlight":"W1-ACAS","yMin":0,"yMax":0.6,"digits":3,"aspect":0.42}'></div>
-      <figcaption><b>그림 7-3.</b> threshold 없는 range 지표에서는 세 방법이 거의 같다(TTM에서는 Gaussian 0.450이 W₁-ACAS 0.449보다 높다). 표 전체의 VUS-PR 최고는 zero-shot MOMENT의 0.461이다. 논문 본문은 이를 '경쟁력 있다(competitive)'고 쓰지만, 결론의 '일관되게 앞선다'와는 맞지 않는다.</figcaption>
+      <figcaption><b>그림 1-3.</b> threshold 없는 range 지표에서는 세 방법이 거의 같다(TTM에서는 Gaussian 0.450이 W₁-ACAS 0.449보다 높다). 표 전체의 VUS-PR 최고는 zero-shot MOMENT의 0.461이다. 논문 본문은 이를 '경쟁력 있다(competitive)'고 쓰지만, 결론의 '일관되게 앞선다'와는 맞지 않는다.</figcaption>
     </figure>
     <figure>
       <div data-chart='{"type":"bar","title":"오라클 임계값에서의 FPR (논문 표 1) — 설계 목표 α_c는 0.01","labels":["Chronos","TTM","TiRex"],"series":[{"name":"W1-ACAS","data":[0.077,0.082,0.084]},{"name":"Conformal (offline)","data":[0.111,0.120,0.107]},{"name":"Gaussian","data":[0.123,0.128,0.119]}],"highlight":"W1-ACAS","yMin":0,"yMax":0.15,"digits":3,"aspect":0.42}'></div>
-      <figcaption><b>그림 7-4.</b> PA-F1이 가장 좋은 임계값을 라벨로 고르면 W₁-ACAS도 정상 점의 약 8%에 경보를 낸다. 설계 목표 \(\alpha_c=1\%\)의 8배다. 이 표는 '\(\alpha=1\%\)로 정하고 돌렸을 때 실제 거짓 경보율'을 보여 주지 않는다.</figcaption>
+      <figcaption><b>그림 1-4.</b> PA-F1이 가장 좋은 임계값을 라벨로 고르면 W₁-ACAS도 정상 점의 약 8%에 경보를 낸다. 설계 목표 \(\alpha_c=1\%\)의 8배다. 이 표는 '\(\alpha=1\%\)로 정하고 돌렸을 때 실제 거짓 경보율'을 보여 주지 않는다.</figcaption>
     </figure>
 
     <div class="callout warn"><strong>'교정 오차(CalErr)'는 교정을 재는 값이 아니다</strong>
@@ -249,10 +249,10 @@
         <tr><td>W₁-ACAS-H · TiRex</td><td class="num">0.999</td><td class="num">0.587</td><td class="num">0.937</td><td class="num">0.873</td></tr>
       </tbody>
     </table></div>
-    <p>표 7-3. 논문 표 6의 PA-F1(평균, 표준편차 생략). TAO 13개 · LTDB 5개 시계열의 평균이고 GECCO(9변수, 13.8만 점) · Genesis(18변수, 1.6만 점)는 시계열 하나라 한 점 추정이다. 예측기는 context를 최대한 길게(최소 52) 쓴 'allctx' 변형이다.</p>
+    <p>표 1-3. 논문 표 6의 PA-F1(평균, 표준편차 생략). TAO 13개 · LTDB 5개 시계열의 평균이고 GECCO(9변수, 13.8만 점) · Genesis(18변수, 1.6만 점)는 시계열 하나라 한 점 추정이다. 예측기는 context를 최대한 길게(최소 52) 쓴 'allctx' 변형이다.</p>
     <figure>
       <div data-chart='{"type":"bar","title":"다변량 PA-F1 (논문 표 6)","labels":["TAO","GECCO","LTDB","Genesis"],"series":[{"name":"CNN*","data":[0.998,0.583,0.910,0.649]},{"name":"ACAS-F (Chronos)","data":[1.000,0.704,0.845,0.793]},{"name":"ACAS-F (TiRex)","data":[1.000,0.742,0.888,0.850]},{"name":"ACAS-H (TiRex)","data":[0.999,0.587,0.937,0.873]}],"highlight":"ACAS-F (TiRex)","yMin":0,"yMax":1.05,"digits":3,"aspect":0.45}'></div>
-      <figcaption><b>그림 7-5.</b> 다변량에서는 semi-supervised CNN이 TAO에서 거의 같고(0.998 대 1.000) LTDB에서는 Chronos 기반 Fisher 변형(0.845)보다 높다(0.910). F와 H 중 어느 쪽이 나은지는 데이터셋마다 다르다. 즉 <b>센서를 합치는 방식이 성능을 좌우하는데 논문은 그 선택의 근거를 주지 않는다</b>(세 번째 실험).</figcaption>
+      <figcaption><b>그림 1-5.</b> 다변량에서는 semi-supervised CNN이 TAO에서 거의 같고(0.998 대 1.000) LTDB에서는 Chronos 기반 Fisher 변형(0.845)보다 높다(0.910). F와 H 중 어느 쪽이 나은지는 데이터셋마다 다르다. 즉 <b>센서를 합치는 방식이 성능을 좌우하는데 논문은 그 선택의 근거를 주지 않는다</b>(세 번째 실험).</figcaption>
     </figure>
 
     <h3>그 밖의 실험</h3>
@@ -288,7 +288,7 @@
         <tr><td>테스트</td><td>–</td><td><code>tests/toolkit/test_conformal.py</code>에 <code>test_adaptive_conformal_wrapper</code>가 있음. 가중치 길이 · 합 · 출력 모양만 단언하고 교정(실현 FPR)은 확인하지 않음. <code>w1acas.py</code>의 함수를 부르는 곳은 데모뿐이고(저장소 코드 검색) 이 함수의 테스트는 없음</td><td>교정 보장의 회귀 검증 없음</td></tr>
       </tbody>
     </table></div>
-    <p>표 7-4. 논문과 공개 코드의 차이. 어느 쪽이 논문 표 1 · 6을 낸 구현인지는 이 자료만으로는 알 수 없다. 다만 표 1이 쓰는 \(\alpha\)는 오라클 격자라서 p-value 정의의 \(1/(n+1)\) 차이가 거기서는 크게 드러나지 않을 가능성이 높다(리뷰어 추정). 그래도 <b>사용자가 \(\alpha\)를 정해 쓰는 운영</b>에서는 세 번째 실험처럼 작은 창 · 작은 \(\alpha\)에서 실제 거짓 경보율이 목표의 두 배가 될 수 있다.</p>
+    <p>표 1-4. 논문과 공개 코드의 차이. 어느 쪽이 논문 표 1 · 6을 낸 구현인지는 이 자료만으로는 알 수 없다. 다만 표 1이 쓰는 \(\alpha\)는 오라클 격자라서 p-value 정의의 \(1/(n+1)\) 차이가 거기서는 크게 드러나지 않을 가능성이 높다(리뷰어 추정). 그래도 <b>사용자가 \(\alpha\)를 정해 쓰는 운영</b>에서는 세 번째 실험처럼 작은 창 · 작은 \(\alpha\)에서 실제 거짓 경보율이 목표의 두 배가 될 수 있다.</p>
 
     <h3>논문 안의 서술과 숫자를 맞춰 보면</h3>
     <div class="table-wrap"><table>
@@ -306,7 +306,7 @@
         <tr><td>"실시간 · 자원 제약 환경에 적합" (초록)</td><td>0.025초/표본/특징(V100, 직렬). 고주파 · 다채널에서는 병렬화가 필수. TSFM 추론 시간 포함 여부 미기재</td><td>규모 한계 미기재</td></tr>
       </tbody>
     </table></div>
-    <p>표 7-5. '판정'은 논문이 틀렸다는 단정이 아니라 이 리뷰가 서술과 숫자 사이에서 확인할 수 없었거나 어긋난 곳의 표시다.</p>
+    <p>표 1-5. '판정'은 논문이 틀렸다는 단정이 아니라 이 리뷰가 서술과 숫자 사이에서 확인할 수 없었거나 어긋난 곳의 표시다.</p>
   </section>
 
   <section id="critique">
@@ -363,7 +363,7 @@ alarm = p &lt; 0.01                              # 코드에는 이 한 줄이 �
 
 # 같은 조건에서 '가중치 1'(단순 창) 대조군이 필요하면 lr=0 으로 두고 결과를 비교하는 것이 가장 값싼 ablation이다</code></pre>
     <div class="callout deep"><strong>이 리뷰가 하지 않은 것</strong>
-      <p>저장소의 코드를 <b>실행하지 않았다</b>(이 환경에는 PyTorch · NumPy가 없다). 그래서 위 조각이 문제없이 돈다거나 표 7-4의 불일치가 실제로 그렇게 동작한다고는 말할 수 없다 — 코드를 읽어 도출한 것이며, 저장소에 올라 있는 예시 출력(<code>score_threshold</code> ≈ 1e-14)이 p-value 0을 뒷받침하는 유일한 실행 증거다. 논문의 그림 11장은 캡션으로만 확인했고, 표 2–4의 데이터셋별 숫자는 읽지 않았다. TSFM의 예측 정확도와 논문 표 1 · 6의 수치도 다시 재지 않았다. 네 실험은 모두 장난감 계산이다. 가장 값싼 후속 확인은 ① 같은 데이터에서 <b>단순 창(가중치 1)</b> 대조군을 W₁-ACAS와 나란히 돌려 학습의 기여를 분리하는 것, ② 라벨 없는 정상 구간에서 \(\alpha=1\%,\,0.1\%\)로 정한 실현 FPR을 재는 것, ③ p-value 정의와 <code>--n_epochs</code>를 저자에게 묻는 것이다.</p>
+      <p>저장소의 코드를 <b>실행하지 않았다</b>(이 환경에는 PyTorch · NumPy가 없다). 그래서 위 조각이 문제없이 돈다거나 표 1-4의 불일치가 실제로 그렇게 동작한다고는 말할 수 없다 — 코드를 읽어 도출한 것이며, 저장소에 올라 있는 예시 출력(<code>score_threshold</code> ≈ 1e-14)이 p-value 0을 뒷받침하는 유일한 실행 증거다. 논문의 그림 11장은 캡션으로만 확인했고, 표 2–4의 데이터셋별 숫자는 읽지 않았다. TSFM의 예측 정확도와 논문 표 1 · 6의 수치도 다시 재지 않았다. 네 실험은 모두 장난감 계산이다. 가장 값싼 후속 확인은 ① 같은 데이터에서 <b>단순 창(가중치 1)</b> 대조군을 W₁-ACAS와 나란히 돌려 학습의 기여를 분리하는 것, ② 라벨 없는 정상 구간에서 \(\alpha=1\%,\,0.1\%\)로 정한 실현 FPR을 재는 것, ③ p-value 정의와 <code>--n_epochs</code>를 저자에게 묻는 것이다.</p>
     </div>
     <div class="callout tip"><strong>직접 써 본다면</strong>
       <p>① 먼저 <b>정상만 있는 구간으로 \(\alpha\)별 실현 FPR</b>을 재자(1%, 0.1%). 표 1의 FPR 8%는 운영 FPR이 아니다. ② <b>단순 창 · 지수 감쇠 대조군</b>을 같이 돌려서 W₁ 학습이 값을 하는지 확인하자. ③ 센서가 많으면 합산 방식을 <b>정상 데이터로 거짓 경보율을 먼저 확인</b>하고 고르자(Fisher는 상관된 센서에서 부풀 수 있다). ④ 정상 교정 구간에 <b>이상이 섞이지 않았는지</b> 점검하자. ⑤ 데모 스크립트의 기본값(context 90, Cauchy, <code>proximity</code>)이 논문 설정이 아님을 알고 쓰자. ⑥ 구현이 p-value 0을 낼 수 있음을 알고, 로그 변환 · 순위 비교를 하는 후속 처리는 0을 다루도록 하자. ⑦ <b>커밋과 패키지 버전을 적어 두자</b>(main 31fa2f0, granite-tsfm 0.3.12).</p>

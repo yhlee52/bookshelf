@@ -82,11 +82,13 @@
     if (!main) return;
     const sections = $$(":scope > section[id]", main);
     let k = 0;
+    // 논문 리뷰는 한 편 한 편이 독립된 책이라 절 번호의 앞자리가 리뷰 순서(chapter.num)를 따라 오르지 않는다 — 모든 리뷰가 1.1, 1.2, …로 시작
+    const lead = chapter ? (book.kind === "papers" ? 1 : Number(chapter.num)) : "";
     sections.forEach((s) => {
       const h2 = $(":scope > h2", s);
       if (!h2 || s.classList.contains("keypoints") || s.classList.contains("quiz-sec") || s.classList.contains("exercises") || h2.querySelector(".h-num")) return;
       k++;
-      h2.insertAdjacentHTML("afterbegin", `<span class="h-num">${chapter ? Number(chapter.num) + "." : ""}${k}</span>`);
+      h2.insertAdjacentHTML("afterbegin", `<span class="h-num">${chapter ? lead + "." : ""}${k}</span>`);
     });
     const layout = document.createElement("div");
     layout.className = "ls-layout";
@@ -130,7 +132,7 @@
   function textbook() {
     const main = $("main.chapter");
     if (!main || !chapter) return;
-    const n = Number(chapter.num), label = {}, count = {};
+    const n = book.kind === "papers" ? 1 : Number(chapter.num), label = {}, count = {}; // 논문 리뷰는 독립된 책이므로 정의·식·문제 번호도 1.x로 시작
     const KIND = { def: "정의", thm: "정리", ex: "예제", math: "수학 상자", post: "공준" };
     $$(".box", main).forEach((b) => {
       const k = Object.keys(KIND).find((x) => b.classList.contains(x));
