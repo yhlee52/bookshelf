@@ -186,7 +186,7 @@
           <path d="M100 136 L180 138" class="s-acc"/>
         </g>
       </svg>
-      <figcaption><b>그림 2-1.</b> Timestral의 추론 경로 (공개 코드 <code>model.py</code>·<code>forecaster.py</code>를 따라 그림). 학습 코드는 공개되지 않았다. 숫자는 209M 기준이며, 크기별 층 수와 폭은 구현 노트의 표에 있다.</figcaption>
+      <figcaption><b>그림 1-1.</b> Timestral의 추론 경로 (공개 코드 <code>model.py</code>·<code>forecaster.py</code>를 따라 그림). 학습 코드는 공개되지 않았다. 숫자는 209M 기준이며, 크기별 층 수와 폭은 구현 노트의 표에 있다.</figcaption>
     </figure>
 
     <h3>① 입력 — 인과 패치 정규화와 [값, 결측] 임베딩</h3>
@@ -231,7 +231,7 @@
           <text x="24" y="278" class="t"><tspan style="fill:var(--ok);font-weight:700">✓</tspan> 예측 길이와 결측 증강을 따로 조절할 수 있다</text>
         </g>
       </svg>
-      <figcaption><b>그림 2-2.</b> 블로그가 설명한 DHF의 동기를 그림으로 옮겼다. 오른쪽에서 블록 1의 예측 토큰은 블록 시작(5번째 패치) 이전의 값 토큰만 읽고(진한 선), 블록 2의 예측 토큰은 8번째 패치 이전까지 읽는다(옅은 선). 학습 코드는 공개되지 않아, 학습 때의 블록 배치는 추론 코드의 <code>compute_block_layout</code>으로 추정했다.</figcaption>
+      <figcaption><b>그림 1-2.</b> 블로그가 설명한 DHF의 동기를 그림으로 옮겼다. 오른쪽에서 블록 1의 예측 토큰은 블록 시작(5번째 패치) 이전의 값 토큰만 읽고(진한 선), 블록 2의 예측 토큰은 8번째 패치 이전까지 읽는다(옅은 선). 학습 코드는 공개되지 않아, 학습 때의 블록 배치는 추론 코드의 <code>compute_block_layout</code>으로 추정했다.</figcaption>
     </figure>
     <p>DHF의 핵심은 한 패치에 토큰을 <b>두 개</b> 두는 것이다. <b>값 토큰</b> \( E_p \)는 실제 값을 임베딩하고 인과적으로(앞쪽만) 서로를 읽는다. <b>예측 토큰</b> \( D_p \)는 값 없이 학습된 질의 벡터 하나를 복사한 것이며, 같은 패치의 값 토큰과 같은 RoPE 위치를 받는다. 예측 토큰은 자기 블록이 시작하기 전의 값 토큰과, 같은 블록 안에서 자기보다 앞선 예측 토큰만 읽는다. 값 토큰은 예측 토큰을 절대 읽지 않는다.</p>
     <div class="formula">\[ D_p \to E_j \;\text{허용} \iff j < b(p), \qquad D_p \to D_q \;\text{허용} \iff b(q) = b(p),\ q \le p, \qquad E_p \to E_j \;\text{허용} \iff j \le p \]
@@ -294,7 +294,7 @@
           <text x="760" y="318" text-anchor="middle" class="t-dim">②가 없으면 과거 공변량의 미래(추론 때는 없는 값)가 샌다.</text>
         </g>
       </svg>
-      <figcaption><b>그림 2-3.</b> 공변량 역할과 방화벽 (공개 코드 <code>masks.py</code>의 <code>variate_firewall</code>과 docstring을 그림으로 옮김). 아래 첫 번째 실험에서 이 경로가 실제로 몇 층째에 열리는지 직접 확인할 수 있다.</figcaption>
+      <figcaption><b>그림 1-3.</b> 공변량 역할과 방화벽 (공개 코드 <code>masks.py</code>의 <code>variate_firewall</code>과 docstring을 그림으로 옮김). 아래 첫 번째 실험에서 이 경로가 실제로 몇 층째에 열리는지 직접 확인할 수 있다.</figcaption>
     </figure>
     <p>미래 공변량(휴일 달력, 생산 계획, 일기예보)이 쓸모 있으려면 그 행은 시간축에서 <b>미래까지</b> 봐야 한다. 그런데 이 행이 변량 어텐션으로 다른 행을 읽을 수 있다면 정보가 "어떤 행의 미래 → 같은 시점의 미래 공변량 → (양방향 시간 어텐션) → 과거 시점의 미래 공변량 → 타깃의 예측 토큰"으로 돌아 들어온다. 학습 때는 창 전체가 관측값이라, 이 경로에 타깃 자신의 미래(정답)나 과거 공변량의 미래(추론 때는 없는 값)가 실릴 수 있다. 공개 코드는 두 가지 방화벽으로 이를 끊는다: <b>① 공변량 행은 타깃 행을 읽지 않고</b>(공변량은 외생 변수), <b>② 양방향 행은 인과 행을 읽지 않는다</b>. 코드의 docstring은 ②의 이유를 "공변량의 미래 시야가 타깃 자신의 미래를 되돌려 보낼 수 있다"고 적는다. 정보 흐름을 끝까지 추적해 보면 타깃의 미래는 ①과 ② 중 <b>하나만 있어도</b> 막히고, 과거 공변량의 미래는 <b>②만</b> 막는다(첫 번째 실험에서 확인할 수 있다).</p>
     <p>그 밖의 부품은 최근 LLM과 같다. 사전 정규화 RMSNorm, SwiGLU MLP, 편향 없는 선형층, 그리고 어텐션 출력에 \( \sigma(x W_g) \)를 곱하는 <b>시그모이드 게이트</b>(Gated Attention과 같은 형태)를 시간·변량 어텐션 모두에 쓴다.</p>
@@ -338,7 +338,7 @@
     <h3>발표 자료의 숫자</h3>
     <figure>
       <div data-chart='{"type":"bar","title":"계절 나이브 대비 오차 감소율 (%, 높을수록 좋음) — 모델 카드의 표를 변환","labels":["GIFT MASE","GIFT CRPS","TIME MASE","TIME CRPS","fev SQL","fev MASE"],"series":[{"name":"Timestral-209M","data":[34.2,55.4,37.4,47.8,50.39,39.49]},{"name":"t0-gamma","data":[33.9,54.8,36.3,46.6,49.42,37.99]},{"name":"TimesFM-3","data":[33.3,54.4,36.0,46.4,48.99,37.82]},{"name":"Toto-2.0-2.5B","data":[30.4,52.4,35.8,46.1,44.42,32.54]},{"name":"Chronos-2","data":[30.2,51.5,33.8,44.4,47.28,35.50]}],"highlight":"Timestral-209M","yMin":0,"yMax":60,"digits":1,"aspect":0.45}'></div>
-      <figcaption><b>그림 2-4.</b> 모델 카드의 비교표를 같은 단위로 바꿨다. 여섯 지표 모두에서 Timestral-209M이 가장 높지만, 2위(t0-gamma)와의 차이는 GIFT-Eval MASE 기준 0.3%p(상대 오차 0.658 대 0.661)다.</figcaption>
+      <figcaption><b>그림 1-4.</b> 모델 카드의 비교표를 같은 단위로 바꿨다. 여섯 지표 모두에서 Timestral-209M이 가장 높지만, 2위(t0-gamma)와의 차이는 GIFT-Eval MASE 기준 0.3%p(상대 오차 0.658 대 0.661)다.</figcaption>
     </figure>
     <div class="table-wrap"><table class="nowrap">
       <thead><tr><th>벤치마크</th><th>지표</th><th class="num">Timestral-209M</th><th class="num">t0-gamma</th><th class="num">TimesFM-3</th><th class="num">Toto-2.0-2.5B</th><th class="num">Chronos-2</th></tr></thead>
@@ -351,12 +351,12 @@
         <tr><td></td><td>MASE 스킬 ↑</td><td class="num"><b>39.49</b></td><td class="num">37.99</td><td class="num">37.82</td><td class="num">32.54</td><td class="num">35.50</td></tr>
       </tbody>
     </table></div>
-    <p>표 2-1. 모델 카드의 비교표(MASE·CRPS는 계절 나이브 대비 상대 오차의 기하평균). 리더보드 저장소의 원자료로 다시 계산하면 Timestral·t0-gamma·TimesFM-3·Chronos-2의 숫자가 셋째 자리까지 모두 일치한다. 블로그는 "단일 체크포인트, 앙상블 없음"이라고 밝히지만, 이 점수에는 반전 평균(같은 체크포인트로 순전파 2회)이 포함되어 있다.</p>
+    <p>표 1-1. 모델 카드의 비교표(MASE·CRPS는 계절 나이브 대비 상대 오차의 기하평균). 리더보드 저장소의 원자료로 다시 계산하면 Timestral·t0-gamma·TimesFM-3·Chronos-2의 숫자가 셋째 자리까지 모두 일치한다. 블로그는 "단일 체크포인트, 앙상블 없음"이라고 밝히지만, 이 점수에는 반전 평균(같은 체크포인트로 순전파 2회)이 포함되어 있다.</p>
 
     <h3>크기별 결과 — 작아도 강하다</h3>
     <figure>
       <div data-chart='{"type":"line","title":"모델 크기별 계절 나이브 대비 개선율 (%)","labels":["5M","28M","123M","209M"],"series":[{"name":"GIFT-Eval CRPS","data":[52.1,53.9,55.2,55.4]},{"name":"fev-bench SQL","data":[46.19,48.42,50.18,50.39]},{"name":"TIME CRPS","data":[45.5,46.6,47.5,47.8]},{"name":"TIME MASE","data":[34.8,36.2,37.2,37.4]}],"yMin":30,"yMax":58,"digits":1,"aspect":0.42}'></div>
-      <figcaption><b>그림 2-5.</b> 크기를 키울수록 좋아지지만 123M → 209M 구간은 거의 평평하다. 이 그림은 가로축이 파라미터 수에 비례하지 않는다(범주 축).</figcaption>
+      <figcaption><b>그림 1-5.</b> 크기를 키울수록 좋아지지만 123M → 209M 구간은 거의 평평하다. 이 그림은 가로축이 파라미터 수에 비례하지 않는다(범주 축).</figcaption>
     </figure>
     <div class="table-wrap"><table class="nowrap">
       <thead><tr><th>모델</th><th class="num">파라미터</th><th class="num">GIFT MASE / CRPS</th><th class="num">TIME MASE / CRPS</th><th class="num">fev SQL / MASE 스킬</th></tr></thead>
@@ -384,7 +384,7 @@
         <tr><td><i>참고: TimeRSI-1.5 (과제별 학습)</i></td><td class="num">—</td><td class="num">—</td><td class="num">51.82</td><td class="num">41.44</td><td class="num">0.615</td><td class="num">0.513</td></tr>
       </tbody>
     </table></div>
-    <p>표 2-3. 굵게 = 제로샷 모델 중 열별 최고. '—'는 제출하지 않음. TimeRSI-1.5는 fev-bench 결과에 과제마다 중앙값 약 2.7시간의 학습 시간이 기록된 모델이라 제로샷 비교에서 뺐다.</p>
+    <p>표 1-3. 굵게 = 제로샷 모델 중 열별 최고. '—'는 제출하지 않음. TimeRSI-1.5는 fev-bench 결과에 과제마다 중앙값 약 2.7시간의 학습 시간이 기록된 모델이라 제로샷 비교에서 뺐다.</p>
     <ul>
       <li><b>발표 시점(10/15)에는 세 벤치마크 모두 1위가 맞다.</b> Timestral보다 위에 있는 제로샷 항목은 모두 발표 이후에 추가되었다.</li>
       <li><b>10월 23일 H2O.ai의 TimeH2O-v1</b>이 GIFT-Eval의 MASE·CRPS와 fev-bench의 두 지표에서 모두 앞섰다. TIME에는 아직 제출하지 않았다. 다만 GIFT-Eval에서 설정별 CRPS <b>순위의 평균</b>(전체 158개 항목 기준)으로 보면 Timestral-209M(25.9위)이 TimeH2O-v1(26.9위)보다 앞서고, 97개 설정의 일대일 비교는 48 대 49로 사실상 동률이다. '1위'가 집계 방식에 따라 바뀌는 수준의 차이다.</li>
@@ -394,7 +394,7 @@
     <h3>어디서 강하고 어디서 약한가 — 리뷰어 분할 분석</h3>
     <figure>
       <div data-chart='{"type":"bar","title":"과제 묶음별 계절 나이브 대비 개선율 (%) — GIFT는 CRPS, fev는 SQL 기준","labels":["GIFT 다변량 (43)","GIFT 단변량 (54)","fev 다변량 (35)","fev 단변량 (65)","fev 동적 공변량 (42)"],"series":[{"name":"Timestral-209M","data":[58.5,52.7,58.3,45.5,50.7]},{"name":"TimeH2O-v1","data":[58.6,53.7,58.0,46.5,51.4]},{"name":"t0-gamma","data":[56.2,53.7,56.9,44.9,49.3]},{"name":"TimesFM-3","data":[57.2,52.1,56.7,44.3,49.0]},{"name":"Chronos-2","data":[53.6,49.7,55.0,42.6,47.0]}],"highlight":"Timestral-209M","yMin":0,"yMax":65,"digits":1,"aspect":0.45}'></div>
-      <figcaption><b>그림 2-6.</b> 과제를 묶어 같은 집계식으로 다시 계산했다(괄호는 과제 수). Timestral의 우위는 <b>다변량</b> 과제에서 나오고, 단변량 과제에서는 TimeH2O-v1·t0-gamma보다 뒤처진다. 동적 공변량이 있는 fev-bench 과제에서도 TimeH2O-v1이 앞선다. TimeH2O-v1은 GIFT-Eval 제출 설명에 따르면 과거 공변량을 받지 않는 체크포인트다.</figcaption>
+      <figcaption><b>그림 1-6.</b> 과제를 묶어 같은 집계식으로 다시 계산했다(괄호는 과제 수). Timestral의 우위는 <b>다변량</b> 과제에서 나오고, 단변량 과제에서는 TimeH2O-v1·t0-gamma보다 뒤처진다. 동적 공변량이 있는 fev-bench 과제에서도 TimeH2O-v1이 앞선다. TimeH2O-v1은 GIFT-Eval 제출 설명에 따르면 과거 공변량을 받지 않는 체크포인트다.</figcaption>
     </figure>
     <div class="table-wrap"><table>
         <thead><tr><th>GIFT-Eval 도메인 (설정 수)</th><th class="num">Timestral-209M</th><th class="num">TimeH2O-v1</th><th class="num">t0-gamma</th><th class="num">TimesFM-3</th></tr></thead>
@@ -419,7 +419,7 @@
           <tr><td>TIME 장기 (24) CRPS</td><td class="num"><b>0.581</b></td><td class="num">—</td><td class="num">0.596</td></tr>
         </tbody>
       </table></div>
-    <p>표 2-4. 위는 GIFT-Eval 도메인별 CRPS, 아래는 예측 기간별 결과(모두 계절 나이브 대비 상대 오차, 낮을수록 좋음). 에너지 도메인과 GIFT-Eval 단기 MASE에서는 t0-gamma가 가장 좋다. TimeH2O-v1이 없는 TIME에서는 Timestral이 모든 기간에서 t0-gamma보다 낫다. Timestral이 뚜렷하게 앞서는 도메인은 자연(기상·수문 등) 하나다.</p>
+    <p>표 1-4. 위는 GIFT-Eval 도메인별 CRPS, 아래는 예측 기간별 결과(모두 계절 나이브 대비 상대 오차, 낮을수록 좋음). 에너지 도메인과 GIFT-Eval 단기 MASE에서는 t0-gamma가 가장 좋다. TimeH2O-v1이 없는 TIME에서는 Timestral이 모든 기간에서 t0-gamma보다 낫다. Timestral이 뚜렷하게 앞서는 도메인은 자연(기상·수문 등) 하나다.</p>
   </section>
 
   <section id="critique">
@@ -429,7 +429,7 @@
         <li><b>열린 가중치와 읽기 쉬운 코드.</b> 네 크기의 가중치와 PyTorch·NumPy만 쓰는 약 1,500줄의 추론 코드(Apache-2.0)가 공개되었다. 세 벤치마크 모두 재현 경로가 있고, 공개 원자료로 다시 계산한 숫자가 발표와 정확히 맞는다.</li>
         <li><b>정보 흐름을 마스크로 설계했다.</b> DHF는 관측값을 맥락과 정답으로 동시에 쓰고 실제 결측을 구분한다. 공변량 방화벽은 누출 경로를 구조적으로 끊는다. 인과 패치 정규화는 통계 계산에서도 미래를 보지 않는다. 모두 코드로 확인되는 원칙이다.</li>
         <li><b>크기 대비 성능.</b> 28M이 약 120M인 Chronos-2를, 123M이 209M과 거의 같은 점수를 낸다. CPU 추론을 전제로 한 실무에서 중요한 성질이다.</li>
-        <li><b>다변량 과제에서의 우위.</b> 변량 어텐션으로 변수를 함께 예측하는 설계가 실제로 다변량 과제 묶음에서 가장 좋은 점수로 이어진다(그림 2-6).</li>
+        <li><b>다변량 과제에서의 우위.</b> 변량 어텐션으로 변수를 함께 예측하는 설계가 실제로 다변량 과제 묶음에서 가장 좋은 점수로 이어진다(그림 1-6).</li>
       </ul></div>
       <div class="con"><h4>한계 · 의문점</h4><ul>
         <li><b>논문이 없다.</b> 학습에 쓴 실제 데이터의 출처, 합성기, 학습 규모, 그리고 DHF·공변량 어텐션·반전 평균 각각의 효과(ablation)가 하나도 공개되지 않았다. 리더보드의 "테스트 데이터 누출 없음"도 학습 데이터를 모르면 스스로 신고한 값일 뿐이다.</li>

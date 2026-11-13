@@ -82,11 +82,13 @@
     if (!main) return;
     const sections = $$(":scope > section[id]", main);
     let k = 0;
+    // 논문 리뷰는 한 편 한 편이 독립된 책이라 절 번호에 리뷰 순서(chapter.num)를 붙이지 않는다 — 모든 리뷰가 1, 2, 3, …으로 시작
+    const lead = chapter && book.kind !== "papers" ? Number(chapter.num) + "." : "";
     sections.forEach((s) => {
       const h2 = $(":scope > h2", s);
       if (!h2 || s.classList.contains("keypoints") || s.classList.contains("quiz-sec") || s.classList.contains("exercises") || h2.querySelector(".h-num")) return;
       k++;
-      h2.insertAdjacentHTML("afterbegin", `<span class="h-num">${chapter ? Number(chapter.num) + "." : ""}${k}</span>`);
+      h2.insertAdjacentHTML("afterbegin", `<span class="h-num">${lead}${k}</span>`);
     });
     const layout = document.createElement("div");
     layout.className = "ls-layout";
@@ -130,13 +132,13 @@
   function textbook() {
     const main = $("main.chapter");
     if (!main || !chapter) return;
-    const n = Number(chapter.num), label = {}, count = {};
+    const n = book.kind === "papers" ? "" : Number(chapter.num) + ".", label = {}, count = {}; // 접두 "5." — 논문 리뷰는 독립된 책이라 접두 없이 1, 2, 3, …
     const KIND = { def: "정의", thm: "정리", ex: "예제", math: "수학 상자", post: "공준" };
     $$(".box", main).forEach((b) => {
       const k = Object.keys(KIND).find((x) => b.classList.contains(x));
       if (!k) return;
       count[k] = (count[k] || 0) + 1;
-      const tag = k === "post" ? `${KIND[k]} ${count[k]}` : `${KIND[k]} ${n}.${count[k]}`;
+      const tag = k === "post" ? `${KIND[k]} ${count[k]}` : `${KIND[k]} ${n}${count[k]}`;
       let h = $(":scope > .box-h", b);
       if (!h) { h = document.createElement("div"); h.className = "box-h"; b.prepend(h); }
       h.insertAdjacentHTML("afterbegin", `<span class="box-n">${tag}</span>`);
@@ -148,11 +150,11 @@
       if (!tn) return;
       eq++;
       const s = tn.textContent, i = s.lastIndexOf("\\]");
-      tn.textContent = s.slice(0, i) + `\\tag{${n}.${eq}}` + s.slice(i);
-      label[f.id] = `(${n}.${eq})`;
+      tn.textContent = s.slice(0, i) + `\\tag{${n}${eq}}` + s.slice(i);
+      label[f.id] = `(${n}${eq})`;
     });
     $$(".prob", main).forEach((p, i) => {
-      const tag = `문제 ${n}.${i + 1}`, lv = Number(p.dataset.level) || 0;
+      const tag = `문제 ${n}${i + 1}`, lv = Number(p.dataset.level) || 0;
       p.insertAdjacentHTML("afterbegin", `<span class="prob-n">${tag}${lv ? ` <span class="lv" title="난이도 ${lv}/3">${"★".repeat(lv)}${"☆".repeat(3 - lv)}</span>` : ""}</span>`);
       if (p.id) label[p.id] = tag;
     });
