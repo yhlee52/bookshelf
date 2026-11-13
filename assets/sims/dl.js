@@ -9,6 +9,7 @@
    tsalign-align · tsalign-fusion · tsalign-cost (논문 리뷰 p04)
    molt-centroid · molt-drift · molt-supernode · molt-event (논문 리뷰 p05)
    kumo-darr · kumo-lagflow · kumo-curriculum · kumo-pa (논문 리뷰 p06)
+   acas-band · acas-w1 · acas-offset · acas-combine (논문 리뷰 p07)
    ========================================================================== */
 (function () {
   "use strict";
@@ -3109,6 +3110,403 @@
       S.check({ label: "표준편차가 후반에 2.5배로 커짐 (비정상)", value: st.drift, onChange: (v) => { st.drift = v; upd("build"); } });
       S.check({ label: "구간별 분위수 임계값 (구간 250, SCS의 단순 버전)", value: st.local, onChange: (v) => { st.local = v; upd(); } });
       S.button("시계열 다시 뽑기", () => { st.seed++; upd("gen"); }, { primary: true });
+      upd();
+    },
+  });
+
+  /* ======================================================================
+     31–34. W₁-ACAS — 시계열 파운데이션 모델 위의 적응형 컨포멀 이상 탐지 (논문 리뷰 p07)
+     arXiv 2604.20122(ICLR 2026)의 식과 IBM granite-tsfm의 w1acas.py · conformal.py를 읽어 장난감 크기로 옮긴 계산이다.
+     모델(TSFM)은 없고, 예측 오차 열(nonconformity score)만 합성한다. 저장소 코드를 실행한 것이 아니다.
+     ====================================================================== */
+  /** erfc — 상대 오차 1.2e-7 이하(Numerical Recipes), 양측 p-value의 꼬리까지 쓸 수 있다 */
+  function acErfc(x) {
+    const z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const acP2 = (z) => acErfc(Math.abs(z) / Math.SQRT2); // 양측 p-value
+  /** 정규분포 분위수 (Acklam 근사, 상대 오차 약 1e-9) */
+  function acQnorm(p) {
+    const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2, -3.066479806614716e1, 2.506628277459239],
+      b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1],
+      c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783],
+      d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+    const pl = 0.02425;
+    let q, r;
+    if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    if (p > 1 - pl) { q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    q = p - 0.5; r = q * q;
+    return ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
+  /** {w ∈ [0,1]^n : Σw ≥ m} 위로의 유클리드 사영 — 상자로 자른 합이 모자라면 모두에 같은 λ를 더해 합이 m이 되게 한다 */
+  function acProject(v, m) {
+    const n = v.length;
+    let sum = 0;
+    for (let k = 0; k < n; k++) sum += Math.min(1, Math.max(0, v[k]));
+    if (sum >= m) { for (let k = 0; k < n; k++) v[k] = Math.min(1, Math.max(0, v[k])); return v; }
+    let lo = 0, hi = 2 + Math.max(0, -Math.min(...v));
+    for (let it = 0; it < 50; it++) {
+      const mid = (lo + hi) / 2;
+      let s = 0;
+      for (let k = 0; k < n; k++) s += Math.min(1, Math.max(0, v[k] + mid));
+      if (s < m) lo = mid; else hi = mid;
+    }
+    for (let k = 0; k < n; k++) v[k] = Math.min(1, Math.max(0, v[k] + hi));
+    return v;
+  }
+  /** 정렬된 β 표본과 U[0,1] 사이의 1-Wasserstein 거리 (논문 식 11, 코드의 w1_distance_from_betas와 같은 식) */
+  function acW1(sortedBeta) {
+    const N = sortedBeta.length;
+    let tot = 0;
+    for (let k = 1; k <= N; k++) {
+      const b = sortedBeta[k - 1], lo = (k - 1) / N, hi = k / N;
+      if (b < lo) tot += 0.5 * (hi * hi - lo * lo) - b * (hi - lo);
+      else if (b > hi) tot += b * (hi - lo) - 0.5 * (hi * hi - lo * lo);
+      else tot += b * b + 0.5 * (lo * lo + hi * hi) - b * (lo + hi);
+    }
+    return tot;
+  }
+
+  /* ---- 31. 정상 범위(가드밴드)를 어떻게 긋나 ---- */
+  Lab.register({
+    id: "acas-band", field: "dl", thumb: "wave", layout: "stack",
+    title: "정상 범위를 어떻게 긋나 — Gaussian ±zσ 대 conformal 분위수, 분산이 변할 때 (W₁-ACAS)",
+    desc: "예측 오차 열에서 정상 범위(밴드 ŷ ± q)를 긋는 세 방법 — 교정 구간의 표준편차로 긋는 Gaussian, 교정 구간의 분위수로 긋는 고정 conformal, 최근 n개의 분위수로 계속 다시 긋는 적응형 conformal — 을 오차의 꼬리와 분산 드리프트를 바꿔 가며 거짓 경보율로 비교합니다.",
+    tags: ["W1-ACAS", "conformal", "가드밴드", "분산 드리프트", "거짓 경보율"],
+    note: "예측 ŷ를 따로 두지 않고 <b>예측 오차 ε = y − ŷ만 합성한 장난감 계산</b>입니다(TSFM 없음). 길이 1,500의 오차 열에서 앞 200점이 교정(calibration) 구간이고 750번째 점부터 분산이 <b>배율</b>만큼 커집니다. 밴드는 ŷ ± q이고 |ε| &gt; q이면 경보입니다(왼쪽은 ŷ를 0으로 옮긴 오차 쪽에서 본 ±q). 논문 식 (3)·(4)의 가중치를 전부 1로 둔 경우가 <b>적응형 = 최근 n개 창</b>(고정 conformal은 교정 200점에서 한 번 구한 q)입니다. 왼쪽은 이상 6개를 심은 한 번의 실행(빨강 점), 오른쪽의 거짓 경보율은 <b>이상이 없는 30번의 실행 평균</b>을 목표 α로 나눈 값입니다(1이면 목표 그대로). <b>해볼 것</b> ① 드리프트 배율 1, 정규 노이즈에서는 세 방법이 모두 1 근처입니다. ② 노이즈를 '두꺼운 꼬리(t<sub>3</sub>)'로 바꾸면 Gaussian만 1을 넘습니다 — 표준편차는 같아도 꼬리가 더 무겁기 때문입니다(논문 표 1의 Gaussian 기준선). ③ 배율을 2–3으로 올리면 고정 방법 둘은 드리프트 이후 α의 몇 배로 경보하고, 적응형은 창이 새 분산으로 채워지는 동안만 흔들립니다. 그 대가로 밴드가 넓어져 6σ<sub>0</sub> 이상이 드리프트 뒤에는 덜 잡힙니다. ④ n을 1/α − 1보다 작게 줄이면 밴드가 열립니다(q = ∞, 논문의 effective sample size 조건). 이 실험의 적응형은 <b>가중치를 학습하지 않는 단순 창</b>이라 W₁ 학습의 효과는 다음 실험에서 따로 봅니다.",
+    mount(S) {
+      const T = 1500, NCAL = 200, SHIFT = 750, NREP = 30, NANOM = 6;
+      const st = { lgA: Math.log10(0.01), tail: "normal", drift: 2, amp: 6, win: 300, seed: 1 };
+      const draw = (r) => (st.tail === "normal" ? VZ.randn(r) : VZ.randn(r) / Math.sqrt(VZ.randn(r) ** 2 + VZ.randn(r) ** 2 + VZ.randn(r) ** 2)); // t3 / √3·√3 = Z/√χ²₃ (분산 1)
+      const genErr = (seed) => { const r = VZ.rng(seed), e = new Float64Array(T); for (let t = 0; t < T; t++) e[t] = (t < SHIFT ? 1 : st.drift) * draw(r); return e; };
+      const bsearch = (a, v) => { let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m] < v) lo = m + 1; else hi = m; } return lo; };
+      function run(e, alpha, win, keepQ) {
+        const cal = Array.from(e.subarray(0, NCAL), Math.abs).sort((a, b) => a - b);
+        const kF = Math.ceil((1 - alpha) * (NCAL + 1) - 1e-9), qF = kF <= NCAL ? cal[kF - 1] : Infinity;
+        const qG = acQnorm(1 - alpha / 2) * VZ.std(Array.from(e.subarray(0, NCAL)));
+        const buf = Array.from(e.subarray(Math.max(0, NCAL - win), NCAL), Math.abs), srt = buf.slice().sort((a, b) => a - b);
+        const o = { qG, qF, qA: keepQ ? new Float64Array(T).fill(NaN) : null, aG: new Uint8Array(T), aF: new Uint8Array(T), aA: new Uint8Array(T) };
+        for (let t = NCAL; t < T; t++) {
+          const s = Math.abs(e[t]), n = srt.length, k = Math.ceil((1 - alpha) * (n + 1) - 1e-9), qA = k <= n ? srt[k - 1] : Infinity;
+          if (keepQ) o.qA[t] = qA;
+          o.aG[t] = s > qG ? 1 : 0; o.aF[t] = s > qF ? 1 : 0; o.aA[t] = s > qA ? 1 : 0;
+          buf.push(s); srt.splice(bsearch(srt, s), 0, s);
+          if (buf.length > win) { const old = buf.shift(); srt.splice(bsearch(srt, old), 1); }
+        }
+        return o;
+      }
+      let D = null;
+      function compute() {
+        const alpha = Math.pow(10, st.lgA), win = st.win;
+        // 이상이 없는 NREP번: 드리프트 전 · 후의 거짓 경보율
+        const acc = { G: [0, 0], F: [0, 0], A: [0, 0] };
+        for (let r = 0; r < NREP; r++) {
+          const o = run(genErr(st.seed * 1000 + r + 1), alpha, win, false);
+          for (const m of ["G", "F", "A"]) {
+            const a = o["a" + m];
+            for (let t = NCAL; t < SHIFT; t++) acc[m][0] += a[t];
+            for (let t = SHIFT; t < T; t++) acc[m][1] += a[t];
+          }
+        }
+        const nPre = (SHIFT - NCAL) * NREP, nPost = (T - SHIFT) * NREP, fpr = {};
+        for (const m of ["G", "F", "A"]) fpr[m] = [acc[m][0] / nPre, acc[m][1] / nPost];
+        // 표시용 한 번의 실행(이상 포함)
+        const e = genErr(st.seed), r = VZ.rng(st.seed * 7 + 3), pos = [];
+        while (pos.length < NANOM) { const p = NCAL + 40 + Math.floor(r() * (T - NCAL - 80)); if (pos.every((q) => Math.abs(q - p) > 40)) pos.push(p); }
+        const sgn = pos.map(() => (r() < 0.5 ? -1 : 1));
+        pos.forEach((p, i) => { e[p] += sgn[i] * st.amp; });
+        const o = run(e, alpha, win, true);
+        const caught = { G: 0, F: 0, A: 0 };
+        pos.forEach((p) => { for (const m of ["G", "F", "A"]) caught[m] += o["a" + m][p]; });
+        let wA = 0, nA = 0, wG = 0;
+        for (let t = SHIFT; t < T; t++) if (isFinite(o.qA[t])) { wA += o.qA[t]; nA++; }
+        wG = o.qG;
+        D = { alpha, fpr, e, o, pos, caught, wA: nA ? wA / nA : Infinity, wG, wF: o.qF };
+      }
+      compute();
+      const [left, right] = S.split(2);
+      const cvS = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), line = (f) => { const a = []; for (let t = NCAL; t < T; t++) a.push([t, f(t)]); return a; };
+        const mx = Math.min(20, Math.max(8, 1.12 * Math.max(...Array.from(D.e.subarray(NCAL), Math.abs))));
+        const up = (f) => line((t) => f(t)), lo = (f) => line((t) => -f(t));
+        const qA = (t) => D.o.qA[t], qG = () => D.o.qG, qF = () => D.o.qF;
+        VZ.chart(ctx, null, {
+          x: [NCAL, T], y: [-mx, mx], title: `오차 ε = y − ŷ 와 정상 범위 ±q — 이상 ${NANOM}개, α = ${(D.alpha * 100).toFixed(2)}%`, xLabel: "시점 (750부터 분산 ×" + st.drift.toFixed(1) + ")", yLabel: "오차 (밴드 ŷ ± q의 q)", margin: { l: 44 }, xTicks: [200, 500, 750, 1000, 1250, 1500],
+          series: [
+            { data: line((t) => D.e[t]), color: VZ.alpha(P.dim, 0.6), width: 1 },
+            { data: up(qG), color: P.warn, width: 1.8, dash: [6, 4] }, { data: lo(qG), color: P.warn, width: 1.8, dash: [6, 4] },
+            { data: up(qF), color: P.accent2, width: 1.8, dash: [2, 3] }, { data: lo(qF), color: P.accent2, width: 1.8, dash: [2, 3] },
+            { data: up(qA), color: P.accent, width: 2.2 }, { data: lo(qA), color: P.accent, width: 2.2 },
+            { type: "scatter", data: D.pos.map((p) => [p, D.e[p]]), color: P.bad, r: 4 },
+          ],
+          vlines: [{ x: SHIFT, color: P.faint }],
+        });
+      });
+      const cvB = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), a = D.alpha, v = (m) => [D.fpr[m][0] / a, D.fpr[m][1] / a], names = ["드리프트 전", "드리프트 후"];
+        const mx = Math.max(2, ...["G", "F", "A"].flatMap(v));
+        VZ.chart(ctx, null, {
+          x: [-0.6, 1.6], y: [0, Math.min(40, mx * 1.15)], title: "실현된 거짓 경보율 ÷ 목표 α (이상 없는 30회 평균)", yLabel: "÷ α  (1 = 목표대로)", margin: { l: 50 }, xTicks: [0, 1], xFmt: (x) => names[x] || "",
+          series: [
+            { type: "bar", data: [[0, v("G")[0]], [1, v("G")[1]]], color: P.warn, barWidth: 0.2, offset: -1.1 },
+            { type: "bar", data: [[0, v("F")[0]], [1, v("F")[1]]], color: P.accent2, barWidth: 0.2, offset: 0 },
+            { type: "bar", data: [[0, v("A")[0]], [1, v("A")[1]]], color: P.accent, barWidth: 0.2, offset: 1.1 },
+          ],
+          hlines: [{ y: 1, color: P.text, dash: [4, 3] }],
+        });
+      });
+      S.legend([{ label: "Gaussian ±zσ (교정 200점의 표준편차)", color: (P) => P.warn, dash: true }, { label: "고정 conformal (교정 200점의 분위수)", color: (P) => P.accent2, dash: true }, { label: "적응형 conformal (최근 n개 창)", color: (P) => P.accent }, { label: "실제 이상 (빨강 점)", color: (P) => P.bad, dot: true }]);
+      const set = S.stats([{ k: "pre", label: "드리프트 전 거짓 경보율 · Gaussian / 고정 / 적응형 (목표 α)" }, { k: "post", label: "드리프트 후 거짓 경보율 · Gaussian / 고정 / 적응형" }, { k: "hit", label: "표시된 실행에서 잡은 이상 · Gaussian / 고정 / 적응형" }, { k: "wid", label: "드리프트 후 밴드 반폭 q · Gaussian / 고정 / 적응형 평균" }]);
+      const pc = (x) => (x * 100).toFixed(2) + "%", q2 = (x) => (isFinite(x) ? x.toFixed(2) : "∞");
+      function upd() {
+        compute(); cvS.redraw(); cvB.redraw();
+        const f = D.fpr;
+        set("pre", `${pc(f.G[0])} / ${pc(f.F[0])} / ${pc(f.A[0])} (α = ${pc(D.alpha)})`); set("post", `${pc(f.G[1])} / ${pc(f.F[1])} / <b>${pc(f.A[1])}</b>`);
+        set("hit", `${D.caught.G} / ${D.caught.F} / ${D.caught.A} (이상 ${NANOM}개 중)`); set("wid", `${q2(D.wG)} / ${q2(D.wF)} / ${q2(D.wA)}`);
+      }
+      S.range({ label: "목표 α (로그 축)", min: Math.log10(0.002), max: Math.log10(0.1), step: 0.02, value: st.lgA, fmt: (v) => (Math.pow(10, v) * 100).toFixed(2) + "%", onInput: (v) => { st.lgA = v; upd(); } });
+      S.seg({ label: "오차의 꼬리", options: [["normal", "정규"], ["t3", "두꺼운 꼬리 t₃"]], value: st.tail, onChange: (v) => { st.tail = v; upd(); } });
+      S.range({ label: "750번째 점부터의 분산 배율", min: 1, max: 4, step: 0.1, value: st.drift, fmt: (v) => "×" + v.toFixed(1), onInput: (v) => { st.drift = v; upd(); } });
+      S.range({ label: "이상의 크기 (교정 구간 σ₀ 단위)", min: 3, max: 10, step: 0.5, value: st.amp, fmt: (v) => v.toFixed(1) + "σ₀", onInput: (v) => { st.amp = v; upd(); } });
+      S.range({ label: "적응형의 창 길이 n", min: 20, max: 600, step: 10, value: st.win, onInput: (v) => { st.win = v; upd(); } });
+      S.button("오차 열 다시 뽑기", () => { st.seed++; upd(); }, { primary: true });
+      upd();
+    },
+  });
+
+  /* ---- 32. W₁로 가중치를 배운다 ---- */
+  Lab.register({
+    id: "acas-w1", field: "dl", thumb: "bars", layout: "stack",
+    title: "가중치를 W₁로 배운다 — lag별 가중치는 언제 도움이 되나 (W₁-ACAS Algorithm 1)",
+    desc: "과거 오차 점수마다 lag별 가중치 w ∈ [0,1]을 두고, p-value 표본이 U[0,1]에 가깝도록(1-Wasserstein 거리 최소화) Adam과 사영으로 온라인 갱신하는 논문의 Algorithm 1을 작은 창으로 옮겼습니다. 오차의 분산에 주기가 있을 때와 척도가 바뀔 때, 학습한 가중치가 '최근 n_c개만' 쓰는 초기값과 '창 전체를 똑같이' 쓰는 단순 창보다 나은지 비교합니다.",
+    tags: ["W1-ACAS", "Wasserstein", "적응형 가중치", "p-value 교정", "주기성"],
+    note: "논문 식 (7)의 p-value β = (1 + Σ<sub>점수 ≥ S</sub> w)/(‖w‖<sub>1</sub> + 1), 식 (13)·(14)의 기울기, 식 (12)의 사영(w ∈ [0,1]<sup>n</sup>, ‖w‖<sub>1</sub> ≥ n<sub>c</sub> = 1/α<sub>c</sub> − 1)을 그대로 옮긴 <b>장난감 계산</b>입니다(최적화기는 코드를 따라 Adam, 갱신마다 같은 배치로 epoch번 반복). 점수는 |오차|이고 오차의 표준편차가 주기 P마다 한 번 1+A까지 올라갑니다. 창은 240으로 줄였고(코드는 최대 5,000), 학습률은 갱신이 300번 안팎뿐이라 논문의 0.001보다 크게 둡니다. 왼쪽은 <b>배운 가중치</b>(막대)와 초기값(계단선)이고 점선이 P의 배수 lag입니다. 오른쪽은 마지막 1,200점에서 <b>p-value가 균등분포인지</b>(실현된 P(β ≤ α)가 대각선에 붙는지)를 세 가중치로 비교하고, 판독 칸의 W₁이 작을수록 균등합니다. <b>해볼 것</b>(시드 1 기준) ① 척도 배율을 1로 두면 주기 진폭 A가 0이든 2든 <b>창 전체(w ≡ 1)가 가장 균등합니다</b>(W₁ 약 0.004–0.005, 학습은 0.008–0.010). W₁은 p-value의 <b>전체 분포</b>만 보기 때문에, 주기가 있어도 정상(stationary)이면 위상을 섞은 창이 이미 균등해서 '주기의 배수 lag에 가중치를 몰아야 할 이유'를 목적함수가 주지 않습니다. A = 2에서 가중치가 P의 배수 근처에 몰리긴 하지만(판독 칸의 비율) 그것이 W₁을 낮추지는 않습니다. ② 배율을 2로 올리면 창 전체의 W₁이 0.018로 뛰고(옛 값이 섞여 p-value가 낮게 나옵니다) 학습이 약 0.012로 가장 균등합니다. 최근 n_c개만 쓰면 표본이 작아 0.024입니다. ③ α<sub>c</sub>를 0.02로 낮추면 ‖w‖<sub>1</sub> ≥ 49를 채워야 해서 선택지가 줄어듭니다(\"작은 α<sub>c</sub>는 더 많은 과거 표본이 필요하다\"는 논문의 서술). ④ 학습률을 0.005로 낮추면 같은 갱신 횟수에서 거의 배우지 못합니다. 논문 설정(lr 0.001, 배치 10)에서 수렴하려면 훨씬 긴 열이 필요하다는 뜻입니다. 이 결과는 장난감의 한 설정이며, 실제 TSFM 오차에서 같은 일이 생긴다는 증거가 아닙니다.",
+    mount(S) {
+      const T = 3200, NW = 240, EVN = 1200;
+      const st = { P: 24, A: 2, jump: 2, ac: 0.05, nb: 10, lr: 0.03, epochs: 2, seed: 1 };
+      const JT = T - EVN + 300; // 척도가 바뀌는 시점 — 평가 구간(마지막 1,200점)의 300번째 점
+      function scores() { const r = VZ.rng(st.seed * 77 + 5), s = new Float64Array(T); for (let t = 0; t < T; t++) { const ph = 0.5 + 0.5 * Math.cos((2 * Math.PI * t) / st.P); s[t] = Math.abs((t >= JT ? st.jump : 1) * (1 + st.A * ph * ph * ph) * VZ.randn(r)); } return s; }
+      function betaAt(s, t, w, J) {
+        const S0 = s[t];
+        let W = 0, ge = 0;
+        for (let k = 1; k <= NW; k++) { const wk = w[k - 1]; W += wk; if (s[t - k] >= S0) ge += wk; }
+        const b = (1 + ge) / (W + 1);
+        if (J) for (let k = 1; k <= NW; k++) J[k - 1] = ((s[t - k] >= S0 ? 1 : 0) - b) / (W + 1);
+        return b;
+      }
+      function learn(s, nc) {
+        const w = new Float64Array(NW), m = new Float64Array(NW), v = new Float64Array(NW), beta = new Float64Array(T).fill(NaN), tb = [];
+        for (let k = 0; k < nc; k++) w[k] = 1;
+        const w0 = Float64Array.from(w);
+        let step = 0;
+        for (let t = NW; t < T; t++) {
+          beta[t] = betaAt(s, t, w, null);
+          tb.push(t);
+          if (tb.length < st.nb) continue;
+          for (let ep = 0; ep < st.epochs; ep++) {
+            const nb = tb.length, bs = new Float64Array(nb), Js = tb.map(() => new Float64Array(NW));
+            tb.forEach((tt, i) => { bs[i] = betaAt(s, tt, w, Js[i]); });
+            const ord = Array.from(bs.keys()).sort((a, b) => bs[a] - bs[b]), rank = new Int32Array(nb);
+            ord.forEach((i, r) => { rank[i] = r + 1; });
+            const g = new Float64Array(NW);
+            for (let i = 0; i < nb; i++) {
+              const b = bs[i], dw = b < (rank[i] - 1) / nb ? -1 / nb : b > rank[i] / nb ? 1 / nb : 2 * b - (2 * rank[i] - 1) / nb;
+              for (let k = 0; k < NW; k++) g[k] += dw * Js[i][k];
+            }
+            step++;
+            const c1 = 1 - Math.pow(0.9, step), c2 = 1 - Math.pow(0.999, step);
+            for (let k = 0; k < NW; k++) { m[k] = 0.9 * m[k] + 0.1 * g[k]; v[k] = 0.999 * v[k] + 0.001 * g[k] * g[k]; w[k] -= (st.lr * (m[k] / c1)) / (Math.sqrt(v[k] / c2) + 1e-8); }
+            acProject(w, nc);
+          }
+          tb.length = 0;
+        }
+        return { beta, w, w0 };
+      }
+      let D = null;
+      function compute() {
+        const s = scores(), nc = Math.round(1 / st.ac - 1), L = learn(s, nc), e0 = T - EVN;
+        const wRecent = new Float64Array(NW), wUnif = new Float64Array(NW).fill(1);
+        for (let k = 0; k < nc; k++) wRecent[k] = 1;
+        const collect = (f) => { const a = new Float64Array(EVN); for (let t = e0; t < T; t++) a[t - e0] = f(t); return a.sort(); };
+        const bL = collect((t) => L.beta[t]), bR = collect((t) => betaAt(s, t, wRecent, null)), bU = collect((t) => betaAt(s, t, wUnif, null));
+        const cdf = (b, a) => { let lo = 0, hi = b.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (b[mid] <= a) lo = mid + 1; else hi = mid; } return lo / b.length; };
+        const grid = Array.from({ length: 61 }, (_, i) => i * 0.005);
+        let sw = 0, same = 0;
+        for (let k = 1; k <= NW; k++) { sw += L.w[k - 1]; const ph = k % st.P; if (ph === 0 || ph === 1 || ph === st.P - 1) same += L.w[k - 1]; }
+        D = { L, nc, grid, cL: grid.map((a) => cdf(bL, a)), cR: grid.map((a) => cdf(bR, a)), cU: grid.map((a) => cdf(bU, a)), w1: [acW1(bR), acW1(bU), acW1(bL)], fa: [cdf(bR, st.ac), cdf(bU, st.ac), cdf(bL, st.ac)], sw, same: sw ? same / sw : 0 };
+      }
+      compute();
+      const [left, right] = S.split(2);
+      const cvW = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), vl = [];
+        for (let k = st.P; k <= NW; k += st.P) vl.push({ x: k, color: P.faint, dash: [2, 4] });
+        VZ.chart(ctx, null, {
+          x: [0, NW + 1], y: [0, 1.05], title: "lag별 가중치 w — 막대 = 학습 후, 선 = 초기값 (최근 n_c개만 1)", xLabel: "lag k (1 = 가장 최근, 점선 = P의 배수)", yLabel: "w", margin: { l: 44 },
+          series: [{ type: "bar", data: Array.from(D.L.w, (v, i) => [i + 1, v]), color: P.accent, barWidth: 1 }, { data: Array.from(D.L.w0, (v, i) => [i + 1, v]), color: P.warn, width: 1.6, type: "step" }],
+          vlines: vl,
+        });
+      });
+      const cvC = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), pts = (c) => D.grid.map((a, i) => [a, c[i]]);
+        VZ.chart(ctx, null, {
+          x: [0, 0.3], y: [0, 0.6], title: "p-value의 교정 — 실현된 P(β ≤ α) 대 α", xLabel: "α", yLabel: "P(β ≤ α)", margin: { l: 44 },
+          series: [{ data: [[0, 0], [0.3, 0.3]], color: P.text, width: 1.2, dash: [4, 3] }, { data: pts(D.cR), color: P.warn, width: 2.2 }, { data: pts(D.cU), color: P.accent2, width: 2.2 }, { data: pts(D.cL), color: P.accent, width: 2.8 }],
+          vlines: [{ x: st.ac, color: P.faint }],
+        });
+      });
+      S.legend([{ label: "왼쪽: 학습된 w (막대)와 초기 w (계단선)", color: (P) => P.accent }, { label: "오른쪽: 최근 n_c개만 (초기 w 고정)", color: (P) => P.warn }, { label: "창 240 전체 (w ≡ 1)", color: (P) => P.accent2 }, { label: "W₁로 학습한 w", color: (P) => P.accent }]);
+      const set = S.stats([{ k: "w1", label: "W₁(β, U) · 최근 n_c개 / 창 전체 / 학습 (작을수록 균등)" }, { k: "fa", label: "α = α_c에서 실현된 경보율 · 최근 n_c개 / 창 전체 / 학습" }, { k: "nw", label: "‖w‖₁ (하한 n_c) · 학습" }, { k: "same", label: "주기 P의 배수(±1) lag에 실린 가중치 비율 (구조가 없으면 약 3/P)" }]);
+      function upd() {
+        compute(); cvW.redraw(); cvC.redraw();
+        set("w1", `${D.w1[0].toFixed(3)} / ${D.w1[1].toFixed(3)} / <b>${D.w1[2].toFixed(3)}</b>`);
+        set("fa", `${(D.fa[0] * 100).toFixed(1)}% / ${(D.fa[1] * 100).toFixed(1)}% / <b>${(D.fa[2] * 100).toFixed(1)}%</b> (목표 ${(st.ac * 100).toFixed(1)}%)`);
+        set("nw", `${D.sw.toFixed(1)} (n_c = ${D.nc})`); set("same", `${(D.same * 100).toFixed(0)}% (3/P = ${((3 / st.P) * 100).toFixed(0)}%)`);
+      }
+      S.range({ label: "분산의 주기 P", min: 8, max: 48, step: 1, value: st.P, onInput: (v) => { st.P = v; upd(); } });
+      S.range({ label: "주기적 분산의 진폭 A (0 = 구조 없음)", min: 0, max: 4, step: 0.25, value: st.A, fmt: (v) => v.toFixed(2), onInput: (v) => { st.A = v; upd(); } });
+      S.range({ label: "평가 구간 300번째 점에서의 오차 척도 배율 (1 = 변화 없음)", min: 1, max: 3, step: 0.25, value: st.jump, fmt: (v) => "×" + v.toFixed(2), onInput: (v) => { st.jump = v; upd(); } });
+      S.seg({ label: "임계 경보율 α_c (n_c = 1/α_c − 1)", options: [["0.1", "0.10 (n_c 9)"], ["0.05", "0.05 (n_c 19)"], ["0.02", "0.02 (n_c 49)"]], value: String(st.ac), onChange: (v) => { st.ac = Number(v); upd(); } });
+      S.range({ label: "학습률 lr", min: 0.005, max: 0.1, step: 0.005, value: st.lr, fmt: (v) => v.toFixed(3), onInput: (v) => { st.lr = v; upd(); } });
+      S.range({ label: "배치 n_b", min: 5, max: 40, step: 5, value: st.nb, onInput: (v) => { st.nb = v; upd(); } });
+      S.button("오차 열 다시 뽑기", () => { st.seed++; upd(); }, { primary: true });
+      upd();
+    },
+  });
+
+  /* ---- 33. p-value에 '자기 자신'을 세는가 ---- */
+  Lab.register({
+    id: "acas-offset", field: "dl", thumb: "curve", layout: "stack",
+    title: "p-value에 '자기 자신'을 세는가 — 논문 식 (7)과 코드의 1 − β, 작은 창에서의 거짓 경보율",
+    desc: "논문의 p-value는 (1 + #{과거 점수 ≥ S}) / (n + 1)이라 가장 작아도 1/(n + 1)이고, 공개 코드가 돌려주는 1 − β는 #{과거 점수 &gt; S} / (n + 1)이라 0이 될 수 있습니다. 같은 임계값 α에서 두 정의의 거짓 경보율이 창 길이 n에 따라 얼마나 다른지 정확한 확률로 계산합니다.",
+    tags: ["W1-ACAS", "p-value", "conformal", "유한 표본", "코드 대조"],
+    note: "<b>코드를 읽고 식으로 따진 계산</b>입니다(저장소 코드를 실행한 것이 아닙니다). 논문 식 (7)은 β = (1 + Σ<sub>S<sub>i</sub> ≥ S</sub> w<sub>i</sub>) / (‖w‖<sub>1</sub> + 1)입니다. 공개 <code>conformal.py</code>의 <code>get_beta</code>는 (Σ<sub>S<sub>i</sub> ≤ S</sub> w<sub>i</sub> + 1) / (‖w‖<sub>1</sub> + 1)을 계산하고 <code>predict</code>가 <b>1 − 그 값</b>을 돌려주므로 p = Σ<sub>S<sub>i</sub> &gt; S</sub> w<sub>i</sub> / (‖w‖<sub>1</sub> + 1)입니다 — 검정 점수 자신이 분자에 들어가지 않아 논문 값보다 (1 + 동점 가중치) / (‖w‖<sub>1</sub> + 1)만큼 작습니다. 여기서는 가중치를 모두 1로 둔 창(n개)에서 점수가 서로 교환 가능하고 동점이 없다고 가정하면 순위가 균등하다는 사실만으로 P(p ≤ α)를 <b>정확히</b> 셉니다: 논문식 ⌊α(n+1)⌋/(n+1), 코드식(absolute_error) (⌊α(n+1)⌋+1)/(n+1), 코드의 부호 있는 error 경로는 Beta(1,1) 평활화와 양측 변환 p = min(1, 2·min(β, 1−β))를 거칩니다. 판독 칸의 '몬테카를로'는 n ≤ 400에서 실제로 점수를 뽑아 센 값으로 이 계산을 확인합니다. <b>해볼 것</b> ① n = 100, α = 1%에서 논문식은 0.99%(목표 이내), 코드식은 약 2%입니다. 목표의 두 배입니다. ② n을 5,000까지 키우면 둘의 차이가 1/(n+1) 수준으로 줄어 거의 사라집니다. 창이 작을수록, α가 작을수록 상대적 차이가 큽니다. ③ n &lt; 1/α − 1이면 논문식은 경보를 아예 내지 못하지만(p ≥ 1/(n+1) &gt; α) 코드식은 가장 큰 점수에서 p = 0이 되어 경보를 냅니다. ④ 오른쪽에서 '더 큰 과거 점수가 g개'일 때의 p-value를 두 정의로 비교합니다. 참고로 저장소에 올려 둔 예시 출력(YAHOO 시계열 한 개)의 <code>evaluation.json</code>에서 absolute_error 설정의 <code>score_threshold</code>(경보에 든 점들의 가장 큰 p)는 세 모델 모두 1e-14 이하, 곧 p가 사실상 0이고 error 설정은 0.003–0.03입니다.",
+    mount(S) {
+      const st = { lgN: Math.log10(100), lgA: Math.log10(0.01) };
+      const fl = (n, a) => Math.floor(a * (n + 1) + 1e-9);
+      const faPaper = (n, a) => Math.min(1, fl(n, a) / (n + 1));
+      const faCode = (n, a) => Math.min(1, (fl(n, a) + 1) / (n + 1));
+      const faSigned = (n, a) => { let c = 0; for (let r = 0; r <= n; r++) { const b = (r + 1) / (n + 2), p = Math.min(1, 2 * Math.min(b, 1 - b)); if (p <= a + 1e-12) c++; } return c / (n + 1); };
+      const NGRID = Array.from({ length: 56 }, (_, i) => Math.round(Math.pow(10, 1.3 + (i / 55) * (Math.log10(5000) - 1.3))));
+      let D = null;
+      function compute() {
+        const n = Math.round(Math.pow(10, st.lgN)), a = Math.pow(10, st.lgA);
+        const ratio = (f) => NGRID.map((m) => [m, f(m, a) / a]);
+        const cur = { paper: faPaper(n, a), code: faCode(n, a), signed: faSigned(n, a) };
+        let mc = null;
+        if (n <= 400) {
+          const r = VZ.rng(11), REP = 4000;
+          let cp = 0, cc = 0;
+          for (let i = 0; i < REP; i++) {
+            const t = r();
+            let gt = 0, ge = 0;
+            for (let j = 0; j < n; j++) { const x = r(); if (x > t) gt++; if (x >= t) ge++; }
+            if ((1 + ge) / (n + 1) <= a + 1e-12) cp++;
+            if (gt / (n + 1) <= a + 1e-12) cc++;
+          }
+          mc = { paper: cp / REP, code: cc / REP };
+        }
+        const G = Math.min(n, Math.ceil(3 * a * (n + 1)) + 3);
+        D = { n, a, cur, mc, cP: ratio(faPaper), cC: ratio(faCode), cS: ratio(faSigned), G, pP: Array.from({ length: G + 1 }, (_, g) => [g, (1 + g) / (n + 1)]), pC: Array.from({ length: G + 1 }, (_, g) => [g, g / (n + 1)]) };
+      }
+      compute();
+      const [left, right] = S.split(2);
+      const cvR = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), mx = Math.max(1.5, ...D.cC.map((p) => p[1]), ...D.cS.map((p) => p[1]));
+        VZ.chart(ctx, null, {
+          x: [20, 5000], logX: true, y: [0, Math.min(6, mx * 1.1)], title: "실현된 거짓 경보율 ÷ 목표 α — 창 길이 n에 따라", xLabel: "창 길이 n (로그 축)", yLabel: "÷ α  (1 = 목표대로)", margin: { l: 50 }, xTicks: [20, 100, 1000, 5000], xFmt: (v) => String(v),
+          series: [{ data: D.cP, color: P.accent, width: 2.6 }, { data: D.cC, color: P.warn, width: 2.6 }, { data: D.cS, color: P.accent2, width: 2.2, dash: [6, 4] }],
+          hlines: [{ y: 1, color: P.text, dash: [4, 3] }],
+          vlines: [{ x: D.n, color: P.faint, dash: [] }, { x: Math.max(20.5, 1 / D.a - 1), color: P.faint, dash: [2, 4] }],
+        });
+      });
+      const cvP = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), pm = Math.max(D.pP[D.G][1], D.a * 1.5);
+        VZ.chart(ctx, null, {
+          x: [0, D.G + 0.5], y: [0, pm * 1.1], title: `p-value — 더 큰 과거 점수가 g개일 때 (n = ${D.n})`, xLabel: "g = #{과거 점수 > S}", yLabel: "p", margin: { l: 50 },
+          series: [{ data: D.pP, color: P.accent, width: 1.6 }, { type: "scatter", data: D.pP, color: P.accent, r: 4 }, { data: D.pC, color: P.warn, width: 1.6 }, { type: "scatter", data: D.pC, color: P.warn, r: 4 }],
+          hlines: [{ y: D.a, color: P.text, dash: [4, 3], label: "α" }],
+        });
+      });
+      S.legend([{ label: "논문 식 (7): (1 + #{≥ S}) / (n + 1)", color: (P) => P.accent }, { label: "코드 1 − β (absolute_error): #{> S} / (n + 1)", color: (P) => P.warn }, { label: "코드 error 경로: 양측 Beta(1,1) 평활화", color: (P) => P.accent2, dash: true }]);
+      const set = S.stats([{ k: "min", label: "p-value의 최솟값 · 논문 / 코드(abs) / 코드(error)" }, { k: "fa", label: "정확한 거짓 경보율 · 논문 / 코드(abs) / 코드(error)" }, { k: "rt", label: "÷ α" }, { k: "mc", label: "몬테카를로 4,000회 (n ≤ 400) · 논문 / 코드(abs)" }]);
+      const pc = (x) => (x * 100).toFixed(2) + "%";
+      function upd() {
+        compute(); cvR.redraw(); cvP.redraw();
+        const c = D.cur, n = D.n;
+        set("min", `${(1 / (n + 1)).toFixed(4)} / <b>0</b> / ${(2 / (n + 2)).toFixed(4)}`); set("fa", `${pc(c.paper)} / <b>${pc(c.code)}</b> / ${pc(c.signed)} (α = ${pc(D.a)})`);
+        set("rt", `${(c.paper / D.a).toFixed(2)} / <b>${(c.code / D.a).toFixed(2)}</b> / ${(c.signed / D.a).toFixed(2)}`);
+        set("mc", D.mc ? `${pc(D.mc.paper)} / ${pc(D.mc.code)}` : "— (n이 커서 생략)");
+      }
+      S.range({ label: "창 길이 n (로그 축)", min: Math.log10(10), max: Math.log10(5000), step: 0.02, value: st.lgN, fmt: (v) => String(Math.round(Math.pow(10, v))), onInput: (v) => { st.lgN = v; upd(); } });
+      S.range({ label: "임계값 α (로그 축)", min: Math.log10(0.001), max: Math.log10(0.2), step: 0.02, value: st.lgA, fmt: (v) => (Math.pow(10, v) * 100).toFixed(2) + "%", onInput: (v) => { st.lgA = v; upd(); } });
+      upd();
+    },
+  });
+
+  /* ---- 34. 여러 센서의 p-value를 합친다 ---- */
+  Lab.register({
+    id: "acas-combine", field: "dl", thumb: "scatter", layout: "stack",
+    title: "여러 센서의 p-value를 어떻게 합치나 — Fisher · HMP · Cauchy · Tippett · median과 센서 상관 (W₁-ACAS 다변량)",
+    desc: "다변량 시계열은 채널마다 따로 구한 p-value를 하나로 합쳐 경보를 냅니다. 센서들이 서로 상관되어 있을 때 합친 p-value의 거짓 경보율이 목표 α에서 얼마나 벗어나는지, 한 센서만 어긋났을 때 얼마나 잡는지를 합산 방법별로 비교합니다.",
+    tags: ["W1-ACAS", "p-value 합산", "Fisher", "Cauchy combination", "센서 상관"],
+    note: "채널 j의 오차를 z<sub>j</sub> = √ρ·f + √(1−ρ)·e<sub>j</sub>(공통 요인 f, 단위 분산 정규, 서로 상관 ρ)로 두고 양측 p-value p<sub>j</sub> = 2(1 − Φ(|z<sub>j</sub>|))를 만듭니다. 각 채널의 p-value는 <b>주변분포로는 정확히 균등</b>합니다 — 채널별 교정이 완벽하다고 가정한 상태에서 합치는 단계만 따로 본 <b>장난감 계산</b>입니다(몬테카를로 20,000회). 논문 부록 C.2.4는 Fisher(<b>-F</b>)와 HMP(<b>-H</b>)를, 공개 코드는 median · mean · min · max · Fisher · HMC · Tippett · Cauchy를 제공하고 데모 스크립트의 기본값은 Cauchy입니다. 여기서 'HMP·코드'는 코드의 min(1, 조화평균 × e × ln k), 'HMP·논문식'은 논문의 n<sub>f</sub> / Σ(1/β)이고 median은 논문이 <b>예측 horizon</b> 15개를 합칠 때 쓴 방식을 센서에 그대로 적용한 것입니다. 왼쪽은 이상이 없을 때 거짓 경보율 ÷ α(1이면 목표대로), 오른쪽은 <b>한 센서만</b> δσ만큼 어긋났을 때 검출력(나머지 센서는 정상)입니다. <b>해볼 것</b> ① k = 10, ρ = 0에서 Tippett · Fisher · Cauchy는 모두 1 근처(1.07 · 0.98 · 1.08)이고 보정 없는 HMP·논문식은 1.15로 약간 넘으며, 코드의 HMP는 e·ln k 보정 때문에 0.18로 크게 보수적입니다. ② ρ를 0.8로 올리면 Fisher의 거짓 경보율이 α의 12배로 뛰는데, Fisher는 p-value가 독립이라고 가정하기 때문입니다. Cauchy는 1.07로 상관에 훨씬 덜 민감합니다(수치는 기본 난수 시드 기준). ③ median은 거짓 경보가 α보다 훨씬 적지만 한 센서만 어긋난 경우를 거의 잡지 못합니다. 센서 하나의 고장을 보려는 반도체 장비 모니터링에는 맞지 않습니다(horizon을 합칠 때는 같은 센서의 예측 여러 개라 사정이 다릅니다). ④ 센서 수 k를 1로 두면 코드의 HMC는 ln 1 = 0 때문에 p-value가 항상 0이 되어 모든 시점이 경보입니다(코드를 읽고 도출한 것, 실행하지 않음).",
+    mount(S) {
+      const NR = 20000, KM = 20;
+      const st = { k: 10, rho: 0.5, lgA: Math.log10(0.01), delta: 4, seed: 1 };
+      let F = null, E = null;
+      function gen() { const r = VZ.rng(st.seed * 131 + 7); F = new Float64Array(NR); E = new Float64Array(NR * KM); for (let i = 0; i < NR; i++) F[i] = VZ.randn(r); for (let i = 0; i < NR * KM; i++) E[i] = VZ.randn(r); }
+      const lnC = (p) => Math.log(Math.max(p, 1e-300));
+      const med = (p, k) => { const a = Array.from(p.subarray(0, k)).sort((x, y) => x - y); return k % 2 ? a[(k - 1) / 2] : (a[k / 2 - 1] + a[k / 2]) / 2; };
+      const METH = [
+        ["Tippett", (p, k) => { let m = 1; for (let j = 0; j < k; j++) m = Math.min(m, p[j]); return 1 - Math.pow(1 - m, k); }],
+        ["Fisher", (p, k) => { let X = 0; for (let j = 0; j < k; j++) X += -2 * lnC(p[j]); const h = X / 2; let term = 1, sum = 1; for (let j = 1; j < k; j++) { term *= h / j; sum += term; } return Math.min(1, Math.exp(-h) * sum); }],
+        ["HMP·코드", (p, k) => { let s = 0; for (let j = 0; j < k; j++) s += 1 / Math.max(p[j], 1e-300); return Math.min(1, (k / s) * Math.E * Math.log(k)); }],
+        ["HMP·논문식", (p, k) => { let s = 0; for (let j = 0; j < k; j++) s += 1 / Math.max(p[j], 1e-300); return Math.min(1, k / s); }],
+        ["Cauchy", (p, k) => { let T = 0; for (let j = 0; j < k; j++) T += Math.tan((0.5 - Math.min(1 - 1e-15, Math.max(1e-15, p[j]))) * Math.PI); return 0.5 - Math.atan(T / k) / Math.PI; }],
+        ["median", med],
+      ];
+      let D = null;
+      function compute() {
+        const k = st.k, a = Math.pow(10, st.lgA), sr = Math.sqrt(st.rho), se = Math.sqrt(1 - st.rho), p0 = new Float64Array(KM), p1 = new Float64Array(KM);
+        const fa = new Float64Array(METH.length), pw = new Float64Array(METH.length);
+        for (let i = 0; i < NR; i++) {
+          for (let j = 0; j < k; j++) p0[j] = acP2(sr * F[i] + se * E[i * KM + j]);
+          p1.set(p0); p1[0] = acP2(sr * F[i] + se * E[i * KM] + st.delta);
+          for (let m = 0; m < METH.length; m++) { if (METH[m][1](p0, k) <= a) fa[m]++; if (METH[m][1](p1, k) <= a) pw[m]++; }
+        }
+        D = { a, fa: Array.from(fa, (v) => v / NR), pw: Array.from(pw, (v) => v / NR) };
+      }
+      gen(); compute();
+      const [left, right] = S.split(2);
+      const names = METH.map((m) => m[0]);
+      const cvF = S.canvas({ parent: left, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette(), r = D.fa.map((v) => v / D.a), mx = Math.max(2, ...r);
+        VZ.chart(ctx, null, {
+          x: [-0.6, METH.length - 0.4], y: [0, Math.min(10, mx * 1.15)], title: "이상이 없을 때 거짓 경보율 ÷ 목표 α", yLabel: "÷ α  (1 = 목표대로)", margin: { l: 50 }, xTicks: names.map((_, i) => i), xFmt: (v) => names[v] || "",
+          series: [{ type: "bar", data: r.map((v, i) => [i, v]), color: P.warn, barWidth: 0.5 }],
+          hlines: [{ y: 1, color: P.text, dash: [4, 3] }],
+        });
+      });
+      const cvP = S.canvas({ parent: right, aspect: 0.8, maxHeight: 330 }, (ctx) => {
+        const P = VZ.palette();
+        VZ.chart(ctx, null, {
+          x: [-0.6, METH.length - 0.4], y: [0, 1.02], title: `한 센서만 ${st.delta.toFixed(1)}σ 어긋났을 때 검출력 (α에서)`, yLabel: "검출력", margin: { l: 50 }, xTicks: names.map((_, i) => i), xFmt: (v) => names[v] || "",
+          series: [{ type: "bar", data: D.pw.map((v, i) => [i, v]), color: P.accent, barWidth: 0.5 }],
+        });
+      });
+      const set = S.stats(METH.map((m, i) => ({ k: "m" + i, label: `${m[0]} — 거짓 경보율 ÷ α / 검출력` })));
+      const f2 = (x) => x.toFixed(2);
+      function upd(regen) {
+        if (regen) gen();
+        compute(); cvF.redraw(); cvP.redraw();
+        METH.forEach((m, i) => set("m" + i, `${f2(D.fa[i] / D.a)} / ${D.pw[i].toFixed(3)}`));
+      }
+      S.range({ label: "센서(채널) 수 k", min: 1, max: KM, step: 1, value: st.k, onInput: (v) => { st.k = v; upd(); } });
+      S.range({ label: "센서 사이의 상관 ρ", min: 0, max: 0.95, step: 0.05, value: st.rho, fmt: (v) => v.toFixed(2), onInput: (v) => { st.rho = v; upd(); } });
+      S.range({ label: "임계값 α (로그 축)", min: Math.log10(0.005), max: Math.log10(0.1), step: 0.02, value: st.lgA, fmt: (v) => (Math.pow(10, v) * 100).toFixed(2) + "%", onInput: (v) => { st.lgA = v; upd(); } });
+      S.range({ label: "한 센서의 어긋남 δ (σ 단위)", min: 1, max: 8, step: 0.5, value: st.delta, fmt: (v) => v.toFixed(1) + "σ", onInput: (v) => { st.delta = v; upd(); } });
+      S.button("난수 다시 뽑기", () => { st.seed++; upd(true); }, { primary: true });
       upd();
     },
   });
