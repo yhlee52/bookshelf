@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>12 긴 컨텍스트와 정보 선택 · AgentBook</title>
-<meta name="description" content="context window의 크기와 계산 비용 · 정보의 위치에 따른 활용 차이 · 관련 없는 정보의 방해 · 통째 입력과 검색의 선택">
+<meta name="description" content="컨텍스트 창의 크기가 약속하는 것(입력의 최대 길이)과 약속하지 않는 것(그 길이에서의 성능)을 나누고, 길이에 따른 계산·메모리 비용을 일반화해 센다. 정보의 위치와 길이가 어텐션에 미치는 영향(희석), 관련 없는 정보와 헷갈리는 정보의 방해, 청크 경계가 이름과 값을 떼어 놓을 확률과 통째 입력 대 검색의 선택을 다룬다. 마지막 실험은 같은 사실을 긴 문서의 여러 위치에 두고 작은 언어모델이 찾아 쓰는 비율을 잰다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,868 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch12">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">12</span></div>
     <h1 data-fill="chapter-title">긴 컨텍스트와 정보 선택</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">11장은 정답이 컨텍스트에 들어가야 한다는 조건에서 출발해, 무엇을 가져와 넣을지를 검색으로 정하는 일을 다루었다. 그런데 컨텍스트가 크면 가져올 필요 없이 자료를 통째로 넣을 수도 있다. 컨텍스트 창이 수십만~백만 토큰이 되면서 이 길이 현실이 되었다. 이 장의 질문은 '넣을 수 있다'와 '모델이 쓴다'가 같은가이다. 12.1절은 창의 크기가 약속하는 것(입력의 최대 길이)과 약속하지 않는 것(그 길이에서의 성능)을 나누고, 2장이 센 길이에 따른 비용을 요즘 모델의 구조(grouped-query attention, 게이트 MLP)로 일반화해 길이와 대화 횟수에 따라 비용이 어떻게 자라는지 센다. 12.2절은 같은 정보가 문서의 앞·가운데·끝 어디에 있는지, 문서가 얼마나 긴지에 따라 활용이 달라지는 까닭을 어텐션의 희석(softmax가 키 수로 나눈다)과 거리의 효과로 가르고, 모델의 어텐션을 직접 재어 본다. 12.3절은 관련 없는 정보, 이름이 다른 비슷한 정보, 같은 이름의 충돌하는 정보가 서로 다른 방해이며 정확도의 상한이 다르다는 것을 10장의 정리로 보인다. 12.4절은 청크 경계가 이름과 값을 떼어 놓을 확률을 유도해 11장의 청크 문제를 정량화하고, 통째 입력과 검색 가운데 무엇을 고를지의 기준을 세운다. 마지막 실험은 같은 사실을 길이와 위치를 바꿔 가며 문서에 심고 작은 언어모델이 찾아 쓰는 비율을 잰다. 이 장은 20장(컨텍스트 관리)의 바탕이다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>컨텍스트 창의 크기가 약속하는 것과 약속하지 않는 것을 구분하고, 길이에 따른 FLOPs, KV cache 바이트, 여러 턴에 걸친 토큰 처리량을 모델 구조로 계산할 수 있다.</li>
+      <li>정보의 위치와 문서 길이가 어텐션에 미치는 영향을 희석(\(1/n\))과 거리의 효과로 나누어 설명하고, 어텐션 질량의 로그 오즈로 측정하는 방법을 말할 수 있다.</li>
+      <li>관련 없는 정보, 이름이 다른 비슷한 정보, 같은 이름의 충돌하는 정보의 방해를 구분하고, 각각에서 정확도의 상한이 어떻게 달라지는지 계산할 수 있다.</li>
+      <li>청크 크기, 겹침, 이름과 값 사이의 거리로 청크가 이름과 값을 함께 담을 확률을 계산하고, 통째 입력과 검색 사이의 선택을 비용과 정확도로 따질 수 있다.</li>
+      <li>같은 사실을 길이와 위치를 바꿔 심는 실험을 설계하고, 길이와 위치의 효과를 분리해 해석할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch02.html">2장</a>(attention 비용, KV cache, RoPE의 상대 위치), <a href="ch08.html">8장</a>(표본 오차), <a href="ch10.html">10장</a>(<a href="ch10.html#thm-collide">정리 10.1</a>), <a href="ch11.html">11장</a>(식별되는 청크, <a href="ch11.html#thm-index">정리 11.2</a>)</p>
   </header>
+
+
+  <!-- ============================================================ 12.1 -->
   <section id="s1">
     <h2>context window의 크기와 계산 비용</h2>
-    <p class="slot" data-slot="12.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>context window는 모델이 한 번의 응답을 만들 때 참조할 수 있는 글 전체이며 응답 자신을 포함한다. Claude API의 문서(<a href="https://platform.claude.com/docs/en/build-with-claude/context-windows">Context windows</a>, 2026년 11월 확인)에 따르면 시스템 프롬프트, <code>messages</code>의 모든 메시지(도구 결과, 이미지, 문서 포함), 도구 정의가 모두 창에 들어가고, 응답과 확장 사고(thinking)도 센다. 창의 크기는 모델에 따라 다르며 이 문서는 현재 모델 다수가 100만 토큰(한 요청이 만들 수 있는 출력은 최대 128k 토큰), Sonnet 4.5 같은 이전 모델은 20만 토큰이라고 쓴다. 캐시된 접두부도 창을 차지한다. 프롬프트 캐싱이 바꾸는 것은 그 토큰의 값이지 창에 드는지가 아니다.</p>
+    <p>이 숫자가 약속하는 것은 <b>입력의 최대 길이</b>이다. 약속하지 않는 것은 그 길이에서의 <b>성능</b>이다. 같은 문서는 토큰 수가 늘면 정확도와 재현율이 떨어지는 현상을 <i>context rot</i>라 부르며 '더 큰 창이 자동으로 더 좋은 것은 아니고, 무엇을 넣을지 가려내는 일이 공간만큼 중요하다'고 쓴다. 연구 쪽의 증거도 같은 방향이다. <a href="https://arxiv.org/abs/2404.06654">Hsieh 외</a>(RULER)는 긴 문서에서 심어 둔 사실 하나를 찾는 needle-in-a-haystack 시험을 모델이 거의 완벽히 통과하는데도, 더 다양한 과제에서는 거의 모든 모델이 길이가 늘수록 성능이 크게 떨어지고, 32K 이상을 내세운 모델 가운데 절반만 32K에서 만족스러운 성능을 낸다고 보고했다(초록). <a href="https://arxiv.org/abs/2402.14848">Levy 외</a>는 같은 문제를 다른 길이로 채워 길이의 효과만 분리했을 때 추론 성능이 모델의 최대 입력 길이보다 훨씬 짧은 길이에서 이미 눈에 띄게 떨어진다고 보고했다(초록). 어느 모델이 어디서 떨어지는지는 모델마다 재야 하며, 이 장의 실험이 작은 모델 하나에서 그 모양을 보인다.</p>
+
+    <h3 id="h-cost12">길이에 따른 비용: 2장의 셈을 일반화한다</h3>
+    <p>2장은 층 하나가 \(n\)개 토큰을 처리하는 곱셈-덧셈 횟수를 세어, 위치마다 따로 계산하는 부분(\(24nd^2\))과 위치 사이를 잇는 attention(\(4n^2d\))이 \(n=6d\)에서 같아진다고 보였다. 그 셈은 key·value head가 query head와 같은 수이고 MLP 은닉 차원이 \(4d\)인 구조를 가정했다. 요즘 모델은 key·value head를 줄이고(grouped-query attention) 게이트 MLP(행렬 셋)를 쓴다. 같은 방식으로 다시 세면 다음과 같다. 곱셈-덧셈 한 쌍을 2로 세고, attention은 2장처럼 마스크된 부분까지 포함해 \(n^2\) 전부를 센다.</p>
+    <div class="box def" id="def-cost"><div class="box-h">컨텍스트 비용 모델</div>
+      <p>층 수 \(L\), 은닉 차원 \(d\), key·value 차원의 합 \(d_{\rm kv}=n_{\rm kv}d_{\rm head}\), MLP 은닉 차원 \(d_{\rm ff}\)(게이트 MLP는 행렬 셋), 원소당 바이트 \(b\)인 디코더 전용 트랜스포머를 생각한다. 프롬프트 길이가 \(n\)일 때 <b>prefill</b>의 층당 FLOPs는
+      \[ F_{\rm layer}(n)=n\,c+4n^2d,\qquad c=4d^2+4d\,d_{\rm kv}+6d\,d_{\rm ff} \]
+      이다(\(c\)는 토큰당 위치별 계산량: \(Q,O\) 투영 \(4d^2\), \(K,V\) 투영 \(4d\,d_{\rm kv}\), MLP \(6d\,d_{\rm ff}\)). 토큰 하나당 <b>KV cache</b>는 \(2Ld_{\rm kv}b\) 바이트이다.</p>
+    </div>
+    <div class="box thm" id="thm-cost"><div class="box-h">길이가 비용을 키우는 세 가지 방식</div>
+      <ol>
+        <li><b>전환점.</b> attention이 층 계산량에서 \(n/(n+n^*)\)를 차지하고, 위치별 계산과 같아지는 길이는 \(n^*=c/(4d)=d+d_{\rm kv}+\tfrac32d_{\rm ff}\)이다. 2장의 구조(\(d_{\rm kv}=d\), \(d_{\rm ff}=4d\), 행렬 둘)에서는 \(6d\)이다. 마스크된 쪽을 계산하지 않는 구현은 attention FLOPs가 절반이어서 전환점이 \(2n^*\)이 된다.</li>
+        <li><b>메모리.</b> KV cache는 \(n\)에 비례해 \(2Ld_{\rm kv}b\cdot n\) 바이트이다. 모델 가중치와 달리 요청마다, 컨텍스트마다 따로 든다.</li>
+        <li><b>대화 횟수.</b> 초기 컨텍스트 \(n_0\)에 매 턴 \(\Delta\)토큰이 덧붙는 에이전트가 \(T\)턴 동안 매번 컨텍스트 전체를 다시 보내면, 모델이 읽은 입력 토큰의 합은 \(T\,n_0+\Delta\,T(T-1)/2\)로 \(T\)의 제곱으로 자란다. 접두부를 캐시해 재사용하면 새로 계산하는 토큰은 \(n_0+(T-1)\Delta\)로 선형이지만, 캐시에서 읽어 오는 토큰의 합은 여전히 제곱으로 자란다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 층 하나의 계산은 \(Q,K,V,O\) 투영, 점수 \(QK^\top\), 가중합 \(AV\), MLP이다. 투영은 토큰마다 \(2d\cdot d\)(\(Q\)), \(2d\,d_{\rm kv}\)(\(K\), \(V\) 각각), \(2d\cdot d\)(\(O\))이므로 \(4d^2+4d\,d_{\rm kv}\)이다. 게이트 MLP는 \(d\times d_{\rm ff}\) 행렬 셋을 곱해 \(6d\,d_{\rm ff}\)이다. 점수와 가중합은 각각 \(2n^2d\)이다(head를 합친 \(n_{\rm head}d_{\rm head}=d\)). attention의 몫이 \(4n^2d/(nc+4n^2d)=n/(n+c/4d)\)이다. \(c/(4d)=d+d_{\rm kv}+1.5d_{\rm ff}\)이고 2장의 구조에서는 \((8d^2+16d^2)/4d=6d\)이다. 2번: 층마다 key와 value가 각각 \(d_{\rm kv}\)개의 수이고 토큰마다 \(2Ld_{\rm kv}\)개이다. 3번: \(t\)번째 턴의 입력 길이는 \(n_0+(t-1)\Delta\)이므로 \(\sum_{t=1}^{T}\bigl(n_0+(t-1)\Delta\bigr)=Tn_0+\Delta T(T-1)/2\)이다. 캐시를 쓰면 새로 계산하는 토큰은 첫 턴의 \(n_0\)과 이후 턴마다 덧붙은 \(\Delta\)뿐이다. 캐시에서 읽는 토큰은 턴 \(t\)에 \(n_0+(t-1)\Delta-\Delta\)이고, 이를 합한 것도 \(T\)의 제곱이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-cost"><div class="box-h">Qwen2.5-1.5B-Instruct의 비용</div>
+      <p>이 장의 실험이 쓰는 모델은 \(L=28\), \(d=1536\), \(n_{\rm kv}=2\)개의 key·value head(\(d_{\rm head}=128\), \(d_{\rm kv}=256\)), \(d_{\rm ff}=8960\)이다. 위치별 계산은 토큰·층당 \(c=9.36\times10^{7}\) FLOPs(모델 전체로 토큰당 2.62 GFLOPs)이고, 전환점은 \(n^*=1536+256+1.5\times8960=15{,}232\)이다. 2장의 구조라면 \(6d=9{,}216\)이다. 같은 \(d\)에서 key·value head를 줄이고 MLP를 키우면 위치별 계산이 커져 전환점이 뒤로 밀린다. attention이 층 계산량에서 차지하는 몫은 \(n=1{,}024\)에서 6.3%, 8,192에서 35.0%, 32,768에서 68.3%이다(마스크된 쪽까지 센 값. 마스크를 건너뛰면 3.3%, 21.2%, 51.8%). KV cache는 토큰당 \(2\times28\times256\times2=28{,}672\) B이고 32,768토큰에서 0.875 GiB이다. 에이전트가 \(n_0=10{,}000\), \(\Delta=2{,}000\)으로 \(T=30\)턴을 돌면 매번 전부 다시 보낼 때 읽는 입력 토큰은 1,170,000개이고, 캐시를 쓰면 새로 계산하는 토큰은 68,000개이다. 숫자는 실험의 E0이 센 값이다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 350" role="img" aria-label="길이에 따라 attention이 층 계산량에서 차지하는 몫. 가로축은 프롬프트 토큰 수(512에서 131072, 로그 눈금), 세로축은 몫이다. 2장의 구조에서는 9216토큰에서, Qwen2.5-1.5B 구조에서는 15232토큰에서 몫이 절반이 된다. 마스크된 쪽을 건너뛰면 전환점이 두 배 길이로 밀린다.">
+  <path d="M70 250.0 H740" class="s-grid"/><text class="t-mono" x="62" y="254.0" text-anchor="end">0</text>
+  <path d="M70 197.5 H740" class="s-grid"/><text class="t-mono" x="62" y="201.5" text-anchor="end">0.25</text>
+  <path d="M70 145.0 H740" class="s-grid"/><text class="t-mono" x="62" y="149.0" text-anchor="end">0.5</text>
+  <path d="M70 92.5 H740" class="s-grid"/><text class="t-mono" x="62" y="96.5" text-anchor="end">0.75</text>
+  <path d="M70 40.0 H740" class="s-grid"/><text class="t-mono" x="62" y="44.0" text-anchor="end">1</text>
+  <text class="t-mono" x="70.0" y="268" text-anchor="middle">512</text>
+  <text class="t-mono" x="237.5" y="268" text-anchor="middle">2k</text>
+  <text class="t-mono" x="405.0" y="268" text-anchor="middle">8k</text>
+  <text class="t-mono" x="572.5" y="268" text-anchor="middle">32k</text>
+  <text class="t-mono" x="740.0" y="268" text-anchor="middle">128k</text>
+  <text class="t-dim" x="405" y="290" text-anchor="middle">프롬프트 토큰 수 n (로그 눈금)</text>
+  <polyline points="70.0,238.9 90.9,237.0 111.9,234.7 132.8,232.1 153.8,229.0 174.7,225.5 195.6,221.5 216.6,216.9 237.5,211.8 258.4,206.1 279.4,199.8 300.3,192.9 321.2,185.4 342.2,177.4 363.1,168.9 384.1,160.2 405.0,151.2 425.9,142.1 446.9,133.0 467.8,124.2 488.8,115.6 509.7,107.4 530.6,99.8 551.6,92.6 572.5,86.1 593.4,80.2 614.4,74.8 635.3,70.1 656.2,65.9 677.2,62.2 698.1,59.0 719.1,56.2 740.0,53.8" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <polyline points="70.0,243.2 90.9,241.9 111.9,240.5 132.8,238.8 153.8,236.8 174.7,234.5 195.6,231.8 216.6,228.7 237.5,225.1 258.4,221.1 279.4,216.4 300.3,211.3 321.2,205.5 342.2,199.1 363.1,192.1 384.1,184.6 405.0,176.6 425.9,168.1 446.9,159.3 467.8,150.3 488.8,141.2 509.7,132.1 530.6,123.3 551.6,114.8 572.5,106.6 593.4,99.0 614.4,92.0 635.3,85.5 656.2,79.6 677.2,74.3 698.1,69.6 719.1,65.5 740.0,61.9" fill="none" style="stroke:var(--accent-2);stroke-width:2"/>
+  <polyline points="70.0,246.5 90.9,245.9 111.9,245.1 132.8,244.2 153.8,243.2 174.7,241.9 195.6,240.5 216.6,238.8 237.5,236.8 258.4,234.5 279.4,231.8 300.3,228.7 321.2,225.1 342.2,221.1 363.1,216.4 384.1,211.3 405.0,205.5 425.9,199.1 446.9,192.1 467.8,184.6 488.8,176.6 509.7,168.1 530.6,159.3 551.6,150.3 572.5,141.2 593.4,132.1 614.4,123.3 635.3,114.8 656.2,106.6 677.2,99.0 698.1,92.0 719.1,85.5 740.0,79.6" fill="none" style="stroke:var(--accent-2);stroke-width:2" stroke-dasharray="5 4"/>
+  <path d="M70 326 h26" fill="none" style="stroke:var(--accent);stroke-width:2"/><text class="t-dim" x="102" y="330">2장의 구조: 전환점 6d = 9,216</text>
+  <path d="M290 326 h26" fill="none" style="stroke:var(--accent-2);stroke-width:2"/><text class="t-dim" x="322" y="330">Qwen2.5-1.5B: 전환점 15,232</text>
+  <path d="M500 326 h26" fill="none" style="stroke:var(--accent-2);stroke-width:2" stroke-dasharray="5 4"/><text class="t-dim" x="532" y="330">마스크를 건너뛰면: 30,464</text>
+</svg>
+      <figcaption><b>그림 12-1.</b> 프롬프트 길이에 따라 attention이 층 계산량에서 차지하는 몫(마스크까지 센 값, 로그 눈금). 2장의 구조(\(6d\), \(d=1536\))는 9,216토큰에서, key·value head를 줄이고 MLP를 키운 Qwen2.5-1.5B 구조는 15,232토큰에서 절반이 된다. 마스크된 쪽을 건너뛰는 구현에서는 전환점이 두 배 길이로 밀린다.</figcaption>
+    </figure>
+    <div class="callout agent"><strong>매 턴 앞부분을 다시 읽는 비용</strong>
+      <p>에이전트의 컨텍스트는 도구 결과를 붙이며 자란다(<a href="ch14.html">14장</a>). <a class="ref" href="#thm-cost"></a>의 3번이 말하듯, 같은 접두부를 매 턴 다시 계산하면 대화가 길수록 한 턴의 비용이 아니라 총비용이 제곱으로 자란다. 2장의 prompt caching은 이 중 새로 계산하는 몫을 선형으로 바꾸고, 앞부분이 바뀌면 그 뒤가 모두 다시 계산된다는 점이 컨텍스트 관리의 제약이 된다. 무엇을 앞에 두고 무엇을 지울지는 <a href="ch20.html">20장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+
+  <!-- ============================================================ 12.2 -->
   <section id="s2">
     <h2>정보의 위치에 따른 활용 차이</h2>
-    <p class="slot" data-slot="12.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>같은 사실을 문서의 어디에 두느냐에 따라 모델이 찾아 쓰는 비율이 달라질까. <a href="https://arxiv.org/abs/2307.03172">Liu 외</a>(Lost in the Middle)는 질의응답과 키-값 찾기에서 관련 정보가 입력의 처음이나 끝에 있을 때 성능이 가장 높고, 긴 컨텍스트의 가운데에 있을 때 크게 떨어지며, 긴 컨텍스트를 겨냥한 모델에서도 같다고 보고했다(초록). 이 결과를 읽을 때 조심할 것이 있다. 상대 깊이 \(p\)(문서 앞에서부터 잰 비율)에 놓인 사실은 마지막 토큰에서 \((1-p)n\) 토큰 떨어져 있다. 깊이를 고정하고 문서를 늘리면 거리도 늘고, 거리를 고정하고 문서를 늘리면 깊이가 달라진다. 위치, 길이, 거리가 한꺼번에 변한다. 아래의 분해는 이 가운데 길이의 효과를 어텐션 식으로 떼어 낸다.</p>
+
+    <h3 id="h-dilute">길이의 효과: softmax는 키의 수로 나눈다</h3>
+    <p>답을 내는 자리, 곧 프롬프트의 마지막 토큰은 모든 앞 토큰에 어텐션을 나눈다. head 하나가 마지막 토큰에서 쓰는 가중치 \(\alpha_j=e^{s_j}/\sum_{i}e^{s_i}\)는 합이 1이다(\(s_j\)는 점수 \(q\cdot k_j/\sqrt{d_{\rm head}}\)). 찾으려는 사실이 차지하는 토큰 집합을 \(\mathcal N\)(\(m\)개)이라 하자.</p>
+    <div class="box def" id="def-mass"><div class="box-h">바늘 질량과 로그 오즈</div>
+      <p>head 하나가 마지막 토큰에서 \(\mathcal N\)에 둔 어텐션의 합 \(M=\sum_{j\in\mathcal N}\alpha_j\)를 <b>바늘 질량</b>, \(\lambda=\ln\dfrac{M}{1-M}\)를 <b>로그 오즈</b>라 한다. \(\mathcal N\)의 점수 \(e^{s_j}\)의 평균을 \(\bar E_{\mathcal N}\), 나머지 \(n-m\)개 키의 평균을 \(\bar B\)라 하고 <b>마진</b>을 \(\mu=\ln(\bar E_{\mathcal N}/\bar B)\)라 한다.</p>
+    </div>
+    <div class="box thm" id="thm-dilute"><div class="box-h">희석: 로그 오즈는 \(\ln n\)만큼 줄어든다</div>
+      <ol>
+        <li><b>정확한 분해.</b> \(\lambda=\mu+\ln m-\ln(n-m)\)이다.</li>
+        <li><b>마진이 길이와 무관하면</b> 문서가 \(n\)에서 \(rn\)이 될 때(바늘 크기 \(m\)은 그대로) 로그 오즈는 \(\ln\dfrac{rn-m}{n-m}\)만큼 줄고, \(n\gg m\)이면 \(\ln r\)만큼 줄어서 \(\lambda\)를 \(\ln n\)에 대해 그리면 기울기가 \(-1\)이다. 같은 바늘 질량을 지키려면 마진이 \(\ln r\)만큼 커져야 한다.</li>
+        <li><b>길이가 늘어도 변하지 않는 sink</b>(첫 토큰 같은 곳에 두는 지수의 합 \(Z_s\), 길이와 무관하다고 가정)가 있으면 \(\lambda=\ln(m\bar E_{\mathcal N})-\ln\bigl(Z_s+(n-m)\bar B\bigr)\)이고 기울기 \(d\lambda/d\ln n=-n\bar B/\bigl(Z_s+(n-m)\bar B\bigr)\)는 \(-n/(n-m)\)과 0 사이이다. \(n\gg m\)이면 \(-1\)과 0 사이이고 \(n\)이 크면 \(-1\)에 가깝다.</li>
+        <li><b>마진의 상한이 있으면</b>(점수가 낼 수 있는 폭의 한계로 \(\mu\le\mu_{\max}\)) 바늘 질량이 \(1/2\) 이상이려면 \(n\le m(e^{\mu_{\max}}+1)\)이어야 한다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: \(M=Z_{\mathcal N}/(Z_{\mathcal N}+Z_R)\)에서 \(Z_{\mathcal N}=\sum_{j\in\mathcal N}e^{s_j}=m\bar E_{\mathcal N}\), \(Z_R=(n-m)\bar B\)이므로 오즈는 \(Z_{\mathcal N}/Z_R=m\bar E_{\mathcal N}/((n-m)\bar B)\)이고 로그를 취한다. 2번: \(\mu\)가 같으면 \(\lambda(rn)-\lambda(n)=\ln\frac{n-m}{rn-m}\)이다. 3번: \(Z_R=Z_s+(n-m)\bar B\)이므로 \(\ln Z_R\)을 \(\ln n\)으로 미분하면 \(n\bar B/Z_R\)이고, \(Z_s\ge0\)이어서 \(0\le n\bar B/Z_R\le n/(n-m)\)이다. \(\lambda\)의 기울기는 이 값의 부호를 바꾼 것이다. 4번: \(M\ge1/2\)이면 오즈가 1 이상이어서 \(m e^{\mu}\ge n-m\)이고 \(\mu\le\mu_{\max}\)이면 \(n\le m(e^{\mu_{\max}}+1)\)이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-dilute"><div class="box-h">마진이 그대로이면 바늘 질량은 얼마나 줄어드는가</div>
+      <p>바늘이 \(m=20\)토큰이고 1,000토큰 문서에서 바늘 질량이 \(1/2\)(오즈 1)인 head가 있다고 하자. 마진이 길이와 무관하면 \(n=2{,}000\), 4,000, 8,000, 16,000에서 바늘 질량은 0.331, 0.198, 0.109, 0.058이다(실험 코드의 E0이 센 값). 문서가 16배 길어지면 질량이 8.6배 줄고, 이 head가 질량을 지키려면 마진이 \(\ln16=2.8\)만큼 커져야 한다. 마진의 상한이 \(\mu_{\max}=6\)이면 \(n\le20\times(e^6+1)\approx8{,}089\)토큰까지만 바늘 질량이 \(1/2\) 이상일 수 있다(4번).</p>
+    </div>
+    <p>이 정리는 모델이 어떻게 행동하는지가 아니라 식의 항등식이다. 실제 모델은 마진이 길이에 따라 바뀔 수 있다. 학습할 때 긴 문서를 보았다면 마진이 커져 희석을 상쇄할 수 있고, 거리가 멀수록 점수가 줄어드는 head에서는 마진이 줄어 희석보다 더 빠르게 로그 오즈가 내려갈 수 있다. 그래서 실험(E3)은 로그 오즈 \(\lambda\)를 직접 재고 \(\hat\mu=\lambda-\ln m+\ln(n-m)\)로 마진을 거꾸로 계산한다. 희석만이 일어났다면 \(\hat\mu\)는 길이에 따라 변하지 않는다. 변한다면 그만큼이 모델이 길이에 맞추어 바꾼 것(올림) 또는 거리의 효과(내림)이다.</p>
+
+    <h3 id="h-sink">처음과 끝: sink와 거리</h3>
+    <p>위치의 효과에는 세 가지 설명이 서로 얽혀 있다. 첫째는 위 정리의 희석이고 위치와 무관하다. 둘째는 <b>attention sink</b>이다. <a href="https://arxiv.org/abs/2309.17453">Xiao 외</a>는 모델이 첫 토큰들에 의미와 무관하게 강한 어텐션을 두며, 그 토큰의 KV를 남기면 창 어텐션의 성능이 대부분 회복된다고 보고했다(초록). 정리의 3번에서 \(Z_s\)가 그 역할이고, 문서 맨 앞에 놓인 정보가 이 자리와 가까워 눈에 띄는지는 별개의 문제이다. 셋째는 <b>거리</b>이다. 2장의 RoPE는 점수가 상대 위치에만 달려 있다고 했다. 가까운 토큰을 더 잘 보게 학습된 head라면 마지막 토큰 근처(문서의 끝)에 놓인 정보가 유리하다. 이 셋이 합쳐져 처음과 끝이 가운데보다 유리한 U자가 생길 수 있다. 다만 이 설명들은 가설이고, 실험은 길이와 깊이를 바꿔 \(\lambda\)와 정확도가 어떻게 달라지는지만 잰다.</p>
+    <p>순서도 위치의 문제이다. 디코더는 인과적이어서 질문이 문서 뒤에 있으면 문서의 토큰은 질문을 모른 채 표현이 만들어지고, 질문이 문서 앞에 있으면 문서의 토큰이 질문을 본 채 만들어진다. Anthropic의 프롬프트 문서(<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices">Prompting best practices</a>, 2026년 11월 확인)는 20k 토큰 이상의 입력에서 긴 자료를 프롬프트의 위쪽, 질문과 지시와 예시의 위에 두라고 권하고, 질문을 끝에 두면 시험에서 응답 품질이 최대 30% 좋아질 수 있다고 쓴다(제공자의 시험이며 이 책이 재현한 것이 아니다). 자료를 앞에 두면 접두부 캐시를 여러 질문이 공유할 수 있다는 비용상의 이점도 있다(<a class="ref" href="#thm-cost"></a>). 이 장의 실험은 작은 모델에서 두 순서를 견준다.</p>
+    <div class="callout agent"><strong>길고 중요한 것은 앞에, 지금 할 일은 끝에</strong>
+      <p>에이전트의 컨텍스트에서 시스템 프롬프트와 규칙은 앞에 있고, 도구 결과는 중간에 쌓이며, 마지막에 지금 할 일이 놓인다. 장기 실행 에이전트가 앞에서 받은 제약을 어기면 그 제약이 길이 \(n\)의 컨텍스트에서 희석되었을 수 있고(정리 12.2의 \(1/n\)), 모델이 그 희석을 마진으로 얼마나 상쇄하는지는 모델마다 다르다(이 장의 E3는 작은 모델의 검색 head가 상쇄하는 것을 보인다). 중요한 규칙을 끝에서 다시 말해 주거나 컨텍스트를 줄이는 것이 같은 방향의 수단이다. <a href="ch18.html">18장</a>의 CLAUDE.md와 <a href="ch20.html">20장</a>의 컨텍스트 관리가 이 문제를 장치로 다룬다.</p>
+    </div>
   </section>
+
+
+  <!-- ============================================================ 12.3 -->
   <section id="s3">
     <h2>관련 없는 정보의 방해</h2>
-    <p class="slot" data-slot="12.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>컨텍스트에 정답과 무관한 내용이 섞여 있으면 정확도가 떨어진다. <a href="https://arxiv.org/abs/2302.00093">Shi 외</a>는 초등 수학 문제에 관련 없는 정보를 섞은 GSM-IC에서 성능이 크게 떨어지고, 무관한 정보를 무시하라고 프롬프트에 적거나 self-consistency를 쓰면 일부 나아진다고 보고했다(초록). 그러나 '관련 없는'이라는 말은 세 가지를 한꺼번에 가리킨다. 이 세 가지는 정답의 식별 가능성이 다르고 그래서 정확도의 상한이 다르다.</p>
+    <div class="box def" id="def-distract"><div class="box-h">세 가지 방해</div>
+      <p>질문이 개체 \(e\)의 속성 \(t\)의 값을 묻는다고 하자.</p>
+      <ul>
+        <li><b>관련 없는 정보</b>: \(e\)도 \(t\)도 말하지 않는 글. 예: 다른 주제의 문단.</li>
+        <li><b>이름이 다른 비슷한 정보</b>: \(t\)와 같은 모양으로 쓰였지만 \(e\)가 아닌 다른 개체 \(e'\)에 대한 기록. 예: 다른 창고의 출입 코드.</li>
+        <li><b>충돌하는 정보</b>: \(e\)의 \(t\)를 말하지만 값이 서로 다른 기록 여러 개.</li>
+      </ul>
+    </div>
+    <div class="box thm" id="thm-distract"><div class="box-h">방해의 종류와 정확도의 상한</div>
+      <p>값은 \(V\)개 후보에서 균등하고 서로 독립으로 정해진다고 하자.</p>
+      <ol>
+        <li><b>앞의 둘은 상한을 낮추지 않는다.</b> 컨텍스트에 \(e\)의 \(t\)를 말하는 기록이 하나뿐이고 글에 \(e\)의 이름이 보이면 방해가 얼마나 많든 정답은 식별되어 \(B=1\)이다. 정확도가 1보다 낮은 몫은 읽는 쪽의 오류이다(<a href="ch11.html#thm-funnel">11장의 정리 11.4</a>의 \(E_{\rm read}\)).</li>
+        <li><b>이름과 값의 연결을 쓰지 않는 독자</b>가 이름이 다른 비슷한 기록 \(d\)개와 정답 기록 하나 가운데 값 하나를 고르면 정확도는 \(1/(d+1)\)이고 방해 기록의 값을 답할 비율은 \(d/(d+1)\)이다. 이 값이 읽는 쪽이 이름을 쓰는지를 가르는 기준선이다.</li>
+        <li><b>충돌 기록이 \(c\)개이고</b> 정답이 그 가운데 균등하게 정해지며 글에 어느 것이 정답인지 가릴 단서(날짜, 출처, 순서)가 없으면 어떤 독자의 정확도도 \(1/c\) 이하이다.</li>
+        <li><b>단서를 글에 넣으면</b>(날짜, 출처 같은) 3번의 상한이 올라간다. 정답이 그 단서로 정해진다면 \(B\)는 1까지 오를 수 있다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 정답 기록이 식별되면 그 기록을 읽는 독자의 정확도가 1이다(<a href="ch11.html#thm-index">11장의 정리 11.2</a>의 2번). 2번: 값만 보는 독자는 \(d+1\)개의 값에 같은 가중치를 두어 하나를 고르므로 그 가운데 정답일 확률이 \(1/(d+1)\)이다. 3번: <a href="ch10.html#thm-collide">10장의 정리 10.1</a>을 쓴다. 컨텍스트의 글은 \(c\)개의 값의 집합이고, 정답이 균등하고 단서가 없으면 각 글에서 각 값이 정답일 확률이 \(1/c\)여서 \(\max_a\Pr[C=c,a^*=a]=\Pr[C=c]/c\)이다. 4번: 단서가 글에 들면 칸이 더 잘게 나뉜다(10장의 정리 10.1의 3번).</p>
+      </details>
+    </div>
+    <p>그러므로 같은 길이의 방해라도 무엇이 섞였는지에 따라 의미가 다르다. 관련 없는 정보는 마진 \(\mu\)가 변하지 않는다면 희석(<a class="ref" href="#thm-dilute"></a>)으로만 작용한다. 이름이 다른 비슷한 정보는 희석에 더해 독자가 이름과 값을 정확히 묶지 못하면 잘못된 값을 낼 수 있다. 충돌하는 정보는 모델의 능력과 무관하게 정보가 모자라서 상한이 내려간다. 마지막은 11장의 '글이 같은 청크'와 같은 구조이고, 모델이나 프롬프트를 고쳐서는 올릴 수 없다. 단서를 글에 넣는 것이 답이다. 시스템을 설계할 때는 충돌이 생길 수 있는 자료(여러 버전의 문서, 갱신된 규정)에 날짜나 버전을 같이 넣는지부터 확인한다.</p>
+
   </section>
+
+
+  <!-- ============================================================ 12.4 -->
   <section id="s4">
     <h2>통째 입력과 검색의 선택</h2>
-    <p class="slot" data-slot="12.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>자료가 창에 들어가면 통째로 넣을 수도, 검색해서 일부만 넣을 수도 있다. 통째로 넣는 쪽의 장점은 검색이 실패할 일이 없다는 것이고(정답이 컨텍스트에 있다), 비용은 \(n\)에 비례하는 토큰과 12.2, 12.3절의 읽기 오류이다. 검색의 장점은 컨텍스트가 짧아져 비용이 줄고 방해가 줄어든다는 것이고, 비용은 11장의 상류 오류이다. 어느 쪽이 나은지는 두 오류의 크기로 정한다. 이 절은 11장의 청크 문제를 정량화한다.</p>
+    <p>11장에서 청크가 이름을 잃으면 이름으로 검색되지 않는다고 했다. 문서에 소제목이 있는 경우를 생각하자. 소제목 줄이 개체의 이름을 말하고 그 아래 문단이 값을 말한다. 문서를 길이 \(L\)의 청크로 자르면 소제목과 값이 같은 청크에 들 때만 값 청크가 이름을 갖는다.</p>
+    <div class="box def" id="def-chunk"><div class="box-h">청크 격자와 이름–값 거리</div>
+      <p>단어의 열을 길이 \(L\), 보폭 \(s\)로 자른다. \(c\)번째 청크는 단어 \([cs,\;cs+L)\)이고 \(s=L-o\)에서 \(o\)가 <b>겹침</b>이다(\(o=0\)이면 겹치지 않음). 소제목의 이름 단어가 위치 \(x\)에, 값 단어가 위치 \(x+\delta\)에 있을 때 \(\delta\)를 <b>이름–값 거리</b>라 한다. 격자에 대한 \(x\)의 위치는 균등하다고 가정한다.</p>
+    </div>
+    <div class="box thm" id="thm-chunk"><div class="box-h">청크가 이름과 값을 함께 담을 확률</div>
+      <ol>
+        <li>이름 단어와 값 단어를 함께 담은 청크가 있을 확률은 \(0\le\delta\lt L\)에서 \(\min\{1,(L-\delta)/s\}\)이고 \(\delta\ge L\)이면 0이다.</li>
+        <li>겹치지 않으면(\(s=L\)) \(1-\delta/L\)이다. 확률이 1이 되려면 겹침이 \(o\ge\delta\)여야 한다.</li>
+        <li>겹침으로 색인이 커지는 비율은 \(L/s\)배이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 청크 \(c\)가 두 단어를 모두 담는 것은 \(cs\le x\)이고 \(x+\delta\lt cs+L\), 곧 \(cs\in(x+\delta-L,\,x]\)일 때이다. 이 구간의 길이는 \(L-\delta\)이고(\(\delta\lt L\)) 청크의 시작점은 \(s\)의 배수이다. 길이 \(\ell\)의 반열린 구간에 \(s\)의 배수가 하나 이상 들어갈 확률은 \(x\)가 균등이면 \(\min\{1,\ell/s\}\)이다. 2번: \(s=L\)을 넣는다. \(\min\{1,(L-\delta)/s\}=1\)이려면 \(s\le L-\delta\), 곧 \(o\ge\delta\)이다. 3번: 보폭 \(s\)마다 청크가 하나씩 생기므로 단어 \(W\)개에서 \(W/s\)개이고 \(W/L\)개와의 비가 \(L/s\)이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-chunk"><div class="box-h">소제목과 코드 문장이 갈릴 확률</div>
+      <p>소제목의 이름 단어에서 값 단어까지 \(\delta=35\)단어이다. 길이 \(L=128\)단어 청크를 겹침 없이 자르면 함께 담길 확률은 \(1-35/128=0.727\)이고 27.3%는 값 청크가 이름을 잃는다. 겹침 \(o=64\)(\(s=64\))로 자르면 \(\min\{1,(128-35)/64\}=1\)이어서 항상 함께 담기고 색인은 2배가 된다. 길이를 64단어로 줄이면 겹침 없이 \(1-35/64=0.453\)이다. 청크를 작게 자르는 것은 정확한 검색에는 좋지만 이름과 값을 떼어 놓는 쪽으로 작용한다. 고정 길이 대신 소제목에서 자르면 이름–값 거리가 구역 안에 들어가 이름과 값이 함께 담긴다(이 장의 실험은 이 설정을 재지 않았다).</p>
+    </div>
+    <p>비용도 함께 따진다. 통째 입력은 토큰이 \(n\), 검색은 청크 \(k\)개의 \(kL\)에 질문과 지시를 더한 값이다. prefill의 위치별 계산은 토큰에 비례하므로(<a class="ref" href="#thm-cost"></a>) \(n/(kL)\)배에 가까운 차이가 난다. 정확도는 11장의 정리로 위쪽이 묶인다. 검색 뒤의 정확도는 \(\mathrm{Acc}_{\rm ret}\le\Pr[I]+(1-\Pr[I])\kappa\)이고(<a href="ch11.html#thm-funnel">11장의 정리 11.4</a>), 통째 입력의 정확도는 읽는 쪽이 정한다. 선택 기준은 이렇게 쓸 수 있다. <b>(가)</b> \(\Pr[I]\)가 1에 가깝고 짧은 컨텍스트의 읽기 정확도가 통째 읽기보다 높으면 검색이 낫고 비용도 적다. <b>(나)</b> \(\Pr[I]\)가 낮은 자료(소제목과 값이 갈리는 구조, 여러 청크를 이어야 하는 질문)에서는 검색이 상한에 막히므로 통째 입력이 유일한 길이거나, 색인을 고쳐야(머리말, 겹침) 한다. <b>(다)</b> 통째 입력의 정확도가 길이에 따라 떨어지는 구간이면 두 길을 섞는다. 검색으로 줄인 컨텍스트에서 읽는 것이다. 이 장의 실험(E5)은 같은 자료에서 세 길을 견준다.</p>
+    <div class="callout agent"><strong>에이전트는 찾고, 찾은 곳을 통째로 읽는다</strong>
+      <p>코드 저장소를 다루는 에이전트는 검색(grep, glob)으로 후보 파일을 찾고 찾은 파일을 통째로 읽는 방식을 쓴다. 검색이 청크 대신 파일이라는 큰 단위를 반환하면 <a class="ref" href="#thm-chunk"></a>의 이름–값 거리가 파일 안에 들어가 이름과 값이 갈릴 일이 줄고, 대신 읽는 길이가 늘어 12.2, 12.3절의 문제가 생긴다. 도구로 검색을 부르는 설계는 <a href="ch13.html">13장</a>, 결과를 보고 질의를 고치는 루프는 <a href="ch14.html">14장</a>이 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 같은 사실을 긴 문서의 앞·가운데·끝에 두면 모델이 그 사실을 찾아 쓰는 비율이 달라지는가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 같은 사실을 문서의 여러 곳에 두면 모델이 찾아 쓰는가</h2>
+    <p>슬롯에 적어 둔 질문은 '같은 사실을 긴 문서의 앞·가운데·끝에 두면 모델이 그 사실을 찾아 쓰는 비율이 달라지는가'였다. 11장처럼 모델 없이 이 장의 계산을 먼저 확인하고(E0), 작은 언어모델에 같은 사실을 길이와 위치를 바꿔 가며 묻는다. 모델 안의 어텐션도 재어, 길이의 효과를 12.2절의 분해로 읽는다(E3). 이어서 방해의 종류(E4)와, 소제목이 있는 문서에서 통째 읽기 대 청크 검색(E5)을 견준다. 사실은 한 문장이다. <code>The access code of the Torvik depot is 4172.</code>를 숫자 없는 무관한 문장들 사이에 심고, 질문은 그 창고의 코드이다. 코드는 1000~9999에서 균등하게 뽑아 모델이 알 수 없고, 정답과 바늘의 위치를 코드가 안다. 이 실험이 보여 주는 것은 이 모델과 이 과제에서의 행동이지 긴 컨텍스트 일반이나 Claude의 성질이 아니다. Claude API는 호출하지 않았다.</p>
+
+    <h3 id="h-design12">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모델</td><td>Qwen2.5-1.5B-Instruct(<code>Qwen/Qwen2.5-1.5B-Instruct</code>, 리비전 <code>989aa798</code>). 모델 카드의 컨텍스트 길이는 32,768토큰이고 이 실험은 16,384토큰까지 쓴다. bfloat16, GPU 한 장(RTX 3060 Ti 8 GB), 탐욕 디코딩, 최대 8 토큰, 배치 1. 8 GB 메모리에서 긴 입력을 돌리려고 프롬프트를 1,024토큰씩 나누어 prefill한다(E0이 한 번에 처리한 결과와 같은지 확인한다). 11장의 모델과 같다. 순수 추론이며 학습하지 않는다.</td></tr>
+        <tr><td>문서와 질문</td><td>무관한 문장(템플릿 3종에 낱말 목록 \(20\times20\times14\)에서 뽑은 낱말을 넣은 것, 숫자와 'access', 'code', 'depot'이 없음)을 목표 토큰 수까지 쌓고 바늘 문장 하나를 심는다. 지명 60개 중 하나가 창고 이름, 코드 \(V=9{,}000\)가지. 질문은 <code>What is the access code of the Torvik depot? Answer with just the code.</code>이고 문서 뒤에 둔다. 채점은 응답의 첫 네 자리 수가 정답과 같은지이다.</td></tr>
+        <tr><td>바꾸는 것</td><td><b>E2</b> 길이 \(n\in\{1024,2048,4096,8192,16384\}\)토큰 × 바늘의 깊이 \(p\in\{0,0.25,0.5,0.75,1\}\)(앞에서부터 문장 수의 비율, 0은 맨 앞, 1은 맨 끝). <b>E2b</b> \(n=8192\)에서 질문을 문서 앞에 둔다(같은 문서). <b>E4</b> \(n=8192\), \(p=0.5\)에서 방해를 바꾼다: 이름이 다른 비슷한 기록(다른 창고의 코드 문장) \(d\in\{0,8,24,59\}\)개, 같은 이름의 충돌 기록 4개(정답은 그 가운데 균등하게 하나). <b>E5</b> 소제목이 있는 문서(창고 60곳이 구역 하나씩, 약 3,500토큰)에서 구역마다 <code>## 창고 depot</code> 소제목, 무관한 문장 둘, 익명인 코드 문장 <code>After the audit, the access code was changed to C.</code>, 무관한 문장 하나가 이어진다. 질문은 소제목의 창고 이름으로 한다. 통째 입력, 그리고 BM25로 청크 \(k=2\)개를 찾아 읽기(청크 길이 \(L\)과 겹침 \(o\)는 단어 수로 (128, 0), (128, 64), (64, 0)).</td></tr>
+        <tr><td>고정하는 것</td><td>시드 12, 칸마다 40번 시행(문서는 시행마다 다르고 같은 칸·같은 시행 번호는 같은 문서), 프롬프트, 모델과 디코딩. 문서는 같은 \((n,p,t)\)이면 E2와 E2b에서 같다. 구간은 시행 단위 부트스트랩 2,000번이다. 시행은 서로 다른 문서이므로 시행이 표본 단위이다.</td></tr>
+        <tr><td>관측값</td><td>정확도, 프롬프트 토큰 수, 마지막 토큰에서 head마다 바늘 토큰에 둔 어텐션 질량과 첫 토큰에 둔 질량(E2의 시행마다 prefill 때 잰다), 바늘 질량의 로그 오즈 \(\lambda\), 이름–값 동거 확률과 청크 적중률, 정리의 상한, 응답이 방해 기록의 코드와 같은 비율(복사), '모른다'는 응답의 비율.</td></tr>
+        <tr><td>점검</td><td><b>E0</b>: (a) 비용 공식(<a class="ref" href="#thm-cost"></a>)의 FLOPs와 KV cache 바이트를 모델에서 센 값과 견준다. (b) 1,024토큰씩 나눈 prefill이 한 번에 처리한 것과 같은 로짓을 내는지. (c) 희석 표와 여러 턴의 토큰 합 계산. (d) <a class="ref" href="#thm-chunk"></a>의 동거 확률을 정수 위치를 전부 세어 확인. (e) E5 문서 200개에서 청크 설정별 동거 확률의 예측과 측정, BM25 적중률. 모델 없이 도는 부분은 (c)~(e)이다.</td></tr>
+        <tr><td>예산</td><td>RTX 3060 Ti 한 장에서 모델 추론만 약 56분이다(모델 로딩 포함. E2와 E2b가 43분이고 E0, E4, E5가 13분).</td></tr>
+        <tr><td>예상</td><td>모델을 전체 실행하기 전에 파일에 적었다(아래 '미리 적은 것과 보고 나서 적은 것'). <b>E0</b>(<a class="ref" href="#thm-cost"></a>, <a class="ref" href="#thm-chunk"></a>에서 나온다) 센 FLOPs는 공식의 두 셈(마스크까지 센 것, 마스크를 건너뛴 것) 중 하나와 5% 안에서 같고, 측정한 KV cache 바이트는 공식과 같다. 동거 확률의 정수 위치 정확한 값은 공식과 같다. E5 문서 200개에서 측정한 동거 확률은 예측에서 이항 오차의 3배 이내이다. <b>E1</b>(추측, 정리가 함의하지 않음) 가장 짧은 길이 \(n=1024\)의 모든 깊이에서 정확도 0.90 이상. <b>E2</b> 정리가 함의하는 위치·길이의 모양이 없으므로 예상 없음. <b>E3</b>(<a class="ref" href="#thm-dilute"></a>에서 나온다) 마진이 길이와 함께 크게 변하지 않는다면 로그 오즈의 기울기는 \(-1\)과 0 사이이다. 머리 선택은 짝수 번 시행의 \(n=1024\), \(p=0.5\)에서 바늘 질량이 0.5 이상인 head(검색 head)이고 기울기는 홀수 번 시행으로 구한다. <b>E4</b>(<a class="ref" href="#thm-distract"></a>에서 나온다) 충돌 기록 4개이고 정답이 균등하면 정확도가 \(1/4\) 이하. <b>E5</b>(<a href="ch11.html#thm-index">11장의 정리 11.2</a>에서 나온다) 청크 읽기의 정확도가 상한 이하이다. E2b, E4의 이름이 다른 비슷한 기록, E5의 통째 입력과 청크 읽기의 정확도 비교는 이론에서 나온 예상이 없어 관찰이다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td><b>E0</b> 공식과 센 값이 이 범위를 벗어나면 공식을 고친다. <b>E1</b> 0.90 미만이면 모델이 짧은 문서에서 바늘 문장도 못 찾는 것이므로 E2~E5를 해석하지 않는다. <b>E3</b> 로그 오즈 기울기의 95% 구간이 \([-1,0]\) 밖에 있으면 기각한다. 기울기가 \(-1\)보다 작으면 마진이 길이와 함께 줄어든 것이고 0보다 크면 길이에 맞추어 커진 것이다. <b>E4, E5</b> 95% 구간의 하한이 상한(\(1/4\), 정리의 상한)을 넘으면(어떤 독자도 낼 수 없는 값이므로) 정답 생성이나 검색 목록에 정보가 새는 오류가 있다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code12">코드</h3>
+    <p>Python 3.14.5, PyTorch 2.11.0(CUDA 12.8), Transformers 5.22.2, NumPy 2.5.4에서 실행했다(<code>OMP_NUM_THREADS=1 python -I -X utf8 exp12.py</code>, 모델 없이 E0의 일부만 돌리려면 인자에 <code>e0</code>). 모델은 11장에서 받은 것과 같다(약 3 GB, 리비전 고정). 어텐션 질량은 모델 코드를 바꾸지 않고 <code>sdpa</code> 어텐션 함수를 감싸서 잰다. 감싼 함수는 원래 함수의 출력을 그대로 돌려주고, 마지막 쿼리 한 줄의 어텐션 가중치를 따로 계산한다. E0이 이 함수가 출력을 바꾸지 않음을 확인한다. 같은 코드를 두 번 따로 실행해 출력이 같은지 확인했다(아래 결과). 다른 GPU나 라이브러리 버전에서는 부동소수점 결과의 마지막 자리가 바뀌고 탐욕 디코딩의 답이 달라질 수 있다.</p>
+<pre><code>import json, math, re, sys, time
+from collections import Counter
+import numpy as np
+
+MODE = sys.argv[1] if len(sys.argv) &gt; 1 else "all"             # all | e0 | model
+SEED, NT, NT5, BOOT, CH, NEW = 12, 40, 200, 2000, 1024, 8      # 시드, 칸마다 시행 수(E2~E4), E5의 문서 수, 부트스트랩 횟수, prefill 청크 길이, 최대 생성 토큰
+NS, DEPTHS = (1024, 2048, 4096, 8192, 16384), (0.0, 0.25, 0.5, 0.75, 1.0)
+NAME, REV = "Qwen/Qwen2.5-1.5B-Instruct", "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+DIM = dict(L=28, d=1536, d_kv=256, d_ff=8960, vocab=151936)    # 모델 구조 (config.json)
+PLACES = ("Quorvane Aldermoor Brinwick Corvath Dunmere Elbrook Fennorth Garvane Hollisk Ilmarsh Kestrane Lorvik Marnell Nethrow Ostrane Pelmoor Rathvane Talmere Vexhall Wynmoor "
+          "Torvik Ashmere Calvenor Dromholt Eskerby Falwick Gransmere Hexworth Ivernel Jorlund Kelmarsh Lunwick Marlbeck Northolm Orrinford Penhallow Quillby Redmarsh Stanwyck Thornbeck "
+          "Ulverly Vandemere Wexcombe Yarnley Zelmont Brackenly Corriby Dunholme Elmswick Fairmoor Glenhart Holmesley Ingleby Jarrowick Kingsmoor Larkhill Mossdale Newbrook").split()
+ADJ = "quiet old bright narrow wooden heavy pale busy distant frozen gentle rusty hollow crooked silent tall damp golden worn thin".split()
+NOUN = "river lantern harbor orchard bridge market window garden tower valley kettle meadow chimney ferry blanket village cellar forest ladder pasture".split()
+VERB = "crossed followed passed watched circled reached left joined covered lit carried crossed greeted marked sheltered".split()
+SYS_DOC = "Answer the question using only the document. Reply with the answer only."
+SYS_PASS = "Answer the question using only the numbered passages. If the passages do not contain the answer, reply: unknown."
+V = 9000                                                       # 코드는 1000~9999에서 균등하게 뽑는다
+
+
+def ci(x, rr):                                                 # 시행 단위 부트스트랩 95% 구간
+    x = np.asarray(x, float); b = x[rr.integers(0, len(x), (BOOT, len(x)))].mean(1)
+    return float(x.mean()), float(np.percentile(b, 2.5)), float(np.percentile(b, 97.5))
+
+
+def sentence(r):                                               # 숫자와 'access code' 낱말이 없는 무관한 문장
+    a = lambda L: str(L[r.integers(len(L))]); t = r.integers(3)
+    if t == 0: return f"The {a(ADJ)} {a(NOUN)} {a(VERB)} the {a(ADJ)} {a(NOUN)} near the {a(NOUN)}."
+    if t == 1: return f"Then the {a(NOUN)} {a(VERB)} and the {a(ADJ)} {a(NOUN)} {a(VERB)} the {a(NOUN)}."
+    return f"A {a(ADJ)} {a(NOUN)} {a(VERB)} beside the {a(NOUN)} while the {a(NOUN)} {a(VERB)} the {a(ADJ)} {a(NOUN)}."
+
+
+def record(p, c): return f"The access code of the {p} depot is {c}."
+
+
+# ---------- 비용 공식 (정리 12.1) ----------
+def flops_layer(n, d=DIM["d"], d_kv=DIM["d_kv"], d_ff=DIM["d_ff"], causal=False):
+    c = 4 * d * d + 4 * d * d_kv + 6 * d * d_ff
+    return n * c + (2 if causal else 4) * n * n * d
+
+
+def kv_bytes(n, b=2): return 2 * DIM["L"] * DIM["d_kv"] * b * n
+
+
+def turns_tokens(n0, delta, T): return T * n0 + delta * T * (T - 1) // 2, n0 + (T - 1) * delta
+
+
+def dilution(n0, ns, m=20):                                    # n0에서 바늘 질량 1/2인 head가 마진을 유지할 때의 질량
+    e = (n0 - m) / m; return {n: m * e / (m * e + n - m) for n in ns}
+
+
+def co_chunk(L, o, delta):                                     # 정리 12.4: 이름 단어와 값 단어가 한 청크에 함께 들 확률(격자 위치가 균등)
+    s = L - o; return min(1.0, (L - delta) / s) if delta &lt; L else 0.0
+
+
+def co_chunk_exact(L, o, delta):                               # 정수 위치에서 격자 위치를 전부 세어 확인한다
+    s = L - o; return float(np.mean([any(c * s &lt;= x and x + delta &lt; c * s + L for c in range(-2, 4)) for x in range(s)]))
+
+
+def e0_pure():
+    res = dict(n_star=DIM["d"] + DIM["d_kv"] + 1.5 * DIM["d_ff"], n_star_2017=6 * DIM["d"], kv_per_token=kv_bytes(1), kv_32k_gib=kv_bytes(32768) / 2 ** 30,
+               turns=turns_tokens(10000, 2000, 30), dilution=dilution(1000, (1000, 2000, 4000, 8000, 16000)), dil_max=20 * (math.exp(6) + 1))
+    res["share"] = {n: [4 * n * n * DIM["d"] / (4 * n * n * DIM["d"] + n * (flops_layer(1) - 4 * DIM["d"])), 2 * n * n * DIM["d"] / (2 * n * n * DIM["d"] + n * (flops_layer(1) - 4 * DIM["d"]))] for n in (1024, 8192, 32768)}
+    res["chunk"] = [dict(L=L, o=o, delta=dl, formula=co_chunk(L, o, dl), exact=co_chunk_exact(L, o, dl)) for L, o, dl in ((128, 0, 35), (128, 64, 35), (64, 0, 35), (64, 32, 35), (256, 0, 35))]
+    return res
+
+
+# ---------- BM25 (11장과 같은 식) ----------
+def toks(s): return re.findall(r"[a-z0-9]+", s.lower())
+
+
+class BM25:
+    def __init__(self, docs, k1=1.5, b=0.75):
+        tf = [Counter(toks(d)) for d in docs]; self.n, self.len, self.k1, self.b = len(docs), np.array([sum(c.values()) for c in tf]), k1, b; self.avg = self.len.mean(); self.post = {}
+        for i, c in enumerate(tf):
+            for w, f in c.items(): self.post.setdefault(w, []).append((i, f))
+        self.idf = {w: math.log(1 + (self.n - len(p) + .5) / (len(p) + .5)) for w, p in self.post.items()}
+
+    def rank(self, q, k):
+        s = np.zeros(self.n)
+        for w in sorted(set(toks(q))):
+            for i, f in self.post.get(w, []): s[i] += self.idf[w] * f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * self.len[i] / self.avg))
+        return np.argsort(-s, kind="stable")[:k].tolist()
+
+
+# ---------- 문서 만들기 ----------
+def build(tk, r, n_target, extra=(), overhead=100):
+    """무관한 문장을 쌓아 (extra 기록과 합쳐서) 목표 토큰 길이에 맞추고 섞는다. 문장 목록을 돌려준다."""
+    need = n_target - overhead - (sum(len(x) for x in tk(list(extra))) if extra else 0); sents, lens = [], []
+    while sum(lens) &lt; need:
+        new = [sentence(r) for _ in range(64)]; sents += new; lens += [len(x) for x in tk(new)]
+    sents = sents[:int(np.searchsorted(np.cumsum(lens), need)) + 1]; items = sents + list(extra); r.shuffle(items); return items
+
+
+def prompt_of(tok, sysm, doc, q, qfirst=False):
+    u = f"Question: {q}\n\nDocument:\n{doc}" if qfirst else f"Document:\n{doc}\n\nQuestion: {q}"
+    return tok.apply_chat_template([{"role": "system", "content": sysm}, {"role": "user", "content": u}], tokenize=False, add_generation_prompt=True)
+
+
+def grade(out, code):
+    m = re.search(r"\b\d{4}\b", out); unk = re.search(r"unknown|not (?:found|mentioned|provided|stated)|no information", out, re.I) is not None
+    return (m is not None and m.group() == str(code)), (int(m.group()) if m else None), unk
+
+
+# ---------- 모델 ----------
+def load():
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, DynamicCache
+    from transformers.modeling_utils import AttentionInterface
+    torch.manual_seed(SEED)
+    tok = AutoTokenizer.from_pretrained(NAME, revision=REV)
+    model = AutoModelForCausalLM.from_pretrained(NAME, revision=REV, dtype=torch.bfloat16).to("cuda").eval()
+    orig, P = AttentionInterface._global_mapping["sdpa"], dict(on=False, span=None, mass={})
+
+    def probe_sdpa(module, query, key, value, attention_mask, **kw):          # 출력은 sdpa 그대로이고, 마지막 토큰의 어텐션 질량을 따로 잰다
+        out = orig(module, query, key, value, attention_mask, **kw)
+        if P["on"]:
+            s0, s1 = P["span"]; g = query.shape[1] // key.shape[1]
+            a = torch.softmax(torch.einsum("bhd,bhnd-&gt;bhn", query[:, :, -1, :].float(), key.repeat_interleave(g, dim=1).float()) * module.scaling, dim=-1)[0]
+            P["mass"][module.layer_idx] = (a[:, s0:s1].sum(-1).cpu().numpy(), a[:, 0].cpu().numpy())
+        return out
+
+    AttentionInterface._global_mapping["sdpa"] = probe_sdpa
+
+    @torch.no_grad()
+    def answer(text, needle=None):                                           # 메모리를 아끼려고 CH 토큰씩 prefill하고 탐욕으로 NEW 토큰까지 생성한다
+        enc = tok(text, return_tensors="pt", return_offsets_mapping=True); ids = enc.input_ids.to("cuda"); n = ids.shape[1]
+        if needle:
+            cs = text.find(needle); P["span"] = tuple(int(i) for i in np.where([(e &gt; cs and s &lt; cs + len(needle)) for s, e in enc.offset_mapping[0].tolist()])[0][[0, -1]] + [0, 1])
+        cache = DynamicCache(); P["on"] = needle is not None; P["mass"] = {}
+        for i in range(0, n, CH): lg = model(ids[:, i:i + CH], past_key_values=cache, use_cache=True, logits_to_keep=1).logits[:, -1]
+        P["on"] = False; out = []
+        for _ in range(NEW):
+            t = int(lg.argmax(-1))
+            if t in (151645, 151643): break
+            out.append(t); lg = model(torch.tensor([[t]], device="cuda"), past_key_values=cache, use_cache=True, logits_to_keep=1).logits[:, -1]
+        mass = None if not needle else (np.stack([P["mass"][l][0] for l in range(DIM["L"])]).astype(np.float32), np.stack([P["mass"][l][1] for l in range(DIM["L"])]).astype(np.float32))
+        return tok.decode(out), n, mass
+
+    return torch, tok, model, DynamicCache, answer
+
+
+def cost_check(torch, model, DynamicCache):                                  # E0: FLOPs와 KV cache 바이트를 공식과 견준다
+    from torch.utils.flop_counter import FlopCounterMode
+    res = {}
+    for n in (512, 1024, 2048):
+        ids = torch.randint(1000, 5000, (1, n), device="cuda")
+        with torch.no_grad(), FlopCounterMode(display=False) as fc: model(ids, logits_to_keep=1)
+        pred = lambda causal: DIM["L"] * flops_layer(n, causal=causal) + 2 * DIM["d"] * DIM["vocab"]
+        res[n] = dict(counted=fc.get_total_flops(), full=pred(False), causal=pred(True))
+    ids = torch.randint(1000, 5000, (1, 2048), device="cuda"); cache = DynamicCache()
+    with torch.no_grad(): one = model(ids, past_key_values=cache, use_cache=True, logits_to_keep=1).logits[0, -1].float()
+    res["kv"] = dict(measured=sum(l.keys.numel() * l.keys.element_size() + l.values.numel() * l.values.element_size() for l in cache.layers), formula=kv_bytes(2048))
+    cache2 = DynamicCache()                                                  # CH 토큰씩 나누어 prefill해도 같은 로짓이 나오는가
+    with torch.no_grad():
+        for i in range(0, 2048, 512): lg = model(ids[:, i:i + 512], past_key_values=cache2, use_cache=True, logits_to_keep=1).logits[0, -1].float()
+    res["chunked"] = dict(max_abs_diff=float((one - lg).abs().max()), logit_scale=float(one.abs().max()), same_top=int(one.argmax()) == int(lg.argmax()))
+    return res
+
+
+def log_odds(m): m = np.clip(m, 1e-6, 1 - 1e-6); return np.log(m / (1 - m))
+
+
+def e3(mass, rr):
+    """E3: 바늘 질량의 로그 오즈 λ를 ln n에 대해 회귀한 기울기 (깊이 0.5). 머리 선택은 짝수 번 시행, 기울기는 홀수 번 시행으로 한다."""
+    sel_m = mass[(1024, 0.5)][0][0::2].mean(0)                                # (L, H): n=1024, 깊이 0.5의 평균 바늘 질량
+    sets = {"retrieval": sel_m &gt;= 0.5, "all": np.ones_like(sel_m, bool)}; out = {}
+    for name, sel in sets.items():
+        lam = {n: log_odds(mass[(n, 0.5)][0][1::2][:, sel]).mean(1) for n in NS}   # 시행마다 선택한 head의 평균 로그 오즈
+        x = np.log(NS); sl = lambda v: np.polyfit(x, v, 1)[0]
+        est = sl([lam[n].mean() for n in NS])
+        bs = [sl([lam[n][rr.integers(0, len(lam[n]), len(lam[n]))].mean() for n in NS]) for _ in range(BOOT // 2)]
+        out[name] = dict(heads=int(sel.sum()), slope=float(est), lo=float(np.percentile(bs, 2.5)), hi=float(np.percentile(bs, 97.5)), lam={n: float(lam[n].mean()) for n in NS},
+                         mass_mean={n: float(mass[(n, 0.5)][0][1::2][:, sel].mean()) for n in NS}, sink={n: float(mass[(n, 0.5)][1][1::2][:, sel].mean()) for n in NS})
+    out["heads_list"] = [(int(l), int(h)) for l, h in zip(*np.where(sets["retrieval"]))]
+    return out
+
+
+def run_model(rr):
+    torch, tok, model, DynamicCache, answer = load()
+    tk = lambda L: tok(L, add_special_tokens=False).input_ids
+    res, raw, probes = dict(e0=cost_check(torch, model, DynamicCache)), {}, {}
+    print("E0 cost", json.dumps(res["e0"]), flush=True)
+
+    def trial(n, depth, t, base=0, qfirst=False):                            # 같은 (n, 깊이, t)는 같은 문서를 만든다
+        r = np.random.default_rng([SEED + base, n, int(depth * 100), t]); p = PLACES[r.integers(len(PLACES))]; c = int(r.integers(1000, 10000))
+        items = build(tk, r, n); items.insert(int(round(depth * len(items))), record(p, c)); doc = " ".join(items)
+        return p, c, prompt_of(tok, SYS_DOC, doc, f"What is the access code of the {p} depot? Answer with just the code.", qfirst)
+
+    # E2 (길이 x 깊이), E2b (질문을 앞에 둠, 같은 문서)
+    for key, ns, qf, nt in (("E2", NS, False, NT), ("E2b", (16384,), True, NT // 2)):
+        for n in ns:
+            for depth in DEPTHS:
+                t0 = time.time(); ok, outs, lens = [], [], []; pm = []
+                for t in range(nt):
+                    p, c, text = trial(n, depth, t, qfirst=qf); o, ln, mass = answer(text, record(p, c)); outs.append(o); lens.append(ln); ok.append(grade(o, c)[0]); pm.append(mass)
+                raw[f"{key}|{n}|{depth}"] = outs; res[f"{key}|{n}|{depth}"] = dict(acc=ci(ok, rr), tokens=float(np.mean(lens)))
+                probes[f"{key}|{n}|{depth}"] = (np.stack([m[0] for m in pm]), np.stack([m[1] for m in pm]))
+                print(f"{key} n={n} depth={depth} acc {np.mean(ok):.3f} tok {np.mean(lens):.0f} ({time.time() - t0:.0f}s)", flush=True)
+    res["e3"] = e3({(n, d): probes[f"E2|{n}|{d}"] for n in NS for d in DEPTHS}, rr)
+    print("E3", json.dumps({k: {a: b for a, b in v.items() if a in ("heads", "slope", "lo", "hi")} for k, v in res["e3"].items() if k != "heads_list"}), flush=True)
+    np.savez_compressed("out12_probe.npz", **{k.replace("|", "_") + "_needle": v[0] for k, v in probes.items()}, **{k.replace("|", "_") + "_sink": v[1] for k, v in probes.items()})
+
+    # E4: 이름이 다른 비슷한 기록 d개, 같은 이름의 충돌 기록 4개 (n = 8192, 깊이 0.5)
+    for arm in ("d0", "d8", "d24", "d59", "conflict4"):
+        ok, copy, unk, outs, lens = [], [], [], [], []
+        for t in range(NT):
+            r = np.random.default_rng([SEED + 1, 8192, len(arm), int(arm[-1]), t]); p = PLACES[r.integers(len(PLACES))]; gold = int(r.integers(1000, 10000))
+            if arm == "conflict4":
+                codes = [gold] + [int(r.integers(1000, 10000)) for _ in range(3)]; recs = [record(p, x) for x in codes]; others = []
+                items = build(tk, r, 8192, extra=recs); doc = " ".join(items)
+            else:
+                d = int(arm[1:]); others = [(q, int(r.integers(1000, 10000))) for q in r.permutation([q for q in PLACES if q != p])[:d]]
+                items = build(tk, r, 8192, extra=[record(q, x) for q, x in others]); items.insert(len(items) // 2, record(p, gold)); doc = " ".join(items)
+            o, ln, _ = answer(prompt_of(tok, SYS_DOC, doc, f"What is the access code of the {p} depot? Answer with just the code."))
+            g = grade(o, gold); ok.append(g[0]); unk.append(g[2]); copy.append(g[1] in [x for _, x in others] if arm != "conflict4" else (g[1] in codes and not g[0])); outs.append(o); lens.append(ln)
+        raw[f"E4|{arm}"] = outs; res[f"E4|{arm}"] = dict(acc=ci(ok, rr), copy=ci(copy, rr), unk=ci(unk, rr), tokens=float(np.mean(lens)))
+        print(f"E4 {arm} acc {np.mean(ok):.3f} copy {np.mean(copy):.3f} unk {np.mean(unk):.3f}", flush=True)
+
+    # E5: 소제목이 있는 문서(구역 60개 또는 20개)를 통째로 읽기 대 청크 검색
+    sec = e5_docs(NT5); arms = {"full60": ("full", 60), "full20": ("full", 20), "128/0/2": (128, 0, 2), "128/64/2": (128, 64, 2), "64/0/2": (64, 0, 2)}
+    for name, spec in arms.items():
+        ok, unk, outs, lens, Iv, orph = [], [], [], [], [], []
+        for t in range(NT5):
+            d = sec[t]; q = f"What was the access code of the {d['place']} depot changed to after the audit?"
+            if spec[0] == "full":
+                text = prompt_of(tok, SYS_DOC, d["text"] if spec[1] == 60 else d["text20"], q + " Answer with just the code.")
+            else:
+                L, o_, k = spec; ch = chunks_of(d, L, o_); top = BM25([c["text"] for c in ch]).rank(q, k)
+                text = prompt_of(tok, SYS_PASS, "\n".join(f"[{i + 1}] {ch[j]['text']}" for i, j in enumerate(top)), q + " Answer with just the code."); Iv.append(any(ch[j]["start"] &lt;= d["pi"] and d["ci"] &lt; ch[j]["start"] + L for j in top))
+                orph.append(orphans(d, ch, top))
+            o, ln, _ = answer(text); g = grade(o, d["code"]); ok.append(g[0]); unk.append(g[2]); outs.append(o); lens.append(ln)
+        raw[f"E5|{name}"] = outs; res[f"E5|{name}"] = dict(acc=ci(ok, rr), unk=ci(unk, rr), tokens=float(np.mean(lens)))
+        if spec[0] == "full":                                                # 정답 구역의 위치(앞·가운데·뒤 3등분)별 정확도
+            pos = [3 * (sec[t]["gi"] if spec[1] == 60 else sec[t]["gi20"]) // spec[1] for t in range(NT5)]
+            res[f"E5|{name}"]["third"] = [ci([ok[t] for t in range(NT5) if pos[t] == b], rr) for b in range(3)]
+        else: res[f"E5|{name}"].update(I=float(np.mean(Iv)), ceil=ceiling5(Iv, orph))
+        print(f"E5 {name} acc {np.mean(ok):.3f} unk {np.mean(unk):.3f} tok {np.mean(lens):.0f}", flush=True)
+    return res, raw
+
+
+# ---------- E5: 소제목이 있는 문서와 청크 ----------
+def e5_docs(n_docs):
+    out = []
+    for t in range(n_docs):
+        r = np.random.default_rng([SEED + 2, t]); places = list(PLACES); r.shuffle(places); words, mark, parts = [], {}, []
+        for p in places:
+            code = int(r.integers(1000, 10000)); sec = f"## {p} depot\n{sentence(r)} {sentence(r)} After the audit, the access code was changed to {code}. {sentence(r)}\n"; w = sec.split()
+            mark[p] = (code, len(words) + 1, len(words) + w.index(f"{code}.")); words += w; parts.append(sec)
+        gi = int(r.integers(len(places))); p = places[gi]; idx = sorted(r.choice([i for i in range(len(places)) if i != gi], 19, replace=False).tolist() + [gi])
+        out.append(dict(place=p, code=mark[p][0], pi=mark[p][1], ci=mark[p][2], words=words, text="".join(parts), gi=gi, text20="".join(parts[i] for i in idx), gi20=idx.index(gi)))
+    return out
+
+
+def chunks_of(d, L, o):
+    W, s = len(d["words"]), L - o
+    return [dict(start=a, text=" ".join(d["words"][a:a + L])) for a in range(0, W, s)]
+
+
+def orphans(d, ch, top):
+    """컨텍스트의 코드 가운데 같은 청크 안에서 앞선 소제목이 없는 것(어느 곳의 코드인지 글에서 알 수 없는 것)의 수와 정답 코드가 그중 하나인지."""
+    m, gold_in = 0, False
+    for j in top:
+        ws = d["words"][ch[j]["start"]:ch[j]["start"] + len(ch[j]["text"].split())]; seen = False
+        for i, w in enumerate(ws):
+            if w == "##": seen = True
+            if re.fullmatch(r"\d{4}\.", w) and not seen:
+                m += 1; gold_in |= (ch[j]["start"] + i == d["ci"])
+    return m, gold_in
+
+
+def ceiling5(Iv, orph):                                                      # 정리 11.2의 2번(11장)과 같은 식: 식별되면 1, 아니면 h/m + (1-h)/V
+    h = {m: np.mean([g for (mm, g), i in zip(orph, Iv) if mm == m and not i] or [0]) for m in {m for m, _ in orph}}
+    return float(np.mean([1.0 if i else (h[m] / m + (1 - h[m]) / V if m else 1 / V) for (m, _), i in zip(orph, Iv)]))
+
+
+def e5_hits():                                                               # E5의 검색만: 청크 크기·겹침별로 이름·값 동거 확률의 예측과 측정
+    docs, res = e5_docs(NT5), []; qs = [f"What was the access code of the {d['place']} depot changed to after the audit?" for d in docs]
+    for L in (32, 64, 128, 256):
+        for o in (0, L // 2):
+            ch = [chunks_of(d, L, o) for d in docs]; bm = [BM25([c["text"] for c in cs]) for cs in ch]; deltas = [d["ci"] - d["pi"] for d in docs]
+            both = lambda d, c: c["start"] &lt;= d["pi"] and d["ci"] &lt; c["start"] + L
+            hits = {k: float(np.mean([any(both(d, cs[j]) for j in b.rank(q, k)) for d, cs, b, q in zip(docs, ch, bm, qs)])) for k in (1, 2, 4)}
+            res.append(dict(L=L, o=o, delta=float(np.mean(deltas)), pred=float(np.mean([co_chunk(L, o, dl) for dl in deltas])), co=float(np.mean([any(both(d, c) for c in cs) for d, cs in zip(docs, ch)])), hit=hits, chunks=float(np.mean([len(c) for c in ch]))))
+    return res
+
+
+if __name__ == "__main__":
+    rr = np.random.default_rng(SEED + 9); out = dict(e0_pure=e0_pure(), e5_hits=e5_hits())
+    print(json.dumps(out["e0_pure"]), flush=True)
+    if MODE in ("all", "model"):
+        res, raw = run_model(rr); out["model"] = res; json.dump(raw, open("out12_raw.json", "w", encoding="utf8"), ensure_ascii=False)
+    json.dump(out, open("out12_res.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+</code></pre>
+
+
+    <h3 id="h-res12">결과</h3>
+    <p>먼저 E0이다. (a) 모델에서 센 FLOPs를 <a class="ref" href="#def-cost"></a>의 공식과 견주었다. 공식은 attention을 마스크된 쪽까지 \(n^2\) 전부 센 값(2장의 셈)과 마스크를 건너뛴 값(절반) 두 가지이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>프롬프트 토큰 \(n\)</th><th class="num">센 FLOPs (T)</th><th class="num">공식: 마스크까지 센 값 (T)</th><th class="num">센 값 / 공식</th><th class="num">공식: 마스크를 건너뛴 값 (T)</th><th class="num">센 값 / 공식</th></tr></thead><tbody>
+<tr><td>512</td><td class="num">1.387</td><td class="num">1.387</td><td class="num">1.0000</td><td class="num">1.365</td><td class="num">1.0165</td></tr>
+<tr><td>1024</td><td class="num">2.864</td><td class="num">2.864</td><td class="num">1.0000</td><td class="num">2.774</td><td class="num">1.0325</td></tr>
+<tr><td>2048</td><td class="num">6.089</td><td class="num">6.089</td><td class="num">1.0000</td><td class="num">5.728</td><td class="num">1.0630</td></tr>
+</tbody></table></div>
+    <p>센 FLOPs가 마스크까지 센 공식과 소수점 아래 네 자리까지 같았다(센 값 / 공식 = 1.0000). 마스크를 건너뛴 공식과는 1.7%, 3.3%, 6.3% 차이가 난다. FLOPs 카운터가 attention을 \(n^2\) 전부 센다는 뜻이고, 이 장의 \(n^*=15{,}232\)는 이 셈에서의 값이다. 마스크를 건너뛰는 구현에서는 전환점이 \(2n^*=30{,}464\)가 된다. (b) 측정한 KV cache는 2,048토큰에서 58,720,256 B로 공식 \(2Ld_{\rm kv}b\cdot n=28{,}672\times2048\)과 같았다. (c) 512토큰씩 네 번으로 나눈 prefill의 마지막 로짓은 한 번에 처리한 값과 최대 0.125(로짓의 최대 크기 12.56의 1.0%) 달랐고 가장 높은 토큰은 같았다. 본 실험은 1,024토큰씩 나눈다. (d) 희석 표(<a class="ref" href="#ex-dilute"></a>), 30턴 에이전트의 토큰(1,170,000 대 68,000), 구조별 attention의 몫(<a class="ref" href="#ex-cost"></a>)은 모두 계산이다. (e) <a class="ref" href="#thm-chunk"></a>의 동거 확률을 정수 위치 전부(격자 위치 \(x\)가 \(0,\dots,s-1\))에서 세면 공식과 정확히 같았다(예: \(L=128\), \(o=0\), \(\delta=35\)에서 0.7266, \(o=64\)에서 1.0000). E5 문서 200개에서 소제목의 이름 단어와 코드 단어가 함께 든 청크가 있는 비율은 다음과 같다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>청크 길이 \(L\)</th><th class="num">겹침 \(o\)</th><th class="num">평균 이름–값 거리 \(\delta\)</th><th class="num">예측(정리 12.4)</th><th class="num">측정: 함께 든 청크가 있는 비율</th><th class="num">적중 \(k=1\)</th><th class="num">\(k=2\)</th><th class="num">\(k=4\)</th><th class="num">청크 수(문서당)</th></tr></thead><tbody>
+<tr><td>32</td><td class="num">0</td><td class="num">34.2</td><td class="num">0.004</td><td class="num">0.005</td><td class="num">0.005</td><td class="num">0.005</td><td class="num">0.005</td><td class="num">87</td></tr>
+<tr><td>32</td><td class="num">16</td><td class="num">34.2</td><td class="num">0.008</td><td class="num">0.005</td><td class="num">0.005</td><td class="num">0.005</td><td class="num">0.005</td><td class="num">174</td></tr>
+<tr><td>64</td><td class="num">0</td><td class="num">34.2</td><td class="num">0.466</td><td class="num">0.525</td><td class="num">0.525</td><td class="num">0.525</td><td class="num">0.525</td><td class="num">44</td></tr>
+<tr><td>64</td><td class="num">32</td><td class="num">34.2</td><td class="num">0.927</td><td class="num">0.925</td><td class="num">0.630</td><td class="num">0.925</td><td class="num">0.925</td><td class="num">87</td></tr>
+<tr><td>128</td><td class="num">0</td><td class="num">34.2</td><td class="num">0.733</td><td class="num">0.755</td><td class="num">0.755</td><td class="num">0.755</td><td class="num">0.755</td><td class="num">22</td></tr>
+<tr><td>128</td><td class="num">64</td><td class="num">34.2</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0.725</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">44</td></tr>
+<tr><td>256</td><td class="num">0</td><td class="num">34.2</td><td class="num">0.866</td><td class="num">0.890</td><td class="num">0.890</td><td class="num">0.890</td><td class="num">0.890</td><td class="num">11</td></tr>
+<tr><td>256</td><td class="num">128</td><td class="num">34.2</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0.910</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">22</td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 356" role="img" aria-label="청크 길이와 겹침별로, 소제목의 이름 단어와 코드 단어가 한 청크에 함께 들어 있는 문서의 비율. 정리 12.4의 예측과 문서 200개에서의 측정을 짝지어 가로 막대로 보인다.">
+  <rect x="90.0" y="12" width="12" height="12" style="fill:var(--accent);opacity:.45"/><text class="t-dim" x="108.0" y="23">예측(정리 12.4)</text><rect x="260.0" y="12" width="12" height="12" style="fill:var(--accent-2)"/><text class="t-dim" x="278.0" y="23">측정(문서 200개)</text>
+  <text class="t-dim" x="80.0" y="60" text-anchor="end">L=32, o=0</text>
+  <rect x="90.0" y="44" width="2.0" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="98.0" y="54">0.004</text>
+  <rect x="90.0" y="57" width="2.6" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="98.6" y="67">0.005</text>
+  <text class="t-dim" x="80.0" y="94" text-anchor="end">L=32, o=16</text>
+  <rect x="90.0" y="78" width="4.1" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="100.1" y="88">0.008</text>
+  <rect x="90.0" y="91" width="2.6" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="98.6" y="101">0.005</text>
+  <text class="t-dim" x="80.0" y="128" text-anchor="end">L=64, o=0</text>
+  <rect x="90.0" y="112" width="242.1" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="338.1" y="122">0.466</text>
+  <rect x="90.0" y="125" width="273.0" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="369.0" y="135">0.525</text>
+  <text class="t-dim" x="80.0" y="162" text-anchor="end">L=64, o=32</text>
+  <rect x="90.0" y="146" width="482.2" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="578.2" y="156">0.927</text>
+  <rect x="90.0" y="159" width="481.0" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="577.0" y="169">0.925</text>
+  <text class="t-dim" x="80.0" y="196" text-anchor="end">L=128, o=0</text>
+  <rect x="90.0" y="180" width="381.1" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="477.1" y="190">0.733</text>
+  <rect x="90.0" y="193" width="392.6" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="488.6" y="203">0.755</text>
+  <text class="t-dim" x="80.0" y="230" text-anchor="end">L=128, o=64</text>
+  <rect x="90.0" y="214" width="520.0" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="616.0" y="224">1.000</text>
+  <rect x="90.0" y="227" width="520.0" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="616.0" y="237">1.000</text>
+  <text class="t-dim" x="80.0" y="264" text-anchor="end">L=256, o=0</text>
+  <rect x="90.0" y="248" width="450.5" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="546.5" y="258">0.866</text>
+  <rect x="90.0" y="261" width="462.8" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="558.8" y="271">0.890</text>
+  <text class="t-dim" x="80.0" y="298" text-anchor="end">L=256, o=128</text>
+  <rect x="90.0" y="282" width="520.0" height="11" style="fill:var(--accent);opacity:.45"/><text class="t-mono" x="616.0" y="292">1.000</text>
+  <rect x="90.0" y="295" width="520.0" height="11" style="fill:var(--accent-2)"/><text class="t-mono" x="616.0" y="305">1.000</text>
+</svg>
+      <figcaption><b>그림 12-2.</b> 소제목의 이름 단어와 코드 단어를 한 청크가 함께 담는 문서의 비율. 연한 막대는 <a class="ref" href="#thm-chunk"></a>의 예측(문서마다 이름–값 거리로 계산해 평균), 진한 막대는 문서 200개에서의 측정이다. 겹침이 \(L/2\)이면 거의 모든 문서에서 함께 담기고, 겹침 없이 \(L\)이 \(\delta\)에 가까우면 절반 이하이다.</figcaption>
+    </figure>
+    <p>측정한 동거 비율은 모든 설정에서 예측과 이항 오차의 3배 안이었다(가장 큰 차이는 \(L=64\), \(o=0\)의 0.466 대 0.525로 표준오차의 1.7배). \(L=32\)는 \(\delta=34.2\)가 \(L\)보다 커서 거의 0이다. 겹침 없는 설정에서 적중률은 \(k=1\)부터 이 비율과 같다. 겹침이 있는 설정은 \(k=1\)에서 적중률(예: \(L=128\), \(o=64\)에서 0.725)이 동거 비율(1.000)보다 낮다. BM25가 겹친 청크들 가운데 소제목만 담은 쪽을 앞세우는 경우가 있기 때문이고, \(k=2\)에서 동거 비율과 같아진다.</p>
+
+    <p>다음은 모델 쪽이다. E2는 길이 5개와 깊이 5개로 이루어진 25칸이고, 칸마다 40번 시행했다. 값은 정확도와 95% 구간이다. 모든 칸의 정확도가 1.000이었다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>바늘의 깊이</th><th class="num">\(n=1,024\)</th><th class="num">\(n=2,048\)</th><th class="num">\(n=4,096\)</th><th class="num">\(n=8,192\)</th><th class="num">\(n=16,384\)</th></tr></thead><tbody>
+<tr><td>깊이 0.0</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td></tr>
+<tr><td>깊이 0.25</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td></tr>
+<tr><td>깊이 0.5</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td></tr>
+<tr><td>깊이 0.75</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td></tr>
+<tr><td>깊이 1.0</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td></tr>
+<tr><td>프롬프트 토큰(평균)</td><td class="num">995</td><td class="num">2019</td><td class="num">4067</td><td class="num">8163</td><td class="num">16356</td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="바늘의 깊이(세로)와 프롬프트 길이(가로)에 따른 정확도. 각 칸의 숫자는 정확도이고 색이 진할수록 높다.">
+  <text class="t-b" x="206.0" y="42" text-anchor="middle">1,024</text>
+  <text class="t-b" x="318.0" y="42" text-anchor="middle">2,048</text>
+  <text class="t-b" x="430.0" y="42" text-anchor="middle">4,096</text>
+  <text class="t-b" x="542.0" y="42" text-anchor="middle">8,192</text>
+  <text class="t-b" x="654.0" y="42" text-anchor="middle">16,384</text>
+  <text class="t-dim" x="430.0" y="22" text-anchor="middle">프롬프트 토큰 수 n</text>
+  <text class="t-b" x="138" y="83.0" text-anchor="end">깊이 0.0</text>
+  <rect x="152" y="58" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="206.0" y="83.0" text-anchor="middle">1.000</text>
+  <rect x="264" y="58" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="318.0" y="83.0" text-anchor="middle">1.000</text>
+  <rect x="376" y="58" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="430.0" y="83.0" text-anchor="middle">1.000</text>
+  <rect x="488" y="58" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="542.0" y="83.0" text-anchor="middle">1.000</text>
+  <rect x="600" y="58" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="654.0" y="83.0" text-anchor="middle">1.000</text>
+  <text class="t-b" x="138" y="127.0" text-anchor="end">깊이 0.25</text>
+  <rect x="152" y="102" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="206.0" y="127.0" text-anchor="middle">1.000</text>
+  <rect x="264" y="102" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="318.0" y="127.0" text-anchor="middle">1.000</text>
+  <rect x="376" y="102" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="430.0" y="127.0" text-anchor="middle">1.000</text>
+  <rect x="488" y="102" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="542.0" y="127.0" text-anchor="middle">1.000</text>
+  <rect x="600" y="102" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="654.0" y="127.0" text-anchor="middle">1.000</text>
+  <text class="t-b" x="138" y="171.0" text-anchor="end">깊이 0.5</text>
+  <rect x="152" y="146" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="206.0" y="171.0" text-anchor="middle">1.000</text>
+  <rect x="264" y="146" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="318.0" y="171.0" text-anchor="middle">1.000</text>
+  <rect x="376" y="146" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="430.0" y="171.0" text-anchor="middle">1.000</text>
+  <rect x="488" y="146" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="542.0" y="171.0" text-anchor="middle">1.000</text>
+  <rect x="600" y="146" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="654.0" y="171.0" text-anchor="middle">1.000</text>
+  <text class="t-b" x="138" y="215.0" text-anchor="end">깊이 0.75</text>
+  <rect x="152" y="190" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="206.0" y="215.0" text-anchor="middle">1.000</text>
+  <rect x="264" y="190" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="318.0" y="215.0" text-anchor="middle">1.000</text>
+  <rect x="376" y="190" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="430.0" y="215.0" text-anchor="middle">1.000</text>
+  <rect x="488" y="190" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="542.0" y="215.0" text-anchor="middle">1.000</text>
+  <rect x="600" y="190" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="654.0" y="215.0" text-anchor="middle">1.000</text>
+  <text class="t-b" x="138" y="259.0" text-anchor="end">깊이 1.0</text>
+  <rect x="152" y="234" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="206.0" y="259.0" text-anchor="middle">1.000</text>
+  <rect x="264" y="234" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="318.0" y="259.0" text-anchor="middle">1.000</text>
+  <rect x="376" y="234" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="430.0" y="259.0" text-anchor="middle">1.000</text>
+  <rect x="488" y="234" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="542.0" y="259.0" text-anchor="middle">1.000</text>
+  <rect x="600" y="234" width="108" height="40" rx="4" style="fill:var(--accent);opacity:0.90"/><text class="t-b" x="654.0" y="259.0" text-anchor="middle">1.000</text>
+  <text class="t-dim" x="150" y="302">깊이 0 = 문서의 맨 앞, 1 = 맨 끝(질문 바로 앞). 칸마다 40시행.</text>
+</svg>
+      <figcaption><b>그림 12-3.</b> 바늘의 깊이와 프롬프트 길이에 따른 정확도. 25칸 모두 1.000이다.</figcaption>
+    </figure>
+    <p>정확도가 모두 1.000이어서 구간이 [1.000, 1.000]으로 나오지만 이것은 부트스트랩이 퇴화한 것이다. 칸마다 실패가 0/40이면 정확한 95% 구간(Clopper–Pearson)의 하한은 \((0.025)^{1/40}=0.912\)이고, 같은 길이의 다섯 깊이를 묶으면(200시행) 0.982이다. 이 모델은 이 과제에서 길이 16,384토큰까지, 바늘이 문서 맨 앞에 있든 맨 끝에 있든 구별 없이 찾아 썼다. E1의 기준(\(n=1024\)에서 0.90 이상)은 통과한다.</p>
+    <p>질문을 문서 앞에 둔 E2b도 \(n=16{,}384\)의 다섯 깊이에서 시행 20번씩 모두 정답이었다. 같은 문서·시행의 E2(질문이 뒤)도 모두 정답이어서 한쪽만 맞은 시행이 없다. 이 모델은 이 길이에서 질문의 위치에 따른 차이가 없었다.</p>
+
+    <p>E3는 E2의 시행에서 prefill 때 잰 어텐션이다. 바늘 질량은 마지막 프롬프트 토큰이 바늘 문장의 토큰들에 둔 어텐션의 합이다. 예상에서 정한 규칙에 따라 짝수 번 시행의 \(n=1024\), 깊이 0.5에서 바늘 질량이 0.5 이상인 head 12개(336개 중, 모두 19~23번 층)를 검색 head로 골랐고, 홀수 번 시행으로 로그 오즈와 기울기를 구했다. 마진은 <a class="ref" href="#thm-dilute"></a>의 1번으로 거꾸로 계산한 값이다(바늘 토큰 수 \(m=15.9\)).</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>\(n\)</th><th class="num">검색 head: 바늘 질량</th><th class="num">로그 오즈 \(\lambda\)</th><th class="num">마진 \(\hat\mu\)</th><th class="num">질량 0.5 이상인 head 수</th><th class="num">전체 head: 바늘 질량</th><th class="num">로그 오즈 \(\lambda\)</th><th class="num">첫 토큰 질량</th></tr></thead><tbody>
+<tr><td>1,024</td><td class="num">0.757</td><td class="num">1.476</td><td class="num">5.62</td><td class="num">11</td><td class="num">0.0661</td><td class="num">-5.374</td><td class="num">0.328</td></tr>
+<tr><td>2,048</td><td class="num">0.741</td><td class="num">1.464</td><td class="num">6.31</td><td class="num">10</td><td class="num">0.0623</td><td class="num">-5.510</td><td class="num">0.326</td></tr>
+<tr><td>4,096</td><td class="num">0.746</td><td class="num">1.582</td><td class="num">7.13</td><td class="num">11</td><td class="num">0.0534</td><td class="num">-6.298</td><td class="num">0.323</td></tr>
+<tr><td>8,192</td><td class="num">0.698</td><td class="num">1.209</td><td class="num">7.45</td><td class="num">10</td><td class="num">0.0488</td><td class="num">-6.428</td><td class="num">0.316</td></tr>
+<tr><td>16,384</td><td class="num">0.676</td><td class="num">1.254</td><td class="num">8.19</td><td class="num">9</td><td class="num">0.0481</td><td class="num">-6.487</td><td class="num">0.316</td></tr>
+<tr><td>\(\ln n\)에 대한 기울기</td><td class="num"></td><td class="num">-0.101 [-0.125, -0.078]</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">-0.453 [-0.469, -0.438]</td><td class="num"></td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 340" role="img" aria-label="길이에 따른 바늘 질량의 로그 오즈. 검색 head와 전체 head의 평균을 선으로 잇고, 마진이 그대로일 때의 희석 기준선(기울기 -1)을 점선으로 그렸다.">
+  <path d="M90 239.3 H730" class="s-grid"/><text class="t-mono" x="82" y="243.3" text-anchor="end">-8</text>
+  <path d="M90 222.9 H730" class="s-grid"/><text class="t-mono" x="82" y="226.9" text-anchor="end">-7</text>
+  <path d="M90 206.4 H730" class="s-grid"/><text class="t-mono" x="82" y="210.4" text-anchor="end">-6</text>
+  <path d="M90 190.0 H730" class="s-grid"/><text class="t-mono" x="82" y="194.0" text-anchor="end">-5</text>
+  <path d="M90 173.5 H730" class="s-grid"/><text class="t-mono" x="82" y="177.5" text-anchor="end">-4</text>
+  <path d="M90 157.0 H730" class="s-grid"/><text class="t-mono" x="82" y="161.0" text-anchor="end">-3</text>
+  <path d="M90 140.6 H730" class="s-grid"/><text class="t-mono" x="82" y="144.6" text-anchor="end">-2</text>
+  <path d="M90 124.1 H730" class="s-grid"/><text class="t-mono" x="82" y="128.1" text-anchor="end">-1</text>
+  <path d="M90 107.6 H730" class="s-grid"/><text class="t-mono" x="82" y="111.6" text-anchor="end">0</text>
+  <path d="M90 91.2 H730" class="s-grid"/><text class="t-mono" x="82" y="95.2" text-anchor="end">1</text>
+  <path d="M90 74.7 H730" class="s-grid"/><text class="t-mono" x="82" y="78.7" text-anchor="end">2</text>
+  <path d="M90 58.2 H730" class="s-grid"/><text class="t-mono" x="82" y="62.2" text-anchor="end">3</text>
+  <text class="t-mono" x="90.0" y="270" text-anchor="middle">1,024</text>
+  <text class="t-mono" x="250.0" y="270" text-anchor="middle">2,048</text>
+  <text class="t-mono" x="410.0" y="270" text-anchor="middle">4,096</text>
+  <text class="t-mono" x="570.0" y="270" text-anchor="middle">8,192</text>
+  <text class="t-mono" x="730.0" y="270" text-anchor="middle">16,384</text>
+  <text class="t-dim" x="410" y="294" text-anchor="middle">프롬프트 토큰 수 n (로그 눈금) · 세로축: 바늘 질량의 로그 오즈 λ (깊이 0.5, 홀수 번 시행)</text>
+  <polyline points="90.0,83.3 250.0,94.7 410.0,106.1 570.0,117.6 730.0,129.0" fill="none" style="stroke:var(--accent);stroke-width:1.5" stroke-dasharray="5 4"/>
+  <polyline points="90.0,83.3 250.0,83.5 410.0,81.6 570.0,87.7 730.0,87.0" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <circle cx="90.0" cy="83.3" r="4.5" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="250.0" cy="83.5" r="4.5" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="410.0" cy="81.6" r="4.5" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="570.0" cy="87.7" r="4.5" style="fill:var(--accent);stroke:var(--accent)"/>
+  <circle cx="730.0" cy="87.0" r="4.5" style="fill:var(--accent);stroke:var(--accent)"/>
+  <polyline points="90.0,196.1 250.0,207.5 410.0,218.9 570.0,230.4 730.0,241.8" fill="none" style="stroke:var(--accent-2);stroke-width:1.5" stroke-dasharray="5 4"/>
+  <polyline points="90.0,196.1 250.0,198.4 410.0,211.3 570.0,213.5 730.0,214.4" fill="none" style="stroke:var(--accent-2);stroke-width:2"/>
+  <rect x="85.5" y="191.6" width="9" height="9" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="245.5" y="193.9" width="9" height="9" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="405.5" y="206.8" width="9" height="9" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="565.5" y="209.0" width="9" height="9" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <rect x="725.5" y="209.9" width="9" height="9" style="fill:var(--accent-2);stroke:var(--accent-2)"/>
+  <circle cx="200" cy="322" r="4.5" style="fill:var(--accent);stroke:var(--accent)"/><text class="t-dim" x="212" y="326">검색 head (12개), 기울기 -0.10</text>
+  <rect x="445.5" y="317.5" width="9" height="9" style="fill:var(--accent-2);stroke:var(--accent-2)"/><text class="t-dim" x="462" y="326">전체 head (336개), 기울기 -0.45</text>
+  <text class="t-dim" x="726.0" y="42" text-anchor="end">점선: 마진이 그대로일 때(기울기 -1)</text>
+</svg>
+      <figcaption><b>그림 12-4.</b> 길이에 따른 바늘 질량의 로그 오즈(깊이 0.5). 점선은 마진이 길이와 무관할 때의 희석(기울기 \(-1\))이다. 검색 head의 로그 오즈는 길이가 16배 늘어도 거의 내려가지 않았고(기울기 \(-0.10\)), 전체 head의 평균은 기울기 \(-0.45\)로 내려갔다.</figcaption>
+    </figure>
+    <p>검색 head의 로그 오즈는 1.476(\(n=1024\))에서 1.254(16,384)로 거의 변하지 않았고 기울기는 \(-0.101\) [\(-0.125\), \(-0.078\)]이다. 전체 336개 head의 평균 로그 오즈는 \(-5.374\)에서 \(-6.487\)로 내렸고 기울기는 \(-0.453\) [\(-0.469\), \(-0.438\)]이다. 두 구간 모두 예상한 \([-1,0]\) 안에 있어 기각되지 않았다. 희석만 일어났다면 검색 head의 로그 오즈는 \(\ln\frac{16384-15.9}{1024-15.9}=2.79\)만큼 내려가 \(-1.31\)이 되고 바늘 질량은 0.21이 되었을 것이다. 실제 바늘 질량은 0.757에서 0.676으로 내렸을 뿐이다. 마진으로 보면 5.62에서 8.19로 2.57 커져 희석 2.79의 92%를 상쇄했다. 바늘 질량이 0.5 이상인 head는 11개(\(n=1024\))에서 9개(16,384)로 줄었다. 깊이별로 보면 \(n=16{,}384\)에서 검색 head의 바늘 질량이 깊이 0, 0.25, 0.5, 0.75, 1에서 0.695, 0.673, 0.676, 0.697, 0.663으로 깊이에 따라 거의 달라지지 않았다. 전체 head의 첫 토큰 질량은 0.328에서 0.316으로 길이에 거의 무관했다.</p>
+
+    <p>E4는 \(n=8192\), 깊이 0.5에서 방해를 바꾼 결과이다. 이름이 다른 비슷한 기록의 개수 \(d\)별 정확도, 방해 기록의 코드를 답한 비율(복사), 같은 이름의 충돌 기록 4개에서의 정확도이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>문서(\(n=8192\), 깊이 0.5)</th><th class="num">정확도</th><th class="num">이름을 안 쓰는 독자 \(1/(d+1)\)</th><th class="num">방해(충돌) 기록의 코드를 답한 비율</th><th class="num">모른다는 응답</th><th class="num">프롬프트 토큰</th></tr></thead><tbody>
+<tr><td>방해 없음</td><td class="num">1.000 [1.000, 1.000]</td><td class="num">—</td><td class="num">0.000</td><td class="num">0.000</td><td class="num">8162</td></tr>
+<tr><td>이름이 다른 비슷한 기록 8개</td><td class="num">0.850 [0.725, 0.950]</td><td class="num">0.111</td><td class="num">0.125</td><td class="num">0.000</td><td class="num">8163</td></tr>
+<tr><td>이름이 다른 비슷한 기록 24개</td><td class="num">0.900 [0.800, 0.975]</td><td class="num">0.040</td><td class="num">0.050</td><td class="num">0.000</td><td class="num">8163</td></tr>
+<tr><td>이름이 다른 비슷한 기록 59개</td><td class="num">0.900 [0.800, 0.975]</td><td class="num">0.017</td><td class="num">0.050</td><td class="num">0.000</td><td class="num">8163</td></tr>
+<tr><td>같은 이름의 충돌 기록 4개</td><td class="num">0.250 [0.125, 0.400]</td><td class="num">0.250(상한)</td><td class="num">0.750</td><td class="num">0.000</td><td class="num">8147</td></tr>
+</tbody></table></div>
+    <p>방해가 없으면 40번 모두 맞혔고, 이름이 다른 비슷한 기록이 있으면 0.850, 0.900, 0.900이었다. 구간이 겹쳐 \(d\)가 8, 24, 59일 때의 차이는 구별되지 않는다. 방해 기록의 코드를 답한 비율은 0.125, 0.050, 0.050이다. 이름과 값을 연결하지 않는 독자라면 \(1/(d+1)\)(0.111, 0.040, 0.017)만 맞히고 \(d/(d+1)\)를 방해 기록에서 가져가므로, 모델은 이름을 쓰고 있다. 같은 이름의 충돌 기록 4개에서는 정확도가 0.250 [0.125, 0.400]으로 <a class="ref" href="#thm-distract"></a>의 상한 0.25와 같다. 구간의 하한이 상한 아래여서 예상은 기각되지 않았다. 모른다고 답한 것은 0번이었고 40번 모두 네 코드 가운데 하나를 답했다. 어느 기록을 고르는지는 문서 안의 순서에 크게 치우쳐서(사후 분석), 첫 번째 기록의 코드가 27번, 두 번째 7번, 세 번째 4번, 네 번째 2번이었다. 정답이 네 기록 중 균등하게 정해졌으므로 이 치우침은 정확도를 \(1/4\) 위로 올리지 못한다.</p>
+
+    <p>E5는 소제목이 있는 문서 200개에서의 결과이다. 통째 입력은 구역 60개(약 3,600토큰)와 20개(약 1,300토큰), 청크 읽기는 \(k=2\)이다. '식별됨'은 가져온 청크 중 소제목의 이름 단어와 정답 코드를 함께 담은 것이 있는 비율 \(\Pr[I]\)이고, '상한'은 <a href="ch11.html#thm-index">11장의 정리 11.2</a>의 식으로 센 값이다. 마지막 열은 정답 구역이 문서의 앞·가운데·뒤 3분의 1에 있을 때의 정확도이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>읽는 방법(문서 200개)</th><th class="num">정확도</th><th class="num">정답이 식별되는 비율 \(\Pr[I]\)</th><th class="num">상한</th><th class="num">식별될 때 정확도 \(a_I\)</th><th class="num">모른다는 응답</th><th class="num">프롬프트 토큰</th><th class="num">정답 구역이 앞·가운데·뒤 3분의 1일 때 정확도</th></tr></thead><tbody>
+<tr><td>통째 입력(구역 60개)</td><td class="num">0.800 [0.740, 0.855]</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0.000</td><td class="num">3627</td><td class="num">0.81 / 0.68 / 0.91</td></tr>
+<tr><td>통째 입력(구역 20개)</td><td class="num">0.905 [0.860, 0.945]</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0.000</td><td class="num">1286</td><td class="num">0.87 / 0.91 / 0.94</td></tr>
+<tr><td>청크 \(L=128\), \(o=0\), \(k=2\)</td><td class="num">0.640 [0.570, 0.705]</td><td class="num">0.755</td><td class="num">0.758</td><td class="num">0.841</td><td class="num">0.000</td><td class="num">395</td><td class="num">—</td></tr>
+<tr><td>청크 \(L=128\), \(o=64\), \(k=2\)</td><td class="num">0.430 [0.365, 0.500]</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0.430</td><td class="num">0.000</td><td class="num">394</td><td class="num">—</td></tr>
+<tr><td>청크 \(L=64\), \(o=0\), \(k=2\)</td><td class="num">0.400 [0.335, 0.470]</td><td class="num">0.525</td><td class="num">0.533</td><td class="num">0.762</td><td class="num">0.000</td><td class="num">234</td><td class="num">—</td></tr>
+</tbody></table></div>
+    <p>통째 입력의 정확도는 구역 60개에서 0.800 [0.740, 0.855], 20개에서 0.905 [0.860, 0.945]이다. 길이가 2.8배(1,286에서 3,627토큰)로 늘자 0.105 내려갔다. 정답 구역의 위치로 나누면(60개 문서) 앞 3분의 1이 0.811 [0.716, 0.892], 가운데가 0.677 [0.565, 0.790], 뒤가 0.906 [0.828, 0.969]이다. 가운데가 가장 낮고 끝이 가장 높다. 20개 문서에서는 0.873, 0.909, 0.937이다. 각 구간의 시행이 62~74개여서 구간이 겹치므로 이것은 U자에 가까운 경향이라고 하는 정도가 한계이다. 통째 입력의 오답 40개 가운데 문서에 없는 코드는 3개였고, 37개는 다른 구역의 코드였다. 그 중 정답 구역보다 앞에 있는 구역의 코드가 28개, 뒤가 9개였고, 바로 앞 구역의 코드가 9개로 가장 많았다(아래 사후 분석).</p>
+    <p>청크 읽기는 모든 설정에서 통째 입력보다 낮았다. 최고인 \(L=128\), \(o=0\)은 0.640 [0.570, 0.705]로 395토큰을 쓴다. 통째 입력(60구역)이 3,627토큰으로 0.800이어서 토큰은 9.2배, 정확도는 0.16 높다. 세 설정 모두 정확도가 상한 이하였다(\(\Pr[I]\)와 상한이 E0의 동거 비율과 같은 것은 겹침 없는 설정에서 적중이 곧 동거이기 때문이다). 겹침 없는 두 설정의 상한 0.758과 0.533은 \(\Pr[I]\)(0.755, 0.525)와 거의 같고, 정답이 식별되지 않는 몫의 정확도는 0.020과 0.000이다(상류 오류 0.240, 0.475). 겹침 64를 준 설정은 \(\Pr[I]\)를 1.000으로 올려 상한이 1.000이 되었지만 정확도는 0.430으로 겹침 없는 설정(0.640)보다 낮았다. 상류 오류가 0이 되고 읽기 오류가 0.570으로 늘었다. 이 설정의 오답 114개 가운데 112개가 정답 구역 바로 앞 구역의 코드였다. 컨텍스트에 든 서로 다른 코드는 평균 4.01개(\(L=128\), \(o=0\)에서 5.53개, \(L=64\), \(o=0\)에서 3.16개)이다.</p>
+
+    <h3 id="h-post12">이 장에서 보고 나서 만든 분석</h3>
+    <p>E2~E5의 응답과 어텐션 기록을 본 뒤에 다음 분석을 따로 썼다. 모델은 다시 돌리지 않고 저장한 응답과 어텐션 기록에 <code>exp12.py</code>의 함수를 그대로 쓴다. 질문 위치 짝 비교, 거리가 같은 칸의 비교, 길이별 마진, 깊이별 어텐션, 충돌 기록 가운데 어느 것을 골랐는지, 통째 입력과 청크 읽기의 오답이 어느 구역의 코드인지, 청크 읽기를 식별 여부로 나눈 정확도이다. 아래는 코드와 출력이다.</p>
+<pre><code>import json, re, sys
+sys.path.insert(0, "."); sys.argv = ["exp12.py", "post"]            # exp12.py와 같은 폴더에서 실행하고, 모델은 다시 돌리지 않는다
+import numpy as np
+import exp12 as E
+from transformers import AutoTokenizer
+
+raw = json.load(open("out12_raw.json", encoding="utf8")); res = json.load(open("out12_res.json", encoding="utf8"))["model"]; pz = np.load("out12_probe.npz")
+tok = AutoTokenizer.from_pretrained(E.NAME, revision=E.REV); tk = lambda L: tok(L, add_special_tokens=False).input_ids
+rr = np.random.default_rng(E.SEED + 10); out = {}
+
+
+def gold_of(n, depth, t):                                          # E2 시행의 장소와 코드 (run_model의 trial과 같은 난수 순서)
+    r = np.random.default_rng([E.SEED, n, int(depth * 100), t]); p = E.PLACES[r.integers(len(E.PLACES))]; return p, int(r.integers(1000, 10000))
+
+
+# 1. 질문 위치: E2b(질문을 앞에)와 같은 문서·시행의 E2(질문을 뒤에)를 짝지어 견준다
+print("질문 위치 (n=16384, 시행 20번의 짝)"); out["qpos"] = {}
+for dp in E.DEPTHS:
+    last = [E.grade(raw[f"E2|16384|{dp}"][t], gold_of(16384, dp, t)[1])[0] for t in range(20)]; first = [E.grade(raw[f"E2b|16384|{dp}"][t], gold_of(16384, dp, t)[1])[0] for t in range(20)]
+    out["qpos"][dp] = dict(last=float(np.mean(last)), first=float(np.mean(first)), only_last=int(sum(a and not b for a, b in zip(last, first))), only_first=int(sum(b and not a for a, b in zip(last, first))))
+    print(f"  깊이 {dp}: 질문 뒤 {np.mean(last):.2f}, 질문 앞 {np.mean(first):.2f}, 뒤만 맞음 {out['qpos'][dp]['only_last']}, 앞만 맞음 {out['qpos'][dp]['only_first']}")
+
+# 2. 같은 거리, 다른 길이: 바늘에서 마지막 토큰까지의 거리 (1-깊이) x 길이가 같은 칸들의 정확도
+print("\n거리가 같은 칸 (거리 = (1-깊이) x 길이)"); out["dist"] = {}
+cells = {}
+for n in E.NS:
+    for dp in E.DEPTHS: cells.setdefault(round((1 - dp) * n), []).append((n, dp, res[f"E2|{n}|{dp}"]["acc"][0]))
+for dist, cs in sorted(cells.items()):
+    if len(cs) &gt; 1: print(f"  거리 {dist:6d}: " + ", ".join(f"n={n} 깊이 {dp}: {a:.3f}" for n, dp, a in cs)); out["dist"][dist] = cs
+
+# 3. 어텐션: 길이별 마진 μ̂ = λ - ln m + ln(n - m) (검색 head, 홀수 번 시행)
+m_tok = float(np.mean([len(x) for x in tk([E.record(gold_of(1024, .5, t)[0], gold_of(1024, .5, t)[1]) for t in range(E.NT)])]))
+sel = np.array(res["e3"]["heads_list"]).T; print(f"\n바늘 토큰 수 m = {m_tok:.1f}, 검색 head {sel.shape[1]}개"); out["margin"] = {}
+for n in E.NS:
+    nd = pz[f"E2_{n}_0.5_needle"][1::2]; sk = pz[f"E2_{n}_0.5_sink"][1::2]
+    lam = E.log_odds(nd[:, sel[0], sel[1]]).mean(); mu = lam - np.log(m_tok) + np.log(n - m_tok)
+    n_hi = (nd.mean(0) &gt;= 0.5).sum()                                # 바늘 질량 0.5 이상인 head 수(전체 336개 중)
+    out["margin"][n] = dict(lam=float(lam), mu=float(mu), mass=float(nd[:, sel[0], sel[1]].mean()), heads_ge_half=int(n_hi), sink=float(sk.mean()))
+    print(f"  n={n:5d}: 검색 head의 λ {lam:6.3f}, 마진 {mu:6.3f}, 질량 {out['margin'][n]['mass']:.3f} | 질량 0.5 이상인 head {n_hi:3d}개 | 전체 head의 첫 토큰 질량 {sk.mean():.3f}")
+print("\n깊이별 검색 head의 바늘 질량 (n=16384)"); out["depth_mass"] = {}
+for dp in E.DEPTHS:
+    nd = pz[f"E2_16384_{dp}_needle"][1::2]; out["depth_mass"][dp] = float(nd[:, sel[0], sel[1]].mean()); print(f"  깊이 {dp}: {out['depth_mass'][dp]:.3f}")
+
+# 4. E4: 충돌 기록 4개에서 모델이 문서 순서로 몇 번째 기록의 코드를 답했는가
+print("\nE4 충돌 4개: 답한 기록의 문서 안 순서"); ranks = []
+for t in range(E.NT):
+    r = np.random.default_rng([E.SEED + 1, 8192, len("conflict4"), 4, t]); p = E.PLACES[r.integers(len(E.PLACES))]; gold = int(r.integers(1000, 10000))
+    codes = [gold] + [int(r.integers(1000, 10000)) for _ in range(3)]; recs = [E.record(p, x) for x in codes]; items = E.build(tk, r, 8192, extra=recs)
+    order = [codes[recs.index(it)] for it in items if it in recs]; g = E.grade(raw["E4|conflict4"][t], gold)[1]
+    ranks.append(order.index(g) + 1 if g in order else 0)
+out["conflict_rank"] = {k: ranks.count(k) for k in range(5)}; print("  (0은 네 코드 어디에도 없음)", out["conflict_rank"])
+
+# 5. E5: 통째 입력의 오답이 이웃 구역의 코드인가, 청크 읽기를 식별 여부로 나눈 정확도
+sec = E.e5_docs(E.NT5); print("\nE5 통째(60구역) 오답의 코드가 어느 구역의 것인가 (정답 구역 기준 상대 위치)"); out["e5"] = {}
+for name in ("full60", "full20"):
+    off = []
+    for t in range(E.NT5):
+        d = sec[t]; g = E.grade(raw[f"E5|{name}"][t], d["code"])
+        if g[0] or g[1] is None: continue
+        codes = [int(c) for c in re.findall(r"changed to (\d{4})\.", d["text"] if name == "full60" else d["text20"])]; gi = d["gi"] if name == "full60" else d["gi20"]
+        off.append((codes.index(g[1]) - gi) if g[1] in codes else None)
+    c = {}
+    for o in off: c[o] = c.get(o, 0) + 1
+    out["e5"][name] = dict(n_wrong=len(off), offsets={str(k): v for k, v in sorted(c.items(), key=lambda kv: (kv[0] is None, kv[0] if kv[0] is not None else 0))})
+    print(f"  {name}: 오답 {len(off)}개, 상대 위치별 개수 {out['e5'][name]['offsets']} (None은 문서에 없는 코드)")
+print("\nE5 청크 읽기: 정답 청크가 식별되는 시행(I)과 아닌 시행으로 나눈 정확도")
+for name, (L, o, k) in {"128/0/2": (128, 0, 2), "128/64/2": (128, 64, 2), "64/0/2": (64, 0, 2)}.items():
+    I, ok, ncode, off = [], [E.grade(raw[f"E5|{name}"][t], sec[t]["code"])[0] for t in range(E.NT5)], [], {}
+    for t in range(E.NT5):
+        d = sec[t]; ch = E.chunks_of(d, L, o); top = E.BM25([c["text"] for c in ch]).rank(f"What was the access code of the {d['place']} depot changed to after the audit?", k)
+        I.append(any(ch[j]["start"] &lt;= d["pi"] and d["ci"] &lt; ch[j]["start"] + L for j in top)); ctx = " ".join(ch[j]["text"] for j in top); ncode.append(len(set(re.findall(r"changed to (\d{4})\.", ctx))))
+        g = E.grade(raw[f"E5|{name}"][t], d["code"])
+        if not g[0] and g[1] is not None:                              # 오답이 가리키는 구역이 정답 구역에서 몇 칸 떨어져 있는가
+            codes = [int(c) for c in re.findall(r"changed to (\d{4})\.", d["text"])]; key = str(codes.index(g[1]) - d["gi"]) if g[1] in codes else "None"; off[key] = off.get(key, 0) + 1
+    I, ok = np.array(I), np.array(ok); out["e5"][name] = dict(pI=float(I.mean()), aI=float(ok[I].mean()) if I.any() else None, anI=float(ok[~I].mean()) if (~I).any() else None, up=float((~I &amp; ~ok).mean()), read=float((I &amp; ~ok).mean()), codes_in_ctx=float(np.mean(ncode)), wrong_offsets=off)
+    print(f"  {name}: Pr[I] {I.mean():.3f}, a_I {out['e5'][name]['aI']}, a_notI {out['e5'][name]['anI']}, 상류 오류 {out['e5'][name]['up']:.3f}, 읽기 오류 {out['e5'][name]['read']:.3f}, 컨텍스트의 서로 다른 코드 {np.mean(ncode):.2f}개, 오답의 상대 위치 {dict(sorted(off.items()))}")
+json.dump(out, open("post12_res.json", "w", encoding="utf8"), ensure_ascii=False, indent=1, default=str)
+</code></pre>
+<pre><code>질문 위치 (n=16384, 시행 20번의 짝)
+  깊이 0.0: 질문 뒤 1.00, 질문 앞 1.00, 뒤만 맞음 0, 앞만 맞음 0
+  깊이 0.25: 질문 뒤 1.00, 질문 앞 1.00, 뒤만 맞음 0, 앞만 맞음 0
+  깊이 0.5: 질문 뒤 1.00, 질문 앞 1.00, 뒤만 맞음 0, 앞만 맞음 0
+  깊이 0.75: 질문 뒤 1.00, 질문 앞 1.00, 뒤만 맞음 0, 앞만 맞음 0
+  깊이 1.0: 질문 뒤 1.00, 질문 앞 1.00, 뒤만 맞음 0, 앞만 맞음 0
+
+거리가 같은 칸 (거리 = (1-깊이) x 길이)
+  거리      0: n=1024 깊이 1.0: 1.000, n=2048 깊이 1.0: 1.000, n=4096 깊이 1.0: 1.000, n=8192 깊이 1.0: 1.000, n=16384 깊이 1.0: 1.000
+  거리    512: n=1024 깊이 0.5: 1.000, n=2048 깊이 0.75: 1.000
+  거리   1024: n=1024 깊이 0.0: 1.000, n=2048 깊이 0.5: 1.000, n=4096 깊이 0.75: 1.000
+  거리   2048: n=2048 깊이 0.0: 1.000, n=4096 깊이 0.5: 1.000, n=8192 깊이 0.75: 1.000
+  거리   4096: n=4096 깊이 0.0: 1.000, n=8192 깊이 0.5: 1.000, n=16384 깊이 0.75: 1.000
+  거리   8192: n=8192 깊이 0.0: 1.000, n=16384 깊이 0.5: 1.000
+
+바늘 토큰 수 m = 15.9, 검색 head 12개
+  n= 1024: 검색 head의 λ  1.476, 마진  5.622, 질량 0.757 | 질량 0.5 이상인 head  11개 | 전체 head의 첫 토큰 질량 0.328
+  n= 2048: 검색 head의 λ  1.464, 마진  6.311, 질량 0.741 | 질량 0.5 이상인 head  10개 | 전체 head의 첫 토큰 질량 0.326
+  n= 4096: 검색 head의 λ  1.582, 마진  7.127, 질량 0.746 | 질량 0.5 이상인 head  11개 | 전체 head의 첫 토큰 질량 0.323
+  n= 8192: 검색 head의 λ  1.209, 마진  7.448, 질량 0.698 | 질량 0.5 이상인 head  10개 | 전체 head의 첫 토큰 질량 0.316
+  n=16384: 검색 head의 λ  1.254, 마진  8.188, 질량 0.676 | 질량 0.5 이상인 head   9개 | 전체 head의 첫 토큰 질량 0.316
+
+깊이별 검색 head의 바늘 질량 (n=16384)
+  깊이 0.0: 0.695
+  깊이 0.25: 0.673
+  깊이 0.5: 0.676
+  깊이 0.75: 0.697
+  깊이 1.0: 0.663
+
+E4 충돌 4개: 답한 기록의 문서 안 순서
+  (0은 네 코드 어디에도 없음) {0: 0, 1: 27, 2: 7, 3: 4, 4: 2}
+
+E5 통째(60구역) 오답의 코드가 어느 구역의 것인가 (정답 구역 기준 상대 위치)
+  full60: 오답 40개, 상대 위치별 개수 {'-37': 1, '-11': 1, '-7': 1, '-6': 3, '-5': 4, '-4': 2, '-3': 3, '-2': 4, '-1': 9, '1': 3, '2': 2, '4': 3, '5': 1, 'None': 3} (None은 문서에 없는 코드)
+  full20: 오답 19개, 상대 위치별 개수 {'-3': 1, '-2': 3, '-1': 10, '1': 4, '2': 1} (None은 문서에 없는 코드)
+
+E5 청크 읽기: 정답 청크가 식별되는 시행(I)과 아닌 시행으로 나눈 정확도
+  128/0/2: Pr[I] 0.755, a_I 0.8410596026490066, a_notI 0.02040816326530612, 상류 오류 0.240, 읽기 오류 0.120, 컨텍스트의 서로 다른 코드 5.53개, 오답의 상대 위치 {'-1': 55, '-11': 1, '-16': 1, '-18': 1, '-21': 1, '-29': 1, '-45': 1, '-5': 1, '-54': 1, '1': 1, '11': 1, '19': 2, '26': 1, '3': 1, '30': 1, '47': 1, '6': 1}
+  128/64/2: Pr[I] 1.000, a_I 0.43, a_notI None, 상류 오류 0.000, 읽기 오류 0.570, 컨텍스트의 서로 다른 코드 4.01개, 오답의 상대 위치 {'-1': 112, '-2': 2}
+  64/0/2: Pr[I] 0.525, a_I 0.7619047619047619, a_notI 0.0, 상류 오류 0.475, 읽기 오류 0.125, 컨텍스트의 서로 다른 코드 3.16개, 오답의 상대 위치 {'-1': 72, '-10': 1, '-11': 2, '-15': 1, '-18': 2, '-19': 1, '-28': 2, '-29': 1, '-3': 3, '-31': 2, '-32': 2, '-34': 2, '-42': 1, '-44': 1, '-46': 1, '-47': 1, '-52': 2, '-53': 1, '-6': 1, '-7': 2, '1': 2, '12': 1, '13': 1, '17': 1, '20': 2, '21': 1, '25': 5, '30': 1, '4': 2, '8': 1, '9': 2}</code></pre>
+
+    <h3 id="h-limits12">해석과 한계</h3>
+    <ul>
+      <li><b>미리 적은 예상은 기각되지 않았다.</b> E0: 센 FLOPs는 마스크까지 센 공식과 같았고(센 값 / 공식 = 1.0000), KV cache 바이트는 공식과 같았다. 나눈 prefill의 로짓 차이 0.125는 기준 1%에 간신히 드는 값(로짓 최대 크기의 0.995%)이고 가장 높은 토큰은 같았다. 정수 위치로 센 동거 확률은 공식과 같았고, 문서 200개의 측정은 모든 설정에서 예측의 이항 오차 3배 안이었다. E1: \(n=1024\)의 모든 깊이에서 정확도가 1.000이어서 E2~E5를 해석한다. E3: 로그 오즈 기울기의 구간이 검색 head \([-0.125,-0.078]\), 전체 head \([-0.469,-0.438]\)로 모두 \([-1,0]\) 안이다. E4: 충돌 기록 4개의 정확도 0.250 [0.125, 0.400]의 하한이 상한 0.25 아래이다. E5: 청크 읽기 정확도 0.640, 0.430, 0.400이 상한 0.758, 1.000, 0.533 이하이다. 기각되지 않은 것이 입증은 아니다. 특히 E3의 범위 \([-1,0]\)는 넓어서 쉬운 시험이다. 이 시험이 잡아내는 것은 마진이 길이와 함께 줄어드는 경우(기울기가 \(-1\)보다 작음)와 길이에 맞추어 과하게 커지는 경우(기울기가 0보다 큼)이다.</li>
+      <li><b>질문에 대한 답: 이 과제에서는 위치도 길이도 문제가 되지 않았다.</b> 길이 1,024~16,384토큰, 깊이 0~1의 25칸에서 정확도가 모두 1.000이었다(칸마다 실패 0/40, 모두 합쳐 0/1000). 질문을 앞에 둔 E2b도 0/100이다. 바늘 질량도 깊이에 따라 달라지지 않았다. 'Lost in the Middle'이 보고한 U자는 이 과제에서 보이지 않았다. 이것은 두 보고와 어긋나지 않는다. Liu 외의 시험은 다중 문서 질의응답과 키-값 찾기이고, RULER는 단순한 needle-in-a-haystack을 모델이 거의 완벽히 통과하지만 더 다양한 과제에서 떨어진다고 보고했다. 이 장의 E2는 바늘이 한 문장이고 질문이 바늘의 이름을 그대로 담은 가장 쉬운 경우이다. 위치 효과가 있느냐는 모델과 과제에 따라 다시 재야 하고, 이 장의 결과는 '이 과제에서는 없었다'이다.</li>
+      <li><b>길이의 희석은 일어났고 검색 head가 상쇄했다.</b> 전체 head의 평균 바늘 질량은 0.066(\(n=1024\))에서 0.048(16,384)로 내렸고 로그 오즈는 기울기 \(-0.45\)로 내렸다. 바늘에 어텐션을 크게 두는 검색 head 12개(모두 19~23번 층)는 바늘 질량이 0.757에서 0.676으로 조금 내렸고, 마진이 5.62에서 8.19로 희석의 92%를 메우며 커졌다. 정확도가 길이에 따라 내려가지 않은 것과 이어지지만, 이 head들이 정답을 만든다는 인과는 이 실험에서 확인하지 않았다(<a href="https://arxiv.org/abs/2404.15574">Wu 외</a>는 retrieval head를 가리면 검색이 실패한다고 보고했다. 초록). 어텐션은 마지막 프롬프트 토큰, 곧 첫 생성 토큰을 정하는 자리에서만 쟀고, 이어서 생성하는 코드의 나머지 자리에서는 재지 않았다.</li>
+      <li><b>방해와 구조에서 정확도가 내려갔다.</b> 이름이 다른 비슷한 기록이 있으면 \(n=8192\)에서 정확도가 1.000에서 0.85~0.90으로 내려갔고(구간이 겹쳐 \(d\)끼리는 구별되지 않는다), 방해 기록의 코드를 답한 비율은 0.05~0.125였다. 같은 이름의 충돌 기록 4개에서는 0.250으로 상한과 같았고, 모른다고 답한 적이 없으며 문서에서 첫 번째 기록의 코드를 가장 자주 골랐다(27/40). 소제목이 있는 문서에서는 통째 입력이 0.800(구역 60개, 3,627토큰)과 0.905(20개, 1,286토큰)이고, 60개 문서에서 정답 구역이 가운데 3분의 1에 있을 때 0.677로 앞(0.811)과 뒤(0.906)보다 낮았다. 이 U자에 가까운 경향은 시행이 구간마다 62~74개여서 구간이 겹치므로 확정하지 못한다. 오답의 대부분이 정답 구역보다 앞에 있는 구역의 코드였다(통째 입력 28/37, 겹침 있는 청크 읽기 112/114). 소제목 아래의 코드를 소제목과 묶는 일이 이 모델의 약점이고, 위치와 길이가 아니라 구조에서 오류가 났다.</li>
+      <li><b>통째 입력과 검색: 이 구조에서는 통째 입력이 이겼지만 비용이 9배였다.</b> 청크 읽기의 최고(\(L=128\), \(o=0\), \(k=2\))가 0.640이고 395토큰, 통째 입력은 0.800이고 3,627토큰이다. 검색은 상류 오류(\(\Pr[I]=0.755\), 식별되지 않는 몫 정확도 0.020)와 읽기 오류가 겹쳤다. 겹침 64는 \(\Pr[I]\)를 1.000으로 올려 상류 오류를 없앴지만 읽기 정확도 \(a_I\)가 0.841에서 0.43으로 내려 전체 정확도도 0.640에서 0.430으로 내려갔다(<a href="ch11.html#thm-funnel">11장의 정리 11.4</a>의 \(\mathrm{Acc}=a_I\)). 이유를 직접 확인하지는 못했다. 겹친 두 청크가 정답 구역 앞 구역의 코드 문장을 함께 담는 경우가 많다는 점, E4의 충돌 기록에서도 첫 번째 기록이 골라진다는 점이 같은 방향이다. 구역 경계에서 청크를 자르는 구조 기반 청킹은 재지 않았다.</li>
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> E0~E5의 예상과 기각 조건은 전체 모델 실행 전에 파일에 적었다. 질문, 프롬프트, 채점, 문서 설계는 전체 실행 뒤 바꾸지 않았다. 그러나 밝힐 것이 있다. (1) 모델 없이 도는 계산(공식, 희석 표, 동거 확률, 문서 200개의 동거 측정)과 모델에서 센 FLOPs, KV cache는 예상을 적기 전에 이미 보았다. 예상 파일에 그렇게 적었다. (2) 스모크 테스트(시드 99, 시행 4번, 길이 1,024~4,096)로 프롬프트와 코드를 점검하며 결과를 보았다. 로그 오즈 기울기가 검색 head \(-0.05\), 전체 head \(-0.51\)이었다. 예상 범위 \([-1,0]\)는 정리(<a class="ref" href="#thm-dilute"></a>)에서 정했지만 파일에는 스모크를 본 뒤에 적었다. (3) 스모크 뒤에 바꾼 것: 빈 목록에서 나는 오류, E5를 문서 40개에서 200개로 늘리고 20구역 설정과 위치 3등분 분석을 더함, E2b를 8,192토큰에서 16,384토큰(시행 20번)으로 옮김(8,192에서 모두 정답이어서), E0에 나눈 prefill의 일치 점검을 더함. 프롬프트와 채점은 그대로이다. (4) 긴 입력을 한 번에 prefill하는 시험은 이 8 GB GPU(바탕 화면 프로그램이 약 7 GB를 쓰고 있었다)에서 약 8,000토큰 이상에서 메모리를 넘어 사실상 멈추었다. 그래서 prefill을 1,024토큰씩 나누도록 바꿨고 나눈 결과가 한 번에 처리한 것과 같은지는 E0에서 확인했다. 또 첫 전체 실행을 시간 제한이 있는 명령으로 시작했다가 10분 만에 중단하고 제한 없는 실행으로 처음부터 다시 했다(코드는 그대로). (5) 분석 코드(<code>post12.py</code>)는 응답을 본 뒤에 썼다. 질문 위치 짝 비교, 거리 비교, 마진, 충돌 기록의 순서, 오답의 구역은 모두 사후 분석이다. E5의 위치 3등분은 계획했지만 예상이 없는 관찰이었다. 같은 코드를 두 번 따로 실행했고 40개 설정의 응답 2,300개가 두 번 모두 한 글자도 다르지 않았으며, 구간을 포함한 요약 결과와 어텐션 기록(배열 60개)도 비트 단위로 같았다. 로그는 소요 시간과 경고문의 시각만 달랐다. 같은 GPU와 라이브러리 버전에서의 확인이다.</li>
+      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 Qwen2.5-1.5B-Instruct 하나이고(창 32,768토큰, 이 실험은 16,384토큰까지) 문서는 영어로 된 가공의 문장 한 족이다. 바늘은 한 문장이고 질문이 바늘의 이름과 속성을 그대로 담는다. 여러 바늘, 여러 단계의 추론, 요약·집계 같은 RULER의 과제는 재지 않았다. 청크 검색은 BM25와 프롬프트 하나뿐이다. 어텐션 측정은 마지막 프롬프트 토큰에서, head 선택 규칙 하나로 했다. 검색 head 12개는 선택 규칙의 산물이고 정답과의 인과는 확인하지 않았다. E5의 문서 구조는 모든 구역이 같은 모양이어서 실제 문서보다 단순하다. 무관한 문장을 만드는 동사 목록(14개)에 <code>crossed</code>가 두 번 들어 있다. 실수이며 문장에 약간의 치우침을 줄 뿐 결과의 해석에는 영향이 없다고 본다. 표본의 단위는 시행(E2~E4는 칸마다 40번, E5는 문서 200개)이다. 정확도 1.000의 구간은 부트스트랩이 퇴화한 것이므로 문자 그대로의 확신이 아니라 표본에서 변동이 없었다는 뜻이다. 더 큰 모델, Claude, 더 긴 컨텍스트에서는 다를 수 있고 재지 않았다.</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>컨텍스트 창의 크기는 입력의 최대 길이를 약속할 뿐 그 길이에서의 성능은 약속하지 않는다. 토큰이 늘면 정확도와 재현율이 떨어지는 현상을 Claude 문서는 context rot라 부르고, RULER와 Levy 외도 모델의 최대 길이보다 훨씬 짧은 길이에서 과제에 따라 성능이 떨어진다고 보고했다. 어느 길이에서 떨어지는지는 모델과 과제마다 재야 한다.</li>
+      <li>prefill의 층당 FLOPs는 \(nc+4n^2d\)이고 attention이 위치별 계산과 같아지는 길이는 \(n^*=d+d_{\rm kv}+\tfrac32d_{\rm ff}\)이다(2장의 구조에서는 \(6d\), Qwen2.5-1.5B에서는 15,232). KV cache는 토큰당 \(2Ld_{\rm kv}b\)바이트로 길이에 비례한다. 매 턴 컨텍스트를 다시 보내는 에이전트가 읽는 입력 토큰은 \(Tn_0+\Delta T(T-1)/2\)로 턴 수의 제곱이고, 접두부 캐시는 새로 계산하는 몫만 선형으로 만든다(정리 12.1).</li>
+      <li>마지막 토큰이 한 head에서 바늘에 두는 어텐션의 로그 오즈는 \(\lambda=\mu+\ln m-\ln(n-m)\)로 정확히 분해된다. 마진 \(\mu\)가 길이와 무관하면 문서가 \(r\)배 길어질 때 \(\ln r\)만큼 줄고(기울기 \(-1\)), 같은 질량을 지키려면 마진이 \(\ln r\)만큼 커져야 한다. 첫 토큰 같은 sink가 있으면 기울기는 \(-1\)과 0 사이이다(정리 12.2). 위치의 효과는 희석, sink, 거리가 얽힌 가설이고, 긴 자료는 위에, 질문은 끝에 두라는 권고는 제공자의 시험에 근거한다.</li>
+      <li>방해는 셋으로 가른다. 관련 없는 정보와 이름이 다른 비슷한 정보는 정답을 식별 가능하게 두어 상한을 낮추지 않고, 정확도의 손실은 읽는 쪽의 오류이다. 같은 이름의 충돌하는 기록 \(c\)개는 날짜 같은 단서가 글에 없으면 상한이 \(1/c\)이고 모델로 올릴 수 없다. 단서를 글에 넣어야 한다(정리 12.3).</li>
+      <li>청크가 소제목의 이름과 값을 함께 담을 확률은 이름–값 거리 \(\delta\), 청크 길이 \(L\), 보폭 \(s=L-o\)에서 \(\min\{1,(L-\delta)/s\}\)이다. 겹침이 \(\delta\) 이상이면 1이고 색인은 \(L/s\)배가 된다. 통째 입력과 검색 사이의 선택은 검색 뒤의 상한 \(\Pr[I]+(1-\Pr[I])\kappa\), 짧은 컨텍스트의 읽기 정확도, 토큰 수로 정한다(정리 12.4).</li>
+      <li>실험(Qwen2.5-1.5B-Instruct, 코드 한 문장을 심은 문서)에서 길이 1,024~16,384토큰, 깊이 0~1의 25칸이 모두 정확도 1.000이었고(0/1000) 질문을 앞에 두어도 같았다. 마지막 토큰이 바늘에 두는 어텐션의 로그 오즈는 검색 head 12개에서 길이 16배에 거의 내려가지 않았고(기울기 \(-0.10\), 마진이 희석의 92%를 상쇄), 전체 head에서는 \(-0.45\)로 내렸다. 둘 다 예상한 \([-1,0]\) 안이다. 이 과제에서는 위치도 길이도 정확도를 떨어뜨리지 않았다. 모델 하나, 가장 쉬운 단일 바늘 과제의 결과이다.</li>
+      <li>정확도가 내려간 곳은 방해와 구조였다. 이름이 다른 비슷한 기록이 있으면 0.85~0.90, 같은 이름의 충돌 기록 4개에서는 상한과 같은 0.250이었고 첫 번째 기록이 가장 자주 골라졌다(27/40). 소제목이 있는 문서에서 통째 입력은 0.800(3,627토큰), 청크 읽기의 최고는 0.640(395토큰)이었다. 겹침 64는 정답이 식별되는 비율을 1.000으로 올렸지만 정확도는 0.430으로 내려갔고 오답 114개 중 112개가 바로 앞 구역의 코드였다. 같은 모델·같은 가공 문서의 결과이다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 어떤 모델의 컨텍스트 창이 100만 토큰이라고 한다. 이 숫자가 보증하는 것은?</p><div class="opts">
+        <button class="opt" data-correct>한 번의 요청에 넣을 수 있는 입력과 출력의 최대 길이</button>
+        <button class="opt">100만 토큰 안의 어느 위치에 있는 정보든 같은 확률로 찾아 쓴다는 것</button>
+        <button class="opt">길이가 늘어도 정확도가 떨어지지 않는다는 것</button>
+      </div><div class="quiz-exp">12.1절이다. 창의 크기는 입력의 최대 길이이고 그 길이에서의 성능은 별개이다. Claude API 문서도 토큰이 늘면 정확도와 재현율이 떨어지는 context rot가 있어 더 큰 창이 자동으로 더 좋은 것은 아니라고 쓴다. RULER와 Levy 외의 보고도 같은 방향이다.</div></div>
+      <div class="quiz-q"><p>2. 가상의 구조 \(d=2048\), \(d_{\rm kv}=512\), \(d_{\rm ff}=8192\)(게이트 MLP)에서 prefill의 attention이 위치별 계산과 같아지는 길이 \(n^*\)는? (마스크까지 센 계산)</p><div class="opts">
+        <button class="opt">\(6d=12{,}288\)</button>
+        <button class="opt" data-correct>\(d+d_{\rm kv}+1.5d_{\rm ff}=14{,}848\)</button>
+        <button class="opt">\(2(d+d_{\rm kv}+1.5d_{\rm ff})=29{,}696\)</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-cost"></a>의 1번이다. \(6d\)는 2장의 구조(key·value head가 query head와 같은 수, MLP 은닉이 \(4d\))의 값이고 이 구조에는 맞지 않는다. 29,696은 마스크된 쪽을 건너뛰는 구현에서의 전환점이다(FLOPs가 절반이 되어 두 배 길이에서 만난다).</div></div>
+      <div class="quiz-q"><p>3. 층 32개, \(d_{\rm kv}=1024\), 16비트 모델의 KV cache는 토큰당 몇 바이트이고 32,768토큰이면 얼마인가?</p><div class="opts">
+        <button class="opt">64 KiB, 2 GiB</button>
+        <button class="opt" data-correct>128 KiB, 4 GiB</button>
+        <button class="opt">128 KiB, 4 MiB</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-cost"></a>의 2번이다. \(2\times32\times1024\times2=131{,}072\) B = 128 KiB, \(131{,}072\times32{,}768=2^{32}\) B = 4 GiB이다. 앞의 2는 key와 value를 센 것이고 뒤의 2는 16비트의 바이트 수이다.</div></div>
+      <div class="quiz-q"><p>4. 바늘이 \(m=10\)토큰이다. 2,000토큰 문서에서 한 head의 바늘 질량의 오즈가 1(질량 1/2)이다. 마진이 길이와 무관하면 8,000토큰 문서에서 바늘 질량은 약 얼마인가?</p><div class="opts">
+        <button class="opt">0.5로 그대로이다.</button>
+        <button class="opt" data-correct>약 0.20이다.</button>
+        <button class="opt">약 0.125이다(2,000에서 8,000으로 4배 길어졌으니 1/4의 절반).</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-dilute"></a>의 1, 2번이다. 오즈는 \(m e^{\mu}/(n-m)\)이고 \(n=2000\)에서 1이므로 \(me^{\mu}=1990\)이다. \(n=8000\)에서 오즈는 \(1990/7990=0.249\), 질량은 \(0.249/1.249=0.199\)이다. 오즈가 \(n-m\)에 반비례하는 것이지 질량이 그런 것이 아니다.</div></div>
+      <div class="quiz-q"><p>5. 같은 창고의 출입 코드를 말하는 기록이 날짜 없이 5개 있고 정답이 그 가운데 균등하게 하나이다. 어떤 독자의 정확도도 넘지 못하는 값은? 기록에 날짜를 넣으면 어떻게 되는가?</p><div class="opts">
+        <button class="opt">0.5, 변하지 않는다.</button>
+        <button class="opt" data-correct>0.2, 날짜로 정답이 정해진다면 상한이 올라간다.</button>
+        <button class="opt">0.2, 더 큰 모델을 쓰면 올라간다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-distract"></a>의 3, 4번이다. 단서가 없으면 \(1/c=0.2\)이다. 날짜가 글에 들어가 칸이 잘게 나뉘면(10장의 정리 10.1의 3번) 상한이 올라간다. 모델의 크기로는 올릴 수 없다.</div></div>
+      <div class="quiz-q"><p>6. 소제목의 이름 단어에서 값 단어까지 20단어이다. 길이 100단어 청크를 겹침 없이 자르면 이름과 값이 같은 청크에 들 확률은? 겹침을 50단어로 하면?</p><div class="opts">
+        <button class="opt">0.5, 0.75</button>
+        <button class="opt" data-correct>0.8, 1</button>
+        <button class="opt">0.2, 0.4</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-chunk"></a>이다. 겹침 없이는 \(1-\delta/L=1-20/100=0.8\)이다. 겹침 50이면 \(s=50\)이고 \(\min\{1,(100-20)/50\}=\min\{1,1.6\}=1\)이다. 겹침이 \(\delta=20\) 이상이면 1이어서 50은 필요보다 넉넉하다. 색인은 \(100/50=2\)배가 된다.</div></div>
+      <div class="quiz-q"><p>7. 어떤 자료에서 청크 검색은 \(\Pr[I]=0.7\), 짧은 컨텍스트의 읽기 정확도 \(a_I=0.95\), \(\kappa=0.01\)이다. 같은 자료를 통째로 읽으면 정확도가 0.85이다. 정확도만 보면 어느 쪽이 나은가?</p><div class="opts">
+        <button class="opt">검색(0.95)</button>
+        <button class="opt" data-correct>통째 입력. 검색의 정확도는 \(0.7\times0.95+0.3\times0.01=0.668\)이다.</button>
+        <button class="opt">둘이 같다.</button>
+      </div><div class="quiz-exp"><a href="ch11.html#thm-funnel">11장의 정리 11.4</a>를 쓴다. 검색 뒤의 정확도는 읽기 정확도 \(a_I\)가 아니라 \(\Pr[I]\,a_I+\Pr[\bar I]a_{\bar I}\)이다. 정답이 컨텍스트에서 식별되지 않는 30%가 상류 오류로 남는다. 이 경우 비용(토큰)을 감수하고 통째로 읽거나 색인(머리말, 겹침)을 고쳐 \(\Pr[I]\)를 올려야 한다(<a class="ref" href="#thm-chunk"></a>).</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-cost" data-level="1"><p>가상의 구조 \(L=32\), \(d=4096\), \(d_{\rm kv}=1024\), \(d_{\rm ff}=14336\)(게이트 MLP), 16비트이다. (가) 토큰·층당 위치별 계산량 \(c\)와 전환점 \(n^*\)을 구하라. (나) \(n=4096\)과 \(n=32768\)에서 attention이 층 계산량에서 차지하는 몫은? (다) KV cache는 토큰당 몇 바이트이고 32,768토큰에서 몇 GiB인가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-cost"></a>이다. (가) \(c=4d^2+4d\,d_{\rm kv}+6d\,d_{\rm ff}=67.1\mathrm{M}+16.8\mathrm{M}+352.3\mathrm{M}=4.36\times10^{8}\), \(n^*=d+d_{\rm kv}+1.5d_{\rm ff}=4096+1024+21504=26{,}624\). (나) 몫은 \(n/(n+n^*)\)이어서 \(4096/30720=0.133\), \(32768/59392=0.552\). (다) \(2\times32\times1024\times2=131{,}072\) B이고 32,768토큰에서 \(2^{32}\) B = 4 GiB이다. 같은 \(d\)라도 \(d_{\rm ff}\)가 크면 전환점이 뒤로 밀린다.</p></details></div>
+    <div class="prob" id="prob-turns" data-level="1"><p>에이전트가 초기 컨텍스트 20,000토큰에서 시작해 매 턴 3,000토큰이 덧붙는다. 40턴을 돈다. (가) 매 턴 컨텍스트 전체를 다시 계산하면 읽는 입력 토큰의 합은? (나) 접두부를 캐시하면 새로 계산하는 토큰은? (다) (가)가 \(T\)의 제곱으로 자라는 항은 무엇인가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-cost"></a>의 3번이다. (가) \(Tn_0+\Delta T(T-1)/2=800{,}000+3{,}000\times780=3{,}140{,}000\). (나) \(n_0+(T-1)\Delta=20{,}000+39\times3{,}000=137{,}000\). (다) \(\Delta T(T-1)/2\)이다. 덧붙는 양 \(\Delta\)가 크고 턴 수가 많을수록 이 항이 지배한다. 캐시를 써도 캐시에서 읽어 오는 토큰의 합은 같은 모양으로 \(T\)의 제곱이다.</p></details></div>
+    <div class="prob" id="prob-dilute" data-level="2"><p>어떤 head가 바늘(\(m=10\)토큰)에 쏟는 점수의 지수 합이 \(Z_{\mathcal N}=4000\)이고, 첫 토큰(sink)의 지수가 \(Z_s=2000\)이며 나머지 키의 지수는 각각 1이다. \(n=1000\), 4,000, 16,000에서 (가) 바늘 질량과 로그 오즈를 구하라. (나) \(\ln n\)에 대한 기울기를 구간별로 구하라. (다) 이 값이 <a class="ref" href="#thm-dilute"></a>의 3번과 어떻게 이어지는가?</p>
+      <details class="sol"><summary>풀이</summary><p>\(M=Z_{\mathcal N}/(Z_{\mathcal N}+Z_s+(n-m))\)이다. (가) \(n=1000\): \(4000/6990=0.572\), \(\lambda=\ln(4000/2990)=0.291\). \(n=4000\): \(4000/9990=0.400\), \(\lambda=-0.404\). \(n=16000\): \(4000/21990=0.182\), \(\lambda=-1.503\). (나) 1,000에서 4,000 구간 \((-0.404-0.291)/\ln4=-0.50\), 4,000에서 16,000 구간 \((-1.503+0.404)/\ln4=-0.79\). (다) sink가 있으면 기울기는 \(-1\)과 0 사이이고 \(n\)이 클수록 \(-1\)에 가까워진다(3번). 마진이 그대로여도 sink 때문에 짧은 구간에서는 희석이 덜 보인다.</p></details></div>
+    <div class="prob" id="prob-margin" data-level="2"><p>검색 head의 바늘 질량이 \(n=1024\)에서 0.95, \(n=16384\)에서 0.90이다. \(m=15\)토큰이다. (가) 두 길이의 로그 오즈를 구하라. (나) 마진 \(\hat\mu=\lambda-\ln m+\ln(n-m)\)을 구하고 두 길이에서 얼마나 달라졌는가? (다) 마진이 그대로였다면 \(n=16384\)에서 질량은 얼마였을까?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#def-mass"></a>와 <a class="ref" href="#thm-dilute"></a>이다. (가) \(\lambda=\ln(0.95/0.05)=2.944\), \(\ln(0.90/0.10)=2.197\). (나) \(\hat\mu(1024)=2.944-\ln15+\ln1009=2.944-2.708+6.917=7.153\), \(\hat\mu(16384)=2.197-2.708+\ln16369=2.197-2.708+9.703=9.192\). 마진이 2.04 커졌다. 길이가 16배(\(\ln16=2.77\))인 것을 마진이 \(2.04/2.77=74\%\) 상쇄했다. (다) 마진이 그대로이면 \(\lambda=7.153+2.708-9.703=0.158\)이고 질량은 \(1/(1+e^{-0.158})=0.539\)이다. 실제 0.90과 큰 차이가 난다.</p></details></div>
+    <div class="prob" id="prob-chunk" data-level="2"><p>소제목의 이름 단어에서 값 단어까지 \(\delta=70\)단어이다. 청크 길이 \(L=200\)이다. (가) 겹침 없이 자를 때 함께 담길 확률은? (나) 함께 담길 확률을 1로 만드는 최소 겹침과 그때 색인이 몇 배가 되는가? (다) 청크를 \(L=64\)로 줄이면?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-chunk"></a>이다. (가) \(1-70/200=0.65\). (나) \(o\ge\delta=70\)이면 \(s=L-o\le130\)이어서 \((L-\delta)/s=130/130=1\)이다. 색인은 \(L/s=200/130=1.54\)배이다. (다) \(\delta\ge L\)이므로 확률이 0이다. 청크를 줄이면 이름과 값이 항상 갈리고, 겹침을 키워도 \(o\lt L\)이어야 하므로 \(L\le\delta\)이면 이름과 값을 함께 담을 수 없다.</p></details></div>
+    <div class="prob" id="prob-distract" data-level="2"><p>다음 세 경우의 상한을 구하라(값은 균등, 후보 충분히 많음). (가) 문서에 창고 A의 코드 문장 하나와 다른 창고 코드 문장 30개가 있다. 질문은 A의 코드이고 독자는 이름을 읽는다. (나) 같은 설정인데 독자가 이름을 쓰지 않고 코드 하나를 고른다. (다) 문서에 창고 A의 코드 문장이 서로 다른 값으로 4개 있고 날짜도 순서도 정답과 무관하다.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-distract"></a>이다. (가) 정답이 식별되므로 \(B=1\)이다(정확도가 1보다 낮으면 읽는 쪽 오류). (나) 코드 31개 중 하나를 고르면 \(1/31=0.032\)이고 방해의 값을 답할 비율은 \(30/31\)이다. 이것이 이름을 쓰는 독자와의 기준선이다. (다) 충돌 4개이고 단서가 없으므로 \(1/4\)이다. 날짜가 정답과 무관하면 날짜를 넣어도 상한은 오르지 않는다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="3"><p>수백 쪽의 계약서 PDF 한 건에서 '해지 통보 기한'을 묻는 에이전트를 만든다. 조항 번호가 소제목에 있고 기한은 조항 본문에 있다. (가) 통째 입력과 청크 검색 가운데 무엇을 기본으로 할지, 이유와 함께 쓰라. (나) 위치 효과와 방해의 효과를 분리해 재는 실험을 설계하라. 같게 할 것과 바꿀 것, 관측값, 예상과 기각 조건을 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계다. (가) 계약서는 같은 모양의 조항이 많아 이름이 다른 비슷한 정보가 많고, 소제목과 본문이 갈리는 구조여서 청크 검색은 \(\Pr[I]\)가 낮을 수 있다(정리 12.4). 통째 입력은 길이 \(n\)에서 읽기 오류가 있다(12.2, 12.3절). 기본은 검색을 쓰되 청크 앞에 조항 번호와 소제목을 붙이고(머리말) 겹침을 \(\delta\) 이상으로 하며, \(\Pr[I]\)를 정답 청크가 표시된 질문 표본으로 먼저 잰다. \(\Pr[I]\)가 낮으면 통째 입력(또는 조항 단위로 검색해 조항 전체를 읽기)을 쓴다. (나) 같은 계약서와 질문 \(n\)개, 같은 모델과 프롬프트에서 정답 조항의 깊이(앞·가운데·끝)와 문서 길이(전체/앞 \(k\)쪽만)를 바꾼다. 방해는 비슷한 조항(해지 통보 기한이 있는 다른 계약 유형)을 넣고 빼서 바꾼다. 관측값은 정확도와 복사 비율(다른 조항의 기한을 답한 비율)이다. 예상(정리 12.3에서): 이름이 다른 비슷한 조항만 있을 때는 상한이 1이고, 개정 전후 조항이 같이 있고 날짜가 글에 없으면 상한이 \(1/c\)이다. 기각 조건: 개정 조항이 \(c\)개이고 정답이 균등한 설정에서 95% 구간의 하한이 \(1/c\)를 넘으면 정답 생성에 정보가 새는 오류이다. 깊이 효과는 이 장의 E2처럼 같은 문서에서 정답 조항만 옮겨 짝지어 비교한다.</p></details></div>
+    <div class="prob" id="prob-binom" data-level="3"><p>이 장의 E4처럼 충돌 기록 4개(정답은 균등하게 하나)에서 시행 40번의 정확도를 잰다. 상한은 0.25이다. (가) 상한에 딱 맞는 독자가 40번 중 16번 이상 맞힐 확률은? (나) 위반을 의심하려면 몇 번 이상이어야 하는가(\(\Pr\lt0.01\))? (다) 위반이 아니라는 결과는 무엇을 말하고 말하지 않는가?</p>
+      <details class="sol"><summary>풀이</summary><p>이항분포 \(n=40\), \(p=0.25\)(기댓값 10)이다. (가) \(\Pr[X\ge16]=0.026\)이다. 2.6%는 드물지만 한 번의 결과로 위반이라고 하기에는 약하다(0.40의 정확도이다). (나) \(\Pr[X\ge17]=0.0116\), \(\Pr[X\ge18]=0.0047\)이어서 18번 이상(0.45)이면 \(\Pr\lt0.01\)이다. 이때는 이 장의 기각 조건대로 정답 생성에 정보가 새는 오류를 의심한다. (다) 위반이 아니라는 것은 이론과 어긋나지 않았다는 말이고 모델이 상한에 가깝다거나 이론이 입증되었다는 뜻이 아니다. 8장의 표본 오차와 같은 논리이다.</p></details></div>
   </section>
 </main>
 </body>
