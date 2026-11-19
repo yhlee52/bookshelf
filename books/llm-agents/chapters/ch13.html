@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>13 도구를 호출하는 모델 · AgentBook</title>
-<meta name="description" content="모델 출력과 외부 행동 · 도구 호출의 입력·결과 · 실패와 재시도 · 읽기 도구와 쓰기 도구">
+<meta name="description" content="모델의 출력은 글이고 외부 행동은 하네스가 그 글을 읽어 실행할 때만 일어난다는 구분에서 출발해, 도구 호출이 정답으로 이어지는 단계(호출·스키마·인자·실행·읽기)를 깔때기로 나눈다. 인자의 상한과 스키마가 보증하는 것, 같은 컨텍스트가 같은 행동을 만든다는 관측 동일성, 오류의 종류와 재시도가 도움이 되는 조건, 읽기 도구와 쓰기 도구의 부작용과 응답이 유실된 쓰기의 중복을 다룬다. 마지막 실험은 작은 조회·예약 도구가 오류를 돌려줄 때 작은 언어모델이 재시도하는지, 지어내는지, 중복 쓰기를 만드는지 잰다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,896 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch13">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">13</span></div>
     <h1 data-fill="chapter-title">도구를 호출하는 모델</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">1~12장의 모델은 컨텍스트를 읽고 글을 쓰는 것으로 끝났다. 11장은 정답이 컨텍스트에 들어와야 한다는 조건에서 출발했고, 12장은 들어온 정보를 모델이 어떻게 쓰는지 보았다. 그런데 컨텍스트에 사실을 들여오는 일, 곧 재고를 조회하고 파일을 읽는 일은 모델이 할 수 없다. 모델이 내는 것은 토큰이고, 그 토큰이 바깥 세계의 행동이 되려면 누군가가 그 글을 읽어 실행해야 한다. 이 장의 질문은 모델이 도구를 부르는 장면에서 무엇이 모델의 일이고 무엇이 모델 바깥의 일인가이다. 13.1절은 도구 호출을 '약속된 형식의 글을 하네스가 읽어 실행하는 약속'으로 정의하고, 정답이 나오기까지의 단계(호출을 낸다, 스키마에 맞다, 인자가 맞다, 도구가 성공한다, 결과를 읽는다)를 깔때기로 나누어 11장의 식을 도구에 옮긴다. 13.2절은 인자의 값이 어디서 오는지에 따라 달라지는 상한, 스키마가 보증하는 것과 보증하지 않는 것, 같은 컨텍스트를 만드는 두 세계를 모델이 구분할 수 없다는 관측 동일성을 다룬다. 13.3절은 오류를 종류별로 나누고 재시도가 어떤 실패에서만 도움이 되는지, 오류 메시지가 어떤 정보를 실어 나르는지 계산한다. 13.4절은 읽기 도구와 쓰기 도구를 부작용으로 가르고, 응답이 유실된 쓰기를 다시 부르면 효과가 겹치는 이유를 센다. 마지막 실험은 작은 조회·예약 도구가 오류를 돌려줄 때 작은 언어모델이 재시도하는지, 지어내는지, 쓰기를 겹치게 하는지 잰다. 이 장은 14장(행동 루프), 19장(도구와 MCP), 24장(권한)의 바탕이다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>도구 호출을 '모델의 출력 글, 하네스의 파서와 실행, 컨텍스트로 돌아오는 결과 글'로 나누어 설명하고, 호출이 정답으로 이어지는 단계를 곱으로 계산할 수 있다.</li>
+      <li>도구 인자의 값이 컨텍스트에서 복사되는지, 유도되는지, 추측되는지에 따라 정확도의 상한이 어떻게 달라지는지, 그리고 스키마 강제(<code>strict</code>)가 보증하는 것과 보증하지 않는 것을 구분할 수 있다.</li>
+      <li>같은 컨텍스트가 같은 행동을 만든다는 관측 동일성으로, 결과에 키를 싣지 않은 도구의 잘못된 성공과 일시·영구 실패의 첫 오류를 모델이 구별할 수 없는 이유를 설명할 수 있다.</li>
+      <li>일시 실패의 재시도 성공 확률과 기대 호출 수, 영구 실패에서 같은 호출을 되풀이하는 낭비, 틀린 인자에서 오류 메시지가 운반하는 정보를 계산할 수 있다.</li>
+      <li>읽기 도구, 멱등 쓰기, 비멱등 쓰기를 구분하고, 응답이 유실된 쓰기를 재시도할 때의 중복 횟수와 그것을 막는 설계(멱등 키, 확인 후 재시도)를 설명할 수 있다.</li>
+      <li>도구가 오류를 돌려줄 때의 모델의 반응(재시도, 인자 수정, 지어내기, 쓰기 중복)을 조건을 바꿔 재는 실험을 설계하고, 모델이 하지 않은 것까지 결과로 해석할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch04.html">4장</a>(대화의 역할과 컨텍스트에 쌓이는 메시지), <a href="ch10.html">10장</a>(<a href="ch10.html#thm-collide">정리 10.1</a>), <a href="ch11.html">11장</a>(<a href="ch11.html#thm-blind">정리 11.1</a>, <a href="ch11.html#thm-funnel">정리 11.4</a>), <a href="ch12.html">12장</a>(<a href="ch12.html#thm-cost">정리 12.1</a>의 비용 모델)</p>
   </header>
+
+
+  <!-- ============================================================ 13.1 -->
   <section id="s1">
     <h2>모델 출력과 외부 행동</h2>
-    <p class="slot" data-slot="13.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>모델의 출력은 토큰의 열이다(<a href="ch01.html">1장</a>). 모델은 파일을 열지도, 재고를 조회하지도, 예약을 만들지도 못한다. 도구 호출(tool call)은 이 사실을 다음 약속으로 우회한다. 모델이 약속된 형식의 글을 내면, 모델 바깥의 프로그램이 그 글을 읽어 함수를 실행하고, 결과를 다시 컨텍스트에 붙여 모델을 다시 부른다. 이 프로그램을 이 책은 <b>하네스</b>(harness)라 부른다. 모델을 호출하고, 출력을 해석하고, 도구를 실행하고, 대화를 이어 붙이는 프로그램 전체이다. 모델의 관점에서 호출도 결과도 모두 컨텍스트의 글이다. 모델은 도구가 실행되는 것을 보지 못하고, 실행의 결과가 글로 돌아오는 것만 본다.</p>
+    <p>Claude API에서 이 약속은 다음 모양이다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Tool use with Claude</a>, <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">Handle tool calls</a>, 2026년 11월 확인). 요청의 <code>tools</code>에 도구의 <code>name</code>, <code>description</code>, <code>input_schema</code>(JSON Schema)를 주면, Claude는 도구가 필요하다고 판단한 턴에 <code>stop_reason: "tool_use"</code>로 멈추고 <code>tool_use</code> 블록(<code>id</code>, <code>name</code>, <code>input</code>)을 낸다. 하네스는 그 도구를 실행해, 다음 요청의 user 메시지에 <code>tool_result</code> 블록(<code>tool_use_id</code>, <code>content</code>, 선택 항목인 <code>is_error</code>)으로 돌려보낸다. 문서는 도구가 사용자의 애플리케이션에서 실행되는 <b>client tools</b>와 Anthropic의 인프라에서 실행되는 <b>server tools</b>(<code>web_search</code> 등)를 나눈다. 이 장이 다루는 것은 하네스가 실행하는 client tools이다. 이 장의 실험은 같은 구조를 Qwen의 <code>&lt;tool_call&gt;</code> JSON 형식으로 재현하며, 메시지가 오가는 순서와 각 단계의 책임은 같다.</p>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 452" role="img" aria-label="도구 호출 한 번의 왕복. 사용자가 질문하면 하네스가 시스템 프롬프트, 도구 정의, 질문으로 컨텍스트를 만들어 모델에 준다. 모델은 호출 JSON 글을 내고, 하네스가 파서와 스키마 검사를 거쳐 도구를 실행한다. 도구의 결과 글은 컨텍스트에 덧붙어 모델로 돌아가고, 모델이 최종 답을 낸다.">
+  <rect x="42" y="10" width="96" height="30" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="90" y="30" text-anchor="middle">사용자</text><path d="M90 40 V440" class="s-faint" stroke-dasharray="3 5"/>
+  <rect x="242" y="10" width="96" height="30" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="290" y="30" text-anchor="middle">하네스</text><path d="M290 40 V440" class="s-faint" stroke-dasharray="3 5"/>
+  <rect x="462" y="10" width="96" height="30" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="510" y="30" text-anchor="middle">모델</text><path d="M510 40 V440" class="s-faint" stroke-dasharray="3 5"/>
+  <rect x="662" y="10" width="96" height="30" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="710" y="30" text-anchor="middle">도구</text><path d="M710 40 V440" class="s-faint" stroke-dasharray="3 5"/>
+  <path d="M90 84 H290" class="s-line"/><polygon points="290,84 281,79.5 281,88.5" style="fill:var(--text-dim)"/><text class="t-acc" x="96" y="76">1</text><text class="t-dim" x="114" y="76">질문</text>
+  <path d="M290 124 H510" class="s-line"/><polygon points="510,124 501,119.5 501,128.5" style="fill:var(--text-dim)"/><text class="t-acc" x="296" y="116">2</text><text class="t-dim" x="314" y="116">시스템 + 도구 정의 + 질문</text>
+  <path d="M510 164 H290" class="s-line" stroke-dasharray="5 4"/><polygon points="290,164 299,159.5 299,168.5" style="fill:var(--text-dim)"/><text class="t-acc" x="296" y="156">3</text><text class="t-dim" x="314" y="156">출력 글: 호출 JSON</text><text class="t-mono" x="314" y="179">stop_reason: tool_use</text>
+  <rect x="196" y="190" width="188" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-acc" x="204" y="209">4</text><text class="t-dim" x="296" y="209" text-anchor="middle">파서 · 스키마 검사</text>
+  <path d="M290 250 H710" class="s-line"/><polygon points="710,250 701,245.5 701,254.5" style="fill:var(--text-dim)"/><text class="t-acc" x="296" y="242">5</text><text class="t-dim" x="314" y="242">f(a) 실행: 효과는 여기서만 일어난다</text>
+  <path d="M710 290 H290" class="s-line" stroke-dasharray="5 4"/><polygon points="290,290 299,285.5 299,294.5" style="fill:var(--text-dim)"/><text class="t-acc" x="296" y="282">6</text><text class="t-dim" x="314" y="282">결과 글 (오류도 결과이다)</text>
+  <path d="M290 330 H510" class="s-line"/><polygon points="510,330 501,325.5 501,334.5" style="fill:var(--text-dim)"/><text class="t-acc" x="296" y="322">7</text><text class="t-dim" x="314" y="322">컨텍스트 += 호출 + 결과</text><text class="t-mono" x="314" y="345">tool_result</text>
+  <path d="M510 376 H290" class="s-line" stroke-dasharray="5 4"/><polygon points="290,376 299,371.5 299,380.5" style="fill:var(--text-dim)"/><text class="t-acc" x="296" y="368">8</text><text class="t-dim" x="314" y="368">최종 답: 글</text>
+  <path d="M290 416 H90" class="s-line" stroke-dasharray="5 4"/><polygon points="90,416 99,411.5 99,420.5" style="fill:var(--text-dim)"/><text class="t-acc" x="96" y="408">9</text><text class="t-dim" x="114" y="408">답</text>
+  <text class="t-mono" x="510" y="440" text-anchor="middle">모델은 글만 낸다</text><text class="t-mono" x="710" y="440" text-anchor="middle">세계에 닿는 것</text></svg>
+      <figcaption><b>그림 13-1.</b> 도구 호출 한 번의 왕복. 모델은 호출을 글로 낼 뿐이고(3), 실행과 그 효과는 하네스가 부르는 도구에서만 일어난다(5). 오류도 결과의 글로 돌아온다(6). 파서와 스키마 검사(4)는 하네스의 일이다.</figcaption>
+    </figure>
+    <p>왜 이런 우회가 필요한가. 11장의 정리가 답이다. 정답이 가중치에 닿지 않는 사실(오늘 재고, 사내 문서)이면 컨텍스트 없이는 찍는 수준을 넘을 수 없고(<a href="ch11.html#thm-blind">정리 11.1</a>), 정확도를 올리는 길은 정답에 대한 정보가 컨텍스트로 들어오는 것뿐이다. 도구의 읽기는 그 정보를 들여오는 통로이고, 도구의 쓰기는 세계를 바꾸는 통로이다. 모델이 이 약속을 지키도록 만드는 방법도 연구되었다. <a href="https://arxiv.org/abs/2302.04761">Schick 외</a>(Toolformer)는 모델이 어떤 API를 언제, 어떤 인자로 부를지, 결과를 이후 예측에 어떻게 반영할지를 API마다 몇 개의 시범만으로 스스로 배울 수 있다고 보고했다(초록). 반대쪽 증거도 있다. <a href="https://arxiv.org/abs/2305.15334">Patil 외</a>(Gorilla)는 GPT-4가 API를 부를 때 정확한 입력 인자를 만들지 못하고 API 사용법을 틀리게 지어내는 경향이 있다고 지적했다(초록). 호출은 학습할 수 있는 능력이면서, 틀릴 수 있는 출력이다.</p>
+
+    <div class="box def" id="def-tool"><div class="box-h">도구, 호출, 파서</div>
+      <p><b>도구</b> \(f\)는 입력 스키마 \(\mathcal A_f\)(허용되는 인자 객체의 집합)를 가진, 하네스 쪽의 함수이다. 결과는 글로 돌아오고, 실패도 오류 결과(글)로 돌아온다. 모델이 낸 출력 \(y\)에 하네스의 <b>파서</b> \(\pi\)를 적용하면 \(\pi(y)\in\{\text{호출}(f,a),\ \text{글},\ \bot\}\)이다. \(\bot\)은 호출처럼 보이지만 형식이 깨진 출력이다. \(\pi(y)=\text{호출}(f,a)\)이면 하네스는 \(r=f(a)\)를 실행해 \(r\)을 컨텍스트에 덧붙이고 모델을 다시 부른다. 외부 세계에 일어나는 일, 곧 <b>효과</b>는 \(f\)의 실행에서만 일어난다. 모델의 출력만으로는 아무 일도 일어나지 않는다.</p>
+    </div>
+    <p>이 정의가 나누는 것은 책임이다. 모델은 \(y\)를 정한다. 하네스는 \(\pi\)로 \(y\)를 해석하고, \(a\)가 스키마에 맞는지 검사하고, \(f\)를 실행하고, 결과를 컨텍스트에 돌려준다. 도구는 \(f(a)\)를 계산하고 효과를 낸다. 그러므로 호출이 정답으로 이어지는 길에는 단계가 여럿이고, 각 단계의 실패는 다른 곳에서 고친다. 11장이 RAG를 색인·검색·선택·답변으로 나눈 것과 같은 방식으로 나눈다.</p>
+    <div class="box def" id="def-chain"><div class="box-h">호출 깔때기</div>
+      <p>질문의 답을 아는 데 필요한 사실 \(x\)(예: 어떤 SKU의 재고)를 읽는 도구 \(f\)가 있다고 하자. 다음 사건을 정의한다.</p>
+      <ul>
+        <li>\(C_1\): 모델이 호출을 낸다(\(\pi(y)\)가 호출이다).</li>
+        <li>\(C_2\): 호출의 인자가 스키마에 맞는다(\(a\in\mathcal A_f\)).</li>
+        <li>\(C_3\): 인자의 값이 맞다. 곧 \(a\)가 \(x\)를 담은 레코드를 가리킨다.</li>
+        <li>\(C_4\): 도구가 그 레코드를 돌려주며 성공한다.</li>
+      </ul>
+      <p>\(I=C_1\cap C_2\cap C_3\cap C_4\)를 '정답이 식별되는 결과가 컨텍스트에 들어왔다'는 사건으로 정의한다(<a href="ch11.html#def-funnel">11장의 정의 11.4</a>의 \(I\)와 같은 역할이다). 마지막 단계 \(C_5\)는 모델이 그 결과를 읽어 답하는 일이고, \(I\)일 때의 정확도 \(a_I\)가 잰다.</p>
+    </div>
+    <div class="box thm" id="thm-chain"><div class="box-h">호출 깔때기: 고칠 곳은 가장 작은 단계이다</div>
+      <p>사실 \(x\)가 \(V\)가지 값에 균등하고, \(\bar I\)일 때 컨텍스트가 \(x\)에 대한 정보를 담지 않는다고 하자.</p>
+      <ol>
+        <li>\(\Pr[I]=p_1p_2p_3p_4\)이다. \(p_k=\Pr[C_k\mid C_1,\dots,C_{k-1}]\)이다.</li>
+        <li>모델이 \(\bar I\)에서 어떻게 하든 정확도는 \(\mathrm{Acc}=\Pr[I]\,a_I+\Pr[\bar I]\,a_{\bar I}\le\Pr[I]\,a_I+(1-\Pr[I])/V\)이다. 읽기를 완벽하게 만들어도(\(a_I=1\)) \(\Pr[I]+(1-\Pr[I])/V\)를 넘지 못한다.</li>
+        <li>\(\bar I\)에서 값을 말하는 답은 \(1/V\) 이하의 확률로만 맞는다. \(V\)가 크면 거의 항상 틀린 값을 자신 있게 말하는 지어낸 답(fabrication)이다. \(\bar I\)에서 값을 말하지 않고 실패를 보고하는 답은 이 오류를 내지 않지만 정확도에 더하는 것이 없다(정확도 0도 위 상한 안에 있다).</li>
+        <li>첫 호출이 정답 레코드를 담을 수 없는 시행(인자가 틀렸거나 도구가 반드시 실패하는 첫 호출)에서 \(I\)가 일어나려면 호출이 두 번 이상이어야 한다. 그러므로 그런 조건에서 정답이 도구 결과에서 온 시행은 모두 호출이 2번 이상이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번은 확률의 연쇄 법칙이다. 2번은 전체 확률 공식에 \(a_{\bar I}\le1/V\)를 넣은 것이다. \(\bar I\)에서 컨텍스트가 \(x\)와 독립이면 어떤 독자의 답도 \(x\)와 독립이어서 맞힐 확률이 \(\sum_a\Pr[\hat a=a]\,\Pr[x=a]=1/V\)이다(<a href="ch11.html#thm-blind">정리 11.1</a>의 1번, 이 값이 <a href="ch11.html#thm-funnel">정리 11.4</a>의 \(\kappa\)이다). 3번은 같은 논리이다. 4번은 \(C_3\)와 \(C_4\)가 모두 성립하는 호출이 하나도 없는 시행에서는 정답 레코드가 컨텍스트에 들어올 수 없다는 뜻이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-chain"><div class="box-h">어느 단계를 먼저 고칠 것인가</div>
+      <p>(가상의 값) \(p_1=0.98\), \(p_2=0.97\), \(p_3=0.95\), \(p_4=0.90\), \(V=900\), \(a_I=0.95\)라 하자. \(\Pr[I]=0.813\)이고 정확도의 상한은 \(0.813\times0.95+0.187/900=0.772\)이다. 한 단계씩 완벽하게 고치면 상한은 \(C_1\)에서 0.788(+0.016), \(C_2\)에서 0.796(+0.024), \(C_3\)에서 0.813(+0.041), \(C_4\)에서 0.858(+0.086)로 오르고, 읽기 \(a_I\)를 1로 올리면 0.813(+0.041)이다. 곱이므로 가장 낮은 단계의 개선이 가장 크다. 이 예에서는 도구의 실패(\(p_4\))를 줄이는 것이 모델의 읽기를 고치는 것의 두 배 효과이다. 실패가 많은 도구를 두고 프롬프트를 다듬는 것은 가장 작은 지렛대이다.</p>
+    </div>
+    <p><a class="ref" href="#thm-chain"></a>의 3번이 이 장 전체의 출발점이다. 도구가 실패했을 때 모델이 할 수 있는 것은 두 가지이다. 다시 부르거나(13.3절), 값을 지어내거나, 실패를 보고한다. 값을 지어내는 것은 정확도를 올리지 못하고 틀린 값을 만든다. 같은 맥락에서 Claude API 문서는 필수 인자가 빠진 요청에서 Claude Sonnet이 요청되지 않은 값을 추측해 채울 수 있고 Opus는 빠진 인자를 알아채 되물을 가능성이 훨씬 높지만 이 행동이 보장되지는 않는다고 쓴다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Tool use with Claude</a>, 2026년 11월 확인). 이 서술은 \(C_3\)가 모델의 성향에 달려 있다는 것을 제공자가 인정한 것이다.</p>
+    <div class="callout agent"><strong>에이전트의 모든 행동은 파서를 지난다</strong>
+      <p>에이전트가 파일을 고치고 명령을 실행하는 것은 모델이 그것을 하기 때문이 아니라, 모델이 낸 글을 하네스가 도구 호출로 읽었기 때문이다. 이 구분은 두 가지를 정한다. 첫째, 행동의 안전은 모델의 선의가 아니라 하네스가 어떤 호출을 실행하는가에 달려 있다(<a href="ch24.html">24장</a>). 둘째, 행동의 품질은 \(p_1\sim p_4\)와 \(a_I\)의 곱으로 나뉘어 각 단계를 따로 측정하고 고칠 수 있다. 호출과 관찰을 되풀이하는 루프는 <a href="ch14.html">14장</a>, 도구를 모델에 연결하는 표준인 MCP는 <a href="ch19.html">19장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+
+  <!-- ============================================================ 13.2 -->
   <section id="s2">
     <h2>도구 호출의 입력·결과</h2>
-    <p class="slot" data-slot="13.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>도구는 모델에게 세 가지로 보인다. 이름, 설명, 입력 스키마이다. 이 셋은 모델이 읽는 글, 곧 컨텍스트의 일부이다. Claude API 문서에 따르면 <code>tools</code> 파라미터(이름, 설명, 스키마)와 <code>tool_use</code>·<code>tool_result</code> 블록이 모두 입력 토큰으로 세어지고, <code>tools</code>를 쓰면 API가 도구 사용을 안내하는 시스템 프롬프트를 따로 붙이는데 그 길이는 모델마다 다르다(Claude Opus 5.5와 Sonnet 5.5는 <code>tool_choice</code>가 <code>auto</code>나 <code>none</code>일 때 286토큰이다. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Tool use with Claude</a>, 2026년 11월 확인). 이 장의 실험에서 이름 하나, 설명 한 문장, 인자 하나인 읽기 도구는 Qwen3의 대화 템플릿으로 프롬프트에 152토큰을 더했고, 쓰기 도구와 목록 도구 둘은 248토큰을 더했다(E0). <a href="ch12.html#thm-cost">12장의 비용 모델</a>로 세면 152토큰을 더 읽는 prefill은 Qwen3-1.7B에서 437 GFLOPs, 248토큰은 718 GFLOPs이다. 하네스는 호출할 때마다 컨텍스트를 다시 보내므로, 이 몫은 도구를 부르는 모든 턴에 든다. 같은 문서는 도구 설명을 '도구가 무엇을 하고, 언제 쓰고 쓰지 말아야 하고, 인자가 무엇을 뜻하고, 무엇을 돌려주지 않는지'까지 자세히 쓰라고 하며(도구당 최소 3~4문장), 결과에는 다음 단계를 추론하는 데 필요한 정보만 돌려주라고 한다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">Define tools</a>, 같은 시기 확인). 설명을 늘리는 일은 길이가 되어 토큰으로 돌아오고, 이는 12장이 센 비용의 같은 항이다.</p>
+
+    <h3 id="h-arg">인자는 어디서 오는가</h3>
+    <p>모델이 낸 인자 \(a\)가 맞으려면(\(C_3\)) 값이 어디선가 와야 한다. 값의 출처는 셋이다.</p>
+    <div class="box def" id="def-arg"><div class="box-h">인자의 출처: 복사, 유도, 추측</div>
+      <p>호출의 인자 값 \(a^*\)(맞는 값)에 대해 컨텍스트가 \(a^*\)를 글자 그대로 담고 있으면 그 인자는 <b>복사</b>이다(사용자가 말한 SKU, 앞 결과에 나온 ID). \(a^*\)가 컨텍스트의 값에서 정해진 규칙으로 계산되면 <b>유도</b>이다(날짜의 형식 변환, 두 값의 합). 컨텍스트가 \(a^*\)에 대한 정보를 담지 않으면 <b>추측</b>이다. 값 \(a^*\)가 후보 집합 \(D\)(\(|D|=V\))에서 균등하게 정해지는 도구를 생각한다.</p>
+    </div>
+    <div class="box thm" id="thm-arg"><div class="box-h">인자의 상한과 관측 동일성</div>
+      <ol>
+        <li><b>추측의 상한.</b> 컨텍스트가 \(a^*\)와 독립이면 어떤 호출 정책도 \(\Pr[C_3]\le1/V\)이다.</li>
+        <li><b>스키마가 주는 정보.</b> 스키마(이름과 설명 포함)가 \(a^*\)가 부분집합 \(D'\subseteq D\)에 든다고 알려 주면(예: <code>enum</code>) 상한은 \(1/|D'|\)로 오른다. 형식만 제한하는 스키마(타입, 자릿수 패턴)는 \(D\) 안의 후보 수를 줄이지 않으므로 \(1/V\)를 올리지 못한다.</li>
+        <li><b>스키마 강제.</b> 출력을 스키마에 맞는 것으로만 제한하는 디코딩은 \(p_2=1\)을 만든다. \(p_3\)의 상한은 1, 2번 그대로이다.</li>
+        <li><b>복사와 유도.</b> 복사는 상한이 없다. 정책이 컨텍스트에서 값을 옮기면 \(\Pr[C_3]\)가 1에 이를 수 있다.</li>
+        <li><b>관측 동일성.</b> 두 세계 \(w,w'\)에서 하네스가 모델에게 준 컨텍스트가 글자까지 같으면 모델의 출력 분포가 같다. 따라서 두 세계의 정답 \(x_w\ne x_{w'}\)이면 정확도의 합 \(\mathrm{Acc}_w+\mathrm{Acc}_{w'}\le1\)이고, 모델이 '이상하다'고 알아채는 확률(답을 바꾸거나 되묻는 확률)도 두 세계에서 같다. 도구가 다른 레코드를 성공으로 돌려주는 세계에서, 결과가 그 레코드의 키를 싣지 않으면 두 컨텍스트는 같고, 키를 실으면 달라진다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 호출의 인자 \(\hat a\)가 \(a^*\)와 독립인 입력의 함수이므로(확률적이어도 같다) \(\Pr[\hat a=a^*]=\sum_a\Pr[\hat a=a]/V\le1/V\)이다(<a href="ch11.html#thm-blind">정리 11.1</a>의 1번과 같은 논리). 2번: 스키마가 컨텍스트에 있으므로 \(a^*\)의 사후 분포의 받침이 \(D'\)로 줄고 그 위에서 균등하다. 형식 제약은 받침을 줄이지 않는다. 3번: 제한 디코딩은 출력 집합을 스키마에 맞는 문자열로 좁히는 함수이다. 모델의 입력은 그대로여서 \(a^*\)에 대한 정보가 늘지 않고 1, 2번의 상한을 넘지 못한다. 4번: 복사하는 정책이 \(a^*\)를 정확히 옮기면 \(C_3\)가 성립한다. 5번: 세계는 컨텍스트를 통해서만 모델에 닿으므로 컨텍스트가 같으면 출력의 분포가 같다. 그러면 사건 '출력이 \(x_w\)를 말한다'와 '출력이 \(x_{w'}\)를 말한다'는 서로 소이고 같은 분포 위에 있으므로 확률의 합이 1 이하이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-arg"><div class="box-h">SKU 하나를 맞히는 일</div>
+      <p>SKU 코드가 <code>SKU-</code> 뒤에 네 자리 숫자(1000~9999)이면 \(V=9{,}000\)이다. 사용자가 코드를 말하지 않고 상품 이름만 말했는데 모델이 코드를 추측해 부르면 \(\Pr[C_3]\le1/9{,}000=0.00011\)이다. 도구의 스키마에 같은 창고의 상품 40개를 <code>enum</code>으로 적어 두면 \(1/40=0.025\)이고, 이름과 코드를 짝지어 적어 두면 이름에서 코드를 복사할 수 있어 상한이 없어진다. 스키마가 <code>^SKU-\d{4}$</code> 같은 형식을 강제해도 모델은 형식에 맞는 9,000개 가운데 하나를 여전히 고른다. 사용자가 입력한 코드의 한 자리가 틀렸다면(이 장의 실험의 오타 조건) 그 코드는 형식에 맞아 \(C_2\)를 통과하고 \(C_3\)에서 실패한다. 이 장의 실험은 코드가 사용자 메시지에 글자 그대로 있는 복사 조건에서 시작한다.</p>
+    </div>
+    <p>Claude API 문서의 <code>strict: true</code>는 <b>스키마 적합</b>을 보증한다. 문서는 문법으로 제한한 샘플링(grammar-constrained sampling)으로 도구의 <code>input</code>이 <code>input_schema</code>를 정확히 따르고 도구 이름이 항상 유효하다고 쓰며, 예로 <code>passengers: 2</code> 대신 <code>"two"</code>나 <code>"2"</code>가 나오는 일을 막는다고 한다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use">Strict tool use</a>, 2026년 11월 확인). 이것은 \(p_2=1\)이다. 문서가 보증하는 것은 형식이고 값이 맞는지는 말하지 않으며, <a class="ref" href="#thm-arg"></a>의 3번이 그 구분이다. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">Define tools</a> 문서는 Fable 5.2, Opus 5.5, Sonnet 5.5 등에서는 <code>tool_choice</code>의 <code>any</code>와 <code>tool</code>(호출을 강제하는 설정)이 400 오류를 낸다고 쓰며 대신 <code>auto</code>와 <code>strict</code>를 쓰라고 한다. 호출을 낼지(\(C_1\))는 모델이 정하고, 이 모델들에서는 하네스가 강제하지 못한다.</p>
+
+    <h3 id="h-result">결과는 글이고, 같은 컨텍스트는 같은 행동을 만든다</h3>
+    <p>도구의 결과는 글로 컨텍스트에 돌아온다. <code>tool_result</code>의 <code>content</code>는 문자열이나 <code>text</code>, <code>image</code>, <code>document</code>, <code>search_result</code> 블록의 목록이고, 도구가 실패했거나 호출이 무효이면 <code>is_error: true</code>를 단다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">Handle tool calls</a>). MCP의 도구 결과도 같은 구조이다. <code>content</code> 블록과 선택 항목인 <code>structuredContent</code>가 있고, 실행 오류는 <code>isError: true</code>로 알리며, 도구는 <code>outputSchema</code>로 결과의 모양을 약속할 수 있다(<a href="https://modelcontextprotocol.io/specification/latest/server/tools">MCP 명세의 Tools</a>, 판 2026-07-28을 2026년 11월에 확인). 어느 쪽이든 모델이 보는 것은 직렬화된 글이다.</p>
+    <p>이 사실이 <a class="ref" href="#thm-arg"></a>의 5번으로 이어진다. 도구가 돌려준 글만이 세계와 모델을 잇는다. 도구가 버그로 다른 SKU의 레코드를 성공으로 돌려주었는데 결과가 <code>{"stock": 781}</code>이면, 맞는 레코드를 돌려준 세계의 컨텍스트와 글자까지 같다. 모델의 어떤 지능도 이 두 세계를 가르지 못한다. 결과가 <code>{"sku": "SKU-9693", "stock": 781}</code>처럼 자기 키를 실으면 요청한 키와 돌아온 키가 컨텍스트 안에서 대조 가능해진다. 대조를 모델이 하는지는 별개의 문제이다. 정보가 글에 있다는 것과 모델이 그 정보를 쓰는지는 다르다(<a href="ch11.html#thm-funnel">정리 11.4</a>의 3번 이후의 논의와 같다). 이 장의 실험(R5)이 이 두 가지를 갈라서 잰다.</p>
+    <div class="box ex" id="ex-echo"><div class="box-h">1%의 조용한 오류</div>
+      <p>(가상의 값) 조회 도구가 1%의 질의에서 이웃 레코드를 성공으로 돌려주고 결과가 키를 싣지 않는다고 하자. 결과를 그대로 말하는 정책의 정확도는 0.99이다. 모델이 이상하다고 알아채는 정책을 만들어도 두 세계의 컨텍스트가 같아서 알아채는 확률이 두 세계에서 같다(<a class="ref" href="#thm-arg"></a>의 5번). 알아챔이 늘면 정상 99%에서도 같은 비율로 거짓 경보가 늘 뿐 1%의 오류만 골라내지 못한다. 이 1%는 모델이나 프롬프트로는 줄지 않고, 도구의 출력에 키를 싣는 설계 변경으로만 드러낼 수 있다.</p>
+    </div>
+    <p>결과가 모델로 돌아온다는 점에는 위험도 따른다. 결과는 웹페이지, 받은 메일, 사용자 업로드, 제3자 API처럼 통제할 수 없는 곳에서 온 글일 수 있고, 거기에 지시를 심으면 모델의 행동을 바꿀 수 있다(간접 프롬프트 주입). Claude API 문서는 그런 내용을 <code>system</code> 프롬프트나 일반 user 텍스트가 아니라 <code>tool_result</code> 안에 두라고 안내한다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">Handle tool calls</a>). 도구 결과 속 지시는 <a href="ch24.html">24장</a>이 다룬다.</p>
+    <div class="callout agent"><strong>도구 정의와 결과는 컨텍스트 예산을 쓴다</strong>
+      <p>도구가 열 개, 스무 개로 늘면 정의가 매 호출 컨텍스트의 앞부분을 차지하고(위의 152토큰이 열 배가 된다), 결과가 길면 12장의 희석과 방해가 시작된다. 이 부담을 줄이는 길은 정의를 줄이거나(관련 작업을 하나의 도구로 묶기), 필요할 때만 정의를 불러오거나(Claude API의 tool search tool이 이런 방식이다), 결과를 짧게 돌려주는 것이다. 무엇을 컨텍스트에 남기고 지울지는 <a href="ch20.html">20장</a>, 도구를 연결하는 표준과 정의를 불러오는 방식은 <a href="ch19.html">19장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+
+  <!-- ============================================================ 13.3 -->
   <section id="s3">
     <h2>실패와 재시도</h2>
-    <p class="slot" data-slot="13.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>도구 호출은 여러 곳에서 실패한다. 실패의 종류를 가르는 기준은 두 가지이다. 누가 실패를 알아채는가, 그리고 같은 호출을 다시 부르면 결과가 달라지는가이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>종류</th><th>누가 알아채나</th><th>예</th><th>같은 호출을 다시 부르면</th></tr></thead>
+      <tbody>
+        <tr><td>무효한 호출</td><td>하네스(스키마 검사)</td><td>필수 인자가 없음, 타입이 다름</td><td>같은 오류. 인자를 고쳐야 한다</td></tr>
+        <tr><td>일시적 도구 실패</td><td>도구</td><td>timeout, 서비스 일시 중단</td><td>성공할 수 있다</td></tr>
+        <tr><td>영구적 도구 실패</td><td>도구</td><td>forbidden, not found</td><td>같은 오류. 인자나 방법을 바꿔야 한다</td></tr>
+        <tr><td>조용한 오류</td><td>아무도(결과가 키를 실으면 읽는 쪽)</td><td>다른 레코드를 성공으로 돌려줌</td><td>같은 잘못된 결과</td></tr>
+      </tbody>
+    </table></div>
+    <p>앞의 셋은 오류 결과의 글로 컨텍스트에 돌아온다. Claude API에서는 도구가 실패했거나 호출이 무효이면 <code>tool_result</code>에 <code>is_error: true</code>를 달아 돌려보내며, 문서는 그러면 Claude가 같은 도구를 새 <code>tool_use</code>로 다시 부를 수 있으므로 하네스의 루프가 허용하는 재시도 횟수를 제한하라고 쓴다. 또 '실패했다'만 적지 말고 무엇이 잘못되었고 다음에 무엇을 시도해야 하는지를 적으라고 한다(예: 'Rate limit exceeded. Retry after 60 seconds.'. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">Handle tool calls</a>, 2026년 11월 확인). MCP 명세도 같은 구분을 둔다. 입력 검증 오류, API 실패, 업무 규칙 위반 같은 실행 오류는 모델이 보고 고쳐서 다시 시도할 수 있는 피드백이므로 <code>isError: true</code>로 결과에 담아 모델에 주라고 하고, 알 수 없는 도구나 깨진 요청 같은 프로토콜 오류는 모델이 고칠 가능성이 낮다고 쓴다(<a href="https://modelcontextprotocol.io/specification/latest/server/tools">MCP 명세의 Tools</a>). 도구가 돌려주는 오류는 모델 바깥에서 오는 신호이다. 7장이 인용한 <a href="https://arxiv.org/abs/2310.01798">Huang 외</a>는 외부 피드백 없이 모델이 자기 추론을 고치게 했을 때 성능이 오르지 못하고 떨어질 수 있다고 보고했고, <a href="https://arxiv.org/abs/2305.11738">Gou 외</a>(CRITIC)는 도구와 상호작용해 얻은 피드백으로 모델이 자기 출력을 검증하고 고치게 하면 질의응답, 수학 프로그램 합성, 독성 줄이기에서 성능이 고르게 오른다고 보고하며 외부 피드백이 중요하다고 주장한다(초록). 둘 다 그들이 시험한 모델과 과제에 한정된 자료의 주장이다.</p>
+    <p>그러면 오류를 본 모델이 다시 부르는 일은 언제 도움이 되는가. 이것은 모델의 성향이기 전에 실패의 구조가 정한다.</p>
+    <div class="box thm" id="thm-retry"><div class="box-h">재시도가 도움이 되는 조건</div>
+      <p>한 호출의 일시 실패는 호출마다 독립이고 확률 \(q\)라 하자. 영구 실패는 같은 인자에 대해 항상 같은 오류를 낸다. 정책은 같은 호출을 최대 \(r\)번 다시 부른다(\(r+1\)번까지 시도한다).</p>
+      <ol>
+        <li><b>영구 실패는 되풀이로 풀리지 않는다.</b> 같은 인자로 \(r\)번 되풀이해도 성공 확률은 0이고, 컨텍스트에는 (호출, 오류) 쌍이 \(r\)번 더 쌓인다.</li>
+        <li><b>일시 실패.</b> 성공 확률은 \(1-q^{r+1}\), 기대 호출 수는 \(\dfrac{1-q^{r+1}}{1-q}\), \(r+1\)번 모두 실패할 확률은 \(q^{r+1}\)이다.</li>
+        <li><b>종류를 알리지 않는 오류.</b> 호출이 영구 실패인 비율이 \(\rho\), 나머지가 일시 실패 \(q\)이고 첫 오류의 글이 두 종류에서 같다고 하자. 모델은 첫 오류 뒤에 두 종류에서 같은 행동을 하며(<a class="ref" href="#thm-arg"></a>의 5번), 같은 인자로 \(r\)번 되풀이하는 정책의 성공 확률은 \((1-\rho)(1-q^{r+1})\)이어서 \(r\to\infty\)에서도 \(1-\rho\)를 넘지 못한다. 기대 호출 수는 \((1-\rho)\dfrac{1-q^{r+1}}{1-q}+\rho(r+1)\)이다. 오류가 종류를 알리고(예: <code>retryable</code>) 정책이 그에 따라 일시 실패에서만 다시 부르면 성공 확률은 같고 기대 호출 수는 \((1-\rho)\dfrac{1-q^{r+1}}{1-q}+\rho\)이다. 영구 실패에서 \(\rho r\)번의 호출을 아낀다.</li>
+        <li><b>틀린 인자와 오류가 주는 정보.</b> 오류의 원인이 틀린 인자이고 맞는 인자가 \(N\)개의 후보에서 균등하며 오류가 후보에 대한 정보를 주지 않으면(예: <code>not_found</code>), 서로 다른 \(r\)개를 시도하는 어떤 정책의 성공 확률도 \(r/N\) 이하이다. 오류가 맞는 인자를 알려 주면(예: <code>did_you_mean</code>) 값을 옮기는 한 번의 재시도로 성공할 수 있다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 도구가 결정적이므로 \(r\)번 모두 같은 오류이고, 성공하는 호출이 없다. 2번: \(j\)번째 시도가 일어나는 것은 앞의 \(j-1\)번이 모두 실패했을 때이므로 확률이 \(q^{j-1}\)이다. 기대 호출 수는 \(\sum_{j=1}^{r+1}q^{j-1}=(1-q^{r+1})/(1-q)\)이다. 모두 실패할 확률은 \(q^{r+1}\)이고 그 여사건이 성공이다. 3번: 영구 실패인 호출은 \(r+1\)번 모두 실패하여 호출이 \(r+1\)개이고, 일시 실패인 호출에는 2번의 식이 적용된다. 확률 \(\rho\)와 \(1-\rho\)로 평균한다. 종류를 알면 영구 실패는 첫 오류에서 멈추므로 호출이 1개이다. 첫 오류가 같으면 모델의 다음 행동이 같다는 것은 <a class="ref" href="#thm-arg"></a>의 5번이다. 4번: 각 호출은 후보 하나가 맞는지 시험할 뿐이고, 틀리면 그 후보를 지울 뿐이다. 후보가 균등하므로 서로 다른 \(r\)개 가운데 정답이 있을 확률은 \(r/N\)이다. 알려 주는 오류는 후보를 하나로 줄인다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-retry"><div class="box-h">재시도의 값과 낭비</div>
+      <p>일시 실패가 \(q=0.3\)인 도구를 최대 3번 다시 부르면(\(r=3\)) 성공 확률은 \(1-0.3^4=0.9919\)이고 기대 호출 수는 1.417이다. 재시도 없이는 0.7이다. 이제 호출의 30%가 영구 실패(\(\rho=0.3\))이고 첫 오류가 종류를 알리지 않는다고 하자. 같은 호출을 3번 다시 부르는 정책의 성공 확률은 \(0.7\times0.9919=0.694\)이고 \(r\)을 아무리 늘려도 0.7을 넘지 못한다. 기대 호출 수는 2.192이다. 오류가 종류를 알려 영구 실패에서 다시 부르지 않으면 성공 확률은 같고 호출 수가 1.292로 \(\rho r=0.9\)번 준다. 성공 확률이 같은데 호출이 41% 적다(E0이 센 값). 오타 키의 경우(이 장의 실험의 R3) 맞는 키가 입력한 키에서 뒤 세 자리 중 하나를 바꾼 \(N=27\)개 후보에서 균등하면, 호출 한도 4번 가운데 첫 호출이 오타 키이고 나머지 3번이 서로 다른 후보를 시도하는 최선의 정책이 맞히는 확률은 \(3/27=0.111\)이다. 오류가 맞는 키를 알려 주면 한 번의 재시도로 1에 이른다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="같은 호출을 r번 다시 부를 때의 성공 확률. 일시 실패 확률 q가 0.1, 0.3, 0.5인 곡선은 1에 가까워지고, 호출의 30퍼센트가 영구 실패이면 점선 곡선은 0.7에서 멈춘다.">
+  <path d="M80 250.0 H730" class="s-grid"/><text class="t-mono" x="72" y="254.0" text-anchor="end">0</text>
+  <path d="M80 197.5 H730" class="s-grid"/><text class="t-mono" x="72" y="201.5" text-anchor="end">0.25</text>
+  <path d="M80 145.0 H730" class="s-grid"/><text class="t-mono" x="72" y="149.0" text-anchor="end">0.5</text>
+  <path d="M80 92.5 H730" class="s-grid"/><text class="t-mono" x="72" y="96.5" text-anchor="end">0.75</text>
+  <path d="M80 40.0 H730" class="s-grid"/><text class="t-mono" x="72" y="44.0" text-anchor="end">1</text>
+  <text class="t-mono" x="80.0" y="268" text-anchor="middle">0</text>
+  <text class="t-mono" x="188.3" y="268" text-anchor="middle">1</text>
+  <text class="t-mono" x="296.7" y="268" text-anchor="middle">2</text>
+  <text class="t-mono" x="405.0" y="268" text-anchor="middle">3</text>
+  <text class="t-mono" x="513.3" y="268" text-anchor="middle">4</text>
+  <text class="t-mono" x="621.7" y="268" text-anchor="middle">5</text>
+  <text class="t-mono" x="730.0" y="268" text-anchor="middle">6</text>
+  <text class="t-dim" x="405" y="290" text-anchor="middle">다시 부른 횟수 r (세로축: 성공 확률)</text>
+  <polyline points="80.0,61.0 188.3,42.1 296.7,40.2 405.0,40.0 513.3,40.0 621.7,40.0 730.0,40.0" fill="none" style="stroke:var(--accent);stroke-width:2"/>
+  <polyline points="80.0,103.0 188.3,58.9 296.7,45.7 405.0,41.7 513.3,40.5 621.7,40.2 730.0,40.0" fill="none" style="stroke:var(--accent-2);stroke-width:2"/>
+  <polyline points="80.0,145.0 188.3,92.5 296.7,66.2 405.0,53.1 513.3,46.6 621.7,43.3 730.0,41.6" fill="none" style="stroke:var(--warn);stroke-width:2"/>
+  <polyline points="80.0,147.1 188.3,116.2 296.7,107.0 405.0,104.2 513.3,103.4 621.7,103.1 730.0,103.0" fill="none" style="stroke:var(--accent-2);stroke-width:2" stroke-dasharray="6 4"/>
+  <path d="M80 103.0 H730" style="stroke:var(--accent-2);stroke-width:1" stroke-dasharray="2 4" fill="none"/><text class="t-dim" x="730" y="119.0" text-anchor="end">영구 실패 30%이면 상한 0.7</text>
+  <text class="t-dim" x="80" y="316">모두 일시 실패:</text>
+  <path d="M190 312 h26" fill="none" style="stroke:var(--accent);stroke-width:2"/><text class="t-dim" x="222" y="316">q=0.1</text>
+  <path d="M290 312 h26" fill="none" style="stroke:var(--accent-2);stroke-width:2"/><text class="t-dim" x="322" y="316">q=0.3</text>
+  <path d="M390 312 h26" fill="none" style="stroke:var(--warn);stroke-width:2"/><text class="t-dim" x="422" y="316">q=0.5</text>
+  <path d="M510 312 h26" fill="none" style="stroke:var(--accent-2);stroke-width:2" stroke-dasharray="6 4"/><text class="t-dim" x="542" y="316">영구 실패 30% + 일시 실패 q=0.3</text></svg>
+      <figcaption><b>그림 13-2.</b> 같은 호출을 \(r\)번 다시 부를 때의 성공 확률(<a class="ref" href="#thm-retry"></a>). 실선은 모두 일시 실패인 도구에서 \(1-q^{r+1}\)이고, 점선은 호출의 30%가 영구 실패이고 일시 실패가 \(q=0.3\)인 도구에서 \(0.7(1-0.3^{r+1})\)로 \(r\)이 커져도 0.7에서 멈춘다. 오류가 종류를 알리지 않으면 두 곡선의 차이는 재시도로 메워지지 않는다.</figcaption>
+    </figure>
+    <p>정리의 3번은 재시도의 위치에 대해 말한다. 일시 실패인지 영구 실패인지는 도구와 하네스가 안다. HTTP 503과 404를 구분하는 곳은 도구이고, 모델은 두 오류가 글자까지 같게 오면 구분할 수 없다. 그러므로 종류를 알 수 있는 일시 실패는 하네스가 모델 모르게 되풀이하는 편이(제한된 횟수, 대기 시간을 두고) 토큰도 아끼고 모델의 순응에 기대지도 않는다. 모델에게 보여 줄 오류는 판단이 필요한 것, 곧 인자를 바꿔야 하거나 포기해야 하는 것이다. 이때 4번이 설계의 기준을 준다. 오류 메시지는 정보의 통로이다. 'not found'는 후보 하나를 지우는 정도의 정보를 주고, 맞는 키를 말해 주는 메시지는 \(\log_2N\)비트를 준다. 다만 도구가 알려 주는 '맞는 키'가 사용자가 뜻한 키가 맞는지는 별개이다. 자동 교정은 사용자가 말한 것과 다른 레코드로 조용히 갈아타는 일이어서, 교정했다는 사실을 사용자에게 알리는 것까지가 설계이다.</p>
+    <div class="callout agent"><strong>재시도 한도는 하네스의 정책이다</strong>
+      <p>Claude API 문서가 루프의 재시도 횟수를 제한하라고 한 것은 위의 정리의 3번 때문이다. 한도가 없으면 영구 실패에서 호출과 오류가 컨텍스트에 쌓이며 비용이 늘고(<a href="ch12.html#thm-cost">정리 12.1</a>), 한도가 너무 낮으면 일시 실패에서 정답을 놓친다. 한 작업 안에서 에이전트가 언제 멈추는지는 <a href="ch15.html">15장</a>, 여러 시도와 세션에 걸친 바깥 루프의 종료는 <a href="ch30.html">30장</a>이 다룬다.</p>
+    </div>
   </section>
+
+
+  <!-- ============================================================ 13.4 -->
   <section id="s4">
     <h2>읽기 도구와 쓰기 도구</h2>
-    <p class="slot" data-slot="13.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>지금까지의 도구는 읽기였다. 읽기를 다시 부르면 컨텍스트가 길어질 뿐 세계는 그대로이다. 쓰기는 다르다. 다시 부르면 세계가 다시 바뀔 수 있다. 이 구분은 새로운 것이 아니다. HTTP의 의미 규칙(RFC 9110, 9.2절)이 같은 구분을 정의한다. 메서드는 의미가 본질적으로 읽기 전용이어서 클라이언트가 서버의 상태 변화를 요청하지도 기대하지도 않으면 <b>안전</b>(safe)하다. 같은 메서드로 보낸 여러 번의 똑같은 요청의 의도된 효과가 한 번 보낸 것과 같으면 <b>멱등</b>(idempotent)하다. 문서는 멱등한 메서드를 따로 가르는 이유를, 응답을 읽기 전에 통신이 끊기면 요청을 자동으로 다시 보낼 수 있기 때문이라고 쓰고, 멱등하지 않은 요청은 의미가 사실상 멱등임을 아는 방법이나 원래 요청이 적용되지 않았음을 확인하는 방법이 없으면 자동으로 재시도하지 말아야 한다고 쓴다(<a href="https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2">RFC 9110</a>의 9.2.1, 9.2.2). 도구 호출은 HTTP가 아니지만, 응답이 오지 않았을 때 요청이 적용되었는지 모른다는 구조는 같다.</p>
+    <div class="box def" id="def-effect"><div class="box-h">도구의 부작용 분류</div>
+      <p>도구를 효과에 따라 셋으로 나눈다. <b>읽기 전용</b>은 세계를 바꾸지 않는다. <b>멱등 쓰기</b>는 같은 인자로 여러 번 불러도 효과가 한 번 부른 것과 같다(예: 상태를 'shipped'로 설정). <b>비멱등 쓰기</b>는 부를 때마다 효과가 쌓인다(예: 재고를 25개 예약, 메일 보내기). 파괴적인지(되돌릴 수 없는지)는 별개의 축이다. 이 분류는 도구를 만든 쪽이 붙이는 <b>표시</b>이고, 도구의 실제 동작과 다를 수 있다.</p>
+    </div>
+    <p>MCP는 이 표시를 도구 정의에 싣는 자리를 둔다. <code>annotations</code>의 <code>readOnlyHint</code>(참이면 환경을 바꾸지 않음, 기본값 거짓), <code>destructiveHint</code>(참이면 파괴적 갱신을 할 수 있음, 기본값 참), <code>idempotentHint</code>(참이면 같은 인자로 되풀이해도 추가 효과가 없음, 기본값 거짓), <code>openWorldHint</code>(외부 개체와 상호작용할 수 있음)이다. 명세는 이 속성이 모두 힌트이며 도구의 동작을 충실하게 기술한다는 보장이 없고, 클라이언트는 신뢰할 수 없는 서버가 준 주석으로 도구 사용을 결정하면 안 된다고 쓴다(<a href="https://modelcontextprotocol.io/specification/latest/server/tools">MCP 명세의 Tools</a>와 스키마의 <code>ToolAnnotations</code>, 판 2026-07-28, 2026년 11월 확인). 기본값이 가장 보수적인 쪽(쓰기이고 파괴적이고 멱등하지 않음)이라는 점이 눈에 띈다. 아무 표시도 없는 도구는 가장 위험한 도구로 다뤄야 한다. 이 표시를 근거로 실행을 허용하고 확인하고 거부하는 규칙은 <a href="ch24.html">24장</a>이 다룬다.</p>
+    <p>이제 쓰기 도구의 응답이 사라졌을 때를 생각하자. 호출이 서버에 닿지 못할 확률이 \(u\), 닿으면 효과가 한 번 일어나고 그 응답이 유실될 확률이 \(v\)라 하자(호출마다 독립). 하네스가 보는 타임아웃의 확률은 \(q=u+(1-u)v\)이다.</p>
+    <div class="box thm" id="thm-write"><div class="box-h">응답이 유실된 쓰기는 어느 쪽으로든 틀린다</div>
+      <ol>
+        <li><b>타임아웃은 모호하다.</b> 타임아웃의 컨텍스트는 효과가 있었든 없었든 같으므로(<a class="ref" href="#thm-arg"></a>의 5번) 모델의 다음 행동이 같다. 타임아웃일 때 효과가 있었을 확률은 \(\theta=(1-u)v/q\)이다. 다시 부르면 확률 \(\theta\)로 중복이 생긴다. 다시 부르지 않고 실패를 보고하면 확률 \(1-\theta\)로 효과 없이 일이 끝나고, 확률 \(\theta\)로는 효과가 있는데도 실패라고 말한 것이 된다.</li>
+        <li><b>비멱등 쓰기의 중복.</b> 타임아웃마다 최대 \(r\)번 다시 부르면 효과의 횟수 \(K\)의 기댓값은 \(\mathbb E[K]=(1-u)\dfrac{1-q^{r+1}}{1-q}\)이다. 응답만 유실되는 경우(\(u=0\), \(q=v\))에는 \(K\)가 호출 수와 같고 \(\Pr[K\ge2]=q\), 기대 중복은 \(\sum_{k=1}^{r}q^k\)이다.</li>
+        <li><b>멱등 키.</b> 호출이 같은 멱등 키를 싣고 서버가 같은 키의 요청을 걸러내면 \(r\)과 무관하게 최종 효과는 최대 1번이다. 호출 수의 분포는 2번과 같다. 키를 매번 새로 지으면 같은 요청이 아니므로 이 보장이 없다.</li>
+        <li><b>확인 후 재시도.</b> 신뢰할 수 있는 읽기로 효과의 유무를 확인한 뒤에만 다시 부르면 효과는 최대 1번이고, 타임아웃마다 읽기 호출 1번이 더 든다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 타임아웃은 '닿지 못함'(확률 \(u\)) 또는 '닿았으나 응답 유실'(확률 \((1-u)v\))이고, 조건부 확률이 \(\theta\)이다. 두 경우에서 하네스가 모델에 돌려주는 글이 같으므로 행동이 같고, 행동이 '다시 부름'이면 효과가 이미 있는 세계에서 하나가 더해진다. 2번: \(j\)번째 시도가 일어나는 확률은 앞 시도가 모두 타임아웃인 \(q^{j-1}\)이고 시도가 일어나면 그 시도가 효과를 낼 확률은 \(1-u\)이다(그 시도의 결과는 앞 시도들과 독립이다). 합하면 \((1-u)\sum_{j=1}^{r+1}q^{j-1}\)이다. \(u=0\)이면 \(K\)가 시도 수이고 \(\Pr[K\ge2]\)는 첫 시도가 타임아웃일 확률 \(q\)이다. 기대 중복은 \(\mathbb E[K]-1=\sum_{k=1}^{r}q^k\)이다. 3번: 서버가 같은 키를 한 번만 적용하면 효과는 최소 1번이 닿은 뒤로 1번에서 멈춘다. 4번: 재시도 전에 효과가 없다고 확인되면 그 시도가 처음 적용이 된다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-write"><div class="box-h">재시도가 만드는 중복</div>
+      <p>호출은 항상 서버에 닿고(\(u=0\)) 응답이 \(q=0.3\)의 확률로 유실되는 예약 도구를 타임아웃마다 최대 3번 다시 부르면 효과의 기댓값은 1.417번, 요청 하나당 기대 중복이 0.417번이다. 첫 시도에서 타임아웃이 난 30%의 요청에서 중복이 시작된다. 4번 시도하고도 응답을 못 받는 확률은 \(0.3^4=0.0081\)이고, 그때 효과는 4번 적용되어 있다. 멱등 키를 쓰면 같은 시도 수에서 최종 효과가 1번이다. 호출이 닿지 못할 확률이 \(u=0.1\), 응답이 유실될 확률이 \(v=0.2\)이면 \(q=0.28\)이고, 타임아웃일 때 효과가 있었을 확률은 \(\theta=0.18/0.28=0.643\)이다. 다시 부르면 64%의 확률로 중복이고, 부르지 않으면 36%의 확률로 효과가 없다. 어느 쪽으로든 틀릴 확률이 크고, 모델이 줄일 수 있는 것은 아니다. 줄이려면 컨텍스트에 정보가 더 들어와야 한다. 효과의 유무를 읽는 도구, 멱등 키, 또는 오류 메시지에 '처리되었을 수 있다'는 사실을 적는 것이다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 420" role="img" aria-label="쓰기 호출의 응답이 유실된 경우. 호출이 닿지 못한 세계 A와 닿았으나 응답만 유실된 세계 B가 같은 타임아웃 컨텍스트를 만든다. 모델의 다음 행동은 같다. 다시 부르면 세계 B에서 중복, 부르지 않으면 세계 A에서 미완료나 세계 B에서 거짓 실패 보고가 생긴다.">
+  <rect x="60" y="12" width="300" height="52" rx="7" style="fill:var(--surface);stroke:var(--border)"/>
+  <text class="t-dim" x="210.0" y="32" text-anchor="middle">세계 A: 호출이 닿지 못함 (확률 u)</text>
+  <text class="t-dim" x="210.0" y="49" text-anchor="middle">효과 0회</text>
+  <rect x="440" y="12" width="300" height="52" rx="7" style="fill:var(--surface);stroke:var(--border)"/>
+  <text class="t-dim" x="590.0" y="32" text-anchor="middle">세계 B: 닿았고 응답만 유실 (확률 (1-u)v)</text>
+  <text class="t-dim" x="590.0" y="49" text-anchor="middle">효과 1회</text>
+  <path d="M210 64 L330 100" class="s-line"/><polygon points="330,100 325.5,91 334.5,91" style="fill:var(--text-dim)"/>
+  <path d="M590 64 L470 100" class="s-line"/><polygon points="470,100 465.5,91 474.5,91" style="fill:var(--text-dim)"/>
+  <rect x="200" y="100" width="400" height="52" rx="7" style="fill:var(--accent-soft);stroke:var(--accent)"/>
+  <text class="t-dim" x="400.0" y="120" text-anchor="middle">하네스가 모델에 주는 컨텍스트</text>
+  <text class="t-dim" x="400.0" y="137" text-anchor="middle">{"error": "timeout"}  (두 세계에서 글자까지 같다)</text>
+  <path d="M400 152 L400 186" class="s-line"/><polygon points="400,186 395.5,177 404.5,177" style="fill:var(--text-dim)"/>
+  <rect x="250" y="186" width="300" height="36" rx="7" style="fill:var(--surface);stroke:var(--border)"/>
+  <text class="t-b" x="400.0" y="206" text-anchor="middle">모델의 다음 행동은 두 세계에서 같다</text>
+  <path d="M330 222 L200 262" class="s-line"/><polygon points="200,262 195.5,253 204.5,253" style="fill:var(--text-dim)"/>
+  <path d="M470 222 L600 262" class="s-line"/><polygon points="600,262 595.5,253 604.5,253" style="fill:var(--text-dim)"/>
+  <rect x="60" y="262" width="280" height="40" rx="7" style="fill:var(--surface);stroke:var(--border)"/>
+  <text class="t-b" x="200.0" y="282" text-anchor="middle">다시 부름</text>
+  <rect x="460" y="262" width="280" height="40" rx="7" style="fill:var(--surface);stroke:var(--border)"/>
+  <text class="t-b" x="600.0" y="282" text-anchor="middle">부르지 않고 실패를 보고함</text>
+  <path d="M200 302 L200 332" class="s-line"/><polygon points="200,332 195.5,323 204.5,323" style="fill:var(--text-dim)"/>
+  <path d="M600 302 L600 332" class="s-line"/><polygon points="600,332 595.5,323 604.5,323" style="fill:var(--text-dim)"/>
+  <rect x="30" y="332" width="340" height="72" rx="7" style="fill:color-mix(in srgb, var(--bad) 8%, var(--surface));stroke:var(--border)"/>
+  <text class="t-dim" x="200.0" y="352" text-anchor="middle">A: 효과 1회 (정상)</text>
+  <text class="t-dim" x="200.0" y="369" text-anchor="middle">B: 효과 2회 (중복, 확률 θ)</text>
+  <rect x="430" y="332" width="340" height="72" rx="7" style="fill:color-mix(in srgb, var(--bad) 8%, var(--surface));stroke:var(--border)"/>
+  <text class="t-dim" x="600.0" y="352" text-anchor="middle">A: 효과 0회 (일이 끝나지 않음)</text>
+  <text class="t-dim" x="600.0" y="369" text-anchor="middle">B: 효과 1회인데 실패라고 말함 (확률 θ)</text>
+</svg>
+      <figcaption><b>그림 13-3.</b> 응답이 유실된 쓰기. 효과가 없는 세계(호출이 닿지 못함)와 있는 세계(닿았고 응답만 유실)가 같은 컨텍스트로 모델에 도달한다. 모델의 다음 행동이 같으므로(<a class="ref" href="#thm-arg"></a>의 5번) '다시 부름'은 한 세계에서 중복을, '부르지 않음'은 한 세계에서 미완료를 만든다.</figcaption>
+    </figure>
+    <div class="table-wrap"><table>
+      <thead><tr><th>분류</th><th>예</th><th>타임아웃 뒤 같은 호출을 자동으로 다시 부르면</th><th>하네스가 할 일</th></tr></thead>
+      <tbody>
+        <tr><td>읽기 전용</td><td>재고 조회, 예약 목록</td><td>안전하다(호출이 늘 뿐)</td><td>종류를 아는 일시 실패는 한도 안에서 모델 모르게 재시도</td></tr>
+        <tr><td>멱등 쓰기</td><td>상태를 'shipped'로 설정, 멱등 키를 싣는 예약</td><td>안전하다(최종 효과 1번)</td><td>키는 하네스가 만들어 같은 요청이 같은 키를 싣게 한다</td></tr>
+        <tr><td>비멱등 쓰기</td><td>수량 예약(키 없음), 메일 보내기</td><td>중복이 생긴다(<a class="ref" href="#thm-write"></a>의 2번)</td><td>읽기로 확인한 뒤 재시도하거나 사용자에게 확인한다</td></tr>
+        <tr><td>파괴적 쓰기</td><td>파일 삭제, 결제 취소</td><td>되돌릴 수 없는 중복·손실 위험</td><td>첫 호출부터 허용 규칙을 거친다(24장)</td></tr>
+      </tbody>
+    </table></div>
+    <p>표의 세 번째 열은 모델에게 맡길 수 있는 판단이 아니다. 정리의 1번이 말하듯 타임아웃을 본 모델은 두 세계를 구별할 수 없기 때문이다. 다시 부를지 말지를 모델의 성향에 맡기면 \(\theta\)와 모델의 재시도 습관이 곱해진 결과를 받게 된다. 이 장의 실험은 같은 타임아웃에 오류 메시지의 글만 바꿔서(아무 말 없음, '재시도 가능', '처리되었을 수 있으니 먼저 확인하라') 모델이 얼마나 다르게 반응하는지 잰다.</p>
+    <div class="callout agent"><strong>표시는 허용·확인·거부 규칙의 입력이다</strong>
+      <p>에이전트 하네스는 도구마다 읽기, 쓰기, 파괴적 쓰기를 구분해 읽기는 자동으로 허용하고 쓰기는 확인을 받고 파괴적 쓰기는 거부하는 식의 규칙을 둔다. 이 규칙이 믿는 표시는 도구를 만든 쪽의 주장이다. MCP 명세가 주석을 힌트로만 다루고 신뢰할 수 없는 서버의 주석에 기대지 말라고 하는 이유가 이것이다. 자신이 만든 도구의 표시는 신뢰하고 외부 서버의 도구는 쓰기로 가정하는 것이 안전한 기본값이라는 것이 이 책의 권고이다. 규칙과 신뢰 경계는 <a href="ch24.html">24장</a>, 외부 서버의 도구를 연결하는 방법은 <a href="ch19.html">19장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 작은 조회 도구가 오류를 돌려줄 때 모델은 어떻게 반응하는가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 도구가 오류를 돌려줄 때 모델은 어떻게 반응하는가</h2>
+    <p>슬롯에 적어 둔 질문은 '작은 조회 도구가 오류를 돌려줄 때 모델은 어떻게 반응하는가'였다. 11장, 12장처럼 모델 없이 이 장의 계산을 먼저 확인하고(E0), 작은 언어모델에게 가상의 창고 도구를 주어 도구의 응답을 바꿔 가며 반응을 잰다(E1~E6). 반응은 다시 부르는지, 인자를 고치는지, 값을 지어내는지, 사용자에게 돌려주는지, 쓰기를 겹치게 하는지이다. 세계는 가상의 창고이다. SKU 코드(<code>SKU-</code> 뒤의 네 자리)와 재고(100~999)는 균등한 무작위 값이어서 모델이 가중치로 알 수 없고, 정답과 도구가 무엇을 돌려주는지를 코드가 안다. 그래서 답을 기계로 채점할 수 있고, 정답이 도구 결과에 나타나지 않은 시행에서 정답을 말하는 비율의 상한이 이론으로 정해진다(<a class="ref" href="#thm-chain"></a>). 이 실험이 보여 주는 것은 이 두 모델과 이 도구에서의 행동이지 도구 사용 일반이나 Claude의 성질이 아니다. Claude API는 호출하지 않았다.</p>
+
+    <h3 id="h-design13">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모델</td><td>주 모델 Qwen3-1.7B(<code>Qwen/Qwen3-1.7B</code>, 리비전 <code>70d244cc</code>, Apache-2.0, 비사고 모드). 대조 모델 Qwen2.5-1.5B-Instruct(리비전 <code>989aa798</code>, 11, 12장의 모델). 둘 다 bfloat16, GPU 한 장(RTX 3060 Ti 8 GB), 순수 탐욕 디코딩, 최대 96토큰, 배치 1. 두 모델의 <code>generation_config</code>는 샘플링과 반복 억제를 켜 두어 쓰지 않고, 직접 짠 탐욕 루프를 쓴다. 순수 추론이며 학습하지 않는다. 도구 호출은 두 모델의 대화 템플릿이 쓰는 <code>&lt;tool_call&gt;</code> JSON 블록이다.</td></tr>
+        <tr><td>세계와 질문</td><td>시행마다 SKU 하나와 재고(100~999, \(V=900\))를 뽑는다. 질문은 세 가지 문장 가운데 하나이다. 읽기: '<code>How many units of SKU-4172 do we have in stock?</code>' 쓰기: '<code>Please reserve 25 units of SKU-4172 for the Harlow order.</code>' 도구는 <code>get_stock(sku)</code>, <code>reserve_units(sku, qty)</code>, <code>list_reservations(sku)</code>이다. 스키마 검사는 하네스가 하고(필수 인자, 타입), 어긋나면 <code>invalid_arguments</code> 오류를 돌려준다. 한 시행의 도구 호출은 최대 4번이고, 한도에 이른 뒤 또 부르면 '끝나지 않음'으로 센다.</td></tr>
+        <tr><td>바꾸는 것</td><td>(1) 도구의 응답: 아래 표의 13개 조건. (2) 시스템 프롬프트: S1은 '<code>You are a warehouse assistant. Use the tools to answer.</code>', S3은 S1에 '<code>If a tool call fails, read the error, fix the call, and try again (up to 3 more times) before replying to the user.</code>'를 더한 것이다. 주 모델은 S1에서 13개 조건 전부, S3에서 오류가 없는 R0, R5a, R5b를 뺀 10개 조건을 잰다(23개 조건). 대조 모델은 R0|S1과 R2, R2L, R4i, W1c의 S3 조건(5개 조건)만 잰다.</td></tr>
+        <tr><td>고정하는 것</td><td>시드 13, 조건마다 60시행. 같은 시행 번호는 모든 조건에서 같은 세계(같은 SKU, 재고, 오타, 문장)이다. 도구 정의, 디코딩, 호출 한도, 채점 규칙.</td></tr>
+        <tr><td>관측값</td><td>읽기: 마지막 답을 분류한다. <code>correct</code>(정답 재고를 말함), <code>wrong_record</code>(도구 결과에 나온 다른 레코드의 수를 말함), <code>fabricated</code>(도구 결과에 없는 수량을 말함. 0 포함), <code>none</code>(수량을 말하지 않음). 그리고 호출이 2번 이상인 비율(재시도), 같은 인자의 되풀이, 인자를 바꾼 호출, 정답 재고가 도구 결과에 나온 비율(근거 있음), 오타 키 조건에서 맞는 키를 쓴 호출(힌트 사용)과 답에서 맞는 키를 언급한 비율, R5b에서 키를 대조해 알아챈 비율(낱말 판정), 시행당 읽은 토큰. 쓰기: 하네스가 적용한 효과의 횟수(1이면 정확히 한 번, 2 이상이면 중복), <code>list_reservations</code>로 확인한 비율, 답이 실패라고 말하는 비율과 성공이라고 말하는 비율(낱말 판정), 호출 수. 구간은 시행 단위 부트스트랩 2,000번의 95%이다.</td></tr>
+        <tr><td>점검</td><td><b>E0</b>(모델 없음): 읽기 재시도의 성공 확률·기대 호출 수·끝까지 실패할 확률을 몬테카를로(200,000번)로 공식과 견준다(<a class="ref" href="#thm-retry"></a>). 오타 키의 후보 수를 전수 열거로 세고, 후보 27개에서 서로 다른 \(r\)개를 시도하는 정책의 성공률을 \(r/27\)과 견준다. 도구 정의가 프롬프트에 더하는 토큰과 FLOPs를 센다(<a href="ch12.html#thm-cost">12장</a>의 공식). <b>E1</b>(대조): 성공 결과를 받는 R0에서 정답을 말하는 비율. <b>E2~E6</b>: 아래 예상의 점검.</td></tr>
+        <tr><td>예산</td><td>RTX 3060 Ti 한 장에서 주 모델 23개 조건(1,380시행)에 약 53분(3,168초), 대조 모델 5개 조건(300시행)에 약 11분(646초)이 걸렸다(모델 로딩 포함).</td></tr>
+        <tr><td>예상</td><td>모델을 전체 실행하기 전에 파일에 적었다(아래 '미리 적은 것과 보고 나서 적은 것'). <b>E0</b>(<a class="ref" href="#thm-retry"></a>, <a class="ref" href="#thm-write"></a>에서 나온다) 몬테카를로의 성공 확률, 기대 호출 수, 끝까지 실패할 확률이 공식과 각각 0.005 이내이다. 오타 키의 후보 수는 시험한 키 모두에서 27이고, 서로 다른 \(r\)개를 시도하는 정책의 성공률이 \(r/27\)과 0.005 이내이다. <b>E1</b>(추측, 정리가 함의하지 않음) R0에서 정답을 말하는 비율이 0.90 이상이다. <b>E2</b>(<a class="ref" href="#thm-chain"></a>에서 나온다) 정답 재고가 어느 도구 결과에도 나오지 않은 시행에서 정답을 말하는 비율은 \(1/900\) 이하이다. <b>E3</b>(<a class="ref" href="#thm-retry"></a>의 4번) R3에서 정답 재고를 말하는 비율은 \(3/27=0.111\) 이하이다. <b>E4</b>(<a class="ref" href="#thm-arg"></a>의 5번) R1과 R2는 첫 오류까지 글자까지 같은 대화이므로 같은 프롬프트에서 두 번째 생성이 시행마다 같다. <b>E5</b>(<a class="ref" href="#thm-chain"></a>의 4번) 첫 호출이 반드시 실패하는 조건(R2, R2L, R3, R4, R4i)에서 도구 결과에서 정답을 얻은 시행은 모두 호출이 2번 이상이다. <b>E6</b>(<a class="ref" href="#thm-write"></a>) 쓰기 조건에서 하네스가 적용한 효과의 횟수는 모든 시행에서 <code>reserve_units</code> 호출 수와 같다. 그 밖의 모든 비율(재시도, 지어내기, 이웃 레코드를 말하는 비율, 쓰기 중복, 프롬프트와 모델의 차이)은 이론에서 나온 예상이 없는 관찰이다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td><b>E0</b> 이 범위를 벗어나면 공식을 고친다. <b>E1</b> 0.90 미만이면 그 모델의 다른 조건을 해석하지 않는다. <b>E2</b> 한 조건의 60시행에서 근거 없이 맞은 답이 2개 이상이면(확률 1/900일 때 2개 이상은 0.0021) 정보가 새는 오류이다. <b>E3</b> 95% 구간의 하한이 0.111을 넘으면 오류이다. <b>E4, E5, E6</b> 위반이 1개라도 있으면 환경이나 코드의 오류이다.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>조건</th><th>사용자가 입력한 키</th><th>도구의 응답</th><th>보려는 것</th></tr></thead>
+      <tbody>
+        <tr><td>R0</td><td>맞는 키</td><td>성공: <code>{"sku": …, "stock": …}</code></td><td>호출과 읽기의 대조(\(p_1\sim p_3\), \(a_I\))</td></tr>
+        <tr><td>R1</td><td>맞는 키</td><td>항상 <code>{"error": "service_unavailable"}</code>(영구 실패)</td><td>같은 호출의 되풀이와 지어내기</td></tr>
+        <tr><td>R2</td><td>맞는 키</td><td>첫 호출만 R1과 글자까지 같은 오류, 이후 성공(일시 실패)</td><td>첫 오류가 같은 두 세계(<a class="ref" href="#thm-arg"></a>의 5번)</td></tr>
+        <tr><td>R1L</td><td>맞는 키</td><td>항상 <code>{"error": "forbidden", "retryable": false}</code></td><td>종류 라벨(영구)</td></tr>
+        <tr><td>R2L</td><td>맞는 키</td><td>첫 호출만 <code>{"error": "timeout", "retryable": true}</code>, 이후 성공</td><td>종류 라벨(일시)</td></tr>
+        <tr><td>R3</td><td>오타 키(뒤 세 자리 중 한 자리가 다름)</td><td>틀린 키는 <code>{"error": "not_found"}</code>, 맞는 키로 부르면 성공</td><td>후보 수와 상한 \(3/27\)</td></tr>
+        <tr><td>R4</td><td>오타 키</td><td><code>{"error": "not_found", "did_you_mean": 맞는 키}</code></td><td>정보를 싣는 오류(필드)</td></tr>
+        <tr><td>R4i</td><td>오타 키</td><td><code>{"error": "not_found", "suggestion": "Retry get_stock with sku 맞는 키."}</code></td><td>같은 정보를 다음 행동의 지시로</td></tr>
+        <tr><td>R5a</td><td>맞는 키</td><td>항상 다른 SKU의 레코드를 성공으로: <code>{"stock": n}</code></td><td>조용한 오류, 키 없음</td></tr>
+        <tr><td>R5b</td><td>맞는 키</td><td>같은 오류, 레코드가 자기 키를 실음: <code>{"sku": 다른 키, "stock": n}</code></td><td>키 반향(대조 가능)</td></tr>
+        <tr><td>W1a</td><td>예약 요청</td><td>효과는 일어나고 첫 응답은 <code>{"error": "timeout"}</code>. 이후의 예약 호출도 효과를 내고 성공으로 응답</td><td>응답이 유실된 비멱등 쓰기</td></tr>
+        <tr><td>W1b</td><td>예약 요청</td><td>같은 타임아웃에 <code>"note": "The request may have been processed. Check list_reservations before retrying."</code></td><td>효과의 유무를 알리는 오류</td></tr>
+        <tr><td>W1c</td><td>예약 요청</td><td>같은 타임아웃에 <code>"retryable": true</code></td><td>쓰기에 붙은 종류 라벨</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="h-code13">코드</h3>
+    <p>Python 3.14.5, PyTorch 2.11.0(CUDA 12.8), Transformers 5.22.2, NumPy 2.5.4에서 실행했다(<code>OMP_NUM_THREADS=1 python -I -X utf8 exp13.py all q3</code>로 주 모델, <code>all q25</code>로 대조 모델, 모델 없이 E0의 계산만 돌리려면 <code>e0</code>). 두 모델의 가중치는 공개 저장소의 리비전을 고정해 내려받았고 각각 약 4 GB와 3 GB이다. 도구 호출을 읽는 파서(<code>parse_calls</code>), 스키마 검사(<code>check</code>), 도구 실행(<code>execute</code>), 한 시행(<code>trial</code>)이 이 절의 하네스이다. <a class="ref" href="#def-tool"></a>의 파서가 \(\bot\)을 내는 경우(<code>&lt;tool_call&gt;</code> 안의 JSON이 깨짐)는 '형식 깨짐'으로 세고 시행을 끝낸다. 같은 코드를 두 번 따로 실행해 출력이 같은지 확인했다(아래 결과). 다른 GPU나 라이브러리 버전에서는 부동소수점 결과의 마지막 자리가 바뀌고 탐욕 디코딩의 답이 달라질 수 있다.</p>
+<pre><code>import json, math, re, sys, time
+from collections import Counter
+import numpy as np
+
+MODE = sys.argv[1] if len(sys.argv) &gt; 1 else "all"             # all | e0 | smoke
+KEY = sys.argv[2] if len(sys.argv) &gt; 2 else "q3"               # 모델: q3 | q25
+SEED, NT, BOOT, MAXCALL, NEW = 13, 60, 2000, 4, 96            # 시드, 조건마다 시행 수, 부트스트랩 횟수, 한 시행의 최대 도구 호출 수, 최대 생성 토큰
+if MODE == "smoke": SEED, NT = 99, 4
+NAME, REV = {"q3": ("Qwen/Qwen3-1.7B", "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"), "q25": ("Qwen/Qwen2.5-1.5B-Instruct", "989aa7980e4cf806f80c7fef2b1adb7bc71aa306")}[KEY]
+DIM = {}                                                       # 모델 구조: load()가 config.json에서 채운다
+V_STOCK, N_CAND = 900, 27                                      # 재고는 100~999에서 균등(900가지), 오타의 후보 키는 27개
+S1 = "You are a warehouse assistant. Use the tools to answer."                                   # 기본 시스템 프롬프트
+S3 = S1 + " If a tool call fails, read the error, fix the call, and try again (up to 3 more times) before replying to the user."   # 재시도를 지시하는 프롬프트
+SYSP = {"S1": S1, "S3": S3}
+ARMS = ("R0", "R1", "R2", "R1L", "R2L", "R3", "R4", "R4i", "R5a", "R5b", "W1a", "W1b", "W1c")
+CONDS = {"q3": [(a, "S1") for a in ARMS] + [(a, "S3") for a in ARMS if a not in ("R0", "R5a", "R5b")],     # 주 모델: 13 + 10 = 23개 조건
+         "q25": [("R0", "S1")] + [(a, "S3") for a in ("R2", "R2L", "R4i", "W1c")]}[KEY]                    # 대조 모델: 작은 블록 5개
+ASK = ("How many units of {sku} do we have in stock?", "What is the current stock of {sku}?", "Check the stock level for {sku}, please.")
+RES = ("Please reserve {qty} units of {sku} for the {order} order.", "Reserve {qty} units of {sku} for the {order} order.", "I need {qty} units of {sku} set aside for the {order} order.")
+ORDERS = ("Harlow", "Pennant", "Redfern")
+SKU_ARG = {"type": "string", "description": "SKU code such as SKU-1234"}
+T_GET = {"type": "function", "function": {"name": "get_stock", "description": "Look up the units in stock for one SKU.",
+                                          "parameters": {"type": "object", "properties": {"sku": SKU_ARG}, "required": ["sku"]}}}
+T_RESERVE = {"type": "function", "function": {"name": "reserve_units", "description": "Reserve units of one SKU for an order.",
+                                              "parameters": {"type": "object", "properties": {"sku": SKU_ARG, "qty": {"type": "integer", "description": "Number of units to reserve"}}, "required": ["sku", "qty"]}}}
+T_LIST = {"type": "function", "function": {"name": "list_reservations", "description": "List the reservations held on one SKU.",
+                                           "parameters": {"type": "object", "properties": {"sku": SKU_ARG}, "required": ["sku"]}}}
+TOOLS_R, TOOLS_W = [T_GET], [T_RESERVE, T_LIST]
+SPEC = {t["function"]["name"]: t["function"]["parameters"] for t in TOOLS_R + TOOLS_W}
+NOTE = "The request may have been processed. Check list_reservations before retrying."
+
+
+def ci(x, rr):                                                 # 시행 단위 부트스트랩 95% 구간
+    x = np.asarray(x, float); b = x[rr.integers(0, len(x), (BOOT, len(x)))].mean(1)
+    return float(x.mean()), float(np.percentile(b, 2.5)), float(np.percentile(b, 97.5))
+
+
+# ---------- E0: 모델 없이 확인하는 계산 (정리 13.3, 13.4) ----------
+def retry_loop(rr, q, r, n=200000):                            # 응답이 확률 q로 실패(독립)하는 호출을 최대 r번 다시 부른다
+    fail = rr.random((n, r + 1)) &lt; q; lead = np.cumprod(fail, axis=1).sum(1)   # 앞에서부터 연속으로 실패한 횟수
+    return dict(success=float((lead &lt;= r).mean()), calls=float(np.minimum(lead + 1, r + 1).mean()),
+                formula_success=1 - q ** (r + 1), formula_calls=(1 - q ** (r + 1)) / (1 - q), unknown=float((lead == r + 1).mean()), formula_unknown=q ** (r + 1))
+
+
+def candidates(typed):                                         # 입력한 키에서 뒤 세 자리 중 하나만 다른 키(첫 자리는 같다)
+    return [f"SKU-{k}" for k in range(1000, 10000) if f"SKU-{k}" != typed and typed[4] == str(k)[0] and sum(a != b for a, b in zip(typed[5:], str(k)[1:])) == 1]
+
+
+def guess_policy(rr, r, n=100000):                             # 후보 27개에서 정답이 균등할 때 서로 다른 r개를 시도하는 정책의 성공률
+    truth = rr.integers(0, N_CAND, n); order = np.argsort(rr.random((n, N_CAND)), axis=1)[:, :r]
+    return float((order == truth[:, None]).any(1).mean())
+
+
+def mixed_policy(q, rho, r):                                   # 영구 실패 비율 rho, 나머지는 일시 실패 q: 같은 인자로 r번 다시 부를 때(정리 13.3의 3번)
+    ok = (1 - rho) * (1 - q ** (r + 1)); calls_always = (1 - rho) * (1 - q ** (r + 1)) / (1 - q) + rho * (r + 1); calls_label = (1 - rho) * (1 - q ** (r + 1)) / (1 - q) + rho
+    return dict(success=ok, calls_always=calls_always, calls_label=calls_label, saved=calls_always - calls_label)
+
+
+def e0_pure():
+    rr = np.random.default_rng(SEED); res = {}
+    res["retry"] = {f"{q}|{r}": retry_loop(rr, q, r) for q in (0.1, 0.3, 0.5) for r in (0, 1, 2, 3)}
+    res["cand"] = [len(candidates(s)) for s in ("SKU-4127", "SKU-9031", "SKU-1999", "SKU-7000")]
+    res["guess"] = {r: guess_policy(rr, r) for r in (1, 2, 3, 4)}
+    res["mixed"] = {f"{rho}|{r}": mixed_policy(0.3, rho, r) for rho in (0.1, 0.3) for r in (1, 3)}
+    return res
+
+
+def e0_tokens(tok):                                            # 도구 정의가 프롬프트에 더하는 토큰과 prefill FLOPs (12장의 공식)
+    d, dk, df = DIM["d"], DIM["d_kv"], DIM["d_ff"]; c = 4 * d * d + 4 * d * dk + 6 * d * df; res = {}
+    msgs = [{"role": "system", "content": S1}, {"role": "user", "content": ASK[0].format(sku="SKU-4172")}]
+    for k, tools in (("get", TOOLS_R), ("write", TOOLS_W)):
+        a = len(tok(tok.apply_chat_template(msgs, tools=tools, add_generation_prompt=True, tokenize=False, enable_thinking=False)).input_ids)
+        b = len(tok(tok.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False, enable_thinking=False)).input_ids)
+        fl = lambda n: DIM["L"] * (n * c + 4 * n * n * d)
+        res[k] = dict(with_tools=a, without=b, extra=a - b, extra_gflops=(fl(a) - fl(b)) / 1e9, c=c)
+    return res
+
+
+# ---------- 세계와 도구 ----------
+def world(t):                                                  # 시행 t의 세계. 같은 t는 모든 조건에서 같다
+    r = np.random.default_rng([SEED, t]); sku = f"SKU-{r.integers(1000, 10000)}"; stock = int(r.integers(100, 1000))
+
+    def tweak(s):                                              # 뒤 세 자리 중 한 자리를 다른 숫자로 바꾼다
+        p = 4 + 1 + int(r.integers(3)); return s[:p] + str(r.choice([c for c in "0123456789" if c != s[p]])) + s[p + 1:]
+    other_stock = int(r.integers(100, 1000))
+    while other_stock == stock: other_stock = int(r.integers(100, 1000))
+    return dict(sku=sku, stock=stock, typo=tweak(sku), other=tweak(sku), other_stock=other_stock, phr=int(r.integers(3)), qty=int(r.integers(5, 60)), order=ORDERS[int(r.integers(3))])
+
+
+def check(name, args):                                         # 스키마 검사: 틀리면 오류 문자열
+    sp = SPEC.get(name)
+    if sp is None: return "unknown tool"
+    if not isinstance(args, dict): return "arguments must be an object"
+    for k in sp["required"]:
+        if k not in args: return f"missing required argument: {k}"
+    for k, v in args.items():
+        if k not in sp["properties"]: return f"unexpected argument: {k}"
+        ty = sp["properties"][k]["type"]
+        if (ty == "string" and not isinstance(v, str)) or (ty == "integer" and (not isinstance(v, int) or isinstance(v, bool))): return f"wrong type for argument: {k}"
+    return None
+
+
+def execute(arm, w, st, name, args):                           # 도구 하나를 실행해 결과(dict)를 돌려준다. st는 시행 안의 상태
+    bad = check(name, args)
+    if bad: return {"error": "invalid_arguments", "detail": bad}
+    if name == "get_stock":
+        st["gets"] += 1
+        if arm == "R1" or (arm == "R2" and st["gets"] == 1): return {"error": "service_unavailable"}                      # 영구/일시 실패. 첫 오류는 두 조건에서 글자까지 같다
+        if arm == "R1L": return {"error": "forbidden", "retryable": False}                                              # 같은 실패에 클래스 라벨을 붙인다
+        if arm == "R2L" and st["gets"] == 1: return {"error": "timeout", "retryable": True}
+        if arm == "R5a": return {"stock": w["other_stock"]}                        # 도구의 결함: 다른 SKU의 레코드를 돌려준다(키를 싣지 않음)
+        if arm == "R5b": return {"sku": w["other"], "stock": w["other_stock"]}     # 같은 결함, 레코드가 자기 키를 싣는다
+        if args["sku"] == w["sku"]: return {"sku": w["sku"], "stock": w["stock"]}
+        if arm == "R4": return {"error": "not_found", "did_you_mean": w["sku"]}                                         # 정보: 맞는 키를 알려 준다
+        if arm == "R4i": return {"error": "not_found", "suggestion": f"Retry get_stock with sku {w['sku']}."}           # 같은 정보를 다음 행동의 지시로 쓴다
+        return {"error": "not_found"}
+    if name == "reserve_units":                                # 효과는 요청이 닿으면 일어난다. 첫 응답은 유실된다
+        st["applied"].append(dict(id=f"R-{len(st['applied']) + 1:03d}", sku=args["sku"], qty=args["qty"]))
+        if len(st["applied"]) == 1: return {"error": "timeout", **({"note": NOTE} if arm == "W1b" else {"retryable": True} if arm == "W1c" else {})}
+        return {"status": "reserved", "reservation_id": st["applied"][-1]["id"]}
+    return {"sku": args["sku"], "reservations": [dict(id=x["id"], qty=x["qty"]) for x in st["applied"] if x["sku"] == args["sku"]]}
+
+
+def parse_calls(text):                                         # &lt;tool_call&gt; 블록을 읽는다. (호출 목록, 형식이 깨졌는가)
+    if "&lt;tool_call&gt;" not in text: return [], False
+    calls = []
+    for m in re.findall(r"&lt;tool_call&gt;\s*(.*?)\s*&lt;/tool_call&gt;", text, re.S):
+        try: c = json.loads(m)
+        except ValueError: return [], True
+        if not isinstance(c, dict) or not isinstance(c.get("name"), str): return [], True
+        calls.append(dict(name=c["name"], arguments=c.get("arguments")))
+    return (calls, False) if calls else ([], True)
+
+
+def trial(answer, arm, prompt, t):
+    w, write = world(t), arm.startswith("W"); typed = w["typo"] if arm in ("R3", "R4", "R4i") else w["sku"]
+    user = (RES if write else ASK)[w["phr"]].format(sku=typed, qty=w["qty"], order=w["order"])
+    msgs = [{"role": "system", "content": SYSP[prompt]}, {"role": "user", "content": user}]; tools = TOOLS_W if write else TOOLS_R
+    st, log, texts, tokens, status = dict(gets=0, applied=[]), [], [], 0, "ok"
+    while True:
+        text, n = answer(msgs, tools); tokens += n; texts.append(text); calls, bad = parse_calls(text)
+        if bad: status, final = "malformed", text; break
+        if not calls: final = text; break
+        if len(log) &gt;= MAXCALL: status, final = "unfinished", text; break           # 호출 한도에 이르렀는데도 또 부른다
+        calls = calls[:MAXCALL - len(log)]
+        msgs.append({"role": "assistant", "content": text.split("&lt;tool_call&gt;")[0].strip(), "tool_calls": [{"type": "function", "function": c} for c in calls]})
+        for c in calls:
+            res = execute(arm, w, st, c["name"], c["arguments"]); log.append(dict(name=c["name"], args=c["arguments"], res=res)); msgs.append({"role": "tool", "content": json.dumps(res)})
+    keys = [(c["name"], json.dumps(c["args"], sort_keys=True)) for c in log]
+    rec = dict(arm=arm, prompt=prompt, t=t, user=user, calls=log, texts=texts, final=final.strip(), status=status, tokens=tokens, n_calls=len(log),
+               same=len(keys) != len(set(keys)), changed=any(k != keys[0] for k in keys[1:]), retried=len(log) &gt;= 2)
+    if write:
+        names = [c["name"] for c in log]; idx = [i for i, n in enumerate(names) if n == "reserve_units"]
+        rec.update(applied=len(st["applied"]), reserve_calls=len(idx), list_calls=names.count("list_reservations"),
+                   checked=any(n == "list_reservations" for n in names[idx[0] + 1:]) if idx else False,
+                   says_failed=bool(re.search(r"unable|fail|could not|couldn't|error|time(?:d)? ?out|not (?:be )?(?:reserved|processed|successful)", rec["final"], re.I)), says_success=bool(re.search(r"success", rec["final"], re.I)))
+        return rec
+    seen = {c["res"]["stock"] for c in log if "stock" in c["res"]}
+    nums = {int(m) for m in re.findall(r"(?&lt;![\w-])\d+(?![\w-])", re.sub(r"SKU-\d+", "", final))} | ({0} if re.search(r"\b(?:zero|out of stock|no units)\b", final, re.I) else set())   # 답이 말하는 수량
+    cat = status if status != "ok" else "correct" if w["stock"] in nums else "wrong_record" if nums &amp; seen else "fabricated" if nums else "none"
+    rec.update(cat=cat, grounded=w["stock"] in seen, first_ok=bool(log) and log[0]["name"] == "get_stock" and isinstance(log[0]["args"], dict) and log[0]["args"].get("sku") == typed,
+               hint_used=arm in ("R4", "R4i") and any(isinstance(c["args"], dict) and c["args"].get("sku") == w["sku"] for c in log[1:]),
+               mentions=typed != w["sku"] and w["sku"] in final,
+               noticed=arm == "R5b" and (w["other"] in final or bool(re.search(r"mismatch|different|does not match|doesn't match|not the same|instead", final, re.I))))
+    return rec
+
+
+# ---------- 모델 ----------
+def load():
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, DynamicCache
+    torch.manual_seed(SEED)
+    tok = AutoTokenizer.from_pretrained(NAME, revision=REV)
+    model = AutoModelForCausalLM.from_pretrained(NAME, revision=REV, dtype=torch.bfloat16).to("cuda").eval(); c = model.config
+    DIM.update(L=c.num_hidden_layers, d=c.hidden_size, d_kv=c.num_key_value_heads * getattr(c, "head_dim", c.hidden_size // c.num_attention_heads), d_ff=c.intermediate_size)
+
+    @torch.no_grad()
+    def answer(msgs, tools):                                   # 대화 템플릿을 입히고 순수 탐욕(argmax)으로 NEW 토큰까지 생성한다 (Qwen3는 비사고 모드)
+        ids = tok(tok.apply_chat_template(msgs, tools=tools, add_generation_prompt=True, tokenize=False, enable_thinking=False), return_tensors="pt").input_ids.to("cuda"); n = ids.shape[1]
+        cache = DynamicCache()
+        for i in range(0, n, 1024): lg = model(ids[:, i:i + 1024], past_key_values=cache, use_cache=True, logits_to_keep=1).logits[:, -1]
+        out = []
+        for _ in range(NEW):
+            t = int(lg.argmax(-1))
+            if t in (151645, 151643): break
+            out.append(t); lg = model(torch.tensor([[t]], device="cuda"), past_key_values=cache, use_cache=True, logits_to_keep=1).logits[:, -1]
+        return tok.decode(out), n
+
+    return tok, answer
+
+
+def summarize(recs, rr):
+    a = recs[0]["arm"]; f = lambda k: ci([k(r) for r in recs], rr)
+    s = dict(n=len(recs), calls=float(np.mean([r["n_calls"] for r in recs])), tokens=float(np.mean([r["tokens"] for r in recs])), retried=f(lambda r: r["retried"]),
+             same=f(lambda r: r["same"]), changed=f(lambda r: r["changed"]), unfinished=int(sum(r["status"] != "ok" for r in recs)))
+    if a.startswith("W"):
+        s.update(once=f(lambda r: r["applied"] == 1), dup=f(lambda r: r["applied"] &gt;= 2), applied=float(np.mean([r["applied"] for r in recs])), reserve_calls=float(np.mean([r["reserve_calls"] for r in recs])),
+                 checked=f(lambda r: r["checked"]), says_failed=f(lambda r: r["says_failed"]), says_success=f(lambda r: r["says_success"]), applied_dist=dict(Counter(r["applied"] for r in recs)),
+                 acct_violations=int(sum(r["applied"] != r["reserve_calls"] for r in recs)))
+    else:
+        s.update({c: f(lambda r, c=c: r["cat"] == c) for c in ("correct", "wrong_record", "fabricated", "none")}, other=f(lambda r: r["cat"] in ("malformed", "unfinished")),
+                 grounded=f(lambda r: r["grounded"]), first_ok=f(lambda r: r["first_ok"]), hint_used=f(lambda r: r["hint_used"]), mentions=f(lambda r: r["mentions"]), noticed=f(lambda r: r["noticed"]),
+                 lucky=int(sum(r["cat"] == "correct" and not r["grounded"] for r in recs)), cats=dict(Counter(r["cat"] for r in recs)))
+    return s
+
+
+def run_model(answer):
+    rr = np.random.default_rng(SEED + 1); raw, res = [], {}
+    for arm, prompt in CONDS:
+        t0 = time.time(); recs = [trial(answer, arm, prompt, t) for t in range(NT)]; raw += recs; res[f"{arm}|{prompt}"] = s = summarize(recs, rr)
+        print(f"{arm}|{prompt}", f"{time.time() - t0:.0f}s", {k: (round(v[0], 3) if isinstance(v, list) else v) for k, v in s.items() if k not in ("cats", "applied_dist")}, flush=True)
+        if MODE == "smoke":
+            for r in recs: print("  ", r["user"], "|", [(c["name"], c["args"], c["res"]) for c in r["calls"]], "-&gt;", repr(r["final"][:160]), r.get("cat", r.get("applied")))
+    for p in ("S1", "S3"):                                     # 같은 맥락이면 같은 출력이어야 한다: R1과 R2는 첫 오류까지 같은 대화이므로 두 번째 생성이 같다
+        a = {r["t"]: r for r in raw if (r["arm"], r["prompt"]) == ("R1", p)}; b = {r["t"]: r for r in raw if (r["arm"], r["prompt"]) == ("R2", p)}
+        if a and b: res[f"R1_R2_second_generation_differs|{p}"] = sum(a[t]["texts"][1] != b[t]["texts"][1] for t in a)
+    return raw, res
+
+
+if __name__ == "__main__":
+    t0 = time.time(); out = {}
+    if MODE in ("all", "e0", "smoke"): out["e0_pure"] = e0_pure(); print("E0 pure", json.dumps(out["e0_pure"])[:300], flush=True)
+    if MODE in ("all", "smoke"):
+        tok, answer = load(); out["e0_tokens"] = e0_tokens(tok); out["dim"] = dict(DIM); print("E0 tokens", out["e0_tokens"], flush=True)
+        raw, out["model"] = run_model(answer)
+        json.dump(raw, open(f"out13_{KEY}_raw.json" if MODE != "smoke" else f"smoke13_{KEY}_raw.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    json.dump(out, open(f"out13_{KEY}_res.json" if MODE != "smoke" else f"smoke13_{KEY}_res.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    print(f"완료 {time.time() - t0:.0f}s")
+</code></pre>
+
+
+    <h3 id="h-res13">결과</h3>
+    <p>먼저 E0이다. (a) <a class="ref" href="#thm-retry"></a>의 성공 확률, 기대 호출 수, 끝까지 실패할 확률을 몬테카를로(200,000번)로 센 값과 공식을 견주었다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>\(q\)</th><th class="num">\(r\)</th><th class="num">성공: 공식</th><th class="num">성공: 몬테카를로</th><th class="num">기대 호출: 공식</th><th class="num">기대 호출: 몬테카를로</th><th class="num">끝까지 실패: 공식</th><th class="num">끝까지 실패: 몬테카를로</th></tr></thead><tbody>
+<tr><td>0.1</td><td class="num">0</td><td class="num">0.9000</td><td class="num">0.8998</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.1000</td><td class="num">0.1002</td></tr>
+<tr><td>0.1</td><td class="num">1</td><td class="num">0.9900</td><td class="num">0.9902</td><td class="num">1.1000</td><td class="num">1.0992</td><td class="num">0.0100</td><td class="num">0.0098</td></tr>
+<tr><td>0.1</td><td class="num">2</td><td class="num">0.9990</td><td class="num">0.9990</td><td class="num">1.1100</td><td class="num">1.1112</td><td class="num">0.0010</td><td class="num">0.0010</td></tr>
+<tr><td>0.1</td><td class="num">3</td><td class="num">0.9999</td><td class="num">0.9999</td><td class="num">1.1110</td><td class="num">1.1108</td><td class="num">0.0001</td><td class="num">0.0001</td></tr>
+<tr><td>0.3</td><td class="num">0</td><td class="num">0.7000</td><td class="num">0.7002</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.3000</td><td class="num">0.2998</td></tr>
+<tr><td>0.3</td><td class="num">1</td><td class="num">0.9100</td><td class="num">0.9090</td><td class="num">1.3000</td><td class="num">1.3020</td><td class="num">0.0900</td><td class="num">0.0910</td></tr>
+<tr><td>0.3</td><td class="num">2</td><td class="num">0.9730</td><td class="num">0.9728</td><td class="num">1.3900</td><td class="num">1.3897</td><td class="num">0.0270</td><td class="num">0.0272</td></tr>
+<tr><td>0.3</td><td class="num">3</td><td class="num">0.9919</td><td class="num">0.9920</td><td class="num">1.4170</td><td class="num">1.4154</td><td class="num">0.0081</td><td class="num">0.0080</td></tr>
+<tr><td>0.5</td><td class="num">0</td><td class="num">0.5000</td><td class="num">0.4990</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.5000</td><td class="num">0.5010</td></tr>
+<tr><td>0.5</td><td class="num">1</td><td class="num">0.7500</td><td class="num">0.7503</td><td class="num">1.5000</td><td class="num">1.5005</td><td class="num">0.2500</td><td class="num">0.2497</td></tr>
+<tr><td>0.5</td><td class="num">2</td><td class="num">0.8750</td><td class="num">0.8762</td><td class="num">1.7500</td><td class="num">1.7479</td><td class="num">0.1250</td><td class="num">0.1238</td></tr>
+<tr><td>0.5</td><td class="num">3</td><td class="num">0.9375</td><td class="num">0.9379</td><td class="num">1.8750</td><td class="num">1.8725</td><td class="num">0.0625</td><td class="num">0.0621</td></tr>
+</tbody></table></div>
+    <p>12개 설정에서 세 값 모두 공식과 최대 0.0025 차이였고 예상한 0.005 이내이다. (b) 입력한 키에서 뒤 세 자리 중 한 자리만 다른 키를 전수 열거하면 시험한 네 키(<code>SKU-4127</code>, <code>SKU-9031</code>, <code>SKU-1999</code>, <code>SKU-7000</code>) 모두에서 후보가 27개였다. (c) 후보 27개에서 정답이 균등할 때 서로 다른 \(r\)개를 시도하는 정책의 성공률은 다음과 같다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>서로 다른 시도 \(r\)</th><th class="num">\(r/27\)</th><th class="num">시뮬레이션의 성공률</th><th class="num">차이</th></tr></thead><tbody>
+<tr><td>1</td><td class="num">0.0370</td><td class="num">0.0370</td><td class="num">0.0001</td></tr>
+<tr><td>2</td><td class="num">0.0741</td><td class="num">0.0739</td><td class="num">0.0002</td></tr>
+<tr><td>3</td><td class="num">0.1111</td><td class="num">0.1102</td><td class="num">0.0009</td></tr>
+<tr><td>4</td><td class="num">0.1481</td><td class="num">0.1472</td><td class="num">0.0010</td></tr>
+</tbody></table></div>
+    <p>차이는 모두 0.001 미만이다. (d) 도구 정의가 프롬프트에 더한 토큰은 읽기 도구 하나에서 152개, 쓰기·목록 도구 둘에서 248개였고, <a href="ch12.html#thm-cost">12장의 공식</a>으로 센 prefill FLOPs는 Qwen3-1.7B(\(L=28\), \(d=2048\), \(d_{\rm kv}=1024\), \(d_{\rm ff}=6144\))에서 각각 437 GFLOPs와 718 GFLOPs이다. <a class="ref" href="#ex-retry"></a>의 혼합 정책 수치(\(\rho=0.3\), \(r=3\)에서 0.694, 2.192, 1.292)도 같은 코드가 센 값이다.</p>
+
+    <p>다음은 모델 쪽이다. 아래 표는 주 모델 Qwen3-1.7B의 읽기 조건 17개이다. 각 조건은 60시행이고, 값은 비율(95% 구간)이다. 마지막 답을 분류한 네 열의 합은 1이다(형식이 깨지거나 호출 한도에서 끝나지 않은 시행은 이 표에서 모든 조건이 0이다).</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건 · 프롬프트</th><th class="num">정답을 말함</th><th class="num">다른 레코드의 수</th><th class="num">지어낸 수</th><th class="num">수를 말하지 않음</th><th class="num">재시도(호출 2번 이상)</th><th class="num">평균 호출 수</th><th class="num">읽은 토큰</th></tr></thead><tbody>
+<tr><td>R0 성공(대조) · S1</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">446</td></tr>
+<tr><td>R1 영구 실패(bare) · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">436</td></tr>
+<tr><td>R2 일시 실패(bare) · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">436</td></tr>
+<tr><td>R1L 영구 실패 + retryable:false · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">440</td></tr>
+<tr><td>R2L 일시 실패 + retryable:true · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.70 [0.58, 0.82]</td><td class="num">0.30</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">440</td></tr>
+<tr><td>R3 오타 키, not_found · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">434</td></tr>
+<tr><td>R4 오타 키, did_you_mean · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">448</td></tr>
+<tr><td>R4i 오타 키, 명령형 제안 · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">452</td></tr>
+<tr><td>R5a 이웃 레코드(키 없음) · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">436</td></tr>
+<tr><td>R5b 이웃 레코드(키 있음) · S1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.97</td><td class="num">0.03 [0.00, 0.08]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">446</td></tr>
+<tr><td>R1 영구 실패(bare) · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">500</td></tr>
+<tr><td>R2 일시 실패(bare) · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">500</td></tr>
+<tr><td>R1L 영구 실패 + retryable:false · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.32 [0.20, 0.43]</td><td class="num">0.68</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">504</td></tr>
+<tr><td>R2L 일시 실패 + retryable:true · S3</td><td class="num">0.28 [0.18, 0.40]</td><td class="num">0.00</td><td class="num">0.45 [0.32, 0.58]</td><td class="num">0.27</td><td class="num">0.28 [0.17, 0.40]</td><td class="num">1.28</td><td class="num">598</td></tr>
+<tr><td>R3 오타 키, not_found · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">498</td></tr>
+<tr><td>R4 오타 키, did_you_mean · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">512</td></tr>
+<tr><td>R4i 오타 키, 명령형 제안 · S3</td><td class="num">0.13 [0.05, 0.23]</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.87</td><td class="num">0.13 [0.05, 0.23]</td><td class="num">1.13</td><td class="num">566</td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 464" role="img" aria-label="조회 조건별로 마지막 답의 분류. 정답, 다른 레코드의 수, 지어낸 수, 수를 말하지 않음의 비율을 가로 누적 막대로 보이고, 오른쪽에 재시도한 비율을 적었다.">
+  <rect x="250" y="12" width="12" height="12" style="fill:var(--ok)"/><text class="t-dim" x="267" y="23">정답</text>
+  <rect x="307" y="12" width="12" height="12" style="fill:var(--warn)"/><text class="t-dim" x="324" y="23">다른 레코드의 수</text>
+  <rect x="427" y="12" width="12" height="12" style="fill:var(--bad)"/><text class="t-dim" x="444" y="23">지어낸 수</text>
+  <rect x="511" y="12" width="12" height="12" style="fill:var(--border)"/><text class="t-dim" x="528" y="23">수를 말하지 않음</text>
+  <text class="t-dim" x="594" y="48">재시도</text>
+  <text class="t-dim" x="242.0" y="71" text-anchor="end">R0 · S1</text>
+  <rect x="250.0" y="58" width="330.0" height="16" style="fill:var(--ok)"/>
+  <text class="t-mono" x="594" y="71">0.00</text>
+  <text class="t-dim" x="242.0" y="93" text-anchor="end">R1 · S1</text>
+  <rect x="250.0" y="80" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="93">0.00</text>
+  <text class="t-dim" x="242.0" y="115" text-anchor="end">R2 · S1</text>
+  <rect x="250.0" y="102" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="115">0.00</text>
+  <text class="t-dim" x="242.0" y="137" text-anchor="end">R1L · S1</text>
+  <rect x="250.0" y="124" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="137">0.00</text>
+  <text class="t-dim" x="242.0" y="159" text-anchor="end">R2L · S1</text>
+  <rect x="250.0" y="146" width="231.0" height="16" style="fill:var(--bad)"/>
+  <rect x="481.0" y="146" width="99.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="159">0.00</text>
+  <text class="t-dim" x="242.0" y="181" text-anchor="end">R3 · S1</text>
+  <rect x="250.0" y="168" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="181">0.00</text>
+  <text class="t-dim" x="242.0" y="203" text-anchor="end">R4 · S1</text>
+  <rect x="250.0" y="190" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="203">0.00</text>
+  <text class="t-dim" x="242.0" y="225" text-anchor="end">R4i · S1</text>
+  <rect x="250.0" y="212" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="225">0.00</text>
+  <text class="t-dim" x="242.0" y="247" text-anchor="end">R5a · S1</text>
+  <rect x="250.0" y="234" width="330.0" height="16" style="fill:var(--warn)"/>
+  <text class="t-mono" x="594" y="247">0.00</text>
+  <text class="t-dim" x="242.0" y="269" text-anchor="end">R5b · S1</text>
+  <rect x="250.0" y="256" width="319.0" height="16" style="fill:var(--warn)"/>
+  <rect x="569.0" y="256" width="11.0" height="16" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="269">0.00</text>
+  <text class="t-dim" x="242.0" y="291" text-anchor="end">R1 · S3</text>
+  <rect x="250.0" y="278" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="291">0.00</text>
+  <text class="t-dim" x="242.0" y="313" text-anchor="end">R2 · S3</text>
+  <rect x="250.0" y="300" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="313">0.00</text>
+  <text class="t-dim" x="242.0" y="335" text-anchor="end">R1L · S3</text>
+  <rect x="250.0" y="322" width="104.5" height="16" style="fill:var(--bad)"/>
+  <rect x="354.5" y="322" width="225.5" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="335">0.00</text>
+  <text class="t-dim" x="242.0" y="357" text-anchor="end">R2L · S3</text>
+  <rect x="250.0" y="344" width="93.5" height="16" style="fill:var(--ok)"/>
+  <rect x="343.5" y="344" width="148.5" height="16" style="fill:var(--bad)"/>
+  <rect x="492.0" y="344" width="88.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="357">0.28</text>
+  <text class="t-dim" x="242.0" y="379" text-anchor="end">R3 · S3</text>
+  <rect x="250.0" y="366" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="379">0.00</text>
+  <text class="t-dim" x="242.0" y="401" text-anchor="end">R4 · S3</text>
+  <rect x="250.0" y="388" width="330.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="401">0.00</text>
+  <text class="t-dim" x="242.0" y="423" text-anchor="end">R4i · S3</text>
+  <rect x="250.0" y="410" width="44.0" height="16" style="fill:var(--ok)"/>
+  <rect x="294.0" y="410" width="286.0" height="16" style="fill:var(--border)"/>
+  <text class="t-mono" x="594" y="423">0.13</text>
+</svg>
+      <figcaption><b>그림 13-4.</b> 읽기 조건별 마지막 답의 분류(주 모델, 60시행). 초록은 정답, 주황은 도구가 돌려준 다른 레코드의 수, 빨강은 도구 결과에 없는 수량(모두 0이었다), 회색은 수량을 말하지 않은 것이다. 오른쪽 숫자는 호출이 2번 이상인 시행의 비율이다. 프롬프트 S1(위쪽 10줄)에서는 어느 조건에서도 재시도가 없었다.</figcaption>
+    </figure>
+    <p><b>E1.</b> 성공 결과를 받는 R0|S1에서 정답을 말한 시행이 60/60(1.000)이었고, 모든 시행에서 첫 호출이 사용자가 쓴 키를 그대로 가진 <code>get_stock</code>이었다. 예상(0.90 이상)이 기각되지 않았으므로 나머지 조건을 해석한다. 호출 깔때기(<a class="ref" href="#thm-chain"></a>)에서 \(p_1=p_2=p_3=1\)이고 \(a_I=1\)이다. 복사 조건에서는 호출과 읽기가 문제가 되지 않는다.</p>
+    <p><b>E2~E6.</b> 모든 예상이 기각되지 않았다. E2: 정답 재고가 어느 도구 결과에도 나오지 않은 시행에서 정답을 말한 답은 어느 조건에서도 0개였다(28개 조건, 근거 없이 맞은 답 0). 모델이 지어낸 수량은 모두 0이어서(아래) 맞을 수가 없었다. E3: 오류가 틀린 키만 알려 주는 R3에서 정답을 말한 시행은 S1과 S3 모두 0/60으로 상한 0.111 아래이다(어느 시행에서도 호출이 1번뿐이었다). E4: R1과 R2는 첫 오류까지 글자까지 같은 대화여서 두 번째 생성이 시행 60개 모두에서 같았다(S1, S3 모두 차이 0). 다만 두 조건에서 모델이 다시 부른 시행이 없어서 이 비교는 마지막 답의 글이 같은지를 본 것이다. E5: 첫 호출이 반드시 실패하는 조건(R2, R2L, R3, R4, R4i)에서 호출 1번으로 도구 결과의 정답을 얻은 시행은 0개였다. 정답을 말한 시행은 모두 호출이 2번 이상이었다. E6: 쓰기 조건에서 하네스가 적용한 효과의 횟수는 모든 시행에서 <code>reserve_units</code> 호출 수와 같았다(위반 0).</p>
+    <p><b>기본 프롬프트에서 오류를 본 모델은 다시 부르지 않았다.</b> S1의 읽기 조건 R1~R5b에서 호출은 모든 시행에서 1번이었다(재시도 0/60). 영구 실패(R1), 일시 실패(R2), 오타 키(R3), 맞는 키를 말해 주는 오류(R4)에서 모두 같았다. 재시도 지시를 더한 S3에서도 R1, R2, R1L, R3, R4는 0/60이었다. 재시도가 생긴 조건은 둘이다. R2L|S3(오류에 <code>retryable: true</code>를 단 일시 실패)에서 17/60(0.283 [0.167, 0.400])이 같은 인자로 다시 불러 모두 성공 결과를 받고 정답을 말했다. R4i|S3(맞는 키를 명령형으로 말해 주는 오류)에서 8/60(0.133 [0.050, 0.233])이 맞는 키로 고쳐 불러 모두 정답을 말했다. 이 두 조건에서 깔때기로 읽으면 정확도는 \(\Pr[I]\cdot a_I\)이고(R2L|S3에서 \(0.283\times1.000\), R4i|S3에서 \(0.133\times1.000\)), 읽기 오류는 0이며 오류의 전부가 재시도를 하느냐에서 나온다. 같은 세계끼리 짝지어 견주면 R4i가 R4보다 재시도가 0.133 [0.050, 0.217] 많았고, R2L이 R2보다 0.283 [0.167, 0.400] 많았다.</p>
+    <p><b>모델이 다시 하겠다고 말하고 호출하지 않는 일이 흔했다.</b> 답에 '다시 해 보겠다'류의 문장(<code>let me try again</code> 등)이 있는데 호출이 늘지 않은 시행이 R2L|S1 18/60, R2L|S3 16/60, R4i|S3 22/60이었다(아래 사후 분석, 낱말 판정). 하네스가 모델의 텍스트가 아니라 호출만 실행하면 사용자는 '다시 해 보겠다'는 말을 듣고 아무 일도 일어나지 않는 것을 보게 된다. 맞는 키를 알려 주는 정보는 사용자에게는 전해졌다. 답에 맞는 키가 들어간 비율이 R4|S1에서 0.72, R4|S3에서 0.80, R4i|S1에서 1.00이었다. 정보는 모델의 글을 거쳐 사용자에게 갔고 도구에는 가지 않았다.</p>
+    <p><b>모델이 지어낸 수량은 모두 0이었다.</b> 지어낸 수(<code>fabricated</code>)는 R1, R2, R3, R4, R4i의 어느 조건에서도 0/60이었다. R2L|S1에서는 42/60(0.700 [0.583, 0.817]), R1L|S3에서 19/60(0.317 [0.200, 0.433]), R2L|S3에서 27/60(0.450 [0.317, 0.583])이었다. 이 88개에 R5b의 2개를 더한 지어낸 답 90개가 말한 수는 모두 0이었다('The stock level … is 0.'). 재고는 100~999에서 뽑았으므로 0은 어떤 시행에서도 맞을 수 없다. 도구 결과에 없는 수를 말하는 지어낸 답이 \(1/V\)이하로만 맞는다는 <a class="ref" href="#thm-chain"></a>의 3번의 사례이다. 이 값 0은 그럴듯하다. 재고가 없다는 말은 '조회가 실패했다'는 말과 달리 사용자가 믿고 행동할 수 있다. 같은 세계끼리 짝지은 차이는 R2L|S1이 R2|S1보다 지어낸 수가 0.700 [0.583, 0.800] 많았다. 그러나 이 차이를 <code>retryable</code> 라벨의 효과라고 할 수는 없다. R2L은 오류의 이름도 <code>service_unavailable</code>에서 <code>timeout</code>으로 바꾸었고(R1L은 <code>forbidden</code>) 라벨과 이름을 따로 바꾼 조건은 없다. 이 장의 실험이 말할 수 있는 것은 오류의 글을 바꾸면 모델이 값을 지어내는 비율이 0에서 0.7까지 달라졌다는 것까지이다.</p>
+    <p><b>조용한 오류는 키를 실어도 모델이 잡지 못했다.</b> 도구가 다른 SKU의 레코드를 성공으로 돌려준 R5a(키 없음)에서 60/60이 그 레코드의 수를 요청한 SKU의 재고로 말했다. 레코드가 자기 키를 싣는 R5b에서도 58/60이 같은 일을 했고 2/60은 '요청한 SKU의 재고가 0이다'라고 말했다(돌려받은 레코드의 수도 아니고 도구 결과에 없는 수이다). 호출이 늘어난 시행은 0개였고 불일치를 지적하는 낱말(<code>different</code>, <code>mismatch</code> 등)을 쓴 답도 0개였다. 낱말 판정이 '알아챘다'고 센 6/60은 모두 답에서 돌아온 키를 그대로 말한 경우였다(예: 'The current stock of SKU-1162 is 304 units.'. 요청한 키는 SKU-1166이었다). 그 답은 돌아온 레코드에 대해서는 맞고 사용자에게는 키가 바뀌었음이 보이지만, 모델이 불일치를 알아채 말한 것은 아니다. 키 반향은 두 컨텍스트를 구별 가능하게 만들지만(<a class="ref" href="#thm-arg"></a>의 5번), 이 모델은 그 구별을 쓰지 않았다. R5a와 R5b의 차이는 0.03으로 구간이 겹친다.</p>
+
+    <p>이제 쓰기 조건이다. 값은 60시행의 비율(95% 구간)이고, 효과의 횟수는 하네스가 센 것이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건 · 프롬프트</th><th class="num">효과 정확히 1번</th><th class="num">효과 2번 이상(중복)</th><th class="num">다시 예약함</th><th class="num">list로 확인함</th><th class="num">실패라고 말함</th><th class="num">성공이라고 말함</th><th class="num">평균 호출 수</th></tr></thead><tbody>
+<tr><td>W1a 타임아웃(bare) · S1</td><td class="num">0.97 [0.92, 1.00]</td><td class="num">0.03 [0.00, 0.08]</td><td class="num">0.03 [0.00, 0.08]</td><td class="num">0.00</td><td class="num">0.92</td><td class="num">0.05</td><td class="num">1.03</td></tr>
+<tr><td>W1b 타임아웃 + 확인하라는 메모 · S1</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">1.00</td><td class="num">0.00</td><td class="num">0.98</td><td class="num">2.20</td></tr>
+<tr><td>W1c 타임아웃 + retryable:true · S1</td><td class="num">0.12 [0.03, 0.20]</td><td class="num">0.88 [0.80, 0.95]</td><td class="num">0.88 [0.80, 0.95]</td><td class="num">0.00</td><td class="num">0.12</td><td class="num">0.88</td><td class="num">1.88</td></tr>
+<tr><td>W1a 타임아웃(bare) · S3</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.98</td><td class="num">0.52</td><td class="num">1.00</td></tr>
+<tr><td>W1b 타임아웃 + 확인하라는 메모 · S3</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">1.00</td><td class="num">0.00</td><td class="num">0.80</td><td class="num">2.00</td></tr>
+<tr><td>W1c 타임아웃 + retryable:true · S3</td><td class="num">0.30 [0.18, 0.42]</td><td class="num">0.70 [0.58, 0.82]</td><td class="num">0.70 [0.58, 0.82]</td><td class="num">0.00</td><td class="num">0.30</td><td class="num">0.70</td><td class="num">1.70</td></tr>
+</tbody></table></div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 246" role="img" aria-label="쓰기 조건별로 하네스가 적용한 효과의 횟수. 정확히 한 번과 두 번 이상(중복)의 비율을 가로 누적 막대로 보이고, 오른쪽에 읽기 도구로 확인한 비율을 적었다.">
+  <rect x="250.0" y="12" width="12" height="12" style="fill:var(--ok)"/><text class="t-dim" x="267.0" y="23">효과 정확히 1번</text><rect x="390.0" y="12" width="12" height="12" style="fill:var(--bad)"/><text class="t-dim" x="407.0" y="23">효과 2번 이상(중복)</text><text class="t-dim" x="594" y="48">list로 확인</text>
+  <text class="t-dim" x="242.0" y="73" text-anchor="end">W1a · S1</text>
+  <rect x="250.0" y="59" width="319.0" height="18" style="fill:var(--ok)"/><rect x="569.0" y="59" width="11.0" height="18" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="73">0.00</text>
+  <text class="t-dim" x="242.0" y="99" text-anchor="end">W1b · S1</text>
+  <rect x="250.0" y="85" width="330.0" height="18" style="fill:var(--ok)"/><rect x="580.0" y="85" width="0.0" height="18" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="99">1.00</text>
+  <text class="t-dim" x="242.0" y="125" text-anchor="end">W1c · S1</text>
+  <rect x="250.0" y="111" width="38.5" height="18" style="fill:var(--ok)"/><rect x="288.5" y="111" width="291.5" height="18" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="125">0.00</text>
+  <text class="t-dim" x="242.0" y="151" text-anchor="end">W1a · S3</text>
+  <rect x="250.0" y="137" width="330.0" height="18" style="fill:var(--ok)"/><rect x="580.0" y="137" width="0.0" height="18" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="151">0.00</text>
+  <text class="t-dim" x="242.0" y="177" text-anchor="end">W1b · S3</text>
+  <rect x="250.0" y="163" width="330.0" height="18" style="fill:var(--ok)"/><rect x="580.0" y="163" width="0.0" height="18" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="177">1.00</text>
+  <text class="t-dim" x="242.0" y="203" text-anchor="end">W1c · S3</text>
+  <rect x="250.0" y="189" width="99.0" height="18" style="fill:var(--ok)"/><rect x="349.0" y="189" width="231.0" height="18" style="fill:var(--bad)"/>
+  <text class="t-mono" x="594" y="203">0.00</text>
+</svg>
+      <figcaption><b>그림 13-5.</b> 쓰기 조건별로 하네스가 적용한 효과의 횟수(주 모델, 60시행). 초록은 정확히 한 번, 빨강은 두 번 이상(중복)이다. 오른쪽 숫자는 <code>list_reservations</code>로 효과의 유무를 확인한 시행의 비율이다. 타임아웃에 <code>retryable: true</code>를 단 W1c는 S1에서 0.88, S3에서 0.70이 중복이었고, '처리되었을 수 있으니 확인하라'는 메모를 단 W1b는 중복이 0이었다.</figcaption>
+    </figure>
+    <p><b>오류 메시지의 글이 쓰기의 중복을 정했다.</b> 타임아웃에 아무 말이 없는 W1a|S1에서 다시 예약한 시행은 2/60뿐이었고 58/60은 효과가 정확히 한 번이었다. 그런데 이 58개 가운데 55개의 답은 예약이 실패했다고만 말했다(낱말 판정. 시행 전체에서 실패라고 말한 비율은 0.917 [0.850, 0.983]). 효과가 이미 있는데 실패라고 보고한 것이다. 사용자가 이 보고를 믿고 다시 요청하면 중복이 생긴다. <code>retryable: true</code>를 단 W1c|S1에서는 53/60(0.883 [0.800, 0.950])이 다시 예약해 효과가 두 번 일어났다. 같은 세계끼리 짝지은 차이로 W1c가 W1a보다 중복이 0.850 [0.750, 0.933] 많았다. 라벨은 읽기 도구라면 맞는 말이었지만 이 쓰기 도구에는 거짓이었다. '요청이 처리되었을 수 있으니 다시 부르기 전에 <code>list_reservations</code>를 확인하라'는 메모를 단 W1b|S1에서는 60/60이 <code>list_reservations</code>를 불러 확인했고 중복은 0/60이었으며, 59/60의 답이 예약이 처리되었다고 말했다. 응답이 유실된 쓰기의 컨텍스트가 두 세계에서 같다는 <a class="ref" href="#thm-write"></a>의 1번 때문에, 메모가 없던 W1a의 답은 두 세계 모두에서 같은 글이었고 메모가 있는 W1b는 컨텍스트에 정보가 들어왔다. 정보가 늘자 행동이 달라졌다. 비용도 달랐다. W1b는 시행당 읽은 토큰이 1,223개로 W1a의 657개의 1.9배였고, 6/60은 같은 읽기를 되풀이하다 호출 한도에서 끝나지 않았다.</p>
+    <p>재시도를 지시한 S3에서도 모양이 같았다. W1a|S3은 다시 예약한 시행이 0개였는데 60/60의 답이 '다시 해 보겠다'고 말하고 호출 없이 끝났다. W1b|S3은 60/60이 확인했고 중복이 0이었다. W1c|S3은 42/60(0.700 [0.583, 0.817])이 중복이었다. 같은 W1c에서 S3이 S1보다 중복이 0.183 [0.050, 0.317] 적었다. 이 감소는 이론에서 나온 예상이 없고 이유를 확인하지 못했다. 재시도 지시가 있는데 재시도가 줄었으므로 지시의 효과로 읽을 수는 없다. 시행 수가 적어 우연일 수도 있다. 어느 조건에서도 하네스가 센 효과의 횟수와 <code>reserve_units</code> 호출 수는 같았다(E6). 그러므로 중복의 비율은 다시 예약한 비율과 같다.</p>
+
+    <p><b>대조 모델.</b> 대조 모델 Qwen2.5-1.5B-Instruct는 5개 조건만 쟀다. 성공 결과를 받는 R0|S1에서 정답이 60/60(1.000)이어서 E1의 기준을 통과했다. 그러나 오류를 본 뒤 다시 부른 시행은 4개 조건(R2|S3, R2L|S3, R4i|S3, W1c|S3) 모두 0/60이었다. 오류에 <code>retryable: true</code>를 달아도(R2L, W1c), 맞는 키를 명령형으로 말해 주어도(R4i), 시스템 프롬프트로 재시도를 지시해도 같았다. 지어낸 수는 0개였고(같은 R2L|S3에서 주 모델은 27/60), 맞는 키를 말해 주는 R4i|S3에서 답에 맞는 키가 든 비율은 0.93(56/60)이었다. 쓰기 W1c|S3에서 중복은 0이었고(효과 60/60 정확히 한 번) 58/60의 답이 예약이 실패했다고 말했다. 같은 세계, 같은 도구, 같은 프롬프트에서 두 모델의 반응이 W1c|S3의 중복 비율 0 대 0.700, R2L|S3의 재시도 0 대 0.283으로 달랐다. 하네스가 모델이 재시도한다고 가정할 수 없다는 것, 그리고 같은 오류 메시지가 모델에 따라 중복을 만들 수도 만들지 않을 수도 있다는 것이 이 대조의 결과이다. 두 모델의 차이를 만든 원인(크기, 학습 자료, 템플릿)은 이 실험이 가르지 못한다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건 · 프롬프트</th><th class="num">정답을 말함</th><th class="num">다른 레코드의 수</th><th class="num">지어낸 수</th><th class="num">수를 말하지 않음</th><th class="num">재시도(호출 2번 이상)</th><th class="num">쓰기 결과</th></tr></thead><tbody>
+<tr><td>R0 성공(대조) · S1</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num"></td></tr>
+<tr><td>R2 일시 실패(bare) · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num"></td></tr>
+<tr><td>R2L 일시 실패 + retryable:true · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num"></td></tr>
+<tr><td>R4i 오타 키, 명령형 제안 · S3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num"></td></tr>
+<tr><td>W1c 타임아웃 + retryable:true · S3</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">효과 1번 1.00, 중복 0.00</td></tr>
+</tbody></table></div>
+    <p><b>같은 코드의 반복.</b> 같은 코드를 처음부터 한 번 더 실행해(주 모델 3,116초, 대조 모델 617초) 응답 원본과 요약을 담은 JSON 네 개(주 모델과 대조 모델 각각의 <code>raw</code>와 <code>res</code>)를 첫 실행의 것과 견주었다. 네 파일은 바이트 단위로 같았다(SHA-256 일치). 로그에서 다른 것은 걸린 시간과 가중치를 읽는 진행 막대뿐이었고, 두 실행의 조건별 요약 줄은 시간을 빼고 같았다. 사후 분석 코드(<code>post13.py</code>)를 두 번째 실행의 응답 원본에 돌려도 출력이 같았다. 탐욕 디코딩이고 세계는 시행 번호로 시드를 고정했으니 같은 GPU와 같은 소프트웨어 버전에서 같게 나오는 것이 예상된 일이다. 이것은 다른 GPU나 버전에서도 같다는 뜻이 아니다. 본문의 모든 수는 이 파일들에서 나왔다.</p>
+
+    <h3 id="h-post13">이 장에서 보고 나서 만든 분석</h3>
+    <p>E1~E6의 응답을 본 뒤에 다음 분석을 따로 썼다. 모델은 다시 돌리지 않고 저장한 원자료(주 모델의 시행 1,380개)에 <code>exp13.py</code>의 함수를 그대로 쓴다. 0은 사전에 적은 점검(E2, E3, E5, E6)을 원자료에서 다시 센 것이다. 1은 같은 세계끼리 짝지은 차이이다. 2는 재시도한 시행의 내용, 3은 지어낸 수의 값, 4는 쓰기에서 모델이 한 보고, 5는 이웃 레코드 조건의 답, 6은 '다시 해 보겠다'고 말하고 호출하지 않은 시행이다. 5와 6의 낱말 판정은 응답을 읽은 뒤에 만들었다. 아래는 코드와 출력이다.</p>
+<pre><code>import json, re, sys
+from collections import Counter
+sys.path.insert(0, "."); sys.argv = ["exp13.py", "e0", "q3"]        # exp13.py와 같은 폴더에서 실행하고, 모델은 다시 돌리지 않는다
+import numpy as np
+import exp13 as E
+
+raw = json.load(open("out13_q3_raw.json", encoding="utf8")); by = {(r["arm"], r["prompt"], r["t"]): r for r in raw}
+rr = np.random.default_rng(E.SEED + 10); n = E.NT
+
+
+def rec(arm, p): return [by[(arm, p, t)] for t in range(n)]
+
+
+def paired(a, b, f):                                               # 같은 세계끼리 짝지은 차이 f(a) - f(b)의 평균과 95% 구간
+    d = [f(by[(a[0], a[1], t)]) - f(by[(b[0], b[1], t)]) for t in range(n)]; m, lo, hi = E.ci(d, rr); return f"{m:+.3f} [{lo:+.3f}, {hi:+.3f}]"
+
+
+print("0. 사전에 적은 점검을 원자료에서 직접 센다")
+print("  E2 근거 없이 맞은 답이 있는 조건:", [f"{a}|{p}:{sum(r['cat'] == 'correct' and not r['grounded'] for r in rec(a, p))}" for (a, p) in {(k[0], k[1]) for k in by} if not a.startswith("W") and sum(r["cat"] == "correct" and not r["grounded"] for r in rec(a, p))])
+print("  E5 첫 호출이 반드시 실패하는 조건에서 호출 1번으로 도구 결과의 정답을 얻은 시행:", sum(r["cat"] == "correct" and r["grounded"] and r["n_calls"] &lt; 2 for r in raw if r["arm"] in ("R2", "R2L", "R3", "R4", "R4i")))
+print("  E6 쓰기 조건에서 적용된 효과 수와 reserve_units 호출 수가 다른 시행:", sum(r["applied"] != r["reserve_calls"] for r in raw if r["arm"].startswith("W")))
+print("  E3 R3의 정답 비율:", {p: sum(r["cat"] == "correct" for r in rec("R3", p)) for p in ("S1", "S3")}, "(상한 3/27 = 0.111)")
+print("1. 같은 세계끼리 짝지은 차이(앞 조건 - 뒤 조건, 95% 구간)")
+for a, b, name, f in [(("R2L", "S1"), ("R2", "S1"), "지어낸 수", lambda r: r["cat"] == "fabricated"), (("R2L", "S3"), ("R2", "S3"), "재시도", lambda r: r["retried"]),
+                      (("R1L", "S3"), ("R1", "S3"), "재시도", lambda r: r["retried"]), (("R4i", "S3"), ("R4", "S3"), "재시도", lambda r: r["retried"]),
+                      (("R4", "S3"), ("R4", "S1"), "재시도", lambda r: r["retried"]), (("R2", "S3"), ("R2", "S1"), "재시도", lambda r: r["retried"]),
+                      (("W1c", "S1"), ("W1a", "S1"), "중복", lambda r: r["applied"] &gt;= 2), (("W1b", "S1"), ("W1a", "S1"), "중복", lambda r: r["applied"] &gt;= 2),
+                      (("W1b", "S1"), ("W1a", "S1"), "list로 확인", lambda r: r["checked"]), (("W1c", "S3"), ("W1c", "S1"), "중복", lambda r: r["applied"] &gt;= 2)]:
+    print(f"  {a[0]}|{a[1]} - {b[0]}|{b[1]}  {name}: {paired(a, b, f)}")
+
+print("2. 재시도한 시행의 호출 수 분포와 결과(S3)")
+for arm in ("R1", "R2", "R1L", "R2L", "R3", "R4", "R4i"):
+    rs = rec(arm, "S3"); ret = [r for r in rs if r["retried"]]
+    print(f"  {arm}|S3: 호출 수 분포 {dict(sorted(Counter(r['n_calls'] for r in rs).items()))}, 재시도 {len(ret)}개 중 같은 인자 되풀이 {sum(r['same'] for r in ret)}, 인자를 바꾼 호출 {sum(r['changed'] for r in ret)}, 정답 {sum(r['cat'] == 'correct' for r in ret)}, 근거 있음 {sum(r['grounded'] for r in ret)}")
+
+print("3. 지어낸 수의 값(조건별 말한 수의 분포)")
+for arm, p in (("R2L", "S1"), ("R1L", "S3"), ("R2L", "S3"), ("R2", "S3"), ("R1", "S3")):
+    c = Counter()
+    for r in rec(arm, p):
+        if r["cat"] == "fabricated":
+            nums = {int(m) for m in re.findall(r"(?&lt;![\w-])\d+(?![\w-])", re.sub(r"SKU-\d+", "", r["final"]))} | ({0} if re.search(r"\b(?:zero|out of stock|no units)\b", r["final"], re.I) else set())
+            c[tuple(sorted(nums))] += 1
+    print(f"  {arm}|{p}: {dict(c.most_common(5))}")
+
+print("4. 쓰기 조건: 다시 예약하지 않고 실패라고 말한 비율과 확인 뒤 성공이라고 말한 비율")
+for p in ("S1", "S3"):
+    for arm in ("W1a", "W1b", "W1c"):
+        rs = rec(arm, p); k = len(rs)
+        print(f"  {arm}|{p}: 재예약 없이 실패라고 말함 {sum(r['reserve_calls'] == 1 and r['says_failed'] and not r['says_success'] for r in rs)}/{k}, 확인한 뒤 성공이라고 말함 {sum(r['checked'] and r['says_success'] for r in rs)}/{k}, 호출 수 분포 {dict(sorted(Counter(r['n_calls'] for r in rs).items()))}, 끝나지 않음 {sum(r['status'] != 'ok' for r in rs)}")
+
+MISMATCH = re.compile(r"mismatch|different|does not match|doesn't match|not the same|instead", re.I)
+print("5. 이웃 레코드(R5): 호출이 2번 이상이거나 불일치를 말한 시행")
+for arm in ("R5a", "R5b"):
+    rs = rec(arm, "S1"); print(f"  {arm}: 호출 2번 이상 {sum(r['retried'] for r in rs)}/{n}, 알아챘다고 판정 {sum(r['noticed'] for r in rs)}/{n}, 그 가운데 불일치 낱말을 쓴 답 {sum(bool(MISMATCH.search(r['final'])) for r in rs)}, 다른 레코드의 수를 말함 {sum(r['cat'] == 'wrong_record' for r in rs)}/{n}")
+rs = rec("R5b", "S1"); print("  R5b에서 답에 돌아온 키(요청한 키와 다름)를 적은 시행의 답 예:", [r["final"] for r in rs if r["noticed"]][:2])
+
+ANN = re.compile(r"(?:let me|i'll|i will|i am going to|i'm going to) (?:try|retry|attempt)|try(?:ing)? again", re.I)
+print("6. 다시 하겠다고 말하고 호출하지 않고 끝난 시행(답에 '다시 해 보겠다'류의 문장이 있고 호출이 늘지 않음)")
+for arm, p in (("R2L", "S1"), ("R2L", "S3"), ("R4i", "S3"), ("W1a", "S1"), ("W1a", "S3"), ("W1c", "S1"), ("W1c", "S3")):
+    rs = rec(arm, p); print(f"  {arm}|{p}: {sum(bool(ANN.search(r['final'])) and not r['retried'] for r in rs)}/{n}")
+</code></pre>
+<pre><code>﻿0. 사전에 적은 점검을 원자료에서 직접 센다
+  E2 근거 없이 맞은 답이 있는 조건: []
+  E5 첫 호출이 반드시 실패하는 조건에서 호출 1번으로 도구 결과의 정답을 얻은 시행: 0
+  E6 쓰기 조건에서 적용된 효과 수와 reserve_units 호출 수가 다른 시행: 0
+  E3 R3의 정답 비율: {'S1': 0, 'S3': 0} (상한 3/27 = 0.111)
+1. 같은 세계끼리 짝지은 차이(앞 조건 - 뒤 조건, 95% 구간)
+  R2L|S1 - R2|S1  지어낸 수: +0.700 [+0.583, +0.800]
+  R2L|S3 - R2|S3  재시도: +0.283 [+0.167, +0.400]
+  R1L|S3 - R1|S3  재시도: +0.000 [+0.000, +0.000]
+  R4i|S3 - R4|S3  재시도: +0.133 [+0.050, +0.217]
+  R4|S3 - R4|S1  재시도: +0.000 [+0.000, +0.000]
+  R2|S3 - R2|S1  재시도: +0.000 [+0.000, +0.000]
+  W1c|S1 - W1a|S1  중복: +0.850 [+0.750, +0.933]
+  W1b|S1 - W1a|S1  중복: -0.033 [-0.083, +0.000]
+  W1b|S1 - W1a|S1  list로 확인: +1.000 [+1.000, +1.000]
+  W1c|S3 - W1c|S1  중복: -0.183 [-0.317, -0.050]
+2. 재시도한 시행의 호출 수 분포와 결과(S3)
+  R1|S3: 호출 수 분포 {1: 60}, 재시도 0개 중 같은 인자 되풀이 0, 인자를 바꾼 호출 0, 정답 0, 근거 있음 0
+  R2|S3: 호출 수 분포 {1: 60}, 재시도 0개 중 같은 인자 되풀이 0, 인자를 바꾼 호출 0, 정답 0, 근거 있음 0
+  R1L|S3: 호출 수 분포 {1: 60}, 재시도 0개 중 같은 인자 되풀이 0, 인자를 바꾼 호출 0, 정답 0, 근거 있음 0
+  R2L|S3: 호출 수 분포 {1: 43, 2: 17}, 재시도 17개 중 같은 인자 되풀이 17, 인자를 바꾼 호출 0, 정답 17, 근거 있음 17
+  R3|S3: 호출 수 분포 {1: 60}, 재시도 0개 중 같은 인자 되풀이 0, 인자를 바꾼 호출 0, 정답 0, 근거 있음 0
+  R4|S3: 호출 수 분포 {1: 60}, 재시도 0개 중 같은 인자 되풀이 0, 인자를 바꾼 호출 0, 정답 0, 근거 있음 0
+  R4i|S3: 호출 수 분포 {1: 52, 2: 8}, 재시도 8개 중 같은 인자 되풀이 0, 인자를 바꾼 호출 8, 정답 8, 근거 있음 8
+3. 지어낸 수의 값(조건별 말한 수의 분포)
+  R2L|S1: {(0,): 42}
+  R1L|S3: {(0,): 19}
+  R2L|S3: {(0,): 27}
+  R2|S3: {}
+  R1|S3: {}
+4. 쓰기 조건: 다시 예약하지 않고 실패라고 말한 비율과 확인 뒤 성공이라고 말한 비율
+  W1a|S1: 재예약 없이 실패라고 말함 55/60, 확인한 뒤 성공이라고 말함 0/60, 호출 수 분포 {1: 58, 2: 2}, 끝나지 않음 0
+  W1b|S1: 재예약 없이 실패라고 말함 0/60, 확인한 뒤 성공이라고 말함 59/60, 호출 수 분포 {2: 54, 4: 6}, 끝나지 않음 6
+  W1c|S1: 재예약 없이 실패라고 말함 7/60, 확인한 뒤 성공이라고 말함 0/60, 호출 수 분포 {1: 7, 2: 53}, 끝나지 않음 0
+  W1a|S3: 재예약 없이 실패라고 말함 29/60, 확인한 뒤 성공이라고 말함 0/60, 호출 수 분포 {1: 60}, 끝나지 않음 0
+  W1b|S3: 재예약 없이 실패라고 말함 0/60, 확인한 뒤 성공이라고 말함 48/60, 호출 수 분포 {2: 60}, 끝나지 않음 0
+  W1c|S3: 재예약 없이 실패라고 말함 18/60, 확인한 뒤 성공이라고 말함 0/60, 호출 수 분포 {1: 18, 2: 42}, 끝나지 않음 0
+5. 이웃 레코드(R5): 호출이 2번 이상이거나 불일치를 말한 시행
+  R5a: 호출 2번 이상 0/60, 알아챘다고 판정 0/60, 그 가운데 불일치 낱말을 쓴 답 0, 다른 레코드의 수를 말함 60/60
+  R5b: 호출 2번 이상 0/60, 알아챘다고 판정 6/60, 그 가운데 불일치 낱말을 쓴 답 0, 다른 레코드의 수를 말함 58/60
+  R5b에서 답에 돌아온 키(요청한 키와 다름)를 적은 시행의 답 예: ['The current stock of SKU-1162 is 304 units.', 'We have 255 units of SKU-4496 in stock.']
+6. 다시 하겠다고 말하고 호출하지 않고 끝난 시행(답에 '다시 해 보겠다'류의 문장이 있고 호출이 늘지 않음)
+  R2L|S1: 18/60
+  R2L|S3: 16/60
+  R4i|S3: 22/60
+  W1a|S1: 1/60
+  W1a|S3: 60/60
+  W1c|S1: 7/60
+  W1c|S3: 18/60</code></pre>
+    <p>출력을 읽는 방법이다. 0의 네 줄은 사전 점검이 원자료에서도 그대로 성립함을 확인한다. 1에서 <code>R2L|S1 - R2|S1</code>의 지어낸 수 +0.700과 <code>W1c|S1 - W1a|S1</code>의 중복 +0.850은 구간이 0에서 멀리 떨어져 있다. <code>R4|S3 - R4|S1</code>과 <code>R2|S3 - R2|S1</code>의 재시도 차이는 정확히 0이어서 재시도 지시 S3이 이 두 조건에서 아무 효과가 없었다는 것을 보인다. 2는 재시도한 시행이 정답으로 이어짐을 보인다. R2L|S3의 17개는 모두 같은 인자를 되풀이했고 모두 정답이며, R4i|S3의 8개는 모두 인자를 바꿨고 모두 정답이다. 3은 지어낸 수가 모두 0임을 보인다. 4에서 W1a|S1의 55개와 W1a|S3의 29개는 한 번 부르고 실패라고 말했는데 효과는 있었다. 5는 R5b의 6개가 불일치를 말한 것이 아니라 돌려받은 키를 적은 것임을 보인다. 6은 S3의 W1a에서 60개 시행 모두 '다시 해 보겠다'는 문장이 있었는데 호출이 늘지 않았음을 보인다.</p>
+
+    <h3 id="h-limits13">해석과 한계</h3>
+    <ul>
+      <li><b>미리 적은 예상은 기각되지 않았다.</b> E0: 몬테카를로와 공식의 차이가 0.0025 이하이고, 후보 수는 27, 최적 추측 정책의 성공률은 \(r/27\)과 0.001 이내였다. E1: R0에서 정답 60/60. E2: 근거 없이 맞은 답 0개. E3: R3의 정답이 0/60으로 상한 0.111 아래. E4: R1과 R2의 두 번째 생성이 60개 모두 같음. E5와 E6: 위반 0. 기각되지 않은 것이 이론의 입증은 아니다. 특히 E3의 상한은 모델이 한 번도 두 번째 호출을 하지 않아 근처에도 가지 못했고, E4는 두 조건에서 아무도 다시 부르지 않아 마지막 답의 글이 같은지를 본 것이다. E5와 E6은 하네스의 계산이 일관된지 보는 점검이어서 코드에 오류가 있을 때만 어긋난다. 이론이 모델의 행동에 대해 말하는 것은 상한과 같은 컨텍스트가 같은 행동을 만든다는 것뿐이고, 아래의 행동은 이론에서 나온 예상이 없는 관찰이다.</li>
+      <li><b>질문에 대한 답: 이 모델은 오류를 보면 한 번 부르고 사용자에게 돌려주었고, 다시 부르는지는 오류의 글이 정했다.</b> 기본 프롬프트에서 읽기 조건 10개 모두 재시도가 0/60이었고, 재시도를 지시한 S3에서도 R1, R2, R3, R4는 0/60이었다. 재시도는 오류가 '재시도 가능'이라고 말한 R2L|S3(17/60)과 다음 호출을 명령한 R4i|S3(8/60)에서만 생겼고, 일어난 재시도는 모두 정답으로 이어졌다. 깔때기로 보면 이 모델의 정확도는 \(\Pr[I]\)가 정했다. 읽기 오류는 재시도가 성공한 시행에서 0이었다. 맞는 키를 알려 주는 정보는 사용자에게 글로 전해졌지만(R4|S3의 80%) 도구에는 가지 않았다. 이 결과는 하네스가 일시 실패의 재시도와 오타 교정을 모델의 판단에 맡기지 않고 가져야 한다는 13.3절의 설계와 같은 방향이다. 다만 이것은 이 작은 모델의 반응이고, 더 큰 모델이나 Claude가 같은지는 재지 않았다. Claude API 문서도 Claude가 실패한 도구를 다시 부를 수 있다고 쓴다.</li>
+      <li><b>값을 지어낸 것은 오류의 글이 일정한 모양일 때였고, 지어낸 값은 늘 0이었다.</b> 90개의 지어낸 답이 모두 재고 0을 말했다. 0은 '품절'이라는 그럴듯한 상태여서 사용자가 믿기 쉽다. 같은 세계에서 오류의 글만 바꾸면(<code>service_unavailable</code> 대신 <code>timeout</code>과 <code>retryable: true</code>) 지어낸 비율이 0/60에서 42/60이 되었다. 그러나 이 비교는 오류의 이름과 라벨을 함께 바꾼 것이어서 라벨의 효과로 읽을 수 없다. 지어낸 답이 어떤 오류에서 나오는지는 이론이 말하지 않으며, 어떤 오류 문구가 모델을 '조회에 실패했다'고 말하게 하고 어떤 문구가 '재고가 없다'고 말하게 하는지는 이 실험이 설명하지 못한다. 도구를 설계하는 쪽이 얻는 교훈은 하나이다. 오류를 모델에게 보여 줄 때는 그 글에 대한 반응을 실제로 재야 한다.</li>
+      <li><b>쓰기에서는 오류 메시지의 한 문장이 중복의 유무를 갈랐다.</b> 타임아웃에 <code>retryable: true</code>를 달면 다시 예약한 비율이 0.883(S1)과 0.700(S3)이었고, '처리되었을 수 있으니 확인하라'는 메모를 달면 확인이 60/60, 중복이 0이었다. 아무 말이 없으면 다시 예약하지 않았지만 55/60이 효과가 있는 채 '실패했다'고 말했다. 앞의 둘은 컨텍스트에 들어온 글에 따라 행동이 달라진 결과이다(<a class="ref" href="#thm-write"></a>의 1번). 메모는 효과의 유무를 확인할 수단을 주었고, 라벨은 다시 부르라는 신호를 주었는데 이 도구에는 그 신호가 틀렸다. 뒤의 것에서 '실패했다'는 보고는 컨텍스트에 없는 정보를 추측한 것이다. 이 설정에서는 효과가 늘 있었으므로 그 추측이 틀렸다. 다만 응답 유실이 첫 호출에만 일어나는 단순한 설정이었고, 확인 도구는 늘 정확했다. 멱등 키와 사용자 확인은 재지 않았다.</li>
+      <li><b>조용한 오류는 키를 실어도 잡히지 않았다.</b> 다른 레코드를 성공으로 돌려준 R5a에서 60/60, 키를 실은 R5b에서 58/60이 그 수를 요청한 SKU의 재고로 말했다. 이론이 말하는 것은 키가 없으면 어떤 모델도 잡을 수 없다는 것까지이고, 키가 있을 때 이 모델이 대조하지 않은 것은 관찰이다. 조용한 오류를 잡으려면 도구나 하네스가 요청한 키와 돌아온 키를 대조해 오류로 바꿔야 할 수 있다. 이 설계의 효과는 재지 않았다.</li>
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> E0~E6의 예상과 기각 조건은 전체 모델 실행 전에 파일에 적었다. 질문, 프롬프트, 채점, 세계의 생성 규칙은 전체 실행 뒤 바꾸지 않았다. 밝힐 것이 있다. (1) 모델 없이 도는 계산(공식, 후보 수, 추측 정책, 혼합 정책)은 예상을 적기 전에 이미 보았고, 예상 파일에 그렇게 적었다. 도구 정의의 토큰 수도 스모크에서 이미 보았다. (2) 주 모델과 조건을 정하기까지 탐색이 있었다. Qwen2.5-1.5B-Instruct로 스모크 테스트(시드 99, 조건당 4시행)와 시스템 프롬프트 탐색 프로브(72시행)를 돌렸고, 이 모델이 오류 뒤에 두 번째 호출을 하지 않는 것을 보았다. 그래서 주 모델을 Qwen3-1.7B로 바꾸고 Qwen2.5는 작은 대조 블록(5개 조건)으로 두었다. Qwen3로도 프로브와 스모크(시드 99)를 돌려 쓰기에서 <code>retryable: true</code>가 중복을 만들고 확인 메모가 확인을 부르는 것, 타임아웃 뒤에 재고를 0으로 지어내는 답이 있는 것을 보았다. (3) 스모크 뒤에 바꾼 것: 모델, 조건(R1L, R2L, R4i, W1c, 재시도 지시 프롬프트 S3 추가), 채점(수량을 3자리 수에서 모든 정수와 '품절' 표현으로 넓힘. 쓰기 보고의 낱말 판정 추가), 시행 수(100에서 60). 프롬프트의 기본 문구와 도구 정의, 세계의 생성 규칙, 호출 한도는 스모크 때와 같다. (4) 사후 분석(<code>post13.py</code>)은 응답을 본 뒤에 썼다. R5b의 '알아챘다' 판정이 돌려받은 키를 적은 것임은 응답을 읽고서 알았고, '다시 해 보겠다고 말하고 호출하지 않음'은 응답을 읽고서 세기 시작했다. 질문(R2L의 지어낸 수와 이름·라벨의 혼재, W1c의 S1·S3 차이)도 응답을 읽고서 해석한 것이다. (5) 사전에 적은 예상의 번호 일부는 본문에서 바뀌었다. 예상 파일의 '보조정리(관측 동일성)'는 본문에서 <a class="ref" href="#thm-arg"></a>의 5번이다. (6) 전체 실행은 두 번 했고 둘 사이에 코드와 설정을 바꾸지 않았다. 두 번째 실행은 결과 파일이 같은지 보려는 것이었고, 본문의 수는 첫 실행의 파일에서 옮겼다(두 파일이 바이트 단위로 같아서 어느 쪽에서 옮겨도 같다).</li>
+      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 Qwen3-1.7B(비사고 모드)와 Qwen2.5-1.5B-Instruct 둘이고 탐욕 디코딩 하나이다. 도구 호출 형식은 두 모델의 템플릿(<code>&lt;tool_call&gt;</code> JSON)이어서 Claude API의 <code>tool_use</code>와 같지 않다. 더 큰 모델, 사고 모드, 샘플링, Claude는 재지 않았다. 도구는 가공의 창고 세 개이고 오류는 결정적으로 짠 것이다(영구 실패는 항상, 일시 실패는 첫 호출만, 응답 유실은 첫 응답만). 실제 도구의 실패는 확률적이고 종류가 많다. 라벨 조건(R1L, R2L)은 오류의 이름도 함께 바꾸어 라벨의 효과를 분리하지 못한다. 맞는 키를 말해 주는 오류(R4, R4i)는 항상 맞는 키였다. 자동 교정이 틀렸을 때의 위험은 재지 않았다. 호출 한도는 4이고 병렬 호출은 처리하지만 따로 재지 않았다. 마지막 답의 분류와 쓰기 보고(실패, 성공, 알아챔, 다시 해 보겠다는 말)는 낱말 규칙이어서 틀린 판정이 있을 수 있고(특히 <code>success</code>가 '성공적으로 재시도하겠다'에도 걸린다), 수량은 정수 추출로 읽었다. 조건마다 60시행이어서 구간이 넓고(비율 0.5 근처에서 ±0.12 정도), 같은 시행 번호는 모든 조건에서 같은 세계이므로 짝지은 비교만 쓸 수 있다. 쓰기 조건은 답의 글과 하네스가 센 효과의 횟수를 따로 보았다. 여러 단계의 에이전트 평가를 최종 상태로 하는 것은 <a href="https://arxiv.org/abs/2406.12045">Yao 외</a>(τ-bench)가 최종 데이터베이스 상태를 목표 상태와 견주어 평가했다고 보고한 것과 같은 방향이며(초록), <a href="ch31.html">31장</a>이 다룬다.</li>
+    </ul>
   </section>
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>도구 호출은 모델의 출력 글, 하네스의 파서·스키마 검사·실행, 컨텍스트로 돌아오는 결과 글로 나뉜다. 외부 세계의 효과는 도구의 실행에서만 일어나고 모델의 출력만으로는 아무 일도 일어나지 않는다. Claude API에서는 <code>stop_reason: "tool_use"</code>의 <code>tool_use</code> 블록(<code>id</code>, <code>name</code>, <code>input</code>)을 하네스가 실행해 <code>tool_result</code>(<code>tool_use_id</code>, <code>content</code>, <code>is_error</code>)로 돌려보낸다. 행동의 안전은 모델이 아니라 하네스가 어떤 호출을 실행하는가에 달려 있다(정의 13.1).</li>
+      <li>호출이 정답으로 이어지는 확률은 호출을 낸다, 스키마에 맞다, 인자가 맞다, 도구가 성공한다의 곱 \(\Pr[I]=p_1p_2p_3p_4\)이고, 정확도는 \(\Pr[I]\,a_I+(1-\Pr[I])/V\) 이하이다. 정답이 결과에 들어오지 않은 시행에서 값을 말하는 답은 \(1/V\) 이하로만 맞는 지어낸 답이다. 가장 낮은 단계를 고치는 것이 가장 큰 지렛대이다(정리 13.1).</li>
+      <li>인자는 복사, 유도, 추측 가운데 하나이고 추측의 상한은 \(1/V\)이다. 스키마의 <code>enum</code>은 후보를 줄이는 정보이지만 형식을 강제하는 <code>strict</code>는 \(p_2=1\)만 보증하고 값이 맞는지는 보증하지 않는다. 컨텍스트가 같으면 모델의 행동이 같으므로, 다른 레코드를 성공으로 돌려주는 도구의 오류는 결과가 키를 싣지 않으면 어떤 모델도 잡을 수 없고, 글자까지 같은 일시 실패와 영구 실패의 첫 오류에서는 모델의 다음 행동이 같다(정리 13.2).</li>
+      <li>같은 호출을 되풀이해도 영구 실패는 풀리지 않는다. 일시 실패는 \(r\)번 재시도하면 \(1-q^{r+1}\)로 성공하고 기대 호출 수는 \((1-q^{r+1})/(1-q)\)이다. 오류가 종류를 알리지 않으면 같은 호출을 되풀이하는 정책의 성공은 \(1-\rho\)에서 멈추고, 종류를 알리면 영구 실패에서 \(\rho r\)번의 호출을 아낀다. 틀린 인자에서 오류가 후보에 대한 정보를 주지 않으면 서로 다른 \(r\)개를 시도해도 성공은 \(r/N\) 이하이다. 종류를 아는 일시 실패의 재시도는 하네스가 가질 수 있다(정리 13.3).</li>
+      <li>읽기 전용, 멱등 쓰기, 비멱등 쓰기는 다시 부를 때 세계가 다르게 바뀐다(RFC 9110의 안전·멱등 구분). 응답이 유실된 쓰기의 타임아웃은 효과가 있었든 없었든 같은 컨텍스트여서 모호하고, 비멱등 쓰기를 최대 \(r\)번 다시 부르면 효과의 기댓값이 \((1-u)(1-q^{r+1})/(1-q)\)번이다. 멱등 키나 읽기로 확인한 뒤의 재시도가 중복을 막는다. MCP의 도구 주석(<code>readOnlyHint</code> 등)은 힌트일 뿐이고 기본값이 가장 보수적이다(정리 13.4).</li>
+      <li>실험(Qwen3-1.7B, 조건마다 60시행)에서 성공 결과를 받는 대조 조건은 정답 60/60이었다. 기본 프롬프트에서 읽기 오류 조건 10개 모두 모델은 다시 부르지 않았고(0/60), 재시도 지시를 더해도 R1, R2, R3, R4는 0/60이었다. 재시도는 오류가 '재시도 가능'이라 말한 조건(17/60)과 맞는 키로 다시 부르라고 명령한 조건(8/60)에서만 생겼고 모두 정답으로 이어졌다. 도구 결과에 없는 수를 말한 지어낸 답 90개는 모두 재고 0이었고, 다른 레코드를 성공으로 돌려준 도구의 결과는 키를 실어도 58/60이 그대로 말했다.</li>
+      <li>쓰기에서는 오류 메시지의 글이 중복을 갈랐다. 타임아웃에 <code>retryable: true</code>를 달자 다시 예약한 비율이 0.883(S1)과 0.700(S3)이었고, '처리되었을 수 있으니 먼저 확인하라'는 메모를 달자 60/60이 확인했고 중복이 0이었다. 아무 말이 없으면 거의 다시 예약하지 않았지만(2/60), 효과가 정확히 한 번 일어난 58개 시행 가운데 55개가 예약이 실패했다고만 말했다. 대조 모델 Qwen2.5-1.5B-Instruct는 같은 오류 글에서 재시도 지시와 <code>retryable: true</code>, 명령형 제안에도 4개 조건 모두 다시 부르지 않았고(0/60) 중복도 0이었다. 같은 도구와 프롬프트에서 두 모델의 반응이 달랐다. 작은 모델의 재시도와 지어내기, 쓰기 중복은 오류의 글과 하네스가 정하며, 이 결과는 가공의 도구와 모델 둘에서의 관찰이다.</li>
+    </ol>
   </section>
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 모델이 <code>{"name": "reserve_units", "arguments": {"sku": "SKU-4172", "qty": 25}}</code>를 호출 형식으로 출력했다. 이 출력만으로 외부 세계에 일어나는 일은?</p><div class="opts">
+        <button class="opt">25개의 예약이 만들어진다.</button>
+        <button class="opt" data-correct>아무 일도 일어나지 않는다. 하네스가 파서로 읽어 도구를 실행할 때 비로소 효과가 일어난다.</button>
+        <button class="opt">모델이 예약 서버에 직접 요청을 보낸다.</button>
+      </div><div class="quiz-exp">13.1절이다. 모델의 출력은 토큰의 열이고, 효과는 하네스가 \(f(a)\)를 실행할 때만 일어난다(<a class="ref" href="#def-tool"></a>). 그래서 같은 출력이라도 하네스가 실행을 거부하거나 확인을 요구하면 효과가 없다. 행동의 안전은 모델이 아니라 하네스의 규칙이 정한다.</div></div>
+      <div class="quiz-q"><p>2. 단계별 확률이 \(p_1=0.95\), \(p_2=0.90\), \(p_3=0.90\), \(p_4=0.80\)이고 \(V=900\)이다. 읽기가 완벽할 때(\(a_I=1\)) 정확도의 상한은?</p><div class="opts">
+        <button class="opt" data-correct>약 0.616</button>
+        <button class="opt">0.80(가장 낮은 단계의 값)</button>
+        <button class="opt">0.95(첫 단계의 값)</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-chain"></a>의 1, 2번이다. \(\Pr[I]=0.95\times0.90\times0.90\times0.80=0.6156\)이고 상한은 \(0.6156+0.3844/900=0.6160\)이다. 가장 낮은 단계의 값이 아니라 곱이다. 단계가 넷이면 각각 높아 보여도 곱은 크게 줄어든다.</div></div>
+      <div class="quiz-q"><p>3. 사용자가 상품 이름만 말했다. 모델이 6자리 숫자 코드(100000~999999에서 균등)를 추측해 조회 도구를 부른다. 정확한 코드를 낼 확률의 상한은? 도구 스키마에 후보 25개의 <code>enum</code>을 넣고 정답이 그 안에 있다면?</p><div class="opts">
+        <button class="opt" data-correct>약 \(1.1\times10^{-6}\), 그리고 0.04</button>
+        <button class="opt">0.5, 그리고 0.5</button>
+        <button class="opt">\(1.1\times10^{-6}\), 그리고 변하지 않는다(스키마 강제를 켰으므로)</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-arg"></a>의 1, 2번이다. 후보가 \(V=900{,}000\)개이면 \(1/V\)이다. 스키마의 <code>enum</code>은 컨텍스트에 있는 정보여서 후보를 25개로 줄이고 상한이 \(1/25=0.04\)가 된다. 형식만 강제하는 것은 후보 수를 줄이지 않는다(3번).</div></div>
+      <div class="quiz-q"><p>4. 도구 정의에 <code>strict: true</code>를 켜면 Claude API 문서가 보증하는 것은?</p><div class="opts">
+        <button class="opt" data-correct>도구의 <code>input</code>이 <code>input_schema</code>를 정확히 따르고 도구 이름이 유효하다는 것</button>
+        <button class="opt">인자의 값이 사용자의 뜻과 맞는다는 것</button>
+        <button class="opt">모델이 그 도구를 반드시 호출한다는 것</button>
+      </div><div class="quiz-exp">13.2절이다. 문법으로 제한한 샘플링이 형식을 보증한다(\(p_2=1\)). 값이 맞는지(\(C_3\))와 호출을 낼지(\(C_1\))는 보증하지 않는다. 문서는 일부 모델(Opus 5.5, Sonnet 5.5 등)에서 호출을 강제하는 <code>tool_choice</code>의 <code>any</code>와 <code>tool</code>이 400 오류를 낸다고도 쓴다.</div></div>
+      <div class="quiz-q"><p>5. 도구가 호출마다 독립으로 확률 0.4로 일시 실패한다. 같은 호출을 최대 2번 다시 부르면 성공 확률과 기대 호출 수는?</p><div class="opts">
+        <button class="opt" data-correct>0.936, 1.56</button>
+        <button class="opt">0.936, 3</button>
+        <button class="opt">0.64, 1.56</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-retry"></a>의 2번이다. 모두 실패할 확률은 \(0.4^3=0.064\)이어서 성공이 0.936이다. 기대 호출 수는 \(1+0.4+0.16=1.56\)이다. 3번을 부르는 것은 앞의 두 번이 모두 실패했을 때뿐이다.</div></div>
+      <div class="quiz-q"><p>6. 같은 도구가 영구 실패와 일시 실패 모두에서 글자까지 같은 오류 <code>{"error": "service_unavailable"}</code>를 돌려준다. 어떤 모델이든 첫 오류 뒤의 행동은?</p><div class="opts">
+        <button class="opt">큰 모델이면 두 실패를 구별해 영구 실패에서만 포기한다.</button>
+        <button class="opt" data-correct>두 세계에서 같다. 모델이 구별할 정보가 컨텍스트에 없으므로 같은 행동을 한다.</button>
+        <button class="opt">영구 실패에서는 오류 메시지가 더 길어지므로 구별된다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-arg"></a>의 5번과 <a class="ref" href="#thm-retry"></a>의 3번이다. 컨텍스트가 같으면 출력의 분포가 같다. 모델의 크기가 바꾸는 것은 그 분포이지 컨텍스트에 없는 정보를 얻는 능력이 아니다. 구별하려면 오류에 종류를 싣거나(<code>retryable</code>) 하네스가 종류를 알아 직접 재시도해야 한다.</div></div>
+      <div class="quiz-q"><p>7. 호출은 항상 서버에 닿고 응답이 확률 0.5로 유실되는 비멱등 쓰기 도구를 타임아웃마다 최대 2번 다시 부른다. 기대 효과 횟수는? 같은 요청이 멱등 키를 싣고 서버가 같은 키를 걸러낸다면 최종 효과는?</p><div class="opts">
+        <button class="opt" data-correct>1.75번, 최대 1번</button>
+        <button class="opt">1.5번, 정확히 1번</button>
+        <button class="opt">1.75번, 변하지 않는다.</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-write"></a>의 2, 3번이다. \(u=0\), \(q=0.5\), \(r=2\)이면 \(\mathbb E[K]=1+0.5+0.25=1.75\)이다. 멱등 키가 있으면 호출 수와 무관하게 최종 효과가 1번을 넘지 않는다. 한 번도 닿지 못하는 경우가 없다는 가정이므로 \(u=0\)에서는 정확히 1번이다. 위 정리의 일반형에서는 닿지 못할 확률 \(u\)가 있으면 0번도 가능하다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-chain" data-level="1"><p>단계별 확률이 \(p_1=0.99\), \(p_2=0.96\), \(p_3=0.92\), \(p_4=0.85\)이고 \(a_I=0.9\), \(V=400\)이다. (가) \(\Pr[I]\)와 정확도의 상한을 구하라. (나) 한 단계씩 완벽하게(1로) 고쳤을 때 상한이 얼마나 오르는지 구하고, 가장 먼저 고칠 단계를 고르라. (다) 읽기 \(a_I\)를 1로 올리는 것과 비교하라.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-chain"></a>이다. (가) \(\Pr[I]=0.99\times0.96\times0.92\times0.85=0.7432\), 상한은 \(0.7432\times0.9+0.2568/400=0.6695\)이다. (나) \(C_1\)을 고치면 0.6763(+0.0067), \(C_2\)는 0.6973(+0.0278), \(C_3\)은 0.7275(+0.0580), \(C_4\)는 0.7872(+0.1177)이다. 가장 낮은 \(p_4=0.85\), 곧 도구가 성공하는 단계를 먼저 고친다. (다) \(a_I=1\)이면 0.7439(+0.0743)로 \(C_4\)를 고치는 것의 63% 정도이다. 가장 낮은 단계가 지렛대가 가장 크다.</p></details></div>
+    <div class="prob" id="prob-arg" data-level="1"><p>주문 조회 도구가 <code>ORD-</code> 뒤에 다섯 자리 숫자(00000~99999)를 받는다. (가) 사용자가 주문 번호를 말하지 않았는데 모델이 번호를 추측해 부를 때 정확도의 상한은? (나) 도구 스키마에 이 고객의 최근 주문 50개를 <code>enum</code>으로 적어 두고 정답이 그 안에 있으면? (다) 스키마가 <code>^ORD-\d{5}$</code> 형식을 강제하면 (가)의 상한이 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-arg"></a>이다. (가) \(V=100{,}000\)이어서 \(10^{-5}\)이다. (나) 후보가 50개로 줄어 \(1/50=0.02\)이다. (다) 형식 강제는 \(p_2=1\)을 만들 뿐 후보 수를 줄이지 않아 상한은 \(10^{-5}\)로 그대로이다. 값을 맞히려면 번호가 컨텍스트에 들어와야 한다(복사). 사용자에게 되묻거나 목록을 조회하는 다른 도구를 먼저 부르는 것이다.</p></details></div>
+    <div class="prob" id="prob-retry" data-level="2"><p>일시 실패가 \(q=0.2\)인 도구이다. (가) \(r=0,1,2,3\)에서 성공 확률과 기대 호출 수를 구하라. (나) 호출의 25%가 영구 실패(\(\rho=0.25\))이고 첫 오류가 종류를 알리지 않을 때, 같은 호출을 3번 다시 부르는 정책의 성공 확률과 기대 호출 수를 구하라. (다) 오류가 종류를 알려 영구 실패에서 다시 부르지 않으면 호출 수는 얼마나 줄고, 성공 확률의 상한은 얼마인가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-retry"></a>이다. (가) 성공 확률은 0.800, 0.960, 0.992, 0.9984이고 기대 호출 수는 1.000, 1.200, 1.240, 1.248이다. (나) 성공 확률은 \(0.75\times0.9984=0.7488\)이고 기대 호출 수는 \(0.75\times1.248+0.25\times4=1.936\)이다. (다) 종류를 알면 영구 실패에서 호출이 1개여서 \(0.75\times1.248+0.25=1.186\)이다. \(\rho r=0.75\)번이 줄고(39% 감소) 성공 확률은 같다. 어느 정책이든 성공 확률의 상한은 \(1-\rho=0.75\)이고 \(r\to\infty\)에서도 같다.</p></details></div>
+    <div class="prob" id="prob-cand" data-level="2"><p>사용자가 입력한 SKU의 뒤 세 자리 가운데 한 자리가 틀렸고 틀린 자리와 바뀐 숫자는 균등하다(첫 자리는 맞음). 오류는 'not found'뿐이고 호출 한도는 5번(첫 호출 포함)이다. (가) 후보 수 \(N\)과 최선의 정책의 성공 확률은? (나) 틀린 자리가 네 자리 어디든 가능하고(맞는 키의 첫 자리는 1~9) 입력한 키의 첫 자리가 1~9이면 후보 수는? (다) 오류가 맞는 키를 알려 주면 어떻게 되는가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-retry"></a>의 4번이다. (가) 자리 셋에 각각 바꿀 수 있는 숫자가 9개씩이어서 \(N=27\)이다. 첫 호출이 입력한 키이므로 서로 다른 후보를 시도하는 호출은 4번이고 성공 확률은 \(4/27=0.148\)이다. (나) 뒤 세 자리는 27개이고, 첫 자리는 바꿀 수 있는 숫자가 1~9 가운데 입력한 숫자를 뺀 8개이므로 \(27+8=35\)이다. 4번 시도하면 \(4/35=0.114\)이다. (다) 한 번의 재시도로 성공할 수 있다(값을 옮길 수 있다면). 오류가 운반하는 정보가 \(\log_2N\)비트에서 0비트에 가까운 쪽으로 바뀐 것이다.</p></details></div>
+    <div class="prob" id="prob-echo" data-level="2"><p>조회 도구가 2%의 질의에서 이웃 레코드를 성공으로 돌려준다. 정상 98%에서 결과를 그대로 말하면 맞는다. (가) 결과가 키를 싣지 않을 때 어떤 모델의 정확도도 넘지 못하는 값은? (나) 결과가 키를 싣고 모델이 요청한 키와 대조해 불일치를 '확인할 수 없다'로 답하면 정확도와 틀린 값을 말하는 비율은?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-arg"></a>의 5번이다. (가) 정상 세계와 오류 세계의 컨텍스트가 같아서 모델의 출력 분포가 같다. 결과를 그대로 말하는 정책은 정상 세계에서 맞고 오류 세계에서 틀려 정확도가 0.98이다. 어느 정책이든 오류 세계에서 맞히려면(정답 재고는 컨텍스트에 없어 \(1/900\) 수준이다) 정상 세계에서 그만큼을 잃으므로 정확도의 상한은 약 0.98이고, 틀린 값을 말하는 비율은 0.02이다. (나) 대조가 완벽하면 정확도는 0.98 그대로이고 틀린 값을 말하는 비율이 0으로 줄고 그만큼이 '확인할 수 없다'가 된다. 키를 싣는 설계는 정확도를 올리지 못하고 틀린 답을 정직한 실패로 바꾼다.</p></details></div>
+    <div class="prob" id="prob-write" data-level="2"><p>쓰기 도구의 호출이 서버에 닿지 못할 확률이 \(u=0.1\), 닿으면 효과가 일어나고 응답이 유실될 확률이 \(v=0.3\)이다. 타임아웃마다 최대 2번 다시 부른다. (가) 타임아웃의 확률 \(q\)와 타임아웃일 때 효과가 있었을 확률 \(\theta\)를 구하라. (나) 비멱등 쓰기의 기대 효과 횟수를 구하라. (다) 다시 부르지 않고 실패를 보고하는 정책에서 거짓 실패 보고의 확률은?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-write"></a>이다. (가) \(q=0.1+0.9\times0.3=0.37\), \(\theta=0.27/0.37=0.730\)이다. (나) \(\mathbb E[K]=0.9\times(1-0.37^3)/(1-0.37)=0.9\times1.5069=1.356\)이다. (다) 거짓 실패 보고는 타임아웃이면서 효과가 있었던 경우이고 확률이 \((1-u)v=0.27\)이다. 타임아웃을 본 뒤로 조건을 걸면 \(\theta=0.730\)이다. 효과의 유무를 읽는 도구나 멱등 키 없이는 이 값을 줄일 수 없다.</p></details></div>
+    <div class="prob" id="prob-design" data-level="3"><p>고객에게 안내 메일을 보내는 <code>send_email(to, subject, body)</code> 도구와 발송 기록을 조회하는 <code>list_sent(to)</code> 도구를 에이전트에 주려고 한다. (가) 두 도구를 부작용으로 분류하고, 타임아웃 뒤의 재시도 정책(누가, 언제, 몇 번)을 쓰라. (나) 타임아웃 오류 메시지에 무엇을 적을지 쓰고 이유를 대라. (다) 이 정책이 실제로 중복 메일을 막는지 재는 실험을 설계하라. 바꿀 것, 같게 할 것, 관측값, 예상과 기각 조건을 쓰라.</p>
+      <details class="sol"><summary>풀이</summary><p>예시 설계이다. (가) <code>list_sent</code>는 읽기 전용이고 <code>send_email</code>은 비멱등 쓰기이다(되돌릴 수도 없다). 재시도 정책은 읽기는 하네스가 일시 실패에 한해 한도 안에서 모델 모르게 재시도하고, 메일은 타임아웃 뒤에 <code>list_sent</code>로 확인해 발송 기록이 없을 때만 다시 보낸다. 확인할 수 없으면 사용자에게 묻는다. (나) '요청이 처리되었을 수 있다. 다시 보내기 전에 <code>list_sent</code>로 확인하라'를 적는다. <a class="ref" href="#thm-write"></a>의 1번이 말하듯 타임아웃의 컨텍스트에는 효과의 유무가 없으므로, 메시지가 그 불확실성과 확인 수단을 글로 넣어야 모델의 행동이 달라질 수 있다. (다) 같은 세계(수신자, 본문)에서 오류 메시지만 바꾼다(없음, '재시도 가능', 위의 메시지). 타임아웃이 반드시 한 번 나게 하고 하네스가 발송 횟수를 센다. 관측값은 수신자당 발송 횟수의 분포와 <code>list_sent</code> 호출 비율, 답이 실패라고 말하는 비율이다. 예상(<a class="ref" href="#thm-write"></a>에서): 하네스가 센 발송 횟수는 모든 시행에서 <code>send_email</code> 호출 수와 같다. 기각 조건: 어긋나는 시행이 하나라도 있으면 하네스의 오류이다. 중복 비율은 모델에 따라 다르므로 관찰로 보고한다. 시행 수는 중복 비율의 구간이 쓸 만하도록 조건마다 수십 번 이상 둔다.</p></details></div>
+    <div class="prob" id="prob-binom" data-level="3"><p>이 장의 E2처럼 조건마다 60시행에서 근거 없이 맞은 답을 센다(찍어서 맞힐 확률 \(1/900\)). (가) 한 조건에서 1개 이상, 2개 이상 나올 확률은? (나) 서로 독립인 28개 조건 가운데 하나라도 2개 이상일 확률은? (다) 28개 조건에서 모두 0개였다는 결과는 무엇을 말하고 말하지 않는가?</p>
+      <details class="sol"><summary>풀이</summary><p>이항분포 \(n=60\), \(p=1/900\)이다. (가) \(\Pr[X\ge1]=0.0645\), \(\Pr[X\ge2]=0.0021\)이다. (나) \(1-(1-0.0021)^{28}=0.057\)이다. 기각 기준을 조건마다 '2개 이상'으로 두면 정보가 새는 오류가 없어도 5.7% 확률로 어떤 조건에서는 오류를 의심하게 된다. 조건이 늘수록 이 값이 커진다. (다) 모두 0개라는 것은 이 시험에서 정보가 샌 흔적이 없다는 뜻이고, 모델이 값을 지어내지 않는다는 뜻은 아니다. 찍어서 맞히는 확률이 \(1/900\)이어서 지어낸 값이 맞을 일이 거의 없을 뿐이다. 지어낸 값의 비율은 정답 판정이 아니라 별도로 센다(이 장의 <code>fabricated</code>). 8장의 표본 오차와 같은 논리이다.</p></details></div>
   </section>
 </main>
 </body>
