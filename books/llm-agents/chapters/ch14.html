@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>14 단일 에이전트의 행동 루프 · AgentBook</title>
-<meta name="description" content="목표에서 첫 행동으로 · 행동·관찰·다음 행동 · 고정 경로와 동적 선택 · 실행 기록으로 과정 읽기">
+<meta name="description" content="에이전트의 행동 루프를 모델이 호출을 내고 하네스가 실행해 관찰을 붙이는 라운드의 되풀이로 정의하고, 읽어야 할 사실의 의존 깊이가 필요한 라운드 수의 하한이 됨을 보인다. 사슬의 성공을 단계 통과율의 곱으로, 루프의 비용을 라운드마다 길어지는 컨텍스트와 접두부 캐시로 센다. 고정 경로와 동적 선택을 적용 범위로 견주고, 실행 기록에서 호출 인자의 출처와 처음 어긋난 단계를 읽는다. 마지막 실험은 같은 질문을 단일 응답, 동적 루프, 고정 경로로 풀게 해 정확도, 처음 어긋난 단계, 비용을 잰다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,51 +25,1132 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="llm-agents" data-field="dl" data-chapter="ch14">
-<!-- ✎ 기획 슬롯입니다. 절 제목과 실험 질문만 정했습니다. 본문은 아직 쓰지 않았습니다.
-     집필 시 templates/textbook.html과 books/llm-agents/GUIDE.md를 참고합니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">14</span></div>
     <h1 data-fill="chapter-title">단일 에이전트의 행동 루프</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장의 중심 질문과 앞 장에서 넘어오는 이유를 적습니다.</p>
+    <p class="lead">13장은 모델이 도구를 한 번 부르는 장면을 호출, 파서, 실행, 결과로 나누었다. 한 번의 호출로 끝나는 과제는 드물다. 주문의 SKU를 알아야 재고를 조회할 수 있고, 재고를 알아야 다음 결정을 한다. 에이전트의 행동 루프는 이 한 번을 되풀이하는 프로그램이다. 목표를 받고, 행동하고, 결과를 읽고, 다음 행동을 정하는 과정을 모델이 끝났다고 말할 때까지 이어 간다. 이 장의 질문은 루프가 한 번의 응답으로는 못 하는 무엇을 하고, 그 값으로 무엇을 치르는가이다. 14.1절은 루프를 정의하고, 읽어야 할 사실들이 서로 의존하는 깊이가 필요한 라운드 수의 하한이 된다는 것을 보인다. 14.2절은 라운드마다 계속할지 멈출지를 정해야 해서 깊이가 늘수록 성공이 단계별 확률의 곱으로 줄어드는 것과, 컨텍스트가 라운드마다 길어지는 비용을 센다. 14.3절은 도구의 순서와 멈춤을 코드가 정하는 고정 경로와 모델이 정하는 동적 선택을 적용 범위와 선택의 오류로 견준다. 14.4절은 실행 기록을 읽어 어느 단계에서 어긋났는지 찾는 방법이다. 마지막 실험은 같은 질문을 단일 응답, 동적 루프, 고정 경로로 풀게 하고 모델의 실행 기록에서 실패의 위치를 읽는다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>행동 루프를 컨텍스트, 라운드, 관찰, 종료 조건으로 정의하고, 한 라운드와 한 번의 호출을 구분할 수 있다.</li>
+      <li>읽어야 할 사실의 의존 깊이와 너비로 필요한 라운드 수의 하한을 계산하고, 병렬 호출이 줄일 수 있는 것과 줄일 수 없는 것을 구분할 수 있다.</li>
+      <li>사슬의 성공을 단계별 통과율의 곱으로 나누어, 깊이별로 목표 성공률에 필요한 단계 확률을 계산할 수 있다.</li>
+      <li>라운드마다 컨텍스트가 길어지는 비용을 캐시의 유무에 따라 세고, 도구 목록이 바뀌면 캐시가 깨지는 이유를 설명할 수 있다.</li>
+      <li>고정 경로와 동적 선택을 적용 범위와 선택의 오류로 견주어, 어느 쪽이 나은지의 경계를 계산할 수 있다.</li>
+      <li>실행 기록에서 호출 인자의 출처와 처음 어긋난 단계를 읽어 실패의 원인을 가르고, 같은 질문을 여러 방식으로 푸는 실험을 설계하고 해석할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">집필할 때 필요한 앞 장을 연결합니다.</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch11.html">11장</a>(<a href="ch11.html#thm-blind">정리 11.1</a>), <a href="ch12.html">12장</a>(<a href="ch12.html#thm-cost">정리 12.1</a>의 비용 모델), <a href="ch13.html">13장</a>(<a href="ch13.html#def-tool">정의 13.1</a>, <a href="ch13.html#thm-chain">정리 13.1</a>, <a href="ch13.html#thm-arg">정리 13.2</a>)</p>
   </header>
+
+
+  <!-- ============================================================ 14.1 -->
   <section id="s1">
     <h2>목표에서 첫 행동으로</h2>
-    <p class="slot" data-slot="14.1절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>13장의 모델은 호출을 한 번 내고 결과를 읽어 답했다. 같은 일을 되풀이하면 에이전트의 루프가 된다. 하네스는 모델을 부르고, 모델의 출력이 호출이면 도구를 실행해 결과를 컨텍스트에 붙이고, 모델을 다시 부른다. 출력이 호출이 아닌 글이면 그 글이 최종 응답이고 루프는 끝난다. Claude API에서는 응답의 <code>stop_reason</code>이 <code>tool_use</code>인 동안 <code>tool_result</code>를 붙여 다시 요청하는 것이 이 루프이다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">Handle tool calls</a>, 2026년 11월 확인). Claude Agent SDK 문서는 같은 구조를 '프롬프트를 받고, 평가하고, 도구를 실행하고, 도구 호출이 없는 응답이 나올 때까지 되풀이한다'고 쓰고, 이 한 번의 통과를 턴(turn)이라 부른다(<a href="https://code.claude.com/docs/en/agent-sdk/agent-loop">How the agent loop works</a>, 2026년 11월 확인). 이 책은 같은 것을 <b>라운드</b>(round)라 부르고 정의로 못박는다.</p>
+    <div class="box def" id="def-loop"><div class="box-h">행동 루프, 라운드, 실행 기록</div>
+      <p>모델 \(M\)과 도구의 집합이 있고, 하네스가 컨텍스트 \(h_0\)(시스템 프롬프트, 도구 정의, 목표 \(g\))에서 시작한다. \(t=1,2,\dots\)에 대해 다음을 되풀이한다.</p>
+      <ol>
+        <li>모델이 \(y_t\)를 낸다(\(M(h_{t-1})\)에서 디코딩한 글). 이 한 번의 모델 호출이 <b>라운드</b> \(t\)이다.</li>
+        <li>파서 \(\pi\)(<a href="ch13.html#def-tool">정의 13.1</a>)가 \(y_t\)에서 호출 \(c_t=\{(f,a)\}\)를 읽는다. 호출이 하나 이상이면 하네스가 각각을 실행해 <b>관찰</b> \(o_t\)를 얻고 \(h_t=h_{t-1}\oplus y_t\oplus o_t\)로 잇는다. 한 라운드의 호출이 둘 이상이면 병렬 호출이다.</li>
+        <li>호출이 없으면 \(y_t\)가 최종 응답이고 루프가 끝난다. 라운드가 한도 \(N\)에 이르면 하네스가 끝낸다.</li>
+      </ol>
+      <p>끝난 뒤 남는 \(\tau=(y_1,o_1,\dots,y_R)\)이 <b>실행 기록</b>이고, \(R\)이 라운드 수이다. 호출 수는 \(\sum_t|c_t|\)이다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 430" role="img" aria-label="행동 루프. 라운드마다 하네스가 컨텍스트를 모델에 주고, 모델이 호출을 내면 하네스가 도구를 실행해 관찰을 컨텍스트에 붙인다. 호출이 없는 출력이 나오면 그것이 최종 응답이고 루프가 끝난다. 오른쪽 막대는 컨텍스트 길이가 라운드마다 길어지는 모양이다.">
+  <rect x="72" y="8" width="96" height="28" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="120" y="27" text-anchor="middle">하네스</text><path d="M120 36 V420" class="s-faint" stroke-dasharray="3 5"/>
+  <rect x="312" y="8" width="96" height="28" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="360" y="27" text-anchor="middle">모델</text><path d="M360 36 V420" class="s-faint" stroke-dasharray="3 5"/>
+  <rect x="542" y="8" width="96" height="28" rx="6" style="fill:var(--surface);stroke:var(--border)"/><text class="t-b" x="590" y="27" text-anchor="middle">도구</text><path d="M590 36 V420" class="s-faint" stroke-dasharray="3 5"/>
+  <rect x="20" y="42" width="760" height="108" rx="8" style="fill:var(--surface-2);stroke:var(--border)" opacity="0.55"/><text class="t-acc" x="30" y="58">라운드 1</text>
+  <path d="M120 76 H360" class="s-line"/><polygon points="360,76 351,71.5 351,80.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="71">컨텍스트 h(t−1)</text>
+  <path d="M360 100 H120" class="s-line" stroke-dasharray="5 4"/><polygon points="120,100 129,95.5 129,104.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="95">출력 y: 호출</text>
+  <path d="M120 124 H590" class="s-line"/><polygon points="590,124 581,119.5 581,128.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="119">호출 실행</text>
+  <path d="M590 146 H120" class="s-line" stroke-dasharray="5 4"/><polygon points="120,146 129,141.5 129,150.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="141">관찰 o</text>
+  <rect x="20" y="162" width="760" height="108" rx="8" style="fill:var(--surface-2);stroke:var(--border)" opacity="0.55"/><text class="t-acc" x="30" y="178">라운드 2</text>
+  <path d="M120 196 H360" class="s-line"/><polygon points="360,196 351,191.5 351,200.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="191">컨텍스트 h(t−1)</text>
+  <path d="M360 220 H120" class="s-line" stroke-dasharray="5 4"/><polygon points="120,220 129,215.5 129,224.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="215">출력 y: 호출</text>
+  <path d="M120 244 H590" class="s-line"/><polygon points="590,244 581,239.5 581,248.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="239">호출 실행</text>
+  <path d="M590 266 H120" class="s-line" stroke-dasharray="5 4"/><polygon points="120,266 129,261.5 129,270.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="261">관찰 o</text>
+  <rect x="20" y="282" width="760" height="108" rx="8" style="fill:var(--surface-2);stroke:var(--border)" opacity="0.55"/><text class="t-acc" x="30" y="298">마지막 라운드</text>
+  <path d="M120 316 H360" class="s-line"/><polygon points="360,316 351,311.5 351,320.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="311">컨텍스트 h(R−1)</text>
+  <path d="M360 342 H120" class="s-line" stroke-dasharray="5 4"/><polygon points="120,342 129,337.5 129,346.5" style="fill:var(--text-dim)"/><text class="t-dim" x="128" y="337">출력 y: 호출 없음 = 최종 응답</text>
+  <rect x="112" y="358" width="190" height="26" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-acc" x="122" y="376">끝 (또는 한도 N)</text>
+  <rect x="650" y="82" width="36" height="14" rx="3" style="fill:var(--accent);opacity:0.75"/><text class="t-mono" x="692" y="93">n(1)</text>
+  <rect x="650" y="202" width="62" height="14" rx="3" style="fill:var(--accent);opacity:0.75"/><text class="t-mono" x="718" y="213">n(2)</text>
+  <rect x="650" y="322" width="96" height="14" rx="3" style="fill:var(--accent);opacity:0.75"/><text class="t-mono" x="752" y="333">n(R)</text>
+  <text class="t-dim" x="650" y="46">컨텍스트 길이</text></svg>
+      <figcaption><b>그림 14-1.</b> 행동 루프. 라운드마다 모델이 호출을 내면 하네스가 실행해 결과를 컨텍스트에 붙이고(오른쪽 막대가 길어진다), 호출이 없는 출력이 나올 때까지 되풀이한다. 라운드 한도 \(N\)이 마지막 안전장치이다.</figcaption>
+    </figure>
+    <p>정의에서 하네스가 정하는 것은 둘이다. 하나는 어떤 호출을 실행할지이고(<a href="ch13.html#def-tool">13장</a>), 다른 하나는 언제 끝낼지이다. Agent SDK 문서는 <code>max_turns</code>가 도구를 부른 턴에 최종 텍스트 턴 하나를 더해 센다고 쓴다. 이 하나를 빼면 한도 때문에 끝난 실행은 <code>error_max_turns</code>로 끝나고 최종 응답이 없다. 모델이 끝났다고 말하는 것에 기대지 않는 종료 조건과 중단은 <a href="ch15.html">15장</a>에서 다룬다. 이 장은 루프가 도는 동안의 일만 다룬다.</p>
+
+    <p>단일 응답으로 못 하는 일은 무엇인가. 11장과 13장의 답은 컨텍스트 밖의 사실이다. 정답이 컨텍스트에 없고 가중치에도 닿지 않으면 어떤 모델도 \(1/V\)를 넘지 못한다(<a href="ch11.html#thm-blind">정리 11.1</a>, <a href="ch13.html#thm-chain">정리 13.1</a>). 한 번의 호출이 이 문제를 풀지만, 호출의 인자가 다른 호출의 결과에 있는 값이면 한 번으로는 모자란다. 예를 들어 '주문 ORD-4417의 SKU 재고는?'에서 재고 조회의 인자 SKU는 질문 문장에 없고 주문 레코드에 있다. 주문을 먼저 읽어야 SKU를 알고, SKU를 알아야 재고를 읽는다. <a href="https://arxiv.org/abs/2210.03350">Press 외</a>는 모델이 하위 질문을 각각 맞히면서도 그것을 합친 질문을 틀리는 격차(compositionality gap)가 모델이 커져도 줄지 않았다고 보고했고, 하위 질문을 스스로 묻고 답하게 하는 self-ask와 그 질문을 검색 엔진이 답하게 하는 것이 이를 줄였다고 썼다(초록). 루프는 이 구조를 모델의 출력과 관찰의 되풀이로 구현한다.</p>
+    <div class="box def" id="def-depth"><div class="box-h">읽기의 의존 깊이와 너비</div>
+      <p>과제에 필요한 <b>읽기</b>(도구로 레코드 하나를 읽는 호출) \(r_1,\dots,r_m\)이 있다고 하자. 읽기 \(r\)의 인자가 목표 문장에 있으면 \(r\)은 <b>루트</b>이다. 그렇지 않으면 인자가 다른 읽기 \(r'\)의 결과에서 와야 하고, 이때 \(r\)은 \(r'\)에 <b>의존</b>한다(\(r'\to r\)). 이 의존 관계가 방향 그래프를 이루고, 가장 긴 사슬의 읽기 수가 <b>깊이</b> \(D\)이고, 서로 의존하지 않는 읽기의 최대 수가 <b>너비</b> \(w\)이다. 한 라운드에 \(k\)번 이하로 호출할 수 있다고 할 때 \(k\)를 라운드의 너비라 한다.</p>
+    </div>
+    <div class="box thm" id="thm-depth"><div class="box-h">깊이는 라운드의 하한이다</div>
+      <p>읽기의 인자로 쓰이는 중간 값은 목표와 컨텍스트 밖에서 \(V\)가지 값에 균등하게 독립으로 뽑히고, 틀린 인자는 정보 없는 오류(<code>not_found</code>)를 돌려준다고 하자. 도구가 <code>find</code> 같은 탐색을 하지 않는 단순한 레코드 조회라는 뜻이다. 정답은 깊이 \(D\)인 사슬의 마지막 레코드에 있다.</p>
+      <ol>
+        <li><b>하한.</b> 답이 그 마지막 레코드를 읽어서 얻은 것이고 사슬의 어떤 키도 찍은 것이 아니면, 읽기가 든 라운드는 \(D\)개 이상이고 모델 호출은 \(D+1\)번 이상이다.</li>
+        <li><b>병렬의 한계.</b> 서로 의존하지 않는 읽기 \(w\)개는 한 라운드에 \(w\)번 호출로 읽을 수 있지만, 병렬 호출을 하지 않으면 \(w\)라운드가 든다. 사슬의 읽기 \(D\)개는 병렬 호출을 써도 \(D\)라운드가 든다. 라운드 수는 깊이이고, 호출 수는 읽기의 수이다.</li>
+        <li><b>찍기의 상한.</b> 읽기 라운드가 \(R\lt D\)번이고 라운드의 너비가 \(k\) 이하인 어떤 정책의 정확도도 \((1+kR)/V\) 이하이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번: 사슬의 \(j\)번째 읽기의 인자는 \((j-1)\)번째 읽기의 결과이다. 키를 찍지 않았다면 \(j\)번째 읽기는 \((j-1)\)번째 읽기의 관찰이 컨텍스트에 들어온 뒤의 라운드에만 낼 수 있다. 그래서 \(D\)개의 읽기는 서로 다른 \(D\)개의 라운드에 있고, 답은 마지막 관찰 뒤의 라운드에서 나온다. 2번: 인자가 목표 문장에 있는 읽기는 서로 기다릴 필요가 없다. 사슬은 1번이 적용된다. 3번: 정책이 읽은 키 가운데 목표나 앞선 관찰에서 정해지지 않은 것을 '찍은 키'라 하자. 찍은 키는 맞는 레코드를 읽을 확률이 호출마다 \(1/V\) 이하이고(균등, 독립), 호출은 모두 \(kR\)번 이하이므로 합집합 한계로 어떤 찍은 키가 맞을 확률은 \(kR/V\) 이하이다. 찍은 키가 하나도 맞지 않으면 \(R\lt D\)이므로 1번에 의해 마지막 레코드를 읽지 못했고, 답의 값은 컨텍스트와 독립이어서 맞힐 확률이 \(1/V\) 이하이다. 둘을 더한다.</p>
+      </details>
+    </div>
+    <p>이 정리가 세 가지를 말한다. 첫째, 루프가 한 번의 응답보다 나은 일은 읽기의 인자가 앞선 읽기의 결과에 있는 과제이다. 깊이 \(D=0\)인 과제, 곧 필요한 사실이 이미 컨텍스트에 있는 과제는 루프가 필요 없다. 둘째, 라운드는 깊이만큼 들고 호출 수는 읽기의 수만큼 든다. 병렬 호출은 서로 독립한 읽기의 라운드를 줄일 뿐 사슬을 짧게 만들지 못한다. Claude API 문서도 같은 구분을 한다. 한 응답에 여러 <code>tool_use</code> 블록이 있을 수 있고 독립이고 읽기 전용인 호출은 병렬로 실행해도 안전하지만, 쓰기나 순서 의존이 있는 호출은 순서대로 실행하는 편이 낫다고 쓴다(<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use">Parallel tool use</a>, 2026년 11월 확인). 셋째, 라운드가 모자라는데 정확한 답이 나왔다면 거의 항상 찍은 키나 찍은 답이다. 3번은 이것을 <i>한 시행의 실행 기록에서 읽을 수 있는 사건</i>으로 바꾼다. 찍은 키로 맞는 레코드를 읽은 호출이 있었는지, 읽지 못했는데 맞는 값을 말했는지가 기록에 남는다. 14.4절이 이 점검을 쓴다.</p>
+    <div class="box ex" id="ex-depth"><div class="box-h">두 질문의 라운드</div>
+      <p>(가) '주문 ORD-4417의 공급사의 월 생산 능력은?'은 주문 → SKU 레코드 → 공급사 레코드의 세 읽기이고, 앞의 읽기가 뒤의 인자를 준다. 깊이 \(D=3\)이므로 라운드는 \(D+1=4\)번 이상이다. 호출은 세 번이다. (나) 'SKU-7967, SKU-7240, SKU-9425의 재고 합은?'은 인자가 모두 질문에 있는 세 읽기이다. 깊이 1이고 너비 3이어서 병렬 호출을 하면 2라운드(읽기 1, 답 1)이고 호출은 세 번이다. 병렬 호출을 하지 않으면 4라운드이다. 두 질문의 호출 수는 같고 라운드 수가 다르다. 도구 정의를 읽는 비용(14.2절)은 라운드마다 들므로, 라운드 수가 비용을 정한다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 320" role="img" aria-label="같은 세 번의 읽기가 만드는 두 모양. 왼쪽은 사슬로, 읽기 1, 2, 3이 라운드 1, 2, 3에 하나씩 놓이고 라운드 4가 최종 응답이다. 오른쪽은 독립한 세 읽기로, 읽기 셋이 라운드 1에 병렬로 놓이고 라운드 2가 최종 응답이다.">
+  <text class="t-mono" x="20" y="62">라운드 1</text><path d="M80 92 H780" class="s-grid"/>
+  <text class="t-mono" x="20" y="126">라운드 2</text><path d="M80 156 H780" class="s-grid"/>
+  <text class="t-mono" x="20" y="190">라운드 3</text><path d="M80 220 H780" class="s-grid"/>
+  <text class="t-mono" x="20" y="254">라운드 4</text><path d="M80 284 H780" class="s-grid"/>
+  <text class="t-b" x="250" y="26" text-anchor="middle">사슬: 깊이 3</text><text class="t-b" x="600" y="26" text-anchor="middle">독립: 깊이 1, 너비 3</text>
+  <rect x="150" y="46" width="200" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-dim" x="250.0" y="66" text-anchor="middle">읽기 1: 주문</text>
+  <rect x="150" y="110" width="200" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-dim" x="250.0" y="130" text-anchor="middle">읽기 2: SKU</text>
+  <rect x="150" y="174" width="200" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-dim" x="250.0" y="194" text-anchor="middle">읽기 3: 공급사</text>
+  <rect x="150" y="238" width="200" height="30" rx="6" style="fill:var(--accent-2-soft);stroke:var(--accent-2)"/><text class="t-dim" x="250.0" y="258" text-anchor="middle">최종 응답</text>
+  <path d="M250 76 V110" class="s-line"/><polygon points="250,110 245.5,101 254.5,101" style="fill:var(--text-dim)"/>
+  <path d="M250 140 V174" class="s-line"/><polygon points="250,174 245.5,165 254.5,165" style="fill:var(--text-dim)"/>
+  <path d="M250 204 V238" class="s-line"/><polygon points="250,238 245.5,229 254.5,229" style="fill:var(--text-dim)"/>
+  <rect x="430" y="46" width="112" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-dim" x="486.0" y="66" text-anchor="middle">읽기 1: SKU-a</text>
+  <rect x="550" y="46" width="112" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-dim" x="606.0" y="66" text-anchor="middle">읽기 2: SKU-b</text>
+  <rect x="670" y="46" width="112" height="30" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="t-dim" x="726.0" y="66" text-anchor="middle">읽기 3: SKU-c</text>
+  <rect x="430" y="110" width="352" height="30" rx="6" style="fill:var(--accent-2-soft);stroke:var(--accent-2)"/><text class="t-dim" x="606.0" y="130" text-anchor="middle">최종 응답: 합</text>
+  <path d="M486 76 L606 110" class="s-line" opacity="0.5"/>
+  <path d="M606 76 L606 110" class="s-line" opacity="0.5"/>
+  <path d="M726 76 L606 110" class="s-line" opacity="0.5"/>
+  <text class="t-dim" x="436" y="154">한 응답에 호출 3개(병렬 호출): 읽기 라운드 1개</text></svg>
+      <figcaption><b>그림 14-2.</b> 같은 세 번의 읽기가 만드는 두 모양. 왼쪽 사슬은 앞 읽기의 결과가 뒤 읽기의 인자여서 라운드가 3번 든다(깊이 3). 오른쪽은 인자가 모두 질문에 있어 병렬 호출 한 번으로 읽는다(깊이 1, 너비 3). 맨 아래 라운드는 모두 최종 응답이다.</figcaption>
+    </figure>
+    <p>그러면 첫 행동은 무엇이어야 하는가. 첫 라운드에 하네스가 실행해서 정보를 얻을 수 있는 호출은 인자가 목표 문장에 있는 읽기, 곧 루트뿐이다. 첫 행동이 루트가 아니면 모델은 인자를 만들어 내야 하고, 그 값이 맞을 확률은 13장의 인자 출처와 같다. 복사도 유도도 아닌 찍기는 \(1/V\) 이하이다(<a href="ch13.html#thm-arg">정리 13.2</a>의 1번). 이 장의 실험이 보여 주는 것은 모델이 이 구분을 늘 지키지 않는다는 점이다. 주문 번호에서 SKU 번호를 만들어 낸 호출이 그 예이다. 목표가 첫 행동을 정하는 방식도 두 가지이다. 목표 문장에 루트의 인자가 있으면 첫 행동은 그 읽기이다. 인자가 없으면 모델이 할 일은 읽기가 아니라 사용자에게 되묻기이고, 되묻기는 이 장의 도구 목록에 없는 행동이다.</p>
+    <div class="callout agent"><strong>에이전트는 루프이고, 루프의 길이는 깊이가 정한다</strong>
+      <p>Claude Code가 '테스트를 고쳐라'를 받으면 테스트를 돌리고, 파일을 읽고, 고치고, 다시 돌린다. 읽을 파일은 테스트 출력을 본 뒤에야 알 수 있으므로 한 번의 응답으로는 할 수 없는 일이다. 앞 라운드의 관찰이 뒤 라운드의 인자를 정한다는 점에서 이것도 의존 사슬이다. Claude의 에이전트 루프가 모델, 도구, 컨텍스트로 어떻게 나뉘는지는 <a href="ch17.html">17장</a>에서 본다. 사슬이 길면 라운드가 늘고, 그만큼 비용(14.2절)과 오류의 기회가 는다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 14.2 -->
   <section id="s2">
     <h2>행동·관찰·다음 행동</h2>
-    <p class="slot" data-slot="14.2절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>루프가 단일 응답보다 나은 까닭은 매 라운드의 입력에 직전 라운드의 관찰이 들어 있다는 것이다. <a href="https://arxiv.org/abs/2210.03629">Yao 외</a>(ReAct)는 이 구조를 모델의 출력으로 드러냈다. 모델이 추론의 흔적(thought)과 과제의 행동(action)을 번갈아 내게 하면, 추론은 행동 계획을 세우고 갱신하고 예외를 다루게 돕고, 행동은 지식 베이스나 환경 같은 외부 자료와 맞닿아 정보를 얻게 한다. 초록은 HotpotQA와 FEVER에서 위키백과 API와 상호작용하는 ReAct가 사고의 사슬(chain-of-thought)의 환각과 오류 전파를 이겨 냈고, ALFWorld와 WebShop에서 한두 개의 시범만으로 모방 학습과 강화 학습보다 절대 성공률이 각각 34%와 10% 높았다고 쓴다(2026년 11월 초록으로 확인. 숫자는 논문의 설정에서의 값이다). 이 책의 정의에서 ReAct의 한 라운드는 \(y_t\)가 'Thought: …' 한 줄과 호출을 함께 담는 루프이다. Anthropic의 <a href="https://www.anthropic.com/research/building-effective-agents">Building effective agents</a>(2024년 12월)는 에이전트가 단계마다 도구 결과나 코드 실행 같은 환경의 '근거'(ground truth)를 얻어 진행을 가늠해야 한다고 쓰고, 최대 반복 횟수 같은 종료 조건을 두는 것이 흔하다고 쓴다.</p>
+    <p>그러면 라운드마다 무엇이 일어나고, 무엇이 틀릴 수 있는가. 모델은 관찰을 읽고 세 가지를 정한다. 어떤 도구를 부를지, 그 도구에 어떤 인자를 넣을지, 계속할지 답할지이다. 앞의 둘은 13장의 \(C_3\)(인자가 맞다)와 같은 종류의 단계이고, 셋째는 루프에만 있는 결정이다. 관찰에 이미 숫자가 들어 있으면 그것이 질문이 묻는 값이 아니어도 답하고 끝내고 싶어진다. 이 결정이 틀리면 한 라운드 일찍 끝난 루프가 틀린 값을 자신 있게 말한다. 이 세 가지를 한 사슬의 단계로 모아 보자.</p>
+    <div class="box def" id="def-stage"><div class="box-h">참조 경로, 단계 사건, 깨끗한 성공</div>
+      <p>깊이 \(D\)인 사슬 과제에 참조 경로 \(\rho=(\rho_1,\dots,\rho_D)\)가 있다고 하자(\(\rho_j\)는 \(j\)번째로 내야 할 호출, 곧 도구와 인자의 쌍). 실행 기록에 대해 <b>단계 사건</b>을 정의한다.</p>
+      <ul>
+        <li>\(E_j\) (\(1\le j\le D\)): \(j\)번째로 낸 호출이 \(\rho_j\)와 같다. 호출을 내지 않고 끝났거나 다른 도구나 다른 인자를 부르면 \(E_j\)가 아니다.</li>
+        <li>\(E_{D+1}\): 최종 응답이 질문이 묻는 값을 담는다.</li>
+      </ul>
+      <p>\(C=E_1\cap\dots\cap E_{D+1}\)을 <b>깨끗한 성공</b>이라 하고, \(p_j=\Pr[E_j\mid E_1,\dots,E_{j-1}]\)을 <b>단계 통과율</b>이라 한다. \(E_j\)가 처음 일어나지 않는 단계 \(j\)를 그 시행의 <b>처음 떨어진 단계</b>(첫 이탈)라 한다.</p>
+    </div>
+    <div class="box thm" id="thm-stage"><div class="box-h">사슬의 성공은 단계 통과율의 곱이다</div>
+      <ol>
+        <li>\(\Pr[C]=\prod_{j=1}^{D+1}p_j\)이다. 표본으로 세면 \(n_j\)를 단계 \(j\)까지 통과한 시행 수(\(n_0=n\))라 할 때 \(\hat p_j=n_j/n_{j-1}\)이고 \(\prod_j\hat p_j=n_{D+1}/n\)이 정확히 성립한다. 처음 떨어진 단계의 비율은 \(h_j=(1-p_j)\prod_{i\lt j}p_i\)이고 \(\sum_jh_j+\Pr[C]=1\)이다.</li>
+        <li>모든 \(p_j\ge p\)이면 \(\Pr[C]\ge p^{D+1}\)이다. 깨끗한 성공률 \(\varepsilon\)을 얻으려면 단계마다 \(p\ge\varepsilon^{1/(D+1)}\)이어야 하고, 이 문턱은 \(D\)가 커질수록 1에 가까워진다.</li>
+        <li>단계 \(j\)에서 떨어지는 비율 \(h_j\)는 \(p_j\)를 올리는 만큼만 \(\Pr[C]\)를 올린다. 깨끗한 성공률은 \(p_j\)의 곱이므로, 가장 작은 \(p_j\)를 올리는 것이 가장 큰 지렛대이다(<a href="ch13.html#thm-chain">정리 13.1</a>과 같은 구조).</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번은 확률의 연쇄 법칙이다. \(C\)는 \(E_1\), \(E_1\cap E_2\), …의 교집합이어서 \(\Pr[C]=\prod\Pr[E_j\mid E_1..E_{j-1}]\)이다. 표본 버전은 \(\prod_j n_j/n_{j-1}\)이 망원급수로 \(n_{D+1}/n_0\)이 되는 것이다. 처음 떨어진 단계가 \(j\)인 사건은 \(E_1..E_{j-1}\)이 일어나고 \(E_j\)가 일어나지 않는 사건이고 확률이 \(h_j\)이다. 이 사건들과 \(C\)는 서로 겹치지 않고 합이 1이다. 2번은 \(p_j\ge p\)를 곱에 넣고 \(p^{D+1}\ge\varepsilon\)을 \(p\)에 대해 푼 것이다. 3번은 곱에서 하나의 인자를 올리면 곱이 그 인자의 비율만큼 오른다는 것이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-stage"><div class="box-h">단계가 늘면 문턱이 높아진다</div>
+      <p>(가상의 값) 모든 단계의 통과율이 0.97이라 하자. 읽기가 하나인 과제(\(D=1\))의 깨끗한 성공률은 \(0.97^2=0.941\), 셋인 과제는 \(0.97^4=0.885\), 넷인 과제는 \(0.97^5=0.859\)이다. 깨끗한 성공률 0.9를 얻으려면 \(D=1\)에서 \(p\ge0.9^{1/2}=0.949\), \(D=3\)에서 \(0.9^{1/4}=0.974\), \(D=4\)에서 \(0.9^{1/5}=0.979\)가 있어야 한다. 단계 하나에는 도구를 고르고, 인자를 베끼고, 계속할지 정하는 결정이 들어 있다. 세 결정이 각각 0.99여도 한 단계는 \(0.99^3=0.970\)이다. 단계마다 97%는 높아 보이지만 읽기가 셋이면 열 번에 한 번 넘게 어긋난다. 루프는 한 번의 호출보다 틀릴 기회가 훨씬 많다.</p>
+    </div>
+    <p>이 정리는 모델의 성향을 가정하지 않는다. 단계 통과율은 실행 기록에서 세는 수일 뿐이고, 곱의 등식은 항상 성립한다. 무엇이 \(p_j\)를 정하는지(호출을 내는 성향, 인자를 베끼는 성향, 계속하는 성향)는 실험에서 보고, 정리는 그것을 어디서 볼지만 말해 준다. 한 가지는 미리 말할 수 있다. 실패가 관찰되는 단계는 되돌릴 수 있다. 호출이 오류를 돌려주면 모델이 인자를 고쳐 다시 부를 수 있고, 13장의 재시도 이론(<a href="ch13.html#thm-retry">정리 13.3</a>)이 그 효과를 센다. 반면 틀린 값이 그럴듯한 레코드로 돌아오거나, 한 라운드 일찍 끝나는 실패는 관찰되지 않는다. 틀린 호출이 오류를 돌려주는 설계는 루프가 스스로 고칠 기회를 주는 설계이다.</p>
+
+    <p>루프의 비용은 \(p_j\)와 별개로 라운드가 쌓이는 만큼 는다. 각 라운드는 컨텍스트 전체를 입력으로 받는다. 12장은 초기 컨텍스트 \(n_0\)에 매 턴 \(\Delta\)토큰이 붙는 에이전트가 매번 전부 다시 읽으면 입력 토큰의 합이 \(Tn_0+\Delta T(T-1)/2\)로 \(T\)의 제곱으로 자란다고 보였다(<a href="ch12.html#thm-cost">정리 12.1</a>의 3번). 이 장은 같은 계산을 실행 기록의 실제 길이로 한다. 라운드 \(t\)의 프롬프트 길이를 \(n_t\)라 하고, 이 라운드가 앞 라운드의 프롬프트와 공통으로 가지는 접두부의 길이를 \(h_t\)라 하자(\(h_1=0\)). 접두부를 캐시에서 읽으면 새로 계산하는 토큰은 \(n_t-h_t\)이다.</p>
+    <div class="box thm" id="thm-cost"><div class="box-h">루프의 비용: 캐시가 되려면 접두부가 같아야 한다</div>
+      <ol>
+        <li><b>캐시 없이.</b> 모델이 읽는 입력 토큰의 합은 \(\sum_{t=1}^{R}n_t\)이다. 라운드마다 컨텍스트가 늘므로(\(n_1\lt n_2\lt\dots\)) 합은 \(Rn_1\) 이상이고 \(R\)의 제곱으로 자란다.</li>
+        <li><b>접두부가 보존되면.</b> \(h_t=n_{t-1}\)(앞 라운드의 프롬프트가 통째로 접두부)이면 새로 계산하는 토큰의 합은 \(n_R\)이다. 매 전환에서 \(g\)토큰씩 접두부가 깨지면(\(h_t=n_{t-1}-g\)) 합은 \(n_R+(R-1)g\)이다. 일반적으로 \(\sum_t(n_t-h_t)=n_R+\sum_{t\ge2}(n_{t-1}-h_t)\)이다.</li>
+        <li><b>도구 목록이 바뀌면.</b> 도구 정의가 프롬프트의 앞부분에 있으면, 라운드마다 보이는 도구가 달라질 때 \(h_t\)는 도구 정의가 시작되기 전의 짧은 접두부로 줄어든다. Claude API는 캐시 접두부를 <code>tools</code>, <code>system</code>, <code>messages</code> 순서로 만들고 도구 정의를 바꾸면 캐시 전체가 무효가 된다고 쓴다(<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching</a>, 2026년 11월 확인).</li>
+        <li><b>FLOPs.</b> 12장의 규약(마스크된 쪽까지 센다)으로 \(n\)토큰을 처음부터 읽는 prefill의 FLOPs는 \(L(cn+4dn^2)\)이고, 앞 \(h\)토큰을 캐시에서 읽으면 새 \(n-h\)토큰만 계산해 \(F(n,h)=L\,(n-h)\,(c+4dn)\)이다. 루프의 prefill FLOPs는 \(\sum_tF(n_t,h_t)\)이다.</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번은 정의이고, \(n_t\ge n_1\)이어서 합이 \(Rn_1\) 이상이다. 2번: \(h_1=0\)이므로 \(\sum_t(n_t-h_t)=n_1+\sum_{t\ge2}(n_t-n_{t-1}+(n_{t-1}-h_t))\)이다. 앞의 항들은 망원급수로 \(n_R\)이 되고 나머지는 접두부가 깨진 길이의 합이다. \(h_t=n_{t-1}\)이면 나머지가 0이다. 3번은 접두부가 달라지는 첫 토큰의 위치가 \(h_t\)의 상한이라는 정의에서 나온다. 4번: 캐시에서 읽은 앞 \(h\)토큰은 키와 값이 이미 있어 위치별 계산(\(c\))도 그들의 attention도 다시 하지 않는다. 새 \(n-h\)토큰은 각각 위치별 계산 \(c\)를 하고, 길이 \(n\)의 키에 대한 attention \(4dn\)(점수와 가중합, 마스크된 쪽까지 센 값)을 한다. 층 수 \(L\)을 곱하면 \(F(n,h)\)이다. \(h=0\)이면 12장의 \(L(cn+4dn^2)\)과 같다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-cost"><div class="box-h">Qwen3-1.7B로 세 번 읽는 사슬의 비용</div>
+      <p>이 장의 모델(Qwen3-1.7B)의 템플릿으로, 도구 8개를 보이는 P3의 깨끗한 경로(주문 → SKU → 공급사 → 답, 4라운드)를 세었다. 프롬프트 길이는 \(n_1,\dots,n_4=695, 770, 844, 918\)이고, 도구 8개의 정의만 608토큰으로 첫 프롬프트의 87%이다(도구 없이 시스템 프롬프트와 질문만이면 87토큰). 캐시 없이는 \(\sum n_t=3,227\)토큰을 읽고 그 가운데 도구 정의가 \(4\times608=2,432\)토큰이다. 라운드가 바뀔 때마다 접두부가 \(4, 4, 4\)토큰씩 깨졌다. 템플릿이 프롬프트 끝에 붙이는 빈 생각 블록(<code>&lt;think&gt;&lt;/think&gt;</code>)이 다음 라운드의 같은 자리에서 사라지기 때문이다. 새로 읽는 토큰은 마지막 프롬프트 \(n_4=918\)에 깨진 길이의 합 12를 더한 930이다. 캐시가 3.5배를 아낀다. prefill FLOPs는 9,699 GFLOPs에서 2,778 GFLOPs로 줄어든다(마스크된 쪽까지 센 값). 같은 경로를 도구 하나씩만 보이는 H3로 따르면 프롬프트는 짧지만(\(\sum n_t=1,484\)) 라운드마다 도구 정의가 달라 새로 읽는 토큰이 912이고, 캐시가 아끼는 것은 1.6배뿐이다.</p>
+    </div>
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 330" role="img" aria-label="왼쪽: 깨끗한 세 번 읽기 사슬의 라운드마다 프롬프트 길이. 도구 정의 약 600토큰이 거의 같은 높이로 깔리고 그 위에 대화가 쌓인다. 오른쪽: 세 가지 고정 경로 구현에서 캐시 없이 읽는 토큰과 접두부가 보존될 때 새로 읽는 토큰.">
+  <path d="M70 250 H400" class="s-line"/><text class="t-dim" x="70" y="22">라운드별 프롬프트 길이 (토큰)</text>
+  <rect x="90" y="133.5" width="52" height="116.5" style="fill:var(--text-dim);opacity:0.35"/><rect x="90" y="116.8" width="52" height="16.7" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="116" y="110.8" text-anchor="middle">695</text><text class="t-mono" x="116" y="266" text-anchor="middle">라운드 1</text>
+  <rect x="166" y="133.5" width="52" height="116.5" style="fill:var(--text-dim);opacity:0.35"/><rect x="166" y="102.4" width="52" height="31.0" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="192" y="96.4" text-anchor="middle">770</text><text class="t-mono" x="192" y="266" text-anchor="middle">라운드 2</text>
+  <rect x="242" y="133.5" width="52" height="116.5" style="fill:var(--text-dim);opacity:0.35"/><rect x="242" y="88.3" width="52" height="45.2" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="268" y="82.3" text-anchor="middle">844</text><text class="t-mono" x="268" y="266" text-anchor="middle">라운드 3</text>
+  <rect x="318" y="133.5" width="52" height="116.5" style="fill:var(--text-dim);opacity:0.35"/><rect x="318" y="74.1" width="52" height="59.4" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="344" y="68.1" text-anchor="middle">918</text><text class="t-mono" x="344" y="266" text-anchor="middle">라운드 4</text>
+  <text class="t-dim" x="70" y="290">회색: 도구 정의 608토큰(8개). 색: 시스템 프롬프트와 대화.</text>
+  <text class="t-dim" x="470" y="22">읽는 토큰의 합(3읽기 사슬, 4라운드)</text>
+  <text class="t-b" x="470" y="50">P3 동적(도구 8개)</text><rect x="470" y="58" width="176.0" height="16" style="fill:var(--text-dim);opacity:0.4"/><text class="t-mono" x="652.0" y="71">캐시 없이 3,227</text>
+  <rect x="470" y="78" width="50.7" height="16" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="526.7" y="91">접두부 보존 930</text>
+  <text class="t-b" x="470" y="130">F3 고정(지시)</text><rect x="470" y="138" width="181.0" height="16" style="fill:var(--text-dim);opacity:0.4"/><text class="t-mono" x="657.0" y="151">캐시 없이 3,318</text>
+  <rect x="470" y="158" width="53.4" height="16" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="529.4" y="171">접두부 보존 979</text>
+  <text class="t-b" x="470" y="210">H3 고정(제한)</text><rect x="470" y="218" width="80.9" height="16" style="fill:var(--text-dim);opacity:0.4"/><text class="t-mono" x="556.9" y="231">캐시 없이 1,484</text>
+  <rect x="470" y="238" width="49.7" height="16" style="fill:var(--accent);opacity:0.8"/><text class="t-mono" x="525.7" y="251">접두부 보존 912</text>
+</svg>
+      <figcaption><b>그림 14-3.</b> 깨끗한 경로를 따르는 라운드의 프롬프트 길이(주 모델의 템플릿으로 센 값. 모델 없이 계산한다). 왼쪽 막대는 라운드마다 컨텍스트가 길어지는 모양이고, 칸은 도구 정의(회색)와 그 뒤의 대화(색)이다. 오른쪽은 깨끗한 3읽기 사슬에서 모델이 읽는 입력 토큰의 합을 캐시가 없을 때, 접두부가 보존될 때, 도구 목록이 매 라운드 바뀔 때로 견준다.</figcaption>
+    </figure>
+    <p>비용에는 두 가지가 더 있다. 하나는 도구 정의이다. 이 실험에서 도구 8개의 정의는 첫 라운드 프롬프트의 대부분이고, 캐시가 없으면 라운드마다 되읽는다. 도구를 줄이는 것(이 장의 M3 조건)이 이 값을 줄이는 길이지만, 그 값은 도구 목록이 고정일 때만 캐시로 아낄 수 있다. 다른 하나는 비용이 라운드 수에 곱해진다는 것이다. Anthropic은 에이전트 시스템이 흔히 지연과 비용을 더 나은 과제 성능과 맞바꾸고, 자율적인 성격 때문에 비용이 더 들고 오류가 쌓일 수 있다고 쓴다(<a href="https://www.anthropic.com/research/building-effective-agents">Building effective agents</a>). 정리 14.2와 14.3이 그 말을 숫자로 바꾼다. 오류는 단계 통과율의 곱으로 쌓이고, 비용은 라운드 수와 컨텍스트 길이로 쌓인다.</p>
+    <div class="callout agent"><strong>루프의 컨텍스트는 줄지 않는다</strong>
+      <p>Agent SDK 문서는 컨텍스트 창이 턴 사이에 초기화되지 않고 시스템 프롬프트, 도구 정의, 대화 이력, 도구 입력과 출력이 모두 쌓인다고 쓴다. 턴마다 같게 남는 부분(시스템 프롬프트, 도구 정의)은 자동으로 프롬프트 캐시가 되어 반복되는 접두부의 비용과 지연을 줄인다고도 쓴다(<a href="https://code.claude.com/docs/en/agent-sdk/agent-loop">How the agent loop works</a>, 2026년 11월 확인). 컨텍스트가 창 한도에 다가갈 때의 압축과 작업을 나누는 서브에이전트는 <a href="ch20.html">20장</a>과 <a href="ch22.html">22장</a>에서, 컨텍스트에 무엇을 남길지 정하는 원리는 <a href="ch16.html">16장</a>에서 다룬다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 14.3 -->
   <section id="s3">
     <h2>고정 경로와 동적 선택</h2>
-    <p class="slot" data-slot="14.3절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>루프를 쓰기 전에 물을 것이 있다. 이 과제는 도구를 부르는 순서와 멈추는 때를 코드가 미리 정할 수 있는가. Anthropic의 <a href="https://www.anthropic.com/research/building-effective-agents">Building effective agents</a>는 LLM과 도구가 미리 정한 코드 경로로 엮이는 시스템을 워크플로(workflow)라 부르고, LLM이 스스로 처리 과정과 도구 사용을 이끄는 시스템을 에이전트라 부른다(2024년 12월 글, 2026년 11월 확인). 같은 글은 가능한 가장 단순한 해법을 찾고 필요할 때만 복잡도를 올리라고 권하고, 에이전트가 지연과 비용을 더 나은 성능과 맞바꾼다고 쓴다. 이 책은 같은 구분을 두 가지 선택으로 정의해 쓴다.</p>
+    <div class="box def" id="def-fixed"><div class="box-h">고정 경로와 동적 선택</div>
+      <p><b>고정 경로</b>는 호출할 도구의 순서와 끝나는 때를 코드가 정하고, 모델은 인자를 채우고 최종 응답을 쓰는 설계이다. <b>동적 선택</b>은 모델이 매 라운드에 호출할 도구와 끝낼지를 정하는 설계이다. 고정 경로를 구현하는 방법은 둘이다. 지시형(<b>F</b>)은 모든 도구를 보여 주되 하네스가 매 단계 '다음에 부를 도구'를 말하는 메시지를 덧붙인다. 제한형(<b>H</b>)은 지금 단계의 도구 하나만 보여 주고, 보이지 않은 도구의 호출은 실행하지 않는다. F는 모델이 어길 수 있는 제안이고, H는 어길 수 없는 제한이다.</p>
+    </div>
+    <p>두 설계가 가르는 것은 경로를 누가 아는가이다. 경로가 과제마다 같으면 코드가 알고, 모델이 매번 다시 고를 이유가 없다. 경로가 세계에 따라 갈라지면(예: 주문 레코드가 SKU를 주기도 하고 묶음 ID를 주기도 한다) 코드는 갈라진 경우를 미리 알아야 하고, 모르는 갈래에서는 막힌다.</p>
+    <div class="box thm" id="thm-fixed"><div class="box-h">고정 경로는 적용 범위 안에서만 이길 수 있다</div>
+      <p>과제의 세계가 \(b\)개의 경로 중 하나를 \(\pi_i\)의 확률로 정하고, 고정 경로는 집합 \(C\)의 경로만 안다고 하자(\(\pi_C=\sum_{i\in C}\pi_i\)). \(C\) 밖의 경로에서 코드는 필요한 레코드를 읽을 도구를 부를 수 없고, 틀린 인자는 정보 없는 오류를 돌려준다고 하자(<a class="ref" href="#thm-depth"></a>의 가정).</p>
+      <ol>
+        <li><b>범위 밖은 찍기이다.</b> \(C\) 밖의 경로에서 고정 경로의 정확도는 \(g=(1+kR)/V\) 이하이다(\(R\)은 읽기 라운드, \(k\)는 라운드의 너비).</li>
+        <li><b>상한.</b> \(C\)의 경로 \(i\)에서의 성공률을 \(f_i\)라 하면 고정 경로의 정확도는 \(\sum_{i\in C}\pi_if_i+(1-\pi_C)\,g\) 이하이다.</li>
+        <li><b>손익분기.</b> 경로와 상관없이 고정 경로의 성공률이 \(f\), 동적 선택의 성공률이 \(d\)이고 \(f\gt d\gt g\)라 하자. 고정 경로의 정확도가 동적 선택의 \(d\)를 넘으려면 적용 범위가 \(\pi_C\ge(d-g)/(f-g)\)이어야 한다. 이 문턱은 필요조건이다.</li>
+        <li><b>도구 정의의 비용.</b> 동적 선택은 모든 후보 도구의 정의를 매 라운드 컨텍스트에 싣는다. 보이는 도구가 \(m\)개이면 도구 정의의 토큰은 \(m\)에 따라 늘고(이 장의 도구에서는 도구 하나가 약 70토큰을 더한다), 캐시가 없으면 라운드마다 다시 읽는다(<a class="ref" href="#thm-cost"></a>).</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>1번은 <a class="ref" href="#thm-depth"></a>의 3번을 \(C\) 밖의 경로에 적용한 것이다. 필요한 레코드를 읽을 수 없으므로 답은 찍은 키나 찍은 답에서만 올 수 있다. 2번은 전체 확률 공식에 1번을 넣은 것이다. 3번은 \(\pi_Cf+(1-\pi_C)g\ge d\)를 \(\pi_C\)에 대해 푼 것이다. 4번은 정리 14.3의 1번에 도구 정의가 프롬프트의 고정된 앞부분이라는 것을 더한 것이다.</p>
+      </details>
+    </div>
+    <div class="box ex" id="ex-fixed"><div class="box-h">적용 범위가 몇 퍼센트여야 고정 경로가 이기는가</div>
+      <p>(가상의 값) 고정 경로의 성공률 \(f=0.97\), 동적 선택의 성공률 \(d=0.9\), 경로 밖의 찍기 상한 \(g=(1+kR)/V=3/900\)(\(k=1\), \(R=2\))이라 하자. 고정 경로의 정확도 상한은 적용 범위 50%이면 0.487, 적용 범위 80%이면 0.777, 적용 범위 93%이면 0.902, 적용 범위 100%이면 0.970이다. 동적 선택의 \(d=0.9\)를 넘으려면 적용 범위가 \((d-g)/(f-g)=0.928\), 곧 92.8% 이상이어야 한다. 단계마다 97%로 믿을 만한 고정 경로도 경로의 7%만 모르면 90%짜리 동적 선택에 진다. 이 숫자는 모델 없이 계산한 값(E0)이다.</p>
+    </div>
+    <p>정리의 3번이 설계의 질문을 숫자로 바꾼다. 고정 경로가 단계마다 거의 틀리지 않아도(\(f=0.97\)) 적용 범위가 문턱 아래이면 동적 선택이 이긴다. 반대로 동적 선택이 선택의 오류 때문에 \(d\)가 낮으면(\(d=0.90\)) 적용 범위가 넓은 경우에만 고정 경로가 이기고, 좁은 범위를 보장할 수 없다면 경로를 열어 두는 편이 낫다. 이 비교는 \(f\), \(d\), \(\pi_C\)를 아는 것을 전제한다. 과제의 경로가 얼마나 갈라지는지는 실행 기록으로 센다(14.4절).</p>
+    <p>구현의 선택도 비용에 영향을 준다. 도구 정의는 프롬프트의 앞부분이다. Claude API는 캐시 접두부를 <code>tools</code>, <code>system</code>, <code>messages</code> 순서로 만들고, 도구 정의를 바꾸면 캐시가 모두 무효가 된다고 쓴다(<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching</a>, 2026년 11월 확인). 지시형 F는 메시지 끝에 문장을 덧붙일 뿐이어서 접두부가 보존되고, 제한형 H는 라운드마다 보이는 도구가 달라서 접두부가 깨진다. H는 보이는 도구가 적어 한 라운드의 프롬프트는 짧지만, 캐시를 쓸 수 없어 라운드마다 처음부터 읽는다. 어느 쪽이 싼지는 도구 정의의 길이와 라운드 수가 정한다(14.2절의 정리 14.3, 이 장의 실험의 H3 조건).</p>
+    <div class="callout agent"><strong>경로를 코드에 두는 것은 Claude에서도 선택이다</strong>
+      <p>반복되는 절차를 skill로 묶어 모델이 불러 쓰게 하는 것(<a href="ch21.html">21장</a>)과 hook으로 특정 시점의 동작을 코드로 고정하는 것(<a href="ch23.html">23장</a>)은 경로의 일부를 코드에 두는 방법이다. 순서를 코드가 정할지 모델이 고를지 고르는 기준은 <a href="ch25.html">25장</a>에서 다룬다. 이 장의 결론은 하나이다. 경로를 고정하면 적용 범위 밖에서 찍기로 떨어지고, 열어 두면 라운드마다 선택의 오류가 쌓인다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 14.4 -->
   <section id="s4">
     <h2>실행 기록으로 과정 읽기</h2>
-    <p class="slot" data-slot="14.4절">이 절의 본문은 아직 작성하지 않았습니다.</p>
+    <p>최종 응답만 보면 같은 '틀림'이 서로 다른 원인에서 온다. 첫 읽기를 건너뛰고 키를 만들어 냈을 수도 있고, 읽은 레코드에서 키를 잘못 베꼈을 수도 있고, 한 라운드 일찍 멈춰 중간 레코드의 값으로 답했을 수도 있다. 각각 고치는 곳이 다르다(도구 설명, 프롬프트, 하네스의 종료 규칙). 실행 기록 \(\tau\)(<a class="ref" href="#def-loop"></a>)는 이 원인을 가른다. 기록을 읽는 순서를 넷으로 정한다.</p>
+    <ol>
+      <li><b>호출 인자의 출처.</b> 각 호출의 인자 값이 어디에 있었는가를 센다. 질문 문장(goal), 앞선 관찰(obs), 도구 설명의 예시(desc), 어디에도 없음(none)이다. none은 모델이 값을 만들어 낸 호출이다. 13장의 복사, 유도, 추측에서 복사는 goal과 obs에 해당하고, 유도와 추측은 기록만으로는 가르지 못해 none으로 센다.</li>
+      <li><b>처음 어긋난 단계.</b> 참조 경로에서 처음 벗어난 호출이나 응답을 찾는다(<a class="ref" href="#def-stage"></a>). 호출을 내지 않고 멈췄는지(early stop), 다른 도구를 불렀는지(wrong tool), 같은 도구에 다른 인자를 넣었는지(wrong arg), 호출은 맞았는데 응답이 틀렸는지를 가른다.</li>
+      <li><b>값이 근거에서 왔는가.</b> 최종 응답의 값이 도구 결과에 있는가(<a href="ch13.html#thm-chain">정리 13.1</a>의 \(I\)), 있다면 어느 레코드의 값인가를 본다. 값이 어떤 결과에도 없으면 지어낸 답이다. 다른 레코드의 값이면 한 라운드 일찍 멈춘 경우일 수 있다.</li>
+      <li><b>비용.</b> 라운드 수, 호출 수, 읽은 토큰, 접두부 손실을 센다(<a class="ref" href="#thm-cost"></a>). 성공 하나당 비용은 읽은 토큰을 성공률로 나눈 값이다.</li>
+    </ol>
+    <p>이 점검은 <a class="ref" href="#thm-depth"></a>과 <a class="ref" href="#thm-stage"></a>의 가정을 시행마다 확인하는 일이기도 하다. 정리 14.1은 읽기 라운드가 깊이보다 적은데 맞는 값을 말한 시행이 있다면 찍은 키가 맞았거나 값이 어딘가에서 새어 들어온 것이라고 말한다. 이 장의 실험은 그런 시행을 센다(찍은 키가 맞은 호출, 도구 결과에 값이 없는 정답). 둘 다 0이면 이 실험에서 정답은 모두 읽기에서 왔다. 정리 14.2는 처음 어긋난 단계의 분포가 곧 단계 통과율이어서, 기록을 한 번 세면 깨끗한 성공률이 어느 단계에서 줄었는지 보인다.</p>
+    <div class="box ex" id="ex-trace"><div class="box-h">한 시행의 기록을 읽는다</div>
+      <p>P2의 시행 2(깊이 2)를 읽는다. 질문은 'How many units of the item on order ORD-7773 are in stock?'이다. 호출 1은 <code>get_sku("ITEM-ON-ORDER-7773")</code>이고 인자의 출처는 none이다. 결과는 <code>{&quot;error&quot;: &quot;not_found&quot;}</code>이다. 최종 응답은 'The item on order ORD-7773 is not found in the system.'이다. 읽는 순서대로 보면, (1) 첫 호출의 인자가 질문에도 앞선 관찰에도 없으므로 출처는 none이고 모델이 만들어 낸 값이다. 참조 경로의 첫 호출은 <code>get_order</code>이다. (2) 처음 어긋난 단계는 1이고 종류는 '다른 도구를 부름'이다. (3) 답에는 근거가 되는 값이 도구 결과에 없다(범주 none). (4) 라운드는 2번이다. 이 한 시행만으로는 정답률이 낮다는 것밖에 모르지만, 기록은 원인이 깊이가 아니라 첫 행동의 인자가 질문에서 오지 않았다는 데 있음을 보여 준다. 같은 질문에 도구가 없었다면 이 값은 \(1/V\) 이하로만 맞았을 것이고(<a class="ref" href="#thm-depth"></a>), 이 호출이 맞는 레코드를 읽을 확률도 \(1/V\) 이하이다.</p>
+    </div>
+    <p>이 읽기는 정답률만으로는 보이지 않는 것을 보여 준다. 조건 사이의 정답률이 깊이에 대해 단조롭지 않을 수 있다. 깊이가 얕은 과제가 더 낮은 정답률을 보이면 깊이가 원인이라고 해석하기 쉽지만, 기록은 질문의 문장이 첫 호출의 인자를 어디서 가져오게 만들었는지(질문의 번호에서 만든 키인지, 앞 관찰의 키인지)를 보여 주고, 그것이 정답률의 차이를 만들었는지 가른다. 이 장의 실험이 그런 경우이다. 하나 더, 기록은 만든 사람이 읽기 전에 적어 둔 판정 규칙으로 센 것이어서(조건 목록과 판정 코드는 실험 절에 있다), 판정이 맞는지는 시행 몇 개를 직접 읽어 확인해야 한다. 이 장은 읽은 시행을 표와 함께 싣는다.</p>
+    <div class="callout agent"><strong>기록을 남기는 것은 하네스의 일이다</strong>
+      <p>Agent SDK는 라운드마다 어시스턴트 메시지와 도구 결과 메시지를 스트림으로 내보내고, 마지막에 사용한 토큰과 비용, 라운드 수를 담은 결과 메시지를 낸다(<a href="https://code.claude.com/docs/en/agent-sdk/agent-loop">How the agent loop works</a>, 2026년 11월 확인). 도구를 부르기 전과 후에 코드를 끼워 호출을 검사하거나 기록하는 hook은 <a href="ch23.html">23장</a>에서 다룬다. 여러 단계의 실행을 경로, 최종 상태, 비용으로 평가하는 일은 <a href="ch31.html">31장</a>의 주제이다. 이 장의 읽기 순서는 그 평가의 가장 작은 형태이다.</p>
+    </div>
   </section>
+
+  <!-- ============================================================ 실험 -->
   <section id="lab">
-    <h2>실험 계획</h2>
-    <p class="slot" data-slot="실험">검토할 질문: 같은 과제를 단일 응답과 도구 사용 루프로 풀면 결과가 어떻게 다른가? 구현과 결과는 집필할 때 검증합니다.</p>
+    <h2>실험: 같은 질문을 단일 응답, 동적 루프, 고정 경로로 풀게 하면 무엇이 달라지는가</h2>
+    <p>슬롯에 적어 둔 질문은 '같은 과제를 단일 응답과 도구 사용 루프로 풀면 결과가 어떻게 다른가'였다. 이 절은 그것을 셋으로 나눈다. 단일 응답은 도구 없이 한 번 답하게 한다. 동적 루프는 모델이 호출과 멈춤을 정한다. 고정 경로는 하네스가 다음 도구를 정하고 모델은 인자와 최종 응답을 채운다. 11~13장처럼 모델 없이 이 장의 계산을 먼저 확인하고(E0), 작은 언어모델에게 가상의 물류 조회 도구를 주어 깊이와 경로를 바꿔 가며 실행 기록을 잰다(E1~E6). 세계는 가상의 물류 시스템이다. 주문은 SKU를 가리키고, SKU는 공급사를, 공급사는 허브를 가리킨다. 각 레코드의 id와 숫자(100~999)는 균등한 무작위 값이어서 모델이 가중치로 알 수 없고, 정답은 사슬을 따라 읽어야만 나온다. 이 장의 실험은 오류 응답을 바꾸는 13장과 달리 도구가 늘 맞게 응답한다. 틀리는 것은 호출을 이어 가는 모델이다.</p>
+
+    <h3 id="h-design14">실험 설계</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모델</td><td>주 모델 Qwen3-1.7B(<code>Qwen/Qwen3-1.7B</code>, 리비전 <code>70d244cc</code>, Apache-2.0, 비사고 모드). 대조 모델 Qwen3-0.6B(<code>Qwen/Qwen3-0.6B</code>, 리비전 <code>c1899de2</code>, Apache-2.0). 둘 다 bfloat16, GPU 한 장(RTX 3060 Ti 8 GB), 순수 탐욕 디코딩, 한 번에 최대 120토큰, 배치 1. <code>generation_config</code>의 샘플링은 쓰지 않고 직접 짠 탐욕 루프를 쓴다. 순수 추론이며 학습하지 않는다. 도구 호출은 대화 템플릿이 쓰는 <code>&lt;tool_call&gt;</code> JSON 블록이다.</td></tr>
+        <tr><td>세계와 질문</td><td>시행마다 주문 <code>ORD-dddd</code> → SKU <code>SKU-dddd</code>(이름, 공급사, 재고 100~999) → 공급사 <code>SUP-ddd</code>(이름, 허브, 월 생산 능력 100~999) → 허브 <code>HUB-ddd</code>(도시, 팔레트 칸 100~999)를 뽑는다. 정답은 세 자리 수(\(V=900\))이고 id는 900가지 이상에서 뽑아 맞힐 확률이 \(1/900\) 이하이다. 한 시행에서 쓰는 수는 모두 서로 다르다(틀린 값이 어느 레코드에서 왔는지 가리기 위해서). 질문은 읽기 깊이로 나눈다. K1: SKU의 재고. K2: 주문의 SKU의 재고. K3: 주문의 SKU의 공급사의 월 생산 능력. K4: 주문의 SKU의 공급사의 허브의 팔레트 칸. I3: 질문에 적은 SKU 셋의 재고 합(깊이 1, 너비 3). B2: 주문의 SKU의 재고인데, 시행 번호가 짝수이면 주문이 SKU를 주고 홀수이면 번들 ID(<code>BND-ddd</code>)를 주어 번들 조회가 한 번 더 든다(경로가 두 갈래). 질문 문장은 과제마다 둘 중 하나이고, 시행마다 무작위로 정해지며 같은 시행 번호는 모든 조건에서 같은 문장이다. 틀린 id는 아무 정보 없는 <code>{"error": "not_found"}</code>를 돌려준다.</td></tr>
+        <tr><td>도구</td><td>조회 도구 <code>get_order</code>, <code>get_sku</code>, <code>get_supplier</code>, <code>get_hub</code>, <code>get_bundle</code>과 방해 도구 <code>get_customer</code>, <code>get_price</code>, <code>get_carrier</code>, <code>list_warehouses</code>. 기본은 8개(방해 도구 4개 포함), B2는 <code>get_bundle</code>을 더한 9개이다. 인자 설명은 'SKU code'처럼 짧게 쓰고 예시 id를 적지 않는다(X3만 'SKU code such as SKU-0001'). 스키마 검사는 하네스가 하고, 보이지 않은 도구의 호출은 실행하지 않고 <code>unknown_tool</code> 오류를 돌려준다. 한 시행의 도구 호출은 최대 8번이고, 한도에 이른 뒤 또 부르면 '끝나지 않음'으로 센다.</td></tr>
+        <tr><td>바꾸는 것</td><td>아래 표의 17개 조건. 조건끼리 하나씩만 다르게 짰다(프롬프트, 경로를 정하는 쪽, 보이는 도구, 생각 줄, 예시 id, 깊이).</td></tr>
+        <tr><td>고정하는 것</td><td>시드 14, 조건마다 60시행. 같은 시행 번호는 같은 과제의 모든 조건에서 같은 세계(같은 id, 같은 값, 같은 문장)이다. 도구 정의의 글, 디코딩, 호출 한도, 판정 규칙.</td></tr>
+        <tr><td>관측값</td><td>마지막 답을 분류한다. <code>correct</code>(정답을 말함), <code>wrong_value</code>(도구 결과에 나온 다른 수를 말함), <code>fabricated</code>(도구 결과에 없는 수를 말함. 0 포함), <code>none</code>(수를 말하지 않음), 미완·형식 오류. 단계별로는 참조 경로에서 처음 어긋난 단계와 종류(<code>early_stop</code>: 호출 없이 멈춤, <code>wrong_tool</code>, <code>wrong_arg</code>), 깨끗한 성공, 단계 통과율. 호출마다 인자 값의 출처(goal, obs, desc, none)와 찍은 키가 맞은 호출(lucky). 라운드 수, 호출 수, 병렬 호출 비율, 같은 호출의 되풀이, 참조 경로에 없는 도구의 호출. 정답이 도구 결과에 나온 비율(근거 있음). 비용으로 시행당 읽은 토큰을 캐시 없이와 접두부 보존으로 세고, prefill FLOPs와 라운드 사이에 깨진 접두부의 토큰 수를 센다. 신뢰구간은 시행 단위 부트스트랩(2,000번, 시드 15)이다.</td></tr>
+        <tr><td>점검</td><td><b>E0</b>(모델 없음): 찍기 정책의 몬테카를로를 닫힌 식과 상한에 견주고(<a class="ref" href="#thm-depth"></a>), 손익분기를 계산하고(<a class="ref" href="#thm-fixed"></a>), 템플릿으로 센 깨끗한 경로의 프롬프트 길이와 접두부 보존을 정리 14.3의 식에 견준다. <b>E1~E6</b>: 아래 예상의 점검.</td></tr>
+        <tr><td>예산</td><td>RTX 3060 Ti 한 장에서 주 모델 17개 조건(1,020시행)에 첫 회차 약 46분(2,777초), 둘째 회차 약 46분(2,780초), 대조 모델 3개 조건(180시행)에 첫 회차 약 5분(317초), 둘째 회차 약 5분(320초)이 걸렸다(조건별 시간의 합이고 모델 로딩은 빠진다). 걸린 시간은 같은 GPU를 쓰는 다른 프로그램에 따라 크게 달라지며, 결과는 달라지지 않는다.</td></tr>
+        <tr><td>예상</td><td>모델을 전체 실행하기 전에 파일에 적었다(아래 '미리 적은 것과 보고 나서 적은 것'). 모두 이론과 회계에서 나오는 것이다. <b>E0</b>(<a class="ref" href="#thm-depth"></a>, <a class="ref" href="#thm-cost"></a>) 찍기 정책의 몬테카를로 정확도가 닫힌 식과 0.002 이내이고 \((1+kR)/V\) 이하이다. 템플릿으로 센 새로 읽는 토큰의 합이 \(n_R+\sum_{t\ge2}(n_{t-1}-h_t)\)와 같고, 도구 목록이 매 라운드 바뀌는 H3의 전환당 접두부 손실이 P3보다 크다. <b>E1</b>(<a class="ref" href="#thm-depth"></a>의 3번) 도구 결과에 값이 없는데 정답을 말한 시행이 어느 조건에서도 2개 이하이다. <b>E2</b>(<a class="ref" href="#thm-depth"></a>의 1번) 찍은 키가 맞은 호출이 없고 도구 결과에 정답이 있는 정답 시행은 호출이 든 라운드가 깊이 이상이다. <b>E3</b>(<a class="ref" href="#thm-stage"></a>) 단계 통과율의 곱이 깨끗한 성공률과 같다. <b>E4</b>(회계) 범주의 합이 시행 수와 같다. <b>E5</b>(<a class="ref" href="#thm-fixed"></a>) 도구 제한형 고정 경로 HB에서 번들 주문 30개의 정답이 2개 이하이다. <b>E6</b>(<a class="ref" href="#thm-depth"></a>의 3번) 찍은 키가 맞는 레코드를 읽은 호출이 모든 조건을 합쳐 1개 이하이다.</td></tr>
+        <tr><td>예상이 틀렸다고 볼 조건</td><td><b>E0</b> 어느 설정이든 상한을 넘거나, 항등식이 하나라도 어긋나거나, H3의 접두부 손실이 P3보다 크지 않으면 식이나 코드를 고친다. <b>E1</b> 한 조건의 60시행에서 근거 없이 맞은 답이 3개 이상이면(확률 \(1/900\)일 때 3개 이상은 \(4.5\times10^{-5}\)이고 17개 조건에서 한 번이라도 나올 확률이 \(7.6\times10^{-4}\)) 정보가 새는 오류이다. <b>E2, E3, E4</b> 위반이 1개라도 있으면 하네스나 분석 코드의 오류이다. <b>E5</b> 번들 주문의 정답이 3개 이상이면 고정 경로가 막혀 있지 않다는 뜻이어서 구현의 오류이다. <b>E6</b> 2개 이상이면 id 공간이 \(V\)보다 작거나 정보가 샌 것이다.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>조건</th><th>과제(깊이)</th><th>프롬프트</th><th>보이는 도구</th><th>경로를 정하는 쪽</th><th>보려는 것</th></tr></thead>
+      <tbody>
+        <tr><td>N3</td><td>K3(3)</td><td>기본 S</td><td>없음</td><td>—</td><td>단일 응답: 컨텍스트 밖의 사실(\(D=0\), <a class="ref" href="#thm-depth"></a>의 3번)</td></tr>
+        <tr><td>I3</td><td>I3(1, 너비 3)</td><td>S</td><td>8개</td><td>모델</td><td>독립 읽기의 병렬 호출과 라운드(<a class="ref" href="#thm-depth"></a>의 2번)</td></tr>
+        <tr><td>D2, D3</td><td>K2, K3</td><td>S</td><td>8개</td><td>모델</td><td>기본 프롬프트의 루프(멈춤)</td></tr>
+        <tr><td>P1~P4</td><td>K1~K4</td><td>P: S에 '<code>Keep calling tools until you have the exact value the question asks for. Do not answer with a value from an intermediate record.</code>'</td><td>8개</td><td>모델</td><td>깊이에 따른 정답률, 단계 통과율(<a class="ref" href="#thm-stage"></a>)</td></tr>
+        <tr><td>X3</td><td>K3</td><td>P</td><td>8개, 인자 설명에 예시 id</td><td>모델</td><td>설명의 예시 id를 베끼는가</td></tr>
+        <tr><td>M3</td><td>K3</td><td>P</td><td>조회 도구 4개만</td><td>모델</td><td>보이는 도구 수(\(m\))</td></tr>
+        <tr><td>T3</td><td>K3</td><td>P에 '<code>Before each tool call, write one short sentence starting with 'Thought:' …</code>'</td><td>8개</td><td>모델</td><td>생각 줄(ReAct 형식)</td></tr>
+        <tr><td>F3, F4</td><td>K3, K4</td><td>S</td><td>8개</td><td>지시형: 하네스가 매 단계 '<code>Next step: call get_sku with the SKU code from the result above.</code>' 같은 메시지를 덧붙임</td><td>고정 경로(F)</td></tr>
+        <tr><td>H3</td><td>K3</td><td>S</td><td>지금 단계의 도구 하나만</td><td>제한형: F의 메시지에 도구 제한을 더함</td><td>고정 경로(H), 캐시 비용</td></tr>
+        <tr><td>PB</td><td>B2(짝수 A형, 홀수 번들형)</td><td>P</td><td>9개</td><td>모델</td><td>갈라지는 경로에서의 동적 선택</td></tr>
+        <tr><td>FB</td><td>B2</td><td>S</td><td>9개</td><td>지시형, A형 경로(주문 → SKU)만 안다</td><td>범위 밖에서 지시를 따르는가</td></tr>
+        <tr><td>HB</td><td>B2</td><td>S</td><td>단계마다 하나(주문 → SKU)</td><td>제한형, A형 경로만 안다</td><td>범위 밖의 상한(<a class="ref" href="#thm-fixed"></a>)</td></tr>
+      </tbody>
+    </table></div>
+    <p>대조 모델 Qwen3-0.6B는 P1, P3, F3의 세 조건만 잰다. D와 P, F와 H, P3와 M3·T3·X3은 같은 시행 번호가 같은 세계라서 짝지어 견줄 수 있다.</p>
+
+    <h3 id="h-code14">코드</h3>
+    <p>Python 3.14.5, PyTorch 2.11.0(CUDA 12.8), Transformers 5.22.2, NumPy 2.5.4에서 실행했다(<code>OMP_NUM_THREADS=1 python -I -X utf8 exp14.py all q3</code>로 주 모델, <code>all q06</code>으로 대조 모델, 모델 없이 E0의 계산만 돌리려면 <code>e0</code>). 두 모델의 가중치는 공개 저장소의 리비전을 고정해 내려받았다. 하네스는 도구 호출을 읽는 <code>parse_calls</code>, 스키마 검사 <code>check</code>, 도구 실행 <code>execute</code>, 보이는 도구와 고정 경로의 지시를 만드는 <code>tools_for</code>와 <code>step_msg</code>, 인자의 출처를 가르는 <code>source</code>, 한 시행의 루프와 판정을 맡는 <code>trial</code>이다. <a class="ref" href="#def-loop"></a>의 라운드가 <code>trial</code>의 <code>while</code> 한 바퀴이다. <code>e0_tokens</code>는 모델 없이 템플릿만으로 깨끗한 경로의 프롬프트 길이를 센다.</p>
+<pre><code>import json, math, os, re, sys, time
+from collections import Counter
+import numpy as np
+
+MODE = sys.argv[1] if len(sys.argv) &gt; 1 else "all"             # all | e0 | smoke | probe
+KEY = sys.argv[2] if len(sys.argv) &gt; 2 else "q3"               # 모델: q3 | q06
+SEED, NT, BOOT, MAXCALL, NEW = 14, 60, 2000, 8, 120            # 시드, 조건마다 시행 수, 부트스트랩 횟수, 한 시행의 최대 도구 호출 수, 한 번에 최대 생성 토큰
+if MODE == "smoke": SEED, NT = 99, 4
+if MODE == "probe": SEED, NT = 98, 12
+ONLY = sys.argv[3].split(",") if len(sys.argv) &gt; 3 else None   # 탐색용: 돌릴 조건만 고른다
+NAME, REV = {"q3": ("Qwen/Qwen3-1.7B", "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"), "q06": ("Qwen/Qwen3-0.6B", "c1899de289a04d12100db370d81485cdf75e47ca")}[KEY]
+DIM = {}                                                       # 모델 구조: config.json에서 채운다
+V = 900                                                        # 정답과 추측으로 맞힐 id의 후보 수: 답은 100~999, id는 900가지 이상
+SYS = "You are a logistics assistant. Use the tools to look up records and answer. Reply with the final answer in one short sentence."
+THINK = " Before each tool call, write one short sentence starting with 'Thought:' that says what you need next."
+SYSP = {"S": SYS, "P": SYS + " Keep calling tools until you have the exact value the question asks for. Do not answer with a value from an intermediate record."}   # 기본 프롬프트, 멈추지 말라고 지시하는 프롬프트
+PARAM = {"get_order": "order ID", "get_sku": "SKU code", "get_bundle": "bundle ID", "get_supplier": "supplier ID", "get_hub": "hub ID"}
+PRODUCTS, FIRMS, CITIES = ("bolt kit", "hinge pack", "cable reel", "filter set", "valve set"), ("Norvik", "Altamar", "Brightline", "Corvane", "Dunmore"), ("Harlow", "Pennant", "Redfern", "Kestrel", "Ashby")
+
+
+def tool(name, desc, props):
+    return {"type": "function", "function": {"name": name, "description": desc, "parameters": {"type": "object", "properties": props, "required": list(props)}}}
+
+
+def S(d): return {"type": "string", "description": d}
+
+
+def build(ex):                                                 # ex가 참이면 인자 설명에 예시 id(SKU-0001)를 적는다. 실제 id는 0으로 시작하지 않는다
+    e = lambda t, x: S(f"{t} such as {x}" if ex else t)
+    return {x["function"]["name"]: x for x in [
+        tool("get_order", "Look up one customer order by its order ID.", {"order_id": e("Order ID", "ORD-0001")}),
+        tool("get_sku", "Look up one SKU (product) record: its name, supplier and units in stock.", {"sku": e("SKU code", "SKU-0001")}),
+        tool("get_bundle", "Look up a bundle ID found on an order: the SKU the bundle contains.", {"bundle_id": e("Bundle ID", "BND-001")}),
+        tool("get_supplier", "Look up one supplier record: its name, hub and monthly capacity.", {"supplier_id": e("Supplier ID", "SUP-001")}),
+        tool("get_hub", "Look up one distribution hub record: its city and pallet slots.", {"hub_id": e("Hub ID", "HUB-001")}),
+        tool("get_customer", "Look up one customer account.", {"customer_id": e("Customer ID", "CUS-001")}),
+        tool("get_price", "Look up the unit price of one SKU.", {"sku": e("SKU code", "SKU-0001")}),
+        tool("get_carrier", "Look up one shipping carrier.", {"carrier_id": e("Carrier ID", "CAR-001")}),
+        tool("list_warehouses", "List all warehouses.", {})]}
+
+
+TOOLS, TOOLS_EX = build(False), build(True)
+SETS = {"all8": ("get_order", "get_sku", "get_supplier", "get_hub", "get_customer", "get_price", "get_carrier", "list_warehouses"),
+        "hop4": ("get_order", "get_sku", "get_supplier", "get_hub"),
+        "all9": ("get_order", "get_sku", "get_bundle", "get_supplier", "get_hub", "get_customer", "get_price", "get_carrier", "list_warehouses")}
+PATHS = {"K1": ("get_sku",), "K2": ("get_order", "get_sku"), "K3": ("get_order", "get_sku", "get_supplier"), "K4": ("get_order", "get_sku", "get_supplier", "get_hub"),
+         "I3": ("get_sku",), "B2": ("get_order", "get_sku")}      # 고정 경로가 아는 도구 순서 (B2는 묶음 상품이 없는 주문만 안다)
+ASK = {"K1": ("How many units of {sku} are in stock?", "What is the current stock of {sku}?"),
+       "K2": ("How many units of the item on order {order} are in stock?", "What is the current stock of the SKU on order {order}?"),
+       "K3": ("What is the monthly capacity of the supplier of the item on order {order}?", "What monthly capacity does the supplier of the SKU on order {order} have?"),
+       "K4": ("How many pallet slots does the hub of the supplier of the item on order {order} have?", "What is the number of pallet slots at the hub of the supplier of the item on order {order}?"),
+       "I3": ("What is the total number of units in stock across {a}, {b} and {c}?", "Add up the units in stock of {a}, {b} and {c}.")}
+ASK["B2"] = ASK["K2"]
+CONDS = {"N3": dict(task="K3", tools="none", sys="S"), "I3": dict(task="I3", tools="all8", sys="S"),
+         **{f"D{k}": dict(task=f"K{k}", tools="all8", sys="S") for k in (2, 3)},                             # D: 모델이 다음 행동과 멈춤을 정한다
+         **{f"P{k}": dict(task=f"K{k}", tools="all8", sys="P") for k in (1, 2, 3, 4)},                       # P: 같은 루프에 '중간 레코드로 답하지 말라'는 지시를 더한다
+         **{f"F{k}": dict(task=f"K{k}", tools="all8", sys="S", guide=True) for k in (3, 4)},                 # F: 고정 경로. 다음에 부를 도구를 하네스가 매 단계 알려 준다
+         "X3": dict(task="K3", tools="all8", sys="P", ex=True), "M3": dict(task="K3", tools="hop4", sys="P"), "T3": dict(task="K3", tools="all8", sys="P", think=True),
+         "H3": dict(task="K3", tools="all8", sys="S", guide=True, hard=True),                                # H: 고정 경로를 도구 제한으로 구현한다. 지금 단계의 도구 하나만 보인다
+         "PB": dict(task="B2", tools="all9", sys="P"), "FB": dict(task="B2", tools="all9", sys="S", guide=True), "HB": dict(task="B2", tools="all9", sys="S", guide=True, hard=True)}
+RUNS = ONLY or {"q3": list(CONDS), "q06": ["P1", "P3", "F3"]}[KEY]
+
+
+def ci(x, rr):                                                 # 시행 단위 부트스트랩 95% 구간
+    x = np.asarray(x, float); b = x[rr.integers(0, len(x), (BOOT, len(x)))].mean(1)
+    return float(x.mean()), float(np.percentile(b, 2.5)), float(np.percentile(b, 97.5))
+
+
+# ---------- E0: 모델 없이 확인하는 계산 (정리 14.1, 14.3, 14.4) ----------
+def guess_success(D, T, w):                                    # 깊이 D인 사슬을 읽기 T라운드(라운드마다 w번 호출)로 푸는 추측 정책의 정확도(닫힌 식)
+    p = (w - 1) / V; m = D - T                                 # 라운드마다 아는 키로 한 곳을 읽고, 나머지 w-1번은 다음 키를 찍는다. 찍어 맞히면 그 라운드에 두 단계를 간다
+    hit = sum(math.comb(T, k) * p ** k * (1 - p) ** (T - k) for k in range(max(m, 0), T + 1)) if m &gt; 0 else 1.0
+    return hit + (1 - hit) / V                                 # 읽어서 맞히지 못하면 답을 찍는다
+
+
+def guess_mc(rr, D, T, w, n=400000):                           # 같은 정책을 직접 시뮬레이션한다
+    hits = (rr.random((n, T)) &lt; (w - 1) / V).sum(1); ok = (T + hits &gt;= D)
+    return float((ok | (rr.random(n) &lt; 1 / V)).mean())
+
+
+def e0_pure():
+    rr = np.random.default_rng(SEED); res = {"guess": {}}
+    for D, T in ((2, 1), (3, 2), (4, 3)):
+        for w in (1, 2, 4):
+            res["guess"][f"{D}|{T}|{w}"] = dict(mc=guess_mc(rr, D, T, w), formula=guess_success(D, T, w), bound=(1 + w * T) / V)
+    pf, pd, g = 0.97, 0.90, 3 / V                              # 정리 14.4: 고정 경로의 성공률, 동적 선택의 성공률(가상의 값), 경로 밖의 찍기 상한 (1+kR)/V (k=1, R=2)
+    res["breakeven"] = {f"{c}": dict(coverage=c, fixed=c * pf + (1 - c) * g, dynamic=pd) for c in (0.5, 0.8, 0.93, 1.0)}
+    res["breakeven_c"] = (pd - g) / (pf - g)                   # 고정 경로가 동적 선택보다 낫기 위한 최소 적용 범위
+    res["product"] = {"p": [0.99, 0.97, 0.95, 0.9], "clean": float(np.prod([0.99, 0.97, 0.95, 0.9]))}
+    return res
+
+
+def dims():
+    from transformers import AutoConfig
+    c = AutoConfig.from_pretrained(NAME, revision=REV)
+    DIM.update(L=c.num_hidden_layers, d=c.hidden_size, d_kv=c.num_key_value_heads * getattr(c, "head_dim", c.hidden_size // c.num_attention_heads), d_ff=c.intermediate_size)
+    DIM["c"] = 4 * DIM["d"] ** 2 + 4 * DIM["d"] * DIM["d_kv"] + 6 * DIM["d"] * DIM["d_ff"]
+
+
+def flops(n, h=0):                                             # 앞의 h토큰은 캐시에서 읽고 n-h토큰만 새로 계산할 때의 prefill FLOPs (12장의 공식)
+    return DIM["L"] * (n - h) * (DIM["c"] + 4 * DIM["d"] * n)
+
+
+# ---------- 세계와 도구 ----------
+def world(t, task):                                            # 시행 t의 세계. 같은 t는 같은 과제의 모든 조건에서 같다
+    r = np.random.default_rng([SEED, t]); x = (r.choice(900, 9, replace=False) + 100).tolist(); ids = r.choice(900, 7, replace=False) + 100
+    w = dict(order=f"ORD-{r.integers(1000, 10000)}", sku=f"SKU-{r.integers(1000, 10000)}", sup=f"SUP-{ids[0]}", hub=f"HUB-{ids[1]}", bnd=f"BND-{ids[2]}", stock=x[0], cap=x[1], slots=x[2],
+             skus=[f"SKU-{k}" for k in r.choice(np.arange(1000, 10000), 3, replace=False)], stocks=x[3:6], qty=int(r.integers(5, 60)), phr=int(r.integers(2)), bundle=(task == "B2" and t % 2 == 1),
+             prod=PRODUCTS[int(r.integers(5))], firm=FIRMS[int(r.integers(5))], city=CITIES[int(r.integers(5))])
+    while w["sku"] in w["skus"]: w["sku"] = f"SKU-{r.integers(1000, 10000)}"
+    w["tables"] = {"get_sku": {w["sku"]: dict(sku=w["sku"], name=w["prod"], supplier=w["sup"], stock=w["stock"]),
+                               **{s: dict(sku=s, name=w["prod"], supplier=w["sup"], stock=v) for s, v in zip(w["skus"], w["stocks"])}},
+                   "get_supplier": {w["sup"]: dict(supplier=w["sup"], name=w["firm"], hub=w["hub"], monthly_capacity=w["cap"])},
+                   "get_hub": {w["hub"]: dict(hub=w["hub"], city=w["city"], pallet_slots=w["slots"])}, "get_bundle": {w["bnd"]: dict(bundle=w["bnd"], sku=w["sku"])}}
+    w["tables"]["get_order"] = {w["order"]: dict(order_id=w["order"], customer="ACME", **(dict(bundle=w["bnd"]) if w["bundle"] else dict(sku=w["sku"])), qty=w["qty"])}
+    return w
+
+
+def reference(task, w):                                        # 참조 경로 [(도구, 인자)]와 정답
+    o, s, u, h = ("get_order", w["order"]), ("get_sku", w["sku"]), ("get_supplier", w["sup"]), ("get_hub", w["hub"])
+    if task == "I3": return [("get_sku", a) for a in w["skus"]], sum(w["stocks"])
+    if task == "B2" and w["bundle"]: return [o, ("get_bundle", w["bnd"]), s], w["stock"]
+    return {"K1": ([s], w["stock"]), "K2": ([o, s], w["stock"]), "B2": ([o, s], w["stock"]), "K3": ([o, s, u], w["cap"]), "K4": ([o, s, u, h], w["slots"])}[task]
+
+
+def check(name, args):                                         # 스키마 검사: 틀리면 오류 문자열
+    t = TOOLS.get(name)
+    if t is None: return "unknown tool"
+    sp = t["function"]["parameters"]
+    if not isinstance(args, dict): return "arguments must be an object"
+    for k in sp["required"]:
+        if k not in args: return f"missing required argument: {k}"
+    for k, v in args.items():
+        if k not in sp["properties"]: return f"unexpected argument: {k}"
+        if not isinstance(v, str): return f"wrong type for argument: {k}"
+    return None
+
+
+def execute(w, name, args):                                    # 도구 하나를 실행해 결과(dict)를 돌려준다. 틀린 id는 아무 정보 없는 not_found이다
+    bad = check(name, args)
+    if bad: return {"error": "invalid_arguments", "detail": bad}
+    if name in w["tables"]: return w["tables"][name].get(next(iter(args.values())), {"error": "not_found"})
+    return {"get_customer": dict(customer_id=args.get("customer_id"), tier="standard"), "get_price": dict(sku=args.get("sku"), unit_price=12),
+            "get_carrier": dict(carrier_id=args.get("carrier_id"), name="Eastway"), "list_warehouses": dict(warehouses=["W1", "W2", "W3"])}[name]
+
+
+def parse_calls(text):                                         # &lt;tool_call&gt; 블록을 읽는다. (호출 목록, 형식이 깨졌는가)
+    if "&lt;tool_call&gt;" not in text: return [], False
+    calls = []
+    for m in re.findall(r"&lt;tool_call&gt;\s*(.*?)\s*&lt;/tool_call&gt;", text, re.S):
+        try: c = json.loads(m)
+        except ValueError: return [], True
+        if not isinstance(c, dict) or not isinstance(c.get("name"), str): return [], True
+        calls.append(dict(name=c["name"], arguments=c.get("arguments")))
+    return (calls, False) if calls else ([], True)
+
+
+def prefix(a, b):                                              # 두 토큰 열의 공통 접두부 길이
+    n = 0
+    for x, y in zip(a, b):
+        if x != y: break
+        n += 1
+    return n
+
+
+def tools_for(spec, log):                                      # 이 라운드에 모델에게 보이는 도구. hard이면 지금까지 부른 횟수로 정한 다음 도구 하나만 보인다
+    if spec["tools"] == "none": return None
+    names = (PATHS[spec["task"]][min(len(log), len(PATHS[spec["task"]]) - 1)],) if spec.get("hard") else SETS[spec["tools"]]
+    return [(TOOLS_EX if spec.get("ex") else TOOLS)[n] for n in names]
+
+
+def step_msg(spec, j):                                         # 고정 경로: j번째 호출을 하기 전에 하네스가 덧붙이는 지시(코드가 도구를 정한다)
+    p = PATHS[spec["task"]]
+    if j &gt;= len(p): return "All steps are done. Now answer the question."
+    return f"Next step: call {p[j]} with the {PARAM[p[j]]} " + ("from the question." if j == 0 else "from the result above.")
+
+
+def source(a, user, seen, defs):                               # 인자 값이 목표 문장에 있었나(goal), 앞 관찰에 있었나(obs), 도구 설명의 예시였나(desc), 어디에도 없었나(none: 추측)
+    if not isinstance(a, dict) or any(not isinstance(v, str) for v in a.values()): return "none"
+    if not a: return "-"
+    if all(v in user for v in a.values()): return "goal"
+    if all(v in user or any(v in s for s in seen) for v in a.values()): return "obs"
+    return "desc" if all(v in user or any(v in s for s in seen) or v in defs for v in a.values()) else "none"
+
+
+def trial(answer, name, t):
+    spec = CONDS[name]; task = spec["task"]; w = world(t, task); ref, truth = reference(task, w)
+    user = ASK[task][w["phr"]].format(sku=w["sku"], order=w["order"], a=w["skus"][0], b=w["skus"][1], c=w["skus"][2])
+    msgs = [{"role": "system", "content": SYSP[spec["sys"]] + (THINK if spec.get("think") else "")}, {"role": "user", "content": user}]
+    log, rounds, texts, status, prev = [], [], [], "ok", []
+    if spec.get("guide"): msgs.append({"role": "user", "content": step_msg(spec, 0)})
+    while True:
+        tools = tools_for(spec, log); defs = json.dumps(tools); offered = {t["function"]["name"] for t in tools or []}; text, ids, ng = answer(msgs, tools); texts.append(text); rounds.append(dict(n=len(ids), g=ng, lcp=prefix(prev, ids))); prev = ids
+        calls, bad = parse_calls(text)
+        if bad: status, final = "malformed", text; break
+        if not calls: final = text; break
+        if len(log) &gt;= MAXCALL: status, final = "unfinished", text; break    # 호출 한도에 이르렀는데도 또 부른다
+        calls = calls[:MAXCALL - len(log)]; rounds[-1]["calls"] = len(calls)
+        msgs.append({"role": "assistant", "content": text.split("&lt;tool_call&gt;")[0].strip(), "tool_calls": [{"type": "function", "function": c} for c in calls]})
+        seen = [json.dumps(x["res"]) for x in log]                 # 이 라운드의 호출들이 볼 수 있는 앞 라운드의 관찰
+        for c in calls:
+            res = execute(w, c["name"], c["arguments"]) if c["name"] in offered else {"error": "unknown_tool"}; log.append(dict(name=c["name"], args=c["arguments"], res=res, src=source(c["arguments"], user, seen, defs))); msgs.append({"role": "tool", "content": json.dumps(res)})
+        if spec.get("guide"): msgs.append({"role": "user", "content": step_msg(spec, len(log))})
+    obs = {v for x in log if isinstance(x["res"], dict) for v in x["res"].values() if isinstance(v, int)}
+    nums = {int(m) for m in re.findall(r"(?&lt;![\w-])\d+(?![\w-])", re.sub(r"[A-Z]{3}-\d+", "", re.sub(r"(?&lt;=\d),(?=\d{3})", "", final)))}
+    cat = status if status != "ok" else "correct" if truth in nums else "wrong_value" if nums &amp; obs else "fabricated" if nums else "none"
+    wv = sorted({x["name"] for x in log if isinstance(x["res"], dict) and any(isinstance(v, int) and v in nums for v in x["res"].values())}) if cat == "wrong_value" else []   # 틀린 값을 가져온 레코드의 도구
+    D = len(ref); key = [(x["name"], next(iter(x["args"].values())) if isinstance(x["args"], dict) and x["args"] else None) for x in log]; dev = None
+    for j in range(D):                                         # 참조 경로에서 처음 벗어난 단계 (I3는 순서 없이 서로 다른 세 SKU)
+        if j &gt;= len(key): dev = (j, "early_stop"); break
+        if key[j][0] != ref[j][0]: dev = (j, "wrong_tool"); break
+        if (key[j][1] not in [r[1] for r in ref] or key[j][1] in [k[1] for k in key[:j]]) if task == "I3" else key[j][1] != ref[j][1]: dev = (j, "wrong_arg"); break
+    fail = (dev[0] + 1 if dev else D + 1 if cat != "correct" else 0)    # 처음 떨어진 단계 번호(1..D는 호출, D+1은 답). 0이면 깨끗한 성공
+    reads = [x for x in log if x["name"] in w["tables"] and "error" not in x["res"]]
+    rec = dict(cond=name, t=t, user=user, bundle=w["bundle"], D=D, dep=1 if task == "I3" else D, truth=truth, texts=texts, calls=[dict(name=x["name"], args=x["args"], res=x["res"], src=x["src"]) for x in log], final=final.strip(), status=status,
+               rounds=rounds, R=len(rounds), n_calls=len(log), cat=cat, wv=wv, fab_zero=(cat == "fabricated" and nums == {0}), grounded=(set(w["stocks"]) &lt;= obs if task == "I3" else truth in obs), fail=fail, dev=dev[1] if dev else None,
+               read_rounds=sum(1 for r in rounds if r.get("calls")), guess_calls=sum(x["src"] == "none" for x in log), lucky=sum(x["src"] == "none" and "error" not in x["res"] and x["name"] in w["tables"] for x in log),
+               dup=len(key) - len(set(map(str, key))), extra=max(0, len(log) - D), off=sum(x["name"] not in {r[0] for r in ref} for x in log), par=max([r.get("calls", 0) for r in rounds]),
+               covered=len({k[1] for k in key if k[0] == "get_sku"} &amp; set(w["skus"])) if task == "I3" else None)
+    return rec
+
+
+# ---------- 모델 ----------
+def load():
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, DynamicCache
+    torch.manual_seed(SEED)
+    tok = AutoTokenizer.from_pretrained(NAME, revision=REV); dims()
+    model = AutoModelForCausalLM.from_pretrained(NAME, revision=REV, dtype=torch.bfloat16).to("cuda").eval()
+
+    @torch.no_grad()
+    def answer(msgs, tools):                                   # 대화 템플릿을 입히고 순수 탐욕(argmax)으로 NEW 토큰까지 생성한다 (Qwen3는 비사고 모드)
+        ids = tok(tok.apply_chat_template(msgs, tools=tools, add_generation_prompt=True, tokenize=False, enable_thinking=False), return_tensors="pt").input_ids.to("cuda"); n = ids.shape[1]
+        cache = DynamicCache()
+        for i in range(0, n, 1024): lg = model(ids[:, i:i + 1024], past_key_values=cache, use_cache=True, logits_to_keep=1).logits[:, -1]
+        out = []
+        for _ in range(NEW):
+            t = int(lg.argmax(-1))
+            if t in (151645, 151643): break
+            out.append(t); lg = model(torch.tensor([[t]], device="cuda"), past_key_values=cache, use_cache=True, logits_to_keep=1).logits[:, -1]
+        return tok.decode(out), ids[0].tolist(), len(out)
+
+    return tok, answer
+
+
+def e0_tokens(tok):                                            # 깨끗한 경로의 라운드별 프롬프트 길이와 접두부 보존: 템플릿만으로 센다 (모델 없음)
+    out = {}; w = world(0, "K3"); u = ASK["K3"][w["phr"]].format(order=w["order"]); m0 = [{"role": "system", "content": SYSP["P"]}, {"role": "user", "content": u}]
+    nt = lambda tl: len(tok(tok.apply_chat_template(m0, tools=tl, add_generation_prompt=True, tokenize=False, enable_thinking=False)).input_ids)
+    out["defs"] = {k: nt([TOOLS[n] for n in v]) - nt(None) for k, v in SETS.items()} | {"one": nt([TOOLS["get_order"]]) - nt(None), "without": nt(None)}
+    for name in ("P1", "P2", "P3", "P4", "F3", "F4", "H3", "M3", "X3"):
+        spec = CONDS[name]; w = world(0, spec["task"]); ref, _ = reference(spec["task"], w); user = ASK[spec["task"]][w["phr"]].format(sku=w["sku"], order=w["order"]); log = []
+        msgs = [{"role": "system", "content": SYSP[spec["sys"]]}, {"role": "user", "content": user}]; prev, rows = [], []
+        if spec.get("guide"): msgs.append({"role": "user", "content": step_msg(spec, 0)})
+        for j in range(len(ref) + 1):
+            ids = tok(tok.apply_chat_template(msgs, tools=tools_for(spec, log), add_generation_prompt=True, tokenize=False, enable_thinking=False)).input_ids
+            rows.append(dict(n=len(ids), lcp=prefix(prev, ids))); prev = ids
+            if j &lt; len(ref):
+                tn, a = ref[j]; arg = next(iter(TOOLS[tn]["function"]["parameters"]["properties"])); call = dict(name=tn, arguments={arg: a}); res = execute(w, tn, {arg: a}); log.append(call)
+                msgs += [{"role": "assistant", "content": "", "tool_calls": [{"type": "function", "function": call}]}, {"role": "tool", "content": json.dumps(res)}]
+                if spec.get("guide"): msgs.append({"role": "user", "content": step_msg(spec, j + 1)})
+        out[name] = dict(rounds=rows, nocache=sum(r["n"] for r in rows), cached=sum(r["n"] - r["lcp"] for r in rows), gflops_nocache=sum(flops(r["n"]) for r in rows) / 1e9, gflops_cached=sum(flops(r["n"], r["lcp"]) for r in rows) / 1e9)
+    return out
+
+
+def summarize(recs, rr):
+    f = lambda k: ci([k(r) for r in recs], rr); D = recs[0]["D"]; n = len(recs)
+    s = dict(n=n, rounds=float(np.mean([r["R"] for r in recs])), calls=float(np.mean([r["n_calls"] for r in recs])),
+             **{c: f(lambda r, c=c: r["cat"] == c) for c in ("correct", "wrong_value", "fabricated", "none")}, other=f(lambda r: r["cat"] in ("malformed", "unfinished")), grounded=f(lambda r: r["grounded"]), clean=f(lambda r: r["fail"] == 0),
+             early=f(lambda r: r["dev"] == "early_stop"), wrong_tool=f(lambda r: r["dev"] == "wrong_tool"), wrong_arg=f(lambda r: r["dev"] == "wrong_arg"), dup=f(lambda r: r["dup"] &gt; 0), extra=f(lambda r: r["extra"] &gt; 0),
+             off=f(lambda r: r["off"] &gt; 0), parallel=f(lambda r: r["par"] &gt; 1), guess_calls=int(sum(r["guess_calls"] for r in recs)), lucky=int(sum(r["lucky"] for r in recs)),
+             wv_from=dict(Counter(x for r in recs for x in r["wv"])), fab_zero=int(sum(r["fab_zero"] for r in recs)),
+             ungrounded_correct=int(sum(r["cat"] == "correct" and not r["grounded"] for r in recs)), cats=dict(Counter(r["cat"] for r in recs)), devs=dict(Counter(r["dev"] for r in recs)),
+             viol_depth=int(sum(r["cat"] == "correct" and r["grounded"] and r["lucky"] == 0 and r["read_rounds"] &lt; r["dep"] for r in recs)),
+             tok_nocache=float(np.mean([sum(x["n"] for x in r["rounds"]) for r in recs])), tok_cached=float(np.mean([sum(x["n"] - x["lcp"] for x in r["rounds"]) for r in recs])), tok_gen=float(np.mean([sum(x["g"] for x in r["rounds"]) for r in recs])),
+             gflops_nocache=float(np.mean([sum(flops(x["n"]) for x in r["rounds"]) for r in recs]) / 1e9), gflops_cached=float(np.mean([sum(flops(x["n"], x["lcp"]) for x in r["rounds"]) for r in recs]) / 1e9),
+             prefix_lost=float(np.mean([y["n"] - x["lcp"] for r in recs for x, y in zip(r["rounds"][1:], r["rounds"][:-1])] or [0.0])))
+    if len({r["D"] for r in recs}) == 1:                       # 경로 길이가 시행마다 다르면(DB, FB) 단계별 분해를 하지 않는다
+        reach = [sum(r["fail"] == 0 or r["fail"] &gt; j for r in recs) for j in range(D + 2)]; reach[0] = n   # 단계 j까지 통과한 시행 수 (j=0은 전체)
+        p = [reach[j] / reach[j - 1] if reach[j - 1] else 0.0 for j in range(1, D + 2)]
+        s.update(stage_pass=reach, stage_p=p, product_err=abs(float(np.prod(p)) - reach[-1] / n))
+    if recs[0]["covered"] is not None: s["covered"] = float(np.mean([r["covered"] for r in recs]))
+    if any(r["bundle"] for r in recs) and any(not r["bundle"] for r in recs):
+        s["by_variant"] = {v: dict(n=sum(r["bundle"] == v for r in recs), correct=sum(r["cat"] == "correct" for r in recs if r["bundle"] == v), grounded=sum(r["grounded"] for r in recs if r["bundle"] == v)) for v in (False, True)}
+    return s
+
+
+def run_model(answer):                                         # 조건마다 결과를 파일에 저장하고, 다시 실행하면 끝난 조건은 건너뛴다(공유 GPU에서 중단돼도 이어 가려는 장치. 측정에는 영향이 없다)
+    raw, res = [], {}
+    for i, name in enumerate(RUNS):
+        ck = f"ckpt14_{KEY}_{name}.json"
+        if MODE == "all" and os.path.exists(ck): c = json.load(open(ck, encoding="utf8")); recs, s, secs = c["recs"], c["s"], c["secs"]; print(name, "체크포인트에서 읽음", flush=True)
+        else:
+            t0 = time.time(); recs = [trial(answer, name, t) for t in range(NT)]; secs = round(time.time() - t0); s = summarize(recs, np.random.default_rng([SEED + 1, i])); s["secs"] = secs
+            if MODE == "all": json.dump(dict(recs=recs, s=s, secs=secs), open(ck, "w", encoding="utf8"), ensure_ascii=False)
+        raw += recs; res[name] = s
+        print(name, f"{secs}s", {k: round(v[0] if isinstance(v, (tuple, list)) else v, 3) for k, v in s.items() if k in ("rounds", "calls", "correct", "wrong_value", "fabricated", "clean", "grounded", "early", "wrong_tool", "wrong_arg", "parallel", "tok_nocache", "tok_cached", "prefix_lost", "lucky", "ungrounded_correct", "viol_depth")}, flush=True)
+        if MODE in ("smoke", "probe"):
+            for r in recs: print("  ", r["user"], "|", [(c["name"], c["args"], c["src"], c["res"]) for c in r["calls"]], "-&gt;", repr(r["final"][:140]), r["cat"], r["dev"], [x["lcp"] for x in r["rounds"]])
+    return raw, res
+
+
+if __name__ == "__main__":
+    t0 = time.time(); out = {}
+    if MODE in ("all", "e0", "smoke", "probe") and KEY == "q3": out["e0_pure"] = e0_pure(); print("E0 pure", json.dumps(out["e0_pure"])[:400], flush=True)
+    if MODE in ("all", "smoke", "probe"):
+        tok, answer = load(); out["e0_tokens"] = e0_tokens(tok); out["dim"] = dict(DIM); print("E0 tokens", out["e0_tokens"]["defs"], {k: (v["nocache"], v["cached"], round(v["gflops_nocache"], 1), round(v["gflops_cached"], 1)) for k, v in out["e0_tokens"].items() if k != "defs"}, flush=True)
+        raw, out["model"] = run_model(answer)
+        json.dump(raw, open(f"out14_{KEY}_raw.json" if MODE == "all" else f"{MODE}14_{KEY}_raw.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    json.dump(out, open(f"out14_{KEY}_res.json" if MODE == "all" else f"{MODE}14_{KEY}_res.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    print(f"완료 {time.time() - t0:.0f}s")
+</code></pre>
+    <p>코드는 시행마다 실행 기록(라운드마다 프롬프트 길이, 생성 길이, 앞 라운드와의 공통 접두부 길이, 호출, 결과, 인자 출처, 모델의 원문 출력)을 <code>out14_*_raw.json</code>에 쓰고 조건별 요약을 <code>out14_*_res.json</code>에 쓴다. 조건 하나가 끝날 때마다 그 기록과 요약을 <code>ckpt14_*.json</code>에 저장하고, 다시 실행하면 끝난 조건은 건너뛴다(실행이 중단되어도 끝난 조건을 잃지 않으려는 것이다. 요약의 부트스트랩 난수는 조건마다 따로 뽑는다).</p>
+
+
+    <h3 id="h-res14">결과</h3>
+    <p>먼저 모델 없이 도는 E0이다. (a) 깊이 \(D\), 읽기 라운드 \(R\), 라운드마다 호출 수 \(k\)가 다른 찍기 정책 9개의 정확도를 몬테카를로(400,000번)로 센 값과 닫힌 식, <a class="ref" href="#thm-depth"></a>의 상한 \((1+kR)/V\)를 견주었다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>깊이 \(D\)</th><th class="num">읽기 라운드 \(R\)</th><th class="num">너비 \(k\)</th><th class="num">상한 \((1+kR)/V\)</th><th class="num">닫힌 식</th><th class="num">몬테카를로</th><th class="num">식과의 차이</th></tr></thead><tbody>
+<tr><td>2</td><td class="num">1</td><td class="num">1</td><td class="num">0.00222</td><td class="num">0.00111</td><td class="num">0.00114</td><td class="num">0.00003</td></tr>
+<tr><td>2</td><td class="num">1</td><td class="num">2</td><td class="num">0.00333</td><td class="num">0.00222</td><td class="num">0.00220</td><td class="num">0.00002</td></tr>
+<tr><td>2</td><td class="num">1</td><td class="num">4</td><td class="num">0.00556</td><td class="num">0.00444</td><td class="num">0.00443</td><td class="num">0.00001</td></tr>
+<tr><td>3</td><td class="num">2</td><td class="num">1</td><td class="num">0.00333</td><td class="num">0.00111</td><td class="num">0.00104</td><td class="num">0.00007</td></tr>
+<tr><td>3</td><td class="num">2</td><td class="num">2</td><td class="num">0.00556</td><td class="num">0.00333</td><td class="num">0.00321</td><td class="num">0.00012</td></tr>
+<tr><td>3</td><td class="num">2</td><td class="num">4</td><td class="num">0.01000</td><td class="num">0.00776</td><td class="num">0.00779</td><td class="num">0.00003</td></tr>
+<tr><td>4</td><td class="num">3</td><td class="num">1</td><td class="num">0.00444</td><td class="num">0.00111</td><td class="num">0.00115</td><td class="num">0.00004</td></tr>
+<tr><td>4</td><td class="num">3</td><td class="num">2</td><td class="num">0.00778</td><td class="num">0.00444</td><td class="num">0.00458</td><td class="num">0.00014</td></tr>
+<tr><td>4</td><td class="num">3</td><td class="num">4</td><td class="num">0.01444</td><td class="num">0.01107</td><td class="num">0.01122</td><td class="num">0.00015</td></tr>
+</tbody></table></div>
+    <p>9개 설정 모두 몬테카를로와 닫힌 식의 차이가 0.0002 이하이고(예상은 0.002), 모두 상한 아래이다. 읽지 않고 찍어서 닿는 가장 높은 정확도가 \(D=4\), \(R=3\), \(k=4\)의 0.011 정도이다. 상한은 읽지 않는 정책이 넘지 못하는 선이고, 아래 실험에서 도구 결과 없이 맞힌 답은 하나도 없었다(E1, E2, E6). (b) 템플릿만으로 센 깨끗한 경로(읽기 사슬을 어긋남 없이 따르는 경로)의 프롬프트 길이이다. '새로 읽는 토큰'과 '\(n_R+\sum\) 깨진 길이'의 두 열이 <a class="ref" href="#thm-cost"></a>의 2번의 항등식이고 모든 행에서 같다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건</th><th class="num">라운드</th><th class="num">프롬프트 길이 \(n_t\)</th><th class="num">캐시 없이 \(\sum n_t\)</th><th class="num">깨진 접두부 \(n_{t-1}-h_t\)</th><th class="num">새로 읽는 토큰</th><th class="num">\(n_R+\sum\)깨진 길이</th><th class="num">prefill GFLOPs(캐시 없이)</th><th class="num">(접두부 보존)</th></tr></thead><tbody>
+<tr><td>P1</td><td class="num">2</td><td class="num">689 763</td><td class="num">1,452</td><td class="num">4</td><td class="num">767</td><td class="num">767</td><td class="num">4,335</td><td class="num">2,284</td></tr>
+<tr><td>P2</td><td class="num">3</td><td class="num">693 768 842</td><td class="num">2,303</td><td class="num">4 4</td><td class="num">850</td><td class="num">850</td><td class="num">6,899</td><td class="num">2,535</td></tr>
+<tr><td>P3</td><td class="num">4</td><td class="num">695 770 844 918</td><td class="num">3,227</td><td class="num">4 4 4</td><td class="num">930</td><td class="num">930</td><td class="num">9,699</td><td class="num">2,778</td></tr>
+<tr><td>P4</td><td class="num">5</td><td class="num">701 776 850 924 990</td><td class="num">4,241</td><td class="num">4 4 4 4</td><td class="num">1,006</td><td class="num">1,006</td><td class="num">12,791</td><td class="num">3,010</td></tr>
+<tr><td>F3</td><td class="num">4</td><td class="num">689 784 878 967</td><td class="num">3,318</td><td class="num">4 4 4</td><td class="num">979</td><td class="num">979</td><td class="num">9,993</td><td class="num">2,926</td></tr>
+<tr><td>F4</td><td class="num">5</td><td class="num">695 790 884 978 1059</td><td class="num">4,406</td><td class="num">4 4 4 4</td><td class="num">1,075</td><td class="num">1,075</td><td class="num">13,328</td><td class="num">3,221</td></tr>
+<tr><td>H3</td><td class="num">4</td><td class="num">227 328 420 509</td><td class="num">1,484</td><td class="num">149 250 4</td><td class="num">912</td><td class="num">912</td><td class="num">4,319</td><td class="num">2,645</td></tr>
+<tr><td>M3</td><td class="num">4</td><td class="num">453 528 602 676</td><td class="num">2,259</td><td class="num">4 4 4</td><td class="num">688</td><td class="num">688</td><td class="num">6,666</td><td class="num">2,019</td></tr>
+<tr><td>X3</td><td class="num">4</td><td class="num">749 824 898 972</td><td class="num">3,443</td><td class="num">4 4 4</td><td class="num">984</td><td class="num">984</td><td class="num">10,390</td><td class="num">2,951</td></tr>
+</tbody></table></div>
+    <p>도구 목록이 라운드마다 바뀌는 H3에서는 전환마다 깨지는 접두부가 표의 열에서 보듯 길고(실행에서 전환당 평균 134.6토큰), 목록이 고정인 조건은 4토큰이다(P3는 4.0). 예상한 부등식 \(H3>P3\)이 성립한다. 같은 항등식은 실제 실행의 1,020시행 모두에서도 어긋나지 않았다(아래 사후 분석의 0절).</p>
+
+    <p>다음은 모델 쪽이다. 아래 표는 주 모델 Qwen3-1.7B의 17개 조건이다. 각 조건은 60시행이고, 값은 비율(정답과 깨끗한 성공은 95% 구간)이다. 마지막 답을 분류한 다섯 열(정답을 말함, 틀린 값, 지어낸 값, 값 없음, 미완·형식 오류)의 합은 1이다. 깨끗한 성공은 참조 경로의 호출을 모두 맞는 인자로 낸 뒤 정답을 말한 시행이고, 정답을 말했어도 도중에 어긋난 시행은 빠진다. 읽은 토큰은 시행당 평균이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건</th><th class="num">정답을 말함</th><th class="num">틀린 값</th><th class="num">지어낸 값</th><th class="num">값 없음</th><th class="num">미완·형식 오류</th><th class="num">깨끗한 성공</th><th class="num">라운드</th><th class="num">호출</th><th class="num">읽은 토큰(캐시 없이)</th><th class="num">(접두부 보존)</th></tr></thead><tbody>
+<tr><td>N3 단일 응답(도구 없음)</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.98</td><td class="num">0.02</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.00</td><td class="num">0.00</td><td class="num">62</td><td class="num">62</td></tr>
+<tr><td>I3 독립 읽기 3개</td><td class="num">0.83 [0.73, 0.92]</td><td class="num">0.17</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.83 [0.73, 0.92]</td><td class="num">2.00</td><td class="num">3.00</td><td class="num">1,566</td><td class="num">889</td></tr>
+<tr><td>D2 깊이 2, 기본 프롬프트</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.55</td><td class="num">0.00</td><td class="num">0.45</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">1.83</td><td class="num">0.83</td><td class="num">1,279</td><td class="num">726</td></tr>
+<tr><td>D3 깊이 3, 기본 프롬프트</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00</td><td class="num">0.00</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">2.00</td><td class="num">1.00</td><td class="num">1,400</td><td class="num">733</td></tr>
+<tr><td>P1 깊이 1</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">2.00</td><td class="num">1.00</td><td class="num">1,453</td><td class="num">767</td></tr>
+<tr><td>P2 깊이 2</td><td class="num">0.13 [0.05, 0.22]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.87</td><td class="num">0.00</td><td class="num">0.13 [0.05, 0.23]</td><td class="num">2.13</td><td class="num">1.55</td><td class="num">1,575</td><td class="num">784</td></tr>
+<tr><td>P3 깊이 3</td><td class="num">0.45 [0.33, 0.58]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.55</td><td class="num">0.00</td><td class="num">0.45 [0.33, 0.58]</td><td class="num">2.90</td><td class="num">2.03</td><td class="num">2,248</td><td class="num">833</td></tr>
+<tr><td>P4 깊이 4</td><td class="num">0.03 [0.00, 0.08]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.97</td><td class="num">0.00</td><td class="num">0.03 [0.00, 0.08]</td><td class="num">3.00</td><td class="num">4.00</td><td class="num">2,449</td><td class="num">909</td></tr>
+<tr><td>F3 고정 경로(지시) 깊이 3</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">4.00</td><td class="num">3.00</td><td class="num">3,319</td><td class="num">979</td></tr>
+<tr><td>F4 고정 경로(지시) 깊이 4</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">5.00</td><td class="num">4.00</td><td class="num">4,401</td><td class="num">1,074</td></tr>
+<tr><td>H3 고정 경로(제한) 깊이 3</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00 [1.00, 1.00]</td><td class="num">4.00</td><td class="num">3.00</td><td class="num">1,485</td><td class="num">913</td></tr>
+<tr><td>X3 깊이 3 + 설명의 예시 id</td><td class="num">0.50 [0.38, 0.62]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.50</td><td class="num">0.00</td><td class="num">0.50 [0.38, 0.63]</td><td class="num">3.00</td><td class="num">2.30</td><td class="num">2,514</td><td class="num">911</td></tr>
+<tr><td>M3 깊이 3, 도구 4개</td><td class="num">0.47 [0.35, 0.58]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.53</td><td class="num">0.00</td><td class="num">0.45 [0.32, 0.58]</td><td class="num">3.38</td><td class="num">2.95</td><td class="num">1,921</td><td class="num">642</td></tr>
+<tr><td>T3 깊이 3 + 생각 줄</td><td class="num">0.30 [0.18, 0.42]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.70</td><td class="num">0.00</td><td class="num">0.30 [0.18, 0.42]</td><td class="num">1.90</td><td class="num">0.90</td><td class="num">1,560</td><td class="num">817</td></tr>
+<tr><td>PB 분기 과제, 동적</td><td class="num">0.07 [0.02, 0.13]</td><td class="num">0.57</td><td class="num">0.00</td><td class="num">0.37</td><td class="num">0.00</td><td class="num">0.07 [0.02, 0.13]</td><td class="num">2.12</td><td class="num">1.50</td><td class="num">1,735</td><td class="num">870</td></tr>
+<tr><td>FB 분기 과제, 고정(지시)</td><td class="num">0.50 [0.37, 0.63]</td><td class="num">0.00</td><td class="num">0.23</td><td class="num">0.27</td><td class="num">0.00</td><td class="num">0.50 [0.38, 0.62]</td><td class="num">3.00</td><td class="num">2.00</td><td class="num">2,551</td><td class="num">939</td></tr>
+<tr><td>HB 분기 과제, 고정(제한)</td><td class="num">0.50 [0.38, 0.63]</td><td class="num">0.05</td><td class="num">0.33</td><td class="num">0.12</td><td class="num">0.00</td><td class="num">0.50 [0.38, 0.62]</td><td class="num">3.00</td><td class="num">2.00</td><td class="num">952</td><td class="num">552</td></tr>
+</tbody></table></div>
+    <p>미리 적은 예상은 하나도 기각되지 않았다. E1: 도구 결과에 값이 없는데 정답을 말한 시행이 17개 조건 모두 0이고, 도구가 없는 N3의 정답은 0/60이다. E2: 깊이보다 적은 라운드로 읽어서 맞힌 시행이 0이다. E3: 단계 통과율의 곱과 깨끗한 성공률이 모든 조건에서 부동소수점 반올림 수준(최대 \(3\times10^{-17}\))으로 같다. E4: 범주의 합과 호출 수의 회계 위반이 0이다. E5: HB의 번들 주문 30개 중 정답이 0이다. E6: 찍은 키가 맞는 레코드를 읽은 호출이 모든 조건에서 0이다. 기각되지 않은 것이 이론의 입증은 아니다. E1, E2, E5, E6은 상한이나 불가능성을 보는 것이어서 모델이 우연히 맞히지 못했다는 것만 말하고, E3과 E4는 회계의 항등식이라 코드가 틀렸을 때만 어긋난다. 아래는 이론이 값을 정하지 않은 관찰이다.</p>
+
+    <p><b>단일 응답은 도구 결과가 없으면 지어낸다.</b> 도구가 없는 N3는 정답이 0/60이고, 59개 시행이 도구 결과에 없는 수를 말했다(나머지 하나는 수를 말하지 않았다). 같은 질문과 세계에서 도구를 주고 경로를 고정한 F3와 H3는 각각 60/60, 60/60이다. 답이 컨텍스트 밖에 있으면 읽은 값 없이는 \(1/V\) 이하로만 맞는다는 <a class="ref" href="#thm-depth"></a>의 3번을 이 모델이 어기지 않았다.</p>
+
+    <p><b>기본 프롬프트의 루프는 한 번 부르고 멈춘다.</b> D3에서 60시행이 모두 호출 한 번 뒤에 답했고(라운드 2번, 호출 1번) 정답은 0/60이다. 처음 어긋난 단계는 호출 없이 멈춤이 27개(첫 호출은 맞았고 중간 레코드를 읽은 뒤 멈춤), 첫 호출부터 다른 도구가 33개였다. D2도 정답이 0/60이고, 틀린 값 33개는 모두 주문 레코드의 수량(<code>qty</code>)을 재고로 말한 것이다. 이것은 13장에서 본 '결과를 한 번 읽고 답한다'와 같은 모양이다. 중간 레코드의 수는 그럴듯한 답이어서 모델이 멈출 이유가 된다. 멈추지 말라고 지시하는 프롬프트(P)를 더하면 같은 세계의 짝지은 차이가 P3−D3 +0.450 [+0.333, +0.583], P2−D2 +0.133 [+0.050, +0.217]이다. 지시가 멈춤의 일부를 풀지만 정답은 P2 8/60, P3 27/60에서 멈춘다.</p>
+
+    <p><b>고정 경로는 경로를 따르는 데 실패하지 않았다.</b> F3, F4, H3는 깨끗한 성공이 60/60이고 어긋난 단계가 하나도 없었다. 라운드는 F3에서 4번, F4에서 5번으로 정확히 깊이 + 1번이어서 <a class="ref" href="#thm-depth"></a>의 라운드 하한을 채운다. 인자의 출처는 질문(goal)이거나 앞 관찰(obs)이었고 모델이 만들어 낸 인자(none)는 한 번도 없었다(F3의 호출 180번 중 goal 60, obs 120). 같은 세계의 짝지은 차이는 F3−P3 +0.550 [+0.417, +0.667], F4−P4 +0.967 [+0.917, +1.000], H3−F3 +0.000 [+0.000, +0.000]이다. 지시형(F)과 제한형(H)은 정확도가 같았고 둘의 차이는 비용에서 나타난다(아래).</p>
+
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 340" role="img" aria-label="읽기 깊이별 정답을 말한 비율과 95퍼센트 구간. 동적 루프(P), 기본 프롬프트(D), 고정 경로의 지시형(F)과 제한형(H), 단일 응답(N).">
+  <path d="M90 250.0 H740" class="s-grid"/><text class="t-mono" x="82" y="254.0" text-anchor="end">0</text>
+  <path d="M90 197.5 H740" class="s-grid"/><text class="t-mono" x="82" y="201.5" text-anchor="end">0.25</text>
+  <path d="M90 145.0 H740" class="s-grid"/><text class="t-mono" x="82" y="149.0" text-anchor="end">0.5</text>
+  <path d="M90 92.5 H740" class="s-grid"/><text class="t-mono" x="82" y="96.5" text-anchor="end">0.75</text>
+  <path d="M90 40.0 H740" class="s-grid"/><text class="t-mono" x="82" y="44.0" text-anchor="end">1</text>
+  <text class="t-mono" x="171.2" y="268" text-anchor="middle">깊이 1</text>
+  <text class="t-mono" x="333.8" y="268" text-anchor="middle">깊이 2</text>
+  <text class="t-mono" x="496.2" y="268" text-anchor="middle">깊이 3</text>
+  <text class="t-mono" x="658.8" y="268" text-anchor="middle">깊이 4</text>
+  <text class="t-dim" x="415" y="290" text-anchor="middle">세로축: 정답을 말한 비율 (점은 평균, 선은 95% 구간)</text>
+  <polyline points="157.2,40.0 319.8,222.0 482.2,155.5 644.8,243.0" fill="none" style="stroke:var(--accent);stroke-width:1.5" opacity="0.6"/>
+  <path d="M157.2 40.0 V40.0" fill="none" style="stroke:var(--accent);stroke-width:2"/><circle cx="157.2" cy="40.0" r="4.5" style="fill:var(--accent)"/>
+  <path d="M319.8 239.5 V204.5" fill="none" style="stroke:var(--accent);stroke-width:2"/><circle cx="319.8" cy="222.0" r="4.5" style="fill:var(--accent)"/>
+  <path d="M482.2 180.0 V127.5" fill="none" style="stroke:var(--accent);stroke-width:2"/><circle cx="482.2" cy="155.5" r="4.5" style="fill:var(--accent)"/>
+  <path d="M644.8 250.0 V232.5" fill="none" style="stroke:var(--accent);stroke-width:2"/><circle cx="644.8" cy="243.0" r="4.5" style="fill:var(--accent)"/>
+  <polyline points="328.8,250.0 491.2,250.0" fill="none" style="stroke:var(--warn);stroke-width:1.5" opacity="0.6"/>
+  <path d="M328.8 250.0 V250.0" fill="none" style="stroke:var(--warn);stroke-width:2"/><circle cx="328.8" cy="250.0" r="4.5" style="fill:var(--warn)"/>
+  <path d="M491.2 250.0 V250.0" fill="none" style="stroke:var(--warn);stroke-width:2"/><circle cx="491.2" cy="250.0" r="4.5" style="fill:var(--warn)"/>
+  <polyline points="501.2,40.0 663.8,40.0" fill="none" style="stroke:var(--accent-2);stroke-width:1.5" opacity="0.6"/>
+  <path d="M501.2 40.0 V40.0" fill="none" style="stroke:var(--accent-2);stroke-width:2"/><circle cx="501.2" cy="40.0" r="4.5" style="fill:var(--accent-2)"/>
+  <path d="M663.8 40.0 V40.0" fill="none" style="stroke:var(--accent-2);stroke-width:2"/><circle cx="663.8" cy="40.0" r="4.5" style="fill:var(--accent-2)"/>
+  <path d="M510.2 40.0 V40.0" fill="none" style="stroke:var(--ok);stroke-width:2"/><circle cx="510.2" cy="40.0" r="4.5" style="fill:var(--ok)"/>
+  <path d="M496.2 250.0 V250.0" fill="none" style="stroke:var(--bad);stroke-width:2"/><circle cx="496.2" cy="250.0" r="4.5" style="fill:var(--bad)"/>
+  <text class="t-dim" x="90" y="326">색:</text>
+  <circle cx="120" cy="322" r="4.5" style="fill:var(--accent)"/><text class="t-dim" x="129" y="326">P 동적 + 지시</text>
+  <circle cx="250" cy="322" r="4.5" style="fill:var(--warn)"/><text class="t-dim" x="259" y="326">D 기본 프롬프트</text>
+  <circle cx="385" cy="322" r="4.5" style="fill:var(--accent-2)"/><text class="t-dim" x="394" y="326">F 고정(지시)</text>
+  <circle cx="505" cy="322" r="4.5" style="fill:var(--ok)"/><text class="t-dim" x="514" y="326">H 고정(제한)</text>
+  <circle cx="625" cy="322" r="4.5" style="fill:var(--bad)"/><text class="t-dim" x="634" y="326">N 단일 응답</text>
+</svg>
+      <figcaption><b>그림 14-4.</b> 읽기 깊이별로 정답을 말한 비율과 95% 구간. 점은 평균이다. N은 도구가 없는 단일 응답(깊이 3의 질문), D는 기본 프롬프트, P는 멈추지 말라는 지시를 더한 동적 루프(보라), F와 H는 고정 경로(지시형은 분홍, 제한형은 초록)이다. P1~P4는 깊이마다 다른 질문이어서 곡선이 깊이의 효과만을 보이지 않는다. 아래 문장별 분해를 보라.</figcaption>
+    </figure>
+
+    <p><b>동적 루프의 정답률은 깊이를 따라 줄지 않았고, 문장이 정했다.</b> 깊이 1에서 4까지 P는 60/60, 8/60, 27/60, 2/60으로 P2가 P3보다 낮다(P3−P2 +0.317 [+0.133, +0.500], P4−P3 −0.417 [−0.550, −0.267]). 이 곡선을 '깊이가 깊을수록 어렵다'로 읽을 수 없다. 응답을 읽고 질문 문장(과제마다 둘 중 하나가 시행마다 무작위로 배정된다)별로 나누어 보았다. 이 분해는 보고 나서 한 사후 분석이다.</p>
+<div class="table-wrap"><table class=""><thead><tr><th>조건</th><th class="num">문장 1의 정답</th><th class="num">문장 2의 정답</th><th class="num">문장 1의 첫 호출(도구/인자 출처×시행 수)</th><th class="num">문장 2의 첫 호출</th></tr></thead><tbody>
+<tr><td>N3</td><td class="num">0/27</td><td class="num">0/33</td><td class="num"><code>호출 없음×27</code></td><td class="num"><code>호출 없음×33</code></td></tr>
+<tr><td>I3</td><td class="num">24/27</td><td class="num">26/33</td><td class="num"><code>get_sku/goal×27</code></td><td class="num"><code>get_sku/goal×33</code></td></tr>
+<tr><td>D2</td><td class="num">0/27</td><td class="num">0/33</td><td class="num"><code>호출 없음×10, get_sku/none×9, get_sku/goal×8</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>D3</td><td class="num">0/27</td><td class="num">0/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_sku/none×33</code></td></tr>
+<tr><td>P1</td><td class="num">27/27</td><td class="num">33/33</td><td class="num"><code>get_sku/goal×27</code></td><td class="num"><code>get_sku/goal×33</code></td></tr>
+<tr><td>P2</td><td class="num">0/27</td><td class="num">8/33</td><td class="num"><code>get_sku/none×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>P3</td><td class="num">27/27</td><td class="num">0/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_sku/none×33</code></td></tr>
+<tr><td>P4</td><td class="num">0/27</td><td class="num">2/33</td><td class="num"><code>get_supplier/none×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>F3</td><td class="num">27/27</td><td class="num">33/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>F4</td><td class="num">27/27</td><td class="num">33/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>H3</td><td class="num">27/27</td><td class="num">33/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>X3</td><td class="num">27/27</td><td class="num">3/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×21, get_sku/desc×12</code></td></tr>
+<tr><td>M3</td><td class="num">27/27</td><td class="num">1/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_sku/none×33</code></td></tr>
+<tr><td>T3</td><td class="num">18/27</td><td class="num">0/33</td><td class="num"><code>get_order/goal×18, 호출 없음×9</code></td><td class="num"><code>호출 없음×33</code></td></tr>
+<tr><td>PB</td><td class="num">0/27</td><td class="num">4/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>FB</td><td class="num">13/27</td><td class="num">17/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+<tr><td>HB</td><td class="num">13/27</td><td class="num">17/33</td><td class="num"><code>get_order/goal×27</code></td><td class="num"><code>get_order/goal×33</code></td></tr>
+</tbody></table></div>
+    <p>같은 조건 안에서 결과가 문장 둘 중 어느 것이냐에 거의 전적으로 갈렸다. P3는 '…the supplier of the item on order…'(27시행)에서 27/27이고 '…the supplier of the SKU on order…'(33시행)에서 0/33이다. 문장 2에서 모델은 첫 호출로 주문이 아니라 <code>get_sku</code>를 불렀고 인자는 주문 번호에서 만든 <code>SKU-ON-ORD-8524</code> 같은 만들어 낸 값이었다. 조건×문장 34칸 가운데 22칸이 정답 전부이거나 전무이다. 그래서 두 가지를 읽는다. 첫째, 첫 행동은 이 모델에서 질문 문장의 표면 형태가 정했다. 14.1절의 '목표에서 첫 행동으로'가 단순한 말이 아니다. 둘째, 조건당 60시행은 문장 둘에 세계 60개를 붙인 것이어서 구간이 담는 것은 문장을 고정하고 세계를 다시 뽑는 불확실성뿐이다. 문장을 다시 뽑는 불확실성은 담지 못한다. P3의 27/60은 문장 1의 27/27과 문장 2의 0/33을 합친 값이고 P2의 8/60은 0/27과 8/33을 합친 값이어서, 이 실험으로 깊이의 효과를 말할 수 없다. 이론이 말한 것(<a class="ref" href="#thm-stage"></a>의 곱)은 성립한다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건</th><th class="num">단계 통과율 \(\hat p_1\to\hat p_{D+1}\)</th><th class="num">깨끗한 성공률 = 곱</th><th class="num">곱과의 차이</th></tr></thead><tbody>
+<tr><td>P1 깊이 1</td><td class="num">1.00 → 1.00</td><td class="num">1.000</td><td class="num">0</td></tr>
+<tr><td>P2 깊이 2</td><td class="num">0.55 → 0.24 → 1.00</td><td class="num">0.133</td><td class="num">3e-17</td></tr>
+<tr><td>P3 깊이 3</td><td class="num">0.45 → 1.00 → 1.00 → 1.00</td><td class="num">0.450</td><td class="num">0</td></tr>
+<tr><td>P4 깊이 4</td><td class="num">0.55 → 0.06 → 1.00 → 1.00 → 1.00</td><td class="num">0.033</td><td class="num">7e-18</td></tr>
+<tr><td>D2 깊이 2, 기본 프롬프트</td><td class="num">0.55 → 0.00 → 0.00</td><td class="num">0.000</td><td class="num">0</td></tr>
+<tr><td>D3 깊이 3, 기본 프롬프트</td><td class="num">0.45 → 0.00 → 0.00 → 0.00</td><td class="num">0.000</td><td class="num">0</td></tr>
+<tr><td>F3 고정 경로(지시) 깊이 3</td><td class="num">1.00 → 1.00 → 1.00 → 1.00</td><td class="num">1.000</td><td class="num">0</td></tr>
+<tr><td>F4 고정 경로(지시) 깊이 4</td><td class="num">1.00 → 1.00 → 1.00 → 1.00 → 1.00</td><td class="num">1.000</td><td class="num">0</td></tr>
+<tr><td>H3 고정 경로(제한) 깊이 3</td><td class="num">1.00 → 1.00 → 1.00 → 1.00</td><td class="num">1.000</td><td class="num">0</td></tr>
+<tr><td>X3 깊이 3 + 설명의 예시 id</td><td class="num">0.80 → 0.62 → 1.00 → 1.00</td><td class="num">0.500</td><td class="num">0</td></tr>
+<tr><td>M3 깊이 3, 도구 4개</td><td class="num">0.45 → 1.00 → 1.00 → 1.00</td><td class="num">0.450</td><td class="num">0</td></tr>
+<tr><td>T3 깊이 3 + 생각 줄</td><td class="num">0.30 → 1.00 → 1.00 → 1.00</td><td class="num">0.300</td><td class="num">0</td></tr>
+<tr><td>I3 독립 읽기 3개</td><td class="num">1.00 → 1.00 → 1.00 → 0.83</td><td class="num">0.833</td><td class="num">0</td></tr>
+<tr><td>N3 단일 응답(도구 없음)</td><td class="num">0.00 → 0.00 → 0.00 → 0.00</td><td class="num">0.000</td><td class="num">0</td></tr>
+</tbody></table></div>
+    <p>단계 통과율의 표가 같은 이야기를 한다. P3의 단계 1 통과율 \(\hat p_1=\)0.45는 문장 1의 비율 27/60이고, P2와 P4의 \(\hat p_1=\)0.55는 문장 2의 33/60이다. 첫 단계에서 문장 하나가 통과하고 하나가 떨어지는 것이다. 그다음에 낮은 단계는 중간 레코드의 값을 다음 호출의 인자로 옮기는 단계(P2의 \(\hat p_2=\)0.24, P4의 \(\hat p_2=\)0.06)이다. 이때 모델은 앞 관찰의 SKU를 베끼지 않고 <code>unknown</code> 같은 값을 넣었다(P4의 호출 240번 가운데 출처가 none인 것이 147번). 곱은 깨끗한 성공률과 같다. 이 곱은 어느 단계가 낮은지를 알려 주는 정리 14.2의 쓰임이고 낮은 이유는 알려 주지 않는다.</p>
+
+    <figure class="diagram scroll">
+<svg viewBox="0 0 800 392" role="img" aria-label="조건별로 60시행이 처음 어긋난 단계의 종류. 깨끗한 성공, 호출은 맞았으나 최종 응답이 틀림, 호출 없이 멈춤, 다른 도구를 부름, 같은 도구에 다른 인자를 넣음의 비율을 쌓은 막대.">
+  <text class="t-dim" x="202.0" y="57.0" text-anchor="end">P1</text>
+  <rect x="210.0" y="42.0" width="520.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="81.0" text-anchor="end">P2</text>
+  <rect x="210.0" y="66.0" width="69.3" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <rect x="279.3" y="66.0" width="234.0" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <rect x="513.3" y="66.0" width="216.7" height="18" style="fill:var(--bad);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="105.0" text-anchor="end">P3</text>
+  <rect x="210.0" y="90.0" width="234.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <rect x="444.0" y="90.0" width="286.0" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="129.0" text-anchor="end">P4</text>
+  <rect x="210.0" y="114.0" width="17.3" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <rect x="227.3" y="114.0" width="234.0" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <rect x="461.3" y="114.0" width="268.7" height="18" style="fill:var(--bad);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="153.0" text-anchor="end">D2</text>
+  <rect x="210.0" y="138.0" width="372.7" height="18" style="fill:var(--warn);opacity:0.85"/>
+  <rect x="582.7" y="138.0" width="147.3" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="177.0" text-anchor="end">D3</text>
+  <rect x="210.0" y="162.0" width="234.0" height="18" style="fill:var(--warn);opacity:0.85"/>
+  <rect x="444.0" y="162.0" width="286.0" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="201.0" text-anchor="end">F3</text>
+  <rect x="210.0" y="186.0" width="520.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="225.0" text-anchor="end">F4</text>
+  <rect x="210.0" y="210.0" width="520.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="249.0" text-anchor="end">H3</text>
+  <rect x="210.0" y="234.0" width="520.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="273.0" text-anchor="end">X3</text>
+  <rect x="210.0" y="258.0" width="260.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <rect x="470.0" y="258.0" width="104.0" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <rect x="574.0" y="258.0" width="156.0" height="18" style="fill:var(--bad);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="297.0" text-anchor="end">M3</text>
+  <rect x="210.0" y="282.0" width="234.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <rect x="444.0" y="282.0" width="286.0" height="18" style="fill:var(--accent);opacity:0.85"/>
+  <text class="t-dim" x="202.0" y="321.0" text-anchor="end">T3</text>
+  <rect x="210.0" y="306.0" width="156.0" height="18" style="fill:var(--ok);opacity:0.85"/>
+  <rect x="366.0" y="306.0" width="364.0" height="18" style="fill:var(--warn);opacity:0.85"/>
+  <rect x="70" y="346.0" width="12" height="12" style="fill:var(--ok);opacity:0.85"/><text class="t-dim" x="86" y="357.0">깨끗한 성공</text>
+  <rect x="200" y="346.0" width="12" height="12" style="fill:var(--accent-2);opacity:0.85"/><text class="t-dim" x="216" y="357.0">답에서 틀림</text>
+  <rect x="330" y="346.0" width="12" height="12" style="fill:var(--warn);opacity:0.85"/><text class="t-dim" x="346" y="357.0">호출 없이 멈춤</text>
+  <rect x="460" y="346.0" width="12" height="12" style="fill:var(--accent);opacity:0.85"/><text class="t-dim" x="476" y="357.0">다른 도구</text>
+  <rect x="590" y="346.0" width="12" height="12" style="fill:var(--bad);opacity:0.85"/><text class="t-dim" x="606" y="357.0">다른 인자</text>
+  <text class="t-mono" x="210.0" y="26">0</text><text class="t-mono" x="730.0" y="26" text-anchor="end">60시행</text></svg>
+      <figcaption><b>그림 14-5.</b> 조건별로 60시행이 처음 어긋난 단계의 종류. 깨끗한 성공은 초록, 호출은 모두 맞았으나 최종 응답이 틀린 시행은 분홍, 호출 없이 멈춤은 노랑, 첫 어긋남이 다른 도구의 호출이면 보라, 같은 도구에 다른 인자를 넣은 호출이면 빨강이다. 이 12개 조건에는 분홍 칸이 없다. P와 D의 막대에는 문장의 효과가 섞여 있다.</figcaption>
+    </figure>
+
+    <p><b>도구 4개, 생각 줄, 예시 id.</b> 모두 P3와 같은 세계의 짝지은 차이이다. 보이는 도구를 8개에서 4개로 줄인 M3는 M3−P3 +0.017 [+0.000, +0.050]이고, 문장 2에서 첫 호출이 여전히 <code>get_sku</code>(출처 none) 33개였다. 도구를 줄이는 이익은 정확도가 아니라 비용에서 나왔다(아래). 매 호출 앞에 'Thought:' 한 줄을 쓰라고 한 T3는 T3−P3 −0.150 [−0.250, −0.067]이다. 정답이 줄었고, 처음 어긋난 단계는 호출 없이 멈춤이 42개였다. 이 시행들은 모두 'Thought: …' 줄만 쓰고 호출 없이 출력이 끝났고, 하네스는 그 글을 최종 응답으로 받았다. 이 모델에서는 ReAct 형식의 지시가 호출을 내는 것을 막았다. 도구 설명에 예시 id를 둔 X3는 X3−P3 +0.050 [+0.000, +0.100]이고, 문장 2에서 12개 시행이 설명의 예시 id를 호출 인자로 베꼈다(출처 desc). 같은 문장에서 첫 호출이 <code>get_order</code>로 바뀐 시행이 21개 생겨 예시가 첫 행동도 바꾸었다.</p>
+
+    <p><b>독립한 읽기는 한 라운드에 묶였다.</b> I3(SKU 셋의 재고 합, 깊이 1, 너비 3)는 60시행이 모두 라운드 2번이고 한 라운드에 호출 3개를 냈다(사슬 F3는 호출 3개에 라운드 4번). 정답은 50/60이다. 틀린 10개는 세 값을 맞게 읽고 더하기를 틀린 것이다. 합의 오차는 −1,000이 1개, −10이 3개, −2가 1개, −1이 2개, +1이 3개였다. 병렬 호출이 줄이는 것은 라운드이고 호출 수는 그대로라는 <a class="ref" href="#thm-depth"></a>의 2번과 맞다.</p>
+
+    <p><b>갈라지는 경로에서 고정 경로는 적용 범위만큼 맞혔다.</b> B2 과제는 시행의 절반(짝수 30개)이 주문 → SKU이고 절반(홀수 30개)은 주문이 번들 ID를 주어 번들을 한 번 더 조회해야 한다. 지시형 FB와 제한형 HB는 A형 경로(주문 → SKU)만 안다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건·유형</th><th class="num">정답</th><th class="num">틀린 값</th><th class="num">지어낸 값</th><th class="num">값 없음</th><th class="num"><code>get_bundle</code>을 부른 시행</th></tr></thead><tbody>
+<tr><td>PB A형</td><td class="num">1/30</td><td class="num">20</td><td class="num">0 (재고 0이라고 말함 0)</td><td class="num">9</td><td class="num">0</td></tr>
+<tr><td>PB 번들형</td><td class="num">3/30</td><td class="num">14</td><td class="num">0 (재고 0이라고 말함 0)</td><td class="num">13</td><td class="num">3</td></tr>
+<tr><td>FB A형</td><td class="num">30/30</td><td class="num">0</td><td class="num">0 (재고 0이라고 말함 0)</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>FB 번들형</td><td class="num">0/30</td><td class="num">0</td><td class="num">14 (재고 0이라고 말함 14)</td><td class="num">16</td><td class="num">0</td></tr>
+<tr><td>HB A형</td><td class="num">30/30</td><td class="num">0</td><td class="num">0 (재고 0이라고 말함 0)</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td>HB 번들형</td><td class="num">0/30</td><td class="num">3</td><td class="num">20 (재고 0이라고 말함 20)</td><td class="num">7</td><td class="num">0</td></tr>
+</tbody></table></div>
+    <p>FB와 HB는 A형 30개에서 모두 맞히고 번들형 30개에서 하나도 맞히지 못했다(E5의 위반 0). 정답의 합이 둘 다 30/60이고, <a class="ref" href="#thm-fixed"></a>의 상한 \(c\,f+(1-c)\,g\)에 적용 범위 \(c=0.5\), 경로 안의 성공률 \(f=1\), 경로 밖의 찍기 상한 \(g=3/900\)을 넣으면 0.5017이어서 그 아래이다. 번들형에서 FB는 지어낸 답 14개가 모두 재고 0이었고 16개는 수를 말하지 않았으며, HB는 <code>get_sku</code>에 번들 ID를 넣어 not_found를 받고 지어낸 답 20개가 모두 재고 0이었다(틀린 값 3, 값 없음 7). 어느 쪽에서도 <code>get_bundle</code>은 한 번도 불리지 않았다. 동적인 PB는 첫 호출을 60시행 모두 <code>get_order</code>로 맞게 냈지만 주문 레코드의 수량을 재고로 말하고 멈추거나(틀린 값 34개) 수를 말하지 않아(값 없음 22개) 정답이 4/60뿐이다. 이 모델은 동적으로 적용 범위를 넓힐 만한 행동(두 번째 호출 이후의 계속)을 보이지 않아 고정 경로가 이겼다. 손익분기 \((d-g)/(f-g)\)에 이 값(\(d=4/60\), \(f=1\))을 넣으면 0.064이고, 적용 범위 0.5가 그 위이다.</p>
+
+    <p><b>비용은 정확도와 함께 읽는다.</b> 시행당 읽은 토큰은 표에, 정답 하나당 읽은 토큰은 사후 분석의 5절에 있다(캐시 없이 / 접두부 보존). F3가 3,319 / 979, H3가 1,485 / 913, P3가 4,996 / 1,852, P2가 11,815 / 5,880, P4가 73,471 / 27,276이다. 틀리는 시행이 많은 조건의 정답당 비용은 시행당 비용을 성공률로 나눈 값이어서 크게 부풀고, P4가 가장 크다. 같은 3읽기 사슬을 고정 경로로 푸는 F3와 H3를 보면, 캐시가 없을 때는 도구 정의가 하나만 보이는 H3가 절반 이하로 짧다. 접두부가 보존되면 F3의 979와 H3의 913으로 거의 같아지고, 이는 F3가 도구 정의를 매 라운드 그대로 두어 접두부를 지키기 때문이다(<a class="ref" href="#ex-cost"></a>). 도구를 8개에서 4개로 줄인 M3는 접두부 보존 시 642토큰으로 P3의 833보다 짧다.</p>
+
+    <p><b>대조 모델 Qwen3-0.6B는 깊이 1에서 이미 틀렸다.</b></p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건(Qwen3-0.6B)</th><th class="num">정답을 말함</th><th class="num">틀린 값</th><th class="num">지어낸 값</th><th class="num">값 없음</th><th class="num">호출 없이 멈춤</th><th class="num">인자가 틀림</th></tr></thead><tbody>
+<tr><td>P1 깊이 1</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.13</td><td class="num">0.00</td><td class="num">0.87</td><td class="num">0.00</td><td class="num">0.87</td></tr>
+<tr><td>P3 깊이 3</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">1.00</td><td class="num">0.00</td><td class="num">0.00</td></tr>
+<tr><td>F3 고정 경로(지시) 깊이 3</td><td class="num">0.30 [0.20, 0.42]</td><td class="num">0.47</td><td class="num">0.15</td><td class="num">0.08</td><td class="num">0.70</td><td class="num">0.00</td></tr>
+</tbody></table></div>
+    <p>P1은 60시행 모두 호출 한 번으로 끝났다. 52개는 <code>get_sku</code>의 인자에서 'SKU-' 접두를 떼고 숫자만 넣어 not_found를 받았고, 8개는 재고 대신 <code>get_price</code>를 불러 가격을 재고로 말했다(틀린 값). P3는 60시행 모두 주문 번호를 <code>get_supplier</code>의 인자로 넣어 not_found를 받고 멈추었다. 두 조건 모두 첫 호출에서 전부 떨어져서 이 모델로는 깊이에 따른 정답률을 읽을 수 없다(바닥 효과이고, 탐색 3에서 P1이 이미 틀리는 것을 보고 넣은 대조이다). 고정 경로 F3는 18/60이다. 호출의 인자가 만들어 낸 값인 경우는 없었고 <code>get_order</code>와 <code>get_sku</code>의 호출은 60시행 모두 맞았다. 그러나 마지막 단계인 <code>get_supplier</code>를 부른 시행은 18개뿐이고, 나머지 42개는 SKU 레코드를 읽은 뒤 그 레코드의 재고를 월 생산 능력으로 말하며 멈추었다(틀린 값 28개, 지어낸 값 9개, 값 없음 5개). 하네스가 다음 도구를 지시해도 그 지시를 따르는 것은 모델이다. 지시형 고정 경로는 호출을 대신해 주지 않는다. 대조 모델에서 지시형이 약했다는 것은 관찰이고, 같은 모델에 제한형(H)을 쓰면 어떨지는 재지 않았다.</p>
+
+    <p><b>결과 파일은 두 번의 실행에서 같았다.</b> 두 실행의 실행 기록 파일(<code>out14_q3_raw.json</code>, <code>out14_q06_raw.json</code>)은 바이트 단위로 같았다(SHA-256의 앞 12자리가 각각 f35806d7abb2, 34272cde063b). 요약 파일(<code>out14_*_res.json</code>)은 조건별로 잰 걸린 시간 필드(<code>secs</code>)를 빼면 같았고, 이 필드만 실행마다 달랐다(주 모델 조건의 시간 합은 첫 실행 2,777초, 둘째 실행 2,780초).</p>
+
+
+    <h3 id="h-post14">이 장에서 보고 나서 만든 분석</h3>
+    <p>위의 결과에서 호출 인자의 출처, 짝지은 차이, 문장별 분해, 정답당 토큰은 응답을 본 뒤에 만든 분석이다. 코드는 아래의 <code>post14.py</code>이고 첫 실행의 <code>out14_q3_raw.json</code>을 읽는다(<code>python -I -X utf8 post14.py out14_q3_raw.json</code>). 출력의 0절은 회계 점검(E1, E2, E4, E5, E6), 1절은 호출 인자의 출처, 2절은 처음 어긋난 단계, 3절은 틀린 값의 출처와 지어낸 0, 4절은 짝지은 차이, 5절은 정답당 읽은 토큰, 6절은 병렬 호출과 라운드, 7절은 분기 과제, 8절은 질문 문장별 결과, 9절은 읽을 시행이다.</p>
+<pre><code>import json, sys
+from collections import Counter
+import numpy as np
+
+# 실행 기록(out14_q3_raw.json)을 읽어 응답을 본 뒤에 정한 분석을 한다. 사용: python -I -X utf8 post14.py out14_q3_raw.json
+raw = json.load(open(sys.argv[1] if len(sys.argv) &gt; 1 else "out14_q3_raw.json", encoding="utf8"))
+by = {}
+for r in raw: by.setdefault(r["cond"], {})[r["t"]] = r
+ORDER = [c for c in ("N3", "I3", "D2", "D3", "P1", "P2", "P3", "P4", "F3", "F4", "H3", "X3", "M3", "T3", "PB", "FB", "HB") if c in by]
+rr = np.random.default_rng(16); BOOT = 2000
+
+
+def ci(x):
+    x = np.asarray(x, float); b = x[rr.integers(0, len(x), (BOOT, len(x)))].mean(1)
+    return float(x.mean()), float(np.percentile(b, 2.5)), float(np.percentile(b, 97.5))
+
+
+print("== 0. 회계 점검")
+bad = 0
+for c in ORDER:
+    rs = list(by[c].values())
+    cats = Counter(r["cat"] for r in rs); assert sum(cats.values()) == len(rs) == 60, (c, cats)
+    for r in rs:
+        bad += r["n_calls"] != len(r["calls"])                                                  # 호출 수 = 호출 목록의 길이
+        n = [x["n"] for x in r["rounds"]]; h = [x["lcp"] for x in r["rounds"]]; lost = [n[t - 1] - h[t] for t in range(1, len(n))]
+        bad += sum(n[t] - h[t] for t in range(len(n))) != n[-1] + sum(lost)                       # 정리 14.3의 2번의 항등식
+print(f"조건 {len(ORDER)}개, 시행 {len(raw)}개, 회계 위반 {bad}")
+print("E1 근거 없이 맞은 시행:", {c: sum(r["cat"] == "correct" and not r["grounded"] for r in by[c].values()) for c in ORDER if any(r["cat"] == "correct" and not r["grounded"] for r in by[c].values())} or "없음")
+print("E2 깊이 하한 위반:", sum(r["cat"] == "correct" and r["grounded"] and r["lucky"] == 0 and r["read_rounds"] &lt; r["dep"] for r in raw), "| E6 찍은 키가 맞은 호출:", sum(r["lucky"] for r in raw))
+hb = [r for r in by["HB"].values() if r["bundle"]] if "HB" in by else []
+print("E5 HB 번들 주문:", len(hb), "개 중 정답", sum(r["cat"] == "correct" for r in hb))
+
+print("\n== 1. 호출 인자의 출처 (호출 수)")
+print(f"{'조건':4} {'호출':&gt;5} {'goal':&gt;5} {'obs':&gt;5} {'desc':&gt;5} {'none':&gt;5}  none이 맞는 레코드를 읽은 호출")
+for c in ORDER:
+    cs = [x for r in by[c].values() for x in r["calls"]]; k = Counter(x["src"] for x in cs)
+    print(f"{c:4} {len(cs):5d} {k['goal']:5d} {k['obs']:5d} {k['desc']:5d} {k['none']:5d}  {sum(r['lucky'] for r in by[c].values())}")
+
+print("\n== 2. 처음 어긋난 단계 (시행 수, 60개 중)")
+print(f"{'조건':4} {'깨끗한 성공':&gt;10} {'early_stop':&gt;10} {'wrong_tool':&gt;10} {'wrong_arg':&gt;10} {'답 단계':&gt;7}   처음 떨어진 단계의 번호별 시행 수")
+for c in ORDER:
+    rs = list(by[c].values()); d = Counter(r["dev"] for r in rs); clean = sum(r["fail"] == 0 for r in rs)
+    print(f"{c:4} {clean:10d} {d['early_stop']:10d} {d['wrong_tool']:10d} {d['wrong_arg']:10d} {d[None] - clean:7d}   {dict(sorted(Counter(r['fail'] for r in rs if r['fail']).items()))}")
+
+print("\n== 3. 틀린 값의 출처와 지어낸 0")
+for c in ORDER:
+    rs = list(by[c].values()); wv = Counter(x for r in rs for x in r["wv"]); fz = sum(r["fab_zero"] for r in rs); fab = sum(r["cat"] == "fabricated" for r in rs)
+    if wv or fab: print(f"{c:4} 틀린 값 {sum(r['cat'] == 'wrong_value' for r in rs):2d}개, 값을 가져온 레코드 {dict(wv)}, 지어낸 답 {fab}개 중 0이라고 말한 것 {fz}개")
+
+print("\n== 4. 짝지은 차이 (같은 시행 번호, 정답을 말한 비율의 차이, 95% 구간)")
+for a, b in (("P3", "D3"), ("P2", "D2"), ("F3", "P3"), ("F4", "P4"), ("H3", "F3"), ("M3", "P3"), ("T3", "P3"), ("X3", "P3"), ("P3", "P2"), ("P4", "P3")):
+    if a in by and b in by:
+        d = [(by[a][t]["cat"] == "correct") - (by[b][t]["cat"] == "correct") for t in range(60)]; m, lo, hi = ci(d)
+        print(f"{a}-{b}: {m:+.3f} [{lo:+.3f}, {hi:+.3f}]")
+
+print("\n== 5. 정답 하나당 읽은 토큰 (캐시 없이 / 접두부 보존)")
+for c in ORDER:
+    rs = list(by[c].values()); ok = sum(r["cat"] == "correct" for r in rs)
+    nc = np.mean([sum(x["n"] for x in r["rounds"]) for r in rs]); ch = np.mean([sum(x["n"] - x["lcp"] for x in r["rounds"]) for r in rs])
+    print(f"{c:4} 정답 {ok:2d}/60  시행당 {nc:7.1f} / {ch:7.1f}  정답당 " + (f"{nc * 60 / ok:8.1f} / {ch * 60 / ok:8.1f}" if ok else "—"))
+
+print("\n== 6. 병렬 호출(I3)과 라운드")
+if "I3" in by:
+    rs = list(by["I3"].values()); print("라운드 분포", dict(sorted(Counter(r["R"] for r in rs).items())), "| 한 라운드에 호출 3번 이상", sum(r["par"] &gt;= 3 for r in rs), "| 읽은 SKU 3개", sum(r["covered"] == 3 for r in rs), "| 읽고도 틀린 값", sum(r["cat"] == "wrong_value" and r["grounded"] for r in rs))
+    import re
+    last = lambda s: re.findall(r"\d+", s.replace(",", ""))
+    bad_sum = [r for r in rs if r["cat"] != "correct"]; dif = Counter(int(last(r["final"])[-1]) - int(r["truth"]) if last(r["final"]) else None for r in bad_sum)
+    print("틀린 시행의 (마지막 수 - 정답):", dict(sorted(dif.items(), key=lambda kv: (kv[0] is None, kv[0] or 0))))
+for c in ("D3", "P3", "F3", "H3"):
+    if c in by: print(f"{c} 라운드 분포", dict(sorted(Counter(r["R"] for r in by[c].values()).items())))
+
+print("\n== 7. 분기 과제 (A형: 짝수 시행, 번들형: 홀수 시행)")
+for c in ("PB", "FB", "HB"):
+    if c in by:
+        for v, nm in ((False, "A형"), (True, "번들형")):
+            rs = [r for r in by[c].values() if r["bundle"] == v]; k = Counter(r["cat"] for r in rs)
+            print(f"{c} {nm} 정답 {k['correct']:2d}/{len(rs)}  틀린 값 {k['wrong_value']:2d}  지어냄 {k['fabricated']:2d}(0이라고 말함 {sum(r['fab_zero'] for r in rs)})  값 없음 {k['none']:2d}  get_bundle 호출 {sum(any(x['name'] == 'get_bundle' for x in r['calls']) for r in rs)}")
+
+print("\n== 8. 질문 문장별 결과 (문장은 시행마다 무작위로 둘 중 하나이고, 같은 시행 번호는 모든 조건에서 같은 문장)")
+PH0 = ("How many units of SKU-", "How many units of the item on order", "What is the monthly capacity of the supplier of the item", "How many pallet slots does the hub of the supplier of the item on order", "What is the total number of units in stock across")  # exp14.py의 ASK에서 첫째 문장
+
+
+def ph(r): return 0 if r["user"].startswith(PH0) else 1
+
+
+def first(rs):
+    k = Counter(f"{r['calls'][0]['name']}/{r['calls'][0]['src']}" if r["calls"] else "호출 없음" for r in rs)
+    return ", ".join(f"{a}×{b}" for a, b in k.most_common())
+
+
+print(f"{'조건':4} {'문장1 정답':&gt;10} {'문장2 정답':&gt;10}   첫 호출(도구/인자 출처)")
+cells = []
+for c in ORDER:
+    g = [[r for r in by[c].values() if ph(r) == p] for p in (0, 1)]; ok = [sum(r["cat"] == "correct" for r in x) for x in g]
+    cells += [(c, p, ok[p], len(g[p])) for p in (0, 1)]
+    print(f"{c:4} {ok[0]:4d}/{len(g[0]):2d}    {ok[1]:4d}/{len(g[1]):2d}      문장1: {first(g[0])} | 문장2: {first(g[1])}")
+pure = [x for x in cells if x[2] in (0, x[3])]
+print(f"조건×문장 {len(cells)}칸 가운데 정답이 전부이거나 전무인 칸 {len(pure)}개 (정답 전부 {sum(x[2] == x[3] for x in cells)}, 전무 {sum(x[2] == 0 for x in cells)}). 문장1 {sum(ph(r) == 0 for r in by['P3'].values())}시행, 문장2 {sum(ph(r) == 1 for r in by['P3'].values())}시행")
+
+print("\n== 9. 읽은 시행")
+pick = [("P2", lambda r: r["calls"] and r["calls"][0]["src"] == "none"), ("D2", lambda r: r["dev"] == "early_stop" and r["calls"]), ("HB", lambda r: r["bundle"]), ("P3", lambda r: r["fail"] == 0)]
+for c, f in pick:
+    if c not in by: continue
+    r = next((by[c][t] for t in sorted(by[c]) if f(by[c][t])), None)
+    if r is None: continue
+    print(f"[{c} 시행 {r['t']}] 질문: {r['user']}")
+    for i, x in enumerate(r["calls"], 1): print(f"  호출 {i}: {x['name']}({list(x['args'].values())[0] if isinstance(x['args'], dict) and x['args'] else ''}) 출처 {x['src']} -&gt; {json.dumps(x['res'], ensure_ascii=False)}")
+    print(f"  최종 응답: {r['final']!r} | 범주 {r['cat']}, 처음 어긋난 단계 {r['fail']} ({r['dev']}), 라운드 {r['R']}")
+</code></pre>
+    <p>이 코드를 실행한 출력은 다음과 같다. 위 본문의 문장별 표, 분기 표, 짝지은 차이, 정답당 토큰, I3의 합 오차는 이 출력에서 옮겼다.</p>
+<pre><code>﻿== 0. 회계 점검
+조건 17개, 시행 1020개, 회계 위반 0
+E1 근거 없이 맞은 시행: 없음
+E2 깊이 하한 위반: 0 | E6 찍은 키가 맞은 호출: 0
+E5 HB 번들 주문: 30 개 중 정답 0
+
+== 1. 호출 인자의 출처 (호출 수)
+조건      호출  goal   obs  desc  none  none이 맞는 레코드를 읽은 호출
+N3       0     0     0     0     0  0
+I3     180   180     0     0     0  0
+D2      50    41     0     0     9  0
+D3      60    27     0     0    33  0
+P1      60    60     0     0     0  0
+P2      93    33     8     0    52  0
+P3     122    27    54     0    41  0
+P4     240    60    33     0   147  0
+F3     180    60   120     0     0  0
+F4     240    60   180     0     0  0
+H3     180    60   120     0     0  0
+X3     138    48    60    30     0  0
+M3     177    28    83     0    66  0
+T3      54    18    36     0     0  0
+PB      90    60     7     0    23  0
+FB     120    60    60     0     0  0
+HB     120    60    60     0     0  0
+
+== 2. 처음 어긋난 단계 (시행 수, 60개 중)
+조건       깨끗한 성공 early_stop wrong_tool  wrong_arg    답 단계   처음 떨어진 단계의 번호별 시행 수
+N3            0         60          0          0       0   {1: 60}
+I3           50          0          0          0      10   {4: 10}
+D2            0         43         17          0       0   {1: 27, 2: 33}
+D3            0         27         33          0       0   {1: 33, 2: 27}
+P1           60          0          0          0       0   {}
+P2            8          0         27         25       0   {1: 27, 2: 25}
+P3           27          0         33          0       0   {1: 33}
+P4            2          0         27         31       0   {1: 27, 2: 31}
+F3           60          0          0          0       0   {}
+F4           60          0          0          0       0   {}
+H3           60          0          0          0       0   {}
+X3           30          0         12         18       0   {1: 12, 2: 18}
+M3           27          0         33          0       0   {1: 33}
+T3           18         42          0          0       0   {1: 42}
+PB            4         33         13         10       0   {2: 56}
+FB           30          0         30          0       0   {2: 30}
+HB           30          0         30          0       0   {2: 30}
+
+== 3. 틀린 값의 출처와 지어낸 0
+N3   틀린 값  0개, 값을 가져온 레코드 {}, 지어낸 답 59개 중 0이라고 말한 것 0개
+I3   틀린 값 10개, 값을 가져온 레코드 {'get_sku': 10}, 지어낸 답 0개 중 0이라고 말한 것 0개
+D2   틀린 값 33개, 값을 가져온 레코드 {'get_order': 33}, 지어낸 답 0개 중 0이라고 말한 것 0개
+PB   틀린 값 34개, 값을 가져온 레코드 {'get_order': 34}, 지어낸 답 0개 중 0이라고 말한 것 0개
+FB   틀린 값  0개, 값을 가져온 레코드 {}, 지어낸 답 14개 중 0이라고 말한 것 14개
+HB   틀린 값  3개, 값을 가져온 레코드 {'get_order': 3}, 지어낸 답 20개 중 0이라고 말한 것 20개
+
+== 4. 짝지은 차이 (같은 시행 번호, 정답을 말한 비율의 차이, 95% 구간)
+P3-D3: +0.450 [+0.333, +0.583]
+P2-D2: +0.133 [+0.050, +0.217]
+F3-P3: +0.550 [+0.417, +0.667]
+F4-P4: +0.967 [+0.917, +1.000]
+H3-F3: +0.000 [+0.000, +0.000]
+M3-P3: +0.017 [+0.000, +0.050]
+T3-P3: -0.150 [-0.250, -0.067]
+X3-P3: +0.050 [+0.000, +0.100]
+P3-P2: +0.317 [+0.133, +0.500]
+P4-P3: -0.417 [-0.550, -0.267]
+
+== 5. 정답 하나당 읽은 토큰 (캐시 없이 / 접두부 보존)
+N3   정답  0/60  시행당    62.5 /    62.5  정답당 —
+I3   정답 50/60  시행당  1565.7 /   889.4  정답당   1878.8 /   1067.2
+D2   정답  0/60  시행당  1279.2 /   725.6  정답당 —
+D3   정답  0/60  시행당  1399.8 /   733.4  정답당 —
+P1   정답 60/60  시행당  1452.6 /   767.1  정답당   1452.6 /    767.1
+P2   정답  8/60  시행당  1575.3 /   784.0  정답당  11814.9 /   5880.0
+P3   정답 27/60  시행당  2248.1 /   833.2  정답당   4995.9 /   1851.6
+P4   정답  2/60  시행당  2449.0 /   909.2  정답당  73471.0 /  27275.5
+F3   정답 60/60  시행당  3319.2 /   979.4  정답당   3319.2 /    979.4
+F4   정답 60/60  시행당  4401.0 /  1074.2  정답당   4401.0 /   1074.2
+H3   정답 60/60  시행당  1485.2 /   913.2  정답당   1485.2 /    913.2
+X3   정답 30/60  시행당  2514.3 /   911.1  정답당   5028.6 /   1822.2
+M3   정답 28/60  시행당  1920.8 /   642.2  정답당   4116.0 /   1376.1
+T3   정답 18/60  시행당  1560.3 /   817.4  정답당   5201.2 /   2724.5
+PB   정답  4/60  시행당  1734.9 /   869.6  정답당  26023.8 /  13044.0
+FB   정답 30/60  시행당  2551.0 /   939.2  정답당   5102.0 /   1878.3
+HB   정답 30/60  시행당   952.0 /   551.6  정답당   1904.0 /   1103.2
+
+== 6. 병렬 호출(I3)과 라운드
+라운드 분포 {2: 60} | 한 라운드에 호출 3번 이상 60 | 읽은 SKU 3개 60 | 읽고도 틀린 값 10
+틀린 시행의 (마지막 수 - 정답): {-1000: 1, -10: 3, -2: 1, -1: 2, 1: 3}
+D3 라운드 분포 {2: 60}
+P3 라운드 분포 {2: 33, 4: 27}
+F3 라운드 분포 {4: 60}
+H3 라운드 분포 {4: 60}
+
+== 7. 분기 과제 (A형: 짝수 시행, 번들형: 홀수 시행)
+PB A형 정답  1/30  틀린 값 20  지어냄  0(0이라고 말함 0)  값 없음  9  get_bundle 호출 0
+PB 번들형 정답  3/30  틀린 값 14  지어냄  0(0이라고 말함 0)  값 없음 13  get_bundle 호출 3
+FB A형 정답 30/30  틀린 값  0  지어냄  0(0이라고 말함 0)  값 없음  0  get_bundle 호출 0
+FB 번들형 정답  0/30  틀린 값  0  지어냄 14(0이라고 말함 14)  값 없음 16  get_bundle 호출 0
+HB A형 정답 30/30  틀린 값  0  지어냄  0(0이라고 말함 0)  값 없음  0  get_bundle 호출 0
+HB 번들형 정답  0/30  틀린 값  3  지어냄 20(0이라고 말함 20)  값 없음  7  get_bundle 호출 0
+
+== 8. 질문 문장별 결과 (문장은 시행마다 무작위로 둘 중 하나이고, 같은 시행 번호는 모든 조건에서 같은 문장)
+조건       문장1 정답     문장2 정답   첫 호출(도구/인자 출처)
+N3      0/27       0/33      문장1: 호출 없음×27 | 문장2: 호출 없음×33
+I3     24/27      26/33      문장1: get_sku/goal×27 | 문장2: get_sku/goal×33
+D2      0/27       0/33      문장1: 호출 없음×10, get_sku/none×9, get_sku/goal×8 | 문장2: get_order/goal×33
+D3      0/27       0/33      문장1: get_order/goal×27 | 문장2: get_sku/none×33
+P1     27/27      33/33      문장1: get_sku/goal×27 | 문장2: get_sku/goal×33
+P2      0/27       8/33      문장1: get_sku/none×27 | 문장2: get_order/goal×33
+P3     27/27       0/33      문장1: get_order/goal×27 | 문장2: get_sku/none×33
+P4      0/27       2/33      문장1: get_supplier/none×27 | 문장2: get_order/goal×33
+F3     27/27      33/33      문장1: get_order/goal×27 | 문장2: get_order/goal×33
+F4     27/27      33/33      문장1: get_order/goal×27 | 문장2: get_order/goal×33
+H3     27/27      33/33      문장1: get_order/goal×27 | 문장2: get_order/goal×33
+X3     27/27       3/33      문장1: get_order/goal×27 | 문장2: get_order/goal×21, get_sku/desc×12
+M3     27/27       1/33      문장1: get_order/goal×27 | 문장2: get_sku/none×33
+T3     18/27       0/33      문장1: get_order/goal×18, 호출 없음×9 | 문장2: 호출 없음×33
+PB      0/27       4/33      문장1: get_order/goal×27 | 문장2: get_order/goal×33
+FB     13/27      17/33      문장1: get_order/goal×27 | 문장2: get_order/goal×33
+HB     13/27      17/33      문장1: get_order/goal×27 | 문장2: get_order/goal×33
+조건×문장 34칸 가운데 정답이 전부이거나 전무인 칸 22개 (정답 전부 11, 전무 11). 문장1 27시행, 문장2 33시행
+
+== 9. 읽은 시행
+[P2 시행 2] 질문: How many units of the item on order ORD-7773 are in stock?
+  호출 1: get_sku(ITEM-ON-ORDER-7773) 출처 none -&gt; {"error": "not_found"}
+  최종 응답: 'The item on order ORD-7773 is not found in the system.' | 범주 none, 처음 어긋난 단계 1 (wrong_tool), 라운드 2
+[D2 시행 0] 질문: What is the current stock of the SKU on order ORD-8524?
+  호출 1: get_order(ORD-8524) 출처 goal -&gt; {"order_id": "ORD-8524", "customer": "ACME", "sku": "SKU-5564", "qty": 58}
+  최종 응답: 'The current stock of the SKU on order ORD-8524 is 58.' | 범주 wrong_value, 처음 어긋난 단계 2 (early_stop), 라운드 2
+[HB 시행 1] 질문: What is the current stock of the SKU on order ORD-7444?
+  호출 1: get_order(ORD-7444) 출처 goal -&gt; {"order_id": "ORD-7444", "customer": "ACME", "bundle": "BND-733", "qty": 59}
+  호출 2: get_sku(BND-733) 출처 obs -&gt; {"error": "not_found"}
+  최종 응답: 'The current stock of the SKU on order ORD-7444 is not available.' | 범주 none, 처음 어긋난 단계 2 (wrong_tool), 라운드 3
+[P3 시행 2] 질문: What is the monthly capacity of the supplier of the item on order ORD-7773?
+  호출 1: get_order(ORD-7773) 출처 goal -&gt; {"order_id": "ORD-7773", "customer": "ACME", "sku": "SKU-7014", "qty": 24}
+  호출 2: get_sku(SKU-7014) 출처 obs -&gt; {"sku": "SKU-7014", "name": "hinge pack", "supplier": "SUP-528", "stock": 356}
+  호출 3: get_supplier(SUP-528) 출처 obs -&gt; {"supplier": "SUP-528", "name": "Altamar", "hub": "HUB-367", "monthly_capacity": 346}
+  최종 응답: 'The monthly capacity of the supplier of the item on order ORD-7773 is 346.' | 범주 correct, 처음 어긋난 단계 0 (None), 라운드 4</code></pre>
+
+    <h3 id="h-limits14">해석과 한계</h3>
+    <ul>
+      <li><b>미리 적은 예상은 기각되지 않았다.</b> E0: 몬테카를로와 닫힌 식의 차이가 0.0002 이하이고 모든 설정이 상한 아래였으며, 새로 읽는 토큰의 항등식이 표의 모든 행과 실행의 1,020시행에서 성립하고 H3의 접두부 손실이 P3보다 컸다. E1~E6의 위반은 없었다. 기각되지 않은 것이 이론의 입증은 아니다. E1, E2, E5, E6은 상한이 깨지는지만 보는 점검이어서 모델이 읽지 않고 맞히지 못했다는 것만 확인하고, 어느 조건도 상한 근처에 가지 않아 상한이 팽팽한지는 보여 주지 못한다. E3과 E4는 회계의 항등식이어서 코드가 틀릴 때만 어긋난다. 이론이 모델의 행동에 대해 말하는 것은 상한, 깊이의 하한, 단계 통과율의 곱, 비용의 식이고 아래의 행동은 이론에서 나온 예상이 없는 관찰이다.</li>
+      <li><b>질문에 대한 답: 같은 질문을 단일 응답으로 풀면 지어내고, 동적 루프로 풀면 도중에 멈추거나 첫 행동에서 갈렸고, 고정 경로로 풀면 경로 안에서는 모두 맞았다.</b> 깊이 3의 질문에서 단일 응답이 0/60(지어낸 값 59/60), 기본 프롬프트의 루프가 0/60, 멈추지 말라는 지시를 더한 루프가 27/60, 고정 경로(지시형, 제한형)가 60/60, 60/60이다. 깊이 4에서는 2/60 대 60/60이다. 동적 루프의 실패는 서로 다른 곳에서 났다. 첫 호출에서 주문을 읽지 않고 만들어 낸 id로 SKU를 조회하거나(P3의 문장 2), 중간 레코드의 수를 답으로 말하고 멈추거나(D2, D3), 다음 호출의 인자를 앞 관찰에서 베끼지 않고 만들어 냈다(P2, P4의 단계 2). 고정 경로는 이 셋을 하네스가 막아 준다. 대신 경로 밖에서는 상한에 막혀서, 갈라지는 과제 B2에서 고정 경로의 정답은 적용 범위인 절반(30/60, 30/60)이었다.</li>
+      <li><b>첫 행동은 질문 문장의 표면 형태가 정했다.</b> 같은 조건에서 두 문장의 정답이 27/27 대 0/33처럼 갈렸고, 34칸 가운데 22칸이 정답 전부이거나 전무였다. 문장 2의 'SKU'라는 낱말이 들어간 질문에서 모델은 주문을 읽지 않고 <code>get_sku</code>를 불러 주문 번호에서 만든 id를 넣었다. 그래서 이 실험의 깊이 곡선은 깊이의 효과가 아니라 문장의 효과를 담고, 깊이에 따른 정답률은 재지 못했다. 이론이 말한 것은 첫 단계의 통과율이 곱의 한 인수라는 데까지이고, 그 인수가 문장에 좌우된다는 것은 관찰이다. 에이전트의 목표는 사용자가 쓰는 말이어서 이 민감성은 하네스가 가지는 문제이다. 다만 문장이 둘뿐이어서 얼마나 민감한지(문장이 스무 개이면 정답이 얼마나 퍼지는지)는 이 실험이 재지 못했다. 구간도 문장을 고정하고 세계를 다시 뽑는 불확실성만 담는다.</li>
+      <li><b>멈춤은 지시로 일부 풀렸고, 형식 지시와 예시는 방향이 갈렸다.</b> D에서 P로 가면 같은 세계의 정답이 D3 0/60에서 27/60으로, D2 0/60에서 8/60으로 늘었다. 지시가 푼 것은 중간 레코드를 읽은 뒤의 멈춤이고 첫 호출은 바꾸지 못했다(P3의 문장 2는 지시를 더해도 33시행 모두 <code>get_sku</code>/none으로 시작했다). 생각 줄을 쓰게 한 T3는 정답이 줄었다. 이 모델은 42개 시행에서 생각 줄만 쓰고 호출 없이 출력을 끝냈다. 설명의 예시 id(X3)는 첫 호출을 <code>get_order</code>로 바꾸기도 하고 예시를 인자로 베끼게도 했다. 셋 모두 이론이 값을 정하지 않은 이 모델과 프롬프트에서의 관찰이고, 같은 방향이 다른 모델에서 나온다고 말할 수 없다.</li>
+      <li><b>고정 경로의 값은 적용 범위와 따르는 정도이다.</b> 지시형(F)과 제한형(H)은 같은 세계에서 정확도가 같았다(60/60). 대조 모델에서는 지시형 F3가 18/60에 그쳤다. 하네스가 다음 도구를 말해 주어도 모델이 그 말을 따르지 않으면 경로를 지킬 수 없다는 뜻이고, 도구를 숨기는 제한형이 더 강한 수단이지만 이 모델에서는 재지 않았다. 하네스가 인자를 직접 채우는 구현이나 단계마다 새 컨텍스트를 쓰는 구현은 재지 않았다. 적용 범위의 손익분기는 가상의 값으로 계산했고(<a class="ref" href="#ex-fixed"></a>), 실험의 B2에서는 동적 선택이 4/60에 그쳐 손익분기(0.064)가 낮았으므로 고정 경로가 이겼다. 동적 선택이 이 모델보다 잘한다면 분기는 달라질 수 있다.</li>
+      <li><b>비용은 정답당으로 읽는다.</b> 정답 하나당 읽은 토큰(접두부 보존)은 F3 979, H3 913, P3 1,852, P2 5,880, P4 27,276이다. 틀리는 시행이 많은 설계는 시행당 비용이 낮아 보여도 정답당 비용이 크게 부푼다. 도구를 줄인 M3는 읽는 토큰을 줄였지만(접두부 보존 시 642 대 833) 정확도를 바꾸지 못했다. 제한형 H는 캐시가 없을 때 짧지만 도구 목록이 바뀌어 접두부가 깨지고(전환당 평균 134.6토큰), 접두부가 보존되는 지시형과 같은 수준이 된다. 여기서 '접두부 보존'은 이 모델의 템플릿에서 앞 라운드와 겹치는 앞부분만큼을 새로 읽지 않는다고 가정한 토큰 수이고, 실제 청구액이나 Claude의 캐시 적중이 아니다.</li>
+
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> E0~E6의 예상과 기각 조건은 전체 모델 실행 전에 파일에 적었다. 조건 목록, 프롬프트, 도구 설명, 판정 규칙은 전체 실행 뒤 바꾸지 않았다. 밝힐 것이 있다. (1) 모델 없이 도는 계산(찍기 정책의 시뮬레이션, 손익분기, 템플릿으로 센 토큰)은 예상을 적기 전에 보았다. (2) 조건을 정하기까지 탐색이 있었다. 1차 설계(조건 11개, 도구 설명에 예시 id를 두고, 고정 경로를 '지금 단계의 도구 하나만 보이는' 방식으로 구현)로 스모크(시드 99, 조건당 4시행)를 돌렸고, 모델이 첫 읽기 뒤에 멈추고 중간 레코드의 수로 답하는 것, 호출 인자에 도구 설명의 예시 id를 베끼는 것, 도구가 하나만 보이면 시작하지 않고 거절하는 것을 보았다. 그래서 멈추지 말라는 지시 프롬프트(P)와 지시형 고정 경로(F)를 더하고, 도구 제한형(H)을 따로 두었다. (3) 탐색 1(시드 98, 조건당 12시행, 예시 id를 둔 설정)은 D2, D3, P1~P4만 돌았고(P3와 P4에서 다른 프로그램이 GPU를 써서 느려져 중단), 실패가 대부분 설명의 예시 id를 베낀 호출임을 보았다. 그래서 기본 도구 설명에서 예시 id를 빼고 예시를 둔 조건 X3를 따로 두었다. (4) 탐색 2와 3(시드 98, 12시행)으로 새 설정에서 모든 조건이 돌고 결과가 갈린다는 것을 확인했다(P2 1/12, P3 8/12, P4 0/12, F3와 F4 12/12 등). Qwen3-0.6B를 대조 모델로 쓰기로 한 것도 탐색 3에서 이 모델이 P1에서 이미 틀리는 것을 보고 정했다(바닥 효과를 알고 넣었다). (5) 탐색 뒤에 보이지 않은 도구는 실행하지 않는 규칙, 틀린 값의 출처 기록, 접두부 손실의 측정을 코드에 더했고 FLOPs 식을 12장의 규약으로 맞췄다. 전체 실행을 시작한 뒤 17개 조건 가운데 7개를 마친 시점에서 다른 프로그램이 GPU를 써서 느려지자 멈추고, 조건마다 결과를 저장하고 이어서 돌릴 수 있게 코드를 고쳤다(측정과 판정은 그대로이고, 부트스트랩 난수를 조건마다 따로 뽑게 바꿨다). 멈추기 전 7개 조건 가운데 읽은 값은 단일 응답 N3의 요약뿐이고(정답 0/60, 지어낸 값 59/60), 그 실행의 값은 어느 것도 쓰지 않았으며 모든 조건을 새 코드로 처음부터 다시 돌렸다. (6) 사후 분석(<code>post14.py</code>)은 응답을 본 뒤에 썼다. 인자 출처의 표, 짝지은 차이, 정답당 비용, 읽을 시행의 선택, 분기 과제의 유형별 표, I3의 합 오차는 사후 분석이다. 질문 문장별 분해도 사후 분석이다. P2가 P3보다 낮은 모양은 탐색 2에서 이미 보았고(P2 1/12, P3 8/12, P4 0/12) 14.4절은 그것을 염두에 두고 정답률이 깊이에 대해 단조롭지 않을 수 있다고 썼다. 그러나 탐색에서 조건을 문장별로 나누어 보지는 않았고, 정답이 문장에 따라 거의 전부 또는 전무로 갈린다는 것은 전체 실행 뒤의 분해에서 알았다. 그 결과로 설계를 바꾸지 않았다(문장을 늘려 다시 돌리는 일은 하지 않았다). (7) 전체 실행은 두 번 했고 둘 사이에 코드와 설정을 바꾸지 않았다. 본문의 수는 첫 실행의 파일에서 옮겼다. 두 실행의 기록 파일은 바이트 단위로 같고 요약 파일은 걸린 시간 필드(<code>secs</code>)만 달라서, 어느 쪽에서 옮겨도 같다.</li>
+      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 Qwen3-1.7B(비사고 모드)와 Qwen3-0.6B 둘이고 탐욕 디코딩 하나이다. 같은 계열이어서 대화 템플릿의 성질(호출 형식, 접두부가 깨지는 방식)을 공유한다. 도구 호출 형식은 템플릿의 <code>&lt;tool_call&gt;</code> JSON이어서 Claude API의 <code>tool_use</code>와 같지 않고, Claude, 더 큰 모델, 사고 모드, 샘플링은 재지 않았다. 세계는 가상의 물류이고 도구는 늘 맞게 응답한다(오류와 재시도는 13장에서 다루었다). 질문은 문장 둘(과제마다)이고 결과가 문장에 크게 좌우되어서, 이 실험은 사실상 문장 둘에 대한 반응이다(깊이의 효과는 문장과 섞여 재지 못했다). 경로는 사슬 하나와 갈래 하나이다. 고정 경로는 두 가지 구현(지시, 제한)만 재었고, 코드가 인자를 직접 뽑아 채우는 구현이나 단계마다 새 컨텍스트를 쓰는 구현은 재지 않았다. 판정은 최종 응답에서 수를 뽑는 규칙이고, 인자의 출처는 값이 질문, 앞 관찰, 도구 설명에 문자열로 있는지로 가른다. 값을 맞게 만들어 낸 우연은 찍은 키가 맞은 호출로 센다. 접두부 손실은 이 모델 템플릿의 성질이고 Claude API의 캐시 동작과 다르다(캐시는 요청에서 접두부가 일치하는 앞부분을 쓴다). 조건당 60시행이어서 비율의 차이가 작으면 구간이 겹친다.</li>
+
+    </ul>
   </section>
+
+
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
-    <ol><li class="slot" data-slot="요점">집필한 뒤 요점을 정리합니다.</li></ol>
+    <ol>
+      <li>행동 루프는 하네스가 컨텍스트로 모델을 부르고, 출력이 호출이면 실행해 관찰을 컨텍스트에 붙이고 다시 부르는 라운드의 되풀이이다. 호출 없는 출력이 최종 응답이고, 한도 \(N\)에서도 끝난다. Claude API에서는 <code>stop_reason</code>이 <code>tool_use</code>인 동안 <code>tool_result</code>를 붙여 다시 요청하는 것이 이 루프이고, Agent SDK는 이 한 번의 통과를 턴이라 부른다(<a class="ref" href="#def-loop"></a>).</li>
+      <li>읽어야 할 사실의 의존 깊이 \(D\)(다음 읽기의 인자가 앞선 읽기의 결과에 있는 사슬의 길이)가 라운드의 하한이고 모델 호출은 \(D+1\)번 이상이다. 병렬 호출은 서로 독립한 읽기의 라운드를 줄일 뿐 사슬을 짧게 하지 못한다. 라운드가 모자라는데 정확한 답이 나왔다면 찍은 키나 찍은 답이고, 읽지 않고 찍는 정책의 정확도는 \((1+kR)/V\) 이하이다(<a class="ref" href="#thm-depth"></a>).</li>
+      <li>사슬의 깨끗한 성공 확률은 단계 통과율의 곱 \(\Pr[C]=\prod_j p_j\)이고, 목표 성공률 \(\varepsilon\)을 \(D+1\)단계로 얻으려면 단계마다 \(\varepsilon^{1/(D+1)}\) 이상이어야 한다. 실행 기록에서는 호출 인자의 출처(질문, 앞 관찰, 설명, 없음)와 처음 어긋난 단계를 읽어 어느 단계가 낮은지 가린다(<a class="ref" href="#thm-stage"></a>).</li>
+      <li>루프의 비용은 라운드마다 되읽는 컨텍스트의 합 \(\sum n_t\)이고, 앞 라운드와 접두부가 이어지면 \(n_R+\sum_{t\ge2}(n_{t-1}-h_t)\)만 새로 읽는다. 도구 정의는 프롬프트의 앞부분이어서 보이는 도구가 라운드마다 바뀌면 접두부가 깨지고, Claude API는 도구 정의를 바꾸면 캐시 전체가 무효가 된다고 쓴다. 틀리는 설계의 정답당 비용은 시행당 비용을 성공률로 나눈 값이다(<a class="ref" href="#thm-cost"></a>).</li>
+      <li>고정 경로는 하네스가 다음 도구를 정하고 동적 선택은 모델이 정한다. 고정 경로의 정확도는 적용 범위 \(c\)에 대해 \(c\,f+(1-c)\,g\) 이하이고, 동적 선택의 성공률 \(d\)를 이기려면 \(c>(d-g)/(f-g)\)이어야 한다(<a class="ref" href="#thm-fixed"></a>). 어느 쪽을 쓸지는 경로가 미리 정해지는 정도로 정하며, 고정 경로가 모델이 따르기로 한 것을 보장하지는 않는다.</li>
+      <li>실험(Qwen3-1.7B, 가상의 물류 조회 도구, 조건마다 60시행)에서 깊이 3의 질문에 단일 응답은 0/60이었고 59/60가 도구 결과에 없는 수를 지어냈다. 기본 프롬프트의 루프는 0/60으로 60시행이 모두 호출 한 번 뒤에 멈추었고, 멈추지 말라는 지시를 더한 루프는 27/60, 고정 경로(지시형, 제한형)는 60/60, 60/60이었다. 깊이 4에서 2/60 대 60/60이다. 독립한 읽기 셋은 한 라운드에 묶여 라운드 2번에 50/60이었다. 갈라지는 과제에서 고정 경로는 적용 범위인 절반만 맞혔다(30/60, 30/60). E0~E6의 예상은 기각되지 않았고 결과 파일은 두 번의 실행에서 같았다.</li>
+      <li>동적 루프의 정답률은 깊이가 아니라 질문 문장이 갈랐다. 같은 조건에서 두 문장의 정답이 27/27 대 0/33으로 갈렸고, 문장 2에서 모델은 주문을 읽지 않고 만들어 낸 id로 <code>get_sku</code>를 불렀다(사후 분석). 첫 행동은 하네스가 책임질 문제이고, 이 실험은 문장이 둘뿐이어서 깊이의 효과와 문장의 민감도를 재지 못했다. 대조 모델 Qwen3-0.6B는 깊이 1에서도 0/60이었고, 지시형 고정 경로가 18/60에 그쳤다. 이 결과는 가상의 도구와 모델 둘, 탐욕 디코딩에서의 관찰이다.</li>
+    </ol>
   </section>
+
+
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">집필하면서 질문과 해설을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 행동 루프에서 '한 라운드'는 무엇인가?</p><div class="opts">
+        <button class="opt">도구 호출 한 번</button>
+        <button class="opt" data-correct>모델을 한 번 부르는 일. 출력에 호출이 있으면 하네스가 그것을 실행해 결과를 컨텍스트에 붙이는 것까지 포함한다.</button>
+        <button class="opt">사용자가 메시지를 한 번 보내는 일</button>
+      </div><div class="quiz-exp">14.1절이다. 라운드는 모델 호출 한 번이다(<a class="ref" href="#def-loop"></a>). 한 라운드에 호출이 여러 개(병렬 호출)일 수 있어서 라운드 수와 호출 수는 다르다. Agent SDK 문서의 턴(turn)과 같은 단위이다.</div></div>
+      <div class="quiz-q"><p>2. 주문 → SKU → 공급사 → 허브로 이어지는 사슬의 끝, 곧 허브의 팔레트 칸 수를 묻는 질문이다. 질문에는 주문 번호만 있다. 모델이 읽기에서 답을 얻으려면 모델 호출은 최소 몇 번인가?</p><div class="opts">
+        <button class="opt">1번</button>
+        <button class="opt">4번</button>
+        <button class="opt" data-correct>5번</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-depth"></a>의 1번이다. 깊이가 \(D=4\)이므로 읽기가 든 라운드가 4번 이상이고, 마지막 관찰을 읽어 답하는 라운드가 하나 더 든다. 병렬 호출은 앞 읽기의 결과가 뒤 읽기의 인자인 사슬을 짧게 만들지 못한다.</div></div>
+      <div class="quiz-q"><p>3. 질문에 SKU 다섯 개가 적혀 있고 그 재고의 합을 묻는다. 병렬 호출을 쓰면 최소 몇 라운드이고, 병렬 호출을 쓰지 않으면 몇 라운드인가?</p><div class="opts">
+        <button class="opt" data-correct>2라운드와 6라운드</button>
+        <button class="opt">1라운드와 5라운드</button>
+        <button class="opt">2라운드와 2라운드</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-depth"></a>의 2번이다. 인자가 모두 질문에 있으므로 다섯 읽기는 서로 의존하지 않는다(깊이 1, 너비 5). 병렬 호출 한 번으로 읽고 답하는 라운드가 하나 더 들어 2라운드이다. 병렬 호출을 하지 않으면 읽기마다 한 라운드이어서 5+1=6라운드이다. 호출 수는 두 경우 모두 5번이다.</div></div>
+      <div class="quiz-q"><p>4. 단계마다 통과율이 0.95이고 읽기 깊이가 3이다(단계는 호출 3개와 최종 응답 1개). 깨끗한 성공률은?</p><div class="opts">
+        <button class="opt">0.95</button>
+        <button class="opt">0.857</button>
+        <button class="opt" data-correct>0.815</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-stage"></a>의 1번과 2번이다. 단계가 \(D+1=4\)개이므로 \(0.95^4=0.8145\)이다. 최종 응답도 하나의 단계이다. \(0.95^3=0.857\)은 최종 응답의 단계를 빠뜨린 값이다.</div></div>
+      <div class="quiz-q"><p>5. 5라운드 루프의 프롬프트 길이가 600, 700, 800, 900, 1000토큰이다. 캐시 없이 읽는 토큰의 합과, 앞 라운드의 프롬프트가 통째로 접두부로 보존될 때 새로 계산하는 토큰의 합은?</p><div class="opts">
+        <button class="opt">4,000과 600</button>
+        <button class="opt" data-correct>4,000과 1,000</button>
+        <button class="opt">1,000과 1,000</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-cost"></a>의 1번과 2번이다. 캐시 없이는 \(600+700+800+900+1000=4000\)이다. 접두부가 보존되면 합이 마지막 프롬프트의 길이 \(n_R=1000\)이다. 첫 라운드의 600토큰과 이후 라운드마다 늘어난 100토큰을 합한 값이다.</div></div>
+      <div class="quiz-q"><p>6. 고정 경로의 성공률이 0.98, 동적 선택의 성공률이 0.92, 경로 밖에서 찍어 맞힐 확률의 상한이 0.01이다. 고정 경로가 동적 선택을 이기려면 적용 범위가 최소 얼마여야 하는가?</p><div class="opts">
+        <button class="opt">0.92</button>
+        <button class="opt" data-correct>약 0.938</button>
+        <button class="opt">약 0.99</button>
+      </div><div class="quiz-exp"><a class="ref" href="#thm-fixed"></a>의 3번이다. \((d-g)/(f-g)=(0.92-0.01)/(0.98-0.01)=0.938\)이다. 적용 범위가 0.92보다 넓어도 범위 밖에서 거의 0점을 받기 때문에 문턱은 \(d\)보다 높다. 이것은 필요조건이어서 이 범위를 넘어도 이긴다는 보장은 아니다.</div></div>
+      <div class="quiz-q"><p>7. 질문은 '주문 ORD-8199의 SKU의 재고'이다. 모델의 첫 호출이 <code>get_sku("SKU-8199")</code>이고 질문과 앞선 관찰 어디에도 'SKU-8199'가 없다. 이 호출의 인자 출처와, 참조 경로(<code>get_order</code> → <code>get_sku</code>)에서 처음 어긋난 단계는?</p><div class="opts">
+        <button class="opt">goal, 2단계</button>
+        <button class="opt" data-correct>none(값을 만들어 냄), 1단계의 wrong tool</button>
+        <button class="opt">obs, 1단계</button>
+      </div><div class="quiz-exp">14.4절이다. 인자가 질문에도 관찰에도 없으므로 출처는 none이다(주문 번호에서 숫자를 따와 만든 값). 첫 호출이 참조 경로의 첫 호출 <code>get_order</code>가 아니라서 첫 단계에서 어긋나고 종류는 wrong tool이다. 이 호출이 맞는 레코드를 읽을 확률은 \(1/V\) 이하이다(<a class="ref" href="#thm-depth"></a>). 첫 행동은 인자가 질문에 있는 읽기(루트)여야 한다.</div></div>
+    </div>
   </section>
+
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">집필하면서 재현 가능한 연습문제를 만듭니다.</p>
+    <div class="prob" id="prob-depth" data-level="1"><p>이 장의 세계에서 다음 질문의 읽기 깊이, 너비, 모델 호출의 최소 횟수(병렬 호출을 쓴다고 하자), 도구 호출의 최소 횟수를 구하라. (가) 'SKU-4172의 공급사 이름'. (나) '주문 ORD-9001의 SKU의 공급사의 허브의 도시'. (다) 'SKU-1111과 SKU-2222의 공급사의 월 생산 능력 중 큰 값'.</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-depth"></a>이다. (가) SKU 레코드가 공급사 id를 주고 공급사 레코드가 이름을 준다. 읽기 둘의 사슬이어서 깊이 2, 너비 1, 모델 호출 3번, 도구 호출 2번이다. (나) 주문 → SKU → 공급사 → 허브이므로 깊이 4, 너비 1, 모델 호출 5번, 도구 호출 4번이다. 허브 레코드에 도시가 있다. (다) 두 사슬(SKU → 공급사)이 서로 독립이다. 깊이 2, 너비 2이고, 병렬 호출로 첫 라운드에 SKU 둘, 둘째 라운드에 공급사 둘을 읽어 모델 호출 3번, 도구 호출 4번이다. 병렬 호출을 쓰지 않으면 모델 호출이 5번이다. 라운드 수는 깊이가, 호출 수는 읽기 수가 정한다.</p></details></div>
+    <div class="prob" id="prob-guess" data-level="2"><p>깊이 \(D=4\)인 사슬을 읽기 라운드 \(R=3\)번, 라운드의 너비 \(k=2\)로 푼다. 정답은 \(V=900\)가지 값에 균등하다. (가) <a class="ref" href="#thm-depth"></a>의 3번이 주는 정확도의 상한은? (나) 이 정책을 60시행 돌릴 때 근거 없이 맞은 시행의 기대 개수는? (다) 한 조건에서 그런 시행이 3개 이상 나올 확률의 상한(이 상한을 정확도로 쓴 이항분포)은? 이 장의 기각 기준과 어떻게 이어지는가?</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \((1+kR)/V=7/900=0.00778\)이다. (나) \(60\times0.00778=0.467\)개이다. (다) 이항분포 \(n=60\), \(p=0.00778\)에서 \(\Pr[X\ge3]=0.0116\)이다. 이 장의 E1은 정확도가 \(1/900\)일 때를 기준으로 3개 이상을 기각 조건으로 두었다(\(4.5\times10^{-5}\)). 상한 \((1+kR)/V\)는 가장 유리한 정책에서 나온 값이라 이보다 느슨하다. 라운드를 많이 쓰면 상한이 커지므로, 기각 기준은 라운드와 너비가 작은 조건에서 더 엄격하게 읽는다.</p></details></div>
+    <div class="prob" id="prob-stage" data-level="2"><p>깊이 3인 사슬 과제(단계 4개)를 60번 돌려 단계 1, 2, 3, 4까지 통과한 시행 수를 셌더니 58, 55, 50, 47이었다. (가) 단계 통과율 \(\hat p_j\)와 그 곱을 구하라. (나) 처음 떨어진 단계의 시행 수와 비율을 구하라. (다) 하나의 단계만 1로 고칠 수 있다면 어느 단계를 고쳐야 깨끗한 성공률이 가장 오르는가?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-stage"></a>이다. (가) \(\hat p_1=58/60=0.967\), \(\hat p_2=55/58=0.948\), \(\hat p_3=50/55=0.909\), \(\hat p_4=47/50=0.940\)이고 곱은 \(47/60=0.783\)이다. (나) 처음 떨어진 시행은 단계 1에서 2개, 단계 2에서 3개, 단계 3에서 5개, 단계 4에서 3개(합 13)이다. 비율은 0.033, 0.050, 0.083, 0.050이고 깨끗한 성공 0.783과 합하면 1이다. (다) 곱에서 가장 작은 인자 \(\hat p_3=0.909\)를 1로 올리면 \(0.783/0.909=0.862\)로 가장 많이 오른다. 단계 3에서 5개가 떨어졌으므로 기록에서 이 5개 시행이 어떤 어긋남(wrong tool, wrong arg, early stop)인지 읽는 것이 다음 일이다.</p></details></div>
+    <div class="prob" id="prob-cost" data-level="2"><p>4라운드 루프의 프롬프트 길이가 700, 780, 860, 940토큰이다. 첫 프롬프트의 600토큰은 도구 정의이다. (가) 캐시 없이 읽는 토큰의 합과 그 중 도구 정의를 읽은 토큰의 합은? (나) 접두부가 보존될 때와, 매 전환에서 4토큰씩 접두부가 깨질 때 새로 계산하는 토큰의 합은? (다) 매 라운드 도구 목록이 바뀌어 접두부가 도구 정의 앞의 100토큰만 남는다면 새로 계산하는 토큰의 합은?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-cost"></a>이다. (가) \(700+780+860+940=3280\)토큰이고 도구 정의는 \(4\times600=2400\)토큰(73%)이다. (나) 보존되면 \(n_R=940\)이고, 4토큰씩 깨지면 \(940+3\times4=952\)이다. (다) 첫 라운드는 700토큰 전부이고 이후 라운드는 \(n_t-100\)토큰이므로 \(700+680+760+840=2980\)이다. 캐시를 쓰고도 거의 아끼지 못한다(캐시 없음 3280 대비 9% 감소). 도구 목록을 바꾸는 설계가 캐시를 깬다는 것이 숫자로 보인다.</p></details></div>
+    <div class="prob" id="prob-fixed" data-level="3"><p>경로가 둘인 과제에서 A형이 70%, B형이 30%이다. 고정 경로는 A형만 안다. 고정 경로의 성공률은 A형에서 \(f=0.98\), 동적 선택은 두 형 모두 \(d=0.85\)이고, B형에서 고정 경로의 정확도는 \(g=0.01\) 이하이다. (가) 고정 경로의 정확도 상한과 동적 선택의 정확도를 비교하라. (나) 적용 범위가 얼마여야 고정 경로가 이길 수 있는가? (다) 두 설계의 토큰이 시행당 고정 경로 3,300, 동적 선택 2,600이면 성공 하나당 토큰은?</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#thm-fixed"></a>이다. (가) 고정 경로의 상한은 \(0.7\times0.98+0.3\times0.01=0.689\)이고 동적 선택은 0.85이다. 동적 선택이 이긴다. (나) \((d-g)/(f-g)=0.84/0.97=0.866\)이어서 적용 범위가 87% 이상이어야 한다. 이 과제의 70%는 문턱 아래이다. (다) 성공 하나당 토큰은 고정 경로가 \(3300/0.689=4{,}790\)(상한 기준), 동적 선택이 \(2600/0.85=3{,}059\)이다. 토큰이 더 많이 들어도 고정 경로가 이기려면 범위가 더 넓어야 한다. 반대로 고정 경로가 A형만 처리하고 B형을 사람에게 넘기는 설계라면 비교가 달라진다(15장, 25장).</p></details></div>
+    <div class="prob" id="prob-design" data-level="2"><p>'같은 질문을 단일 응답과 도구 루프로 풀면 정확도가 어떻게 다른가'를 재는 실험을 설계하라. 바꾸는 것 하나, 고정할 것, 관측값, 이론에서 나오는 예상 하나, 그 예상이 틀렸다고 볼 조건을 적어라.</p>
+      <details class="sol"><summary>풀이</summary><p>한 가지 답이다. 바꾸는 것: 도구의 유무(N: 도구 없음, P: 같은 질문에 도구 8개). 고정: 질문(깊이 3의 사슬), 세계(같은 시행 번호는 같은 id와 값), 모델과 디코딩, 시스템 프롬프트의 기본 문장. 관측값: 답의 범주(정답, 다른 레코드의 값, 지어낸 값, 값 없음), 정답이 도구 결과에 있는 비율, 라운드 수. 예상(<a class="ref" href="#thm-depth"></a>의 3번): 도구가 없는 조건에서 정답은 \(1/V\) 이하이고, 60시행에서 3개 이상이면 기각한다(\(V=900\)일 때 \(4.5\times10^{-5}\)). 루프에서 도구 결과에 값이 없는 정답도 같은 기준이다. 조건마다 시행 수를 60 이상으로 하고 같은 시행 번호는 같은 세계로 짜면 두 조건의 차이를 짝지어 비교할 수 있다. 루프의 정확도가 모델에 따라 어떻게 될지는 이론이 말하지 않으므로 관찰로 보고한다.</p></details></div>
+    <div class="prob" id="prob-hit" data-level="3"><p><a class="ref" href="#thm-depth"></a>의 3번의 합집합 한계가 얼마나 느슨한지 보라. 찍은 키가 \(kR=10\)번이고 각각이 독립으로 확률 \(1/V\)(\(V=900\))로 맞는다. (가) 한 번이라도 맞을 정확한 확률은? 합집합 한계 \(kR/V\)와 견주라. (나) 두 값의 차이는 \(kR\)과 \(V\)가 어떻게 달라지면 커지는가?</p>
+      <details class="sol"><summary>풀이</summary><p>(가) \(1-(1-1/900)^{10}=0.01106\)이고 합집합 한계는 \(10/900=0.01111\)이다. 차이는 \(5.6\times10^{-5}\)로 매우 작다. (나) 차이는 \(\binom{kR}{2}/V^2\) 정도이므로 \(kR\)이 커지거나 \(V\)가 작아지면 커진다. \(kR\)이 \(V\)에 가까워지면 한계 \(kR/V\)가 1을 넘어 쓸모없어진다. 이 장의 설정(\(V\ge900\), \(kR\le16\))에서는 합집합 한계가 정확한 값과 거의 같다.</p></details></div>
+    <div class="prob" id="prob-trace" data-level="3"><p>질문은 '주문 ORD-3001의 SKU의 공급사의 월 생산 능력'(깊이 3, 참조 경로는 <code>get_order</code>, <code>get_sku</code>, <code>get_supplier</code>)이다. 가상의 실행 기록 셋이 있다. 각각의 호출 인자의 출처, 처음 어긋난 단계와 종류, 고칠 곳(도구 설명, 프롬프트, 하네스의 종료 규칙)을 말하라.<br>
+      (A) <code>get_order("ORD-3001")</code> → <code>{"sku": "SKU-5120", "qty": 12}</code>; <code>get_sku("SKU-5120")</code> → <code>{"supplier": "SUP-310", "stock": 640}</code>; 최종 응답: '월 생산 능력은 640이다.'<br>
+      (B) <code>get_supplier("SUP-310")</code> → <code>{"error": "not_found"}</code>; 최종 응답: '공급사를 찾지 못했다.'<br>
+      (C) <code>get_order("ORD-3001")</code> → <code>{"sku": "SKU-5120", "qty": 12}</code>; <code>get_sku("SKU-5210")</code> → <code>{"error": "not_found"}</code>; 최종 응답: '알 수 없다.'</p>
+      <details class="sol"><summary>풀이</summary><p><a class="ref" href="#def-stage"></a>과 14.4절이다. (A) 두 호출의 인자는 goal과 obs이다. 세 번째 호출 없이 멈췄으므로 처음 어긋난 단계는 3(early stop)이다. 답의 640은 <code>get_sku</code> 결과의 재고여서 한 라운드 일찍 멈추고 중간 레코드의 값으로 답한 경우(wrong value)이다. 프롬프트에 '중간 레코드의 값으로 답하지 말라'를 더하거나, 하네스가 질문이 묻는 필드가 결과에 있는지 확인하게 한다. (B) 첫 호출의 인자 <code>SUP-310</code>이 질문에도 관찰에도 없으므로 출처는 none이고, 첫 호출이 <code>get_order</code>가 아니므로 단계 1(wrong tool)이다. 키를 만들어 낸 호출이 맞을 확률은 \(1/V\) 이하이다. 도구 설명에서 공급사 id는 SKU 레코드에서 온다는 것을 알리거나 도구의 의존 관계를 하네스가 정하는 것이다. (C) 두 번째 호출의 인자 <code>SKU-5210</code>은 앞 관찰의 <code>SKU-5120</code>에서 두 자리를 바꾼 값이어서 출처는 none(베끼기 오류)이고, 단계 2의 wrong arg이다. 오류가 <code>not_found</code>만 말해 모델이 인자를 고칠 단서가 없었다. 오류 메시지에 앞 호출의 결과를 쓰라고 알리거나(13장), 인자를 앞 관찰에서 코드가 뽑아 채우는 고정 경로가 고칠 곳이다.</p></details></div>
   </section>
 </main>
 </body>
