@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>15 계획·재계획·중단 · AgentBook</title>
-<meta name="description" content="끝을 모델의 선언, 코드로 쓴 검사, 한도로 나누어 선언으로 끝내는 규칙과 검사로 끝내는 규칙을 같은 실행에서 짝지어 견주고, 검사의 거짓 양성이 통과의 정밀도에 들어가는 방식을 센다. 계획을 도구의 열과 인자의 출처로 정의해 불일치를 읽고, 관찰보다 앞서 쓴 계획이 고정 경로임을 보인다. 실패가 쌓일 때 풀 수 있는 과제일 사후확률과 최적 시도 한도를 닫힌 식으로 구하고, 완료·한도·정체·권한의 중단 조건을 가른다. 마지막 실험은 라운드 한도를 고정하고 종료 규칙만 바꾸어 실패의 유형을 잰다.">
+<meta name="description" content="끝을 모델의 선언, 코드로 쓴 검사, 한도로 나누어 선언으로 끝내는 규칙과 검사로 끝내는 규칙을 같은 실행에서 짝지어 견주고, 검사의 거짓 양성이 통과의 정밀도에 들어가는 방식을 센다. 계획을 도구의 열과 인자의 출처로 정의해 불일치를 읽고, 관찰보다 앞서 쓴 계획이 고정 경로임을 보인다. 실패가 쌓일 때 풀 수 있는 과제일 사후확률과 최적 시도 한도를 닫힌 식으로 구하고, 완료·한도·정체·권한의 중단 조건을 가른다. 마지막 실험은 라운드 한도를 고정하고 종료 규칙만 바꾸어 실패의 유형을 잰 뒤, 거절 글의 이유, 한도 N, 질문 문장 9개로 넓혀 다시 잰다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -318,7 +318,7 @@
   <!-- ============================================================ 실험 -->
   <section id="lab">
     <h2>실험: 완료 조건만 바꾸면 실패의 유형이 어떻게 달라지는가</h2>
-    <p>슬롯에 적어 둔 질문은 '최대 반복 횟수는 고정하고 완료 조건만 검사 통과와 모델의 완료 선언으로 바꾸면 실패 유형이 어떻게 달라지는가'였다. 이 절은 그것을 그대로 잰다. 라운드 한도 \(N=6\)을 고정하고 종료 규칙만 규칙 A(모델의 선언으로 끝냄)와 규칙 B(검사 통과로 끝냄, <a class="ref" href="#def-stop"></a>)로 바꾼다. 프롬프트는 두 수준(기본, 끝까지 하라는 지시)으로 두어 두 규칙의 차이가 프롬프트에 따라 달라지는지도 본다. 세계는 14장의 가상의 물류에 쓰기 도구를 더한 것이다. 주문을 출하하려면 재고를 예약한 뒤 주문의 상태를 shipped로 바꿔야 하고, 4분의 1의 주문은 재고가 모자라 출하할 수 없다. 모델은 14장과 같은 Qwen3-1.7B이다. 11~14장처럼 모델 없이 이 장의 계산을 먼저 확인하고(E0), 모델의 실행 기록에서 끝의 종류와 실패의 유형을 읽는다(E1~E5). 시간이 오래 걸릴 시행(조건을 더 늘린 반복, 대조 모델, 실제 Claude 에이전트)은 돌리지 않고 이 절 끝의 슬롯으로 남겼다.</p>
+    <p>슬롯에 적어 둔 질문은 '최대 반복 횟수는 고정하고 완료 조건만 검사 통과와 모델의 완료 선언으로 바꾸면 실패 유형이 어떻게 달라지는가'였다. 이 절은 그것을 그대로 잰다. 라운드 한도 \(N=6\)을 고정하고 종료 규칙만 규칙 A(모델의 선언으로 끝냄)와 규칙 B(검사 통과로 끝냄, <a class="ref" href="#def-stop"></a>)로 바꾼다. 프롬프트는 두 수준(기본, 끝까지 하라는 지시)으로 두어 두 규칙의 차이가 프롬프트에 따라 달라지는지도 본다. 세계는 14장의 가상의 물류에 쓰기 도구를 더한 것이다. 주문을 출하하려면 재고를 예약한 뒤 주문의 상태를 shipped로 바꿔야 하고, 4분의 1의 주문은 재고가 모자라 출하할 수 없다. 모델은 14장과 같은 Qwen3-1.7B이다. 11~14장처럼 모델 없이 이 장의 계산을 먼저 확인하고(E0), 모델의 실행 기록에서 끝의 종류와 실패의 유형을 읽는다(E1~E5). 본 실험의 결과를 본 뒤에 확장 실험 셋(SZ와 SL, 한도 \(N=10\), 질문 문장 9개)을 같은 코드로 더 돌렸다. 이 절의 '확장 실험'이 그 결과이다. 실제 Claude 에이전트와 다른 과제로의 확대는 돌리지 않고 이 절 끝의 슬롯으로 남겼다.</p>
 
     <h3 id="h-design15">실험 설계</h3>
     <div class="table-wrap"><table>
@@ -332,7 +332,7 @@
         <tr><td>고정하는 것</td><td>시드 15, 조건마다 36시행(풀 수 있음 27, 풀 수 없음 9), 라운드 한도 \(N=6\), 한 라운드의 호출 최대 4개, 도구 정의의 글, 시스템 프롬프트의 기본 문장, 디코딩. 같은 시행 번호는 같은 세계(같은 id와 수량, 같은 문장)이다.</td></tr>
         <tr><td>관측값</td><td>끝의 종류(통과, 선언, 한도). 마지막 글의 분류(<code>done</code>: 완료를 주장, <code>blocked</code>: 막혔다고 보고, <code>announce</code>: 하겠다고만 말함, <code>other</code>)와 이로 정한 <b>실패의 유형</b>: <code>pass</code>, <code>false_done</code>(완료를 주장했으나 검사가 거짓), <code>announce_stop</code>, <code>gave_up</code>(풀 수 있는데 막혔다고 보고), <code>honest_block</code>(풀 수 없는데 막혔다고 보고), <code>stopped_other</code>, <code>limit</code>(한도). 풀 수 있는 시행과 풀 수 없는 시행으로 나눈 결과. 라운드, 호출, 오류 결과, 거절 횟수. 참조 경로(<code>get_order</code> → <code>reserve_stock</code> → <code>set_status</code>)에서 처음 어긋난 단계와 종류. 호출 인자의 출처(goal, obs, fb: 하네스의 검사 보고, none: 지어낸 값). 같은 선언 글의 되풀이, 같은 호출의 되풀이, 예약이 수량을 넘은 시행. 읽은 토큰(캐시 없이와 접두부 보존). 신뢰구간은 시행 단위 부트스트랩(2,000번, 시드 16)이다.</td></tr>
         <tr><td>점검</td><td><b>E0</b>(모델 없음): 한도의 값의 닫힌 식과 최적 한도를 모든 \(N\)의 직접 비교와 몬테카를로에 견준다(<a class="ref" href="#thm-cap"></a>). <b>E1~E5</b>: 아래 예상의 점검.</td></tr>
-        <tr><td>예산</td><td>RTX 3060 Ti 한 장에서 4개 조건 144시행에 첫 회차 약 12분(741초), 둘째 회차 약 12분(745초)이 걸렸다(조건별 시간의 합이고 모델 로딩은 빠진다). 걸린 시간은 같은 GPU를 쓰는 다른 프로그램에 따라 크게 달라지며 결과는 달라지지 않는다.</td></tr>
+        <tr><td>예산</td><td>RTX 3060 Ti 한 장에서 본 실험은 4개 조건 144시행에 첫 회차 약 12분(741초), 둘째 회차 약 12분(745초)이 걸렸다. 확장 실험은 slots가 약 9분(513초), n10가 약 11분(646초), sent가 약 13분(763초)이었다(첫 회차). 모두 조건별 시간의 합이고 모델 로딩은 빠진다. 걸린 시간은 같은 GPU를 쓰는 다른 프로그램에 따라 크게 달라지며 결과는 달라지지 않는다.</td></tr>
         <tr><td>예상</td><td>모델을 전체 실행하기 전에 파일에 적었다(아래 '실행 전에 본 것'). 모두 이론과 회계에서 나오는 것이다. <b>E0</b>(<a class="ref" href="#thm-cap"></a>) 닫힌 식의 최적 한도가 모든 \(N\)을 비교한 최적과 같고, 닫힌 식의 값과 몬테카를로 값의 차이가 1.0 이하이다(다섯 설정, 설정마다 4만 번). <b>E1</b>(<a class="ref" href="#thm-pair"></a>의 1~3번) SA→SB와 PA→PB의 같은 시행 번호 72쌍에서 (a) 두 실행이 갈라지기 전 라운드의 출력이 글자까지 같고, (b) A가 검사를 통과한 시행에서 B도 통과하며 라운드 수가 A 이하이고, (c) A가 한 번도 통과하지 못한 시행에서 B의 라운드와 읽은 토큰이 A 이상이다. <b>E2</b>(<a class="ref" href="#thm-pair"></a>의 6번) SB와 PB의 풀 수 없는 시행에서 통과 0, 끝이 한도, 라운드 6이다. <b>E3</b>(<a class="ref" href="#thm-pair"></a>의 5번) SB와 PB에서 선언이 받아들여진 채 끝난 시행이 0이다. <b>E4</b>(회계) 조건마다 유형의 합이 36이다. <b>E5</b>(도구 코드) 풀 수 없는 시행은 어느 조건에서도 통과하지 못한다.</td></tr>
         <tr><td>예상이 틀렸다고 볼 조건</td><td><b>E0</b> 닫힌 식의 최적 한도가 직접 비교와 다르거나 값의 차이가 1.0을 넘으면 식을 고친다. <b>E1~E5</b> 위반이 하나라도 있으면 하네스나 분석 코드의 오류이다. 모델의 호출이 결정적이지 않다는 뜻일 수도 있고, 그 경우 그 사실을 적는다.</td></tr>
       </tbody>
@@ -344,11 +344,11 @@
         <tr><td>SB</td><td>S</td><td>B: 검사 통과로 끝, 검사가 거짓인 선언은 이유를 붙여 거절</td><td>검사를 붙이면 무엇이 달라지는가(SA와 짝)</td></tr>
         <tr><td>PA</td><td>P(끝까지 하라)</td><td>A</td><td>프롬프트로 완료를 요구했을 때</td></tr>
         <tr><td>PB</td><td>P</td><td>B</td><td>프롬프트와 검사를 함께 쓸 때(PA와 짝)</td></tr>
-        <tr><td>SZ</td><td>S</td><td>B, 검사 실패의 이유 없이 'Check failed.'만</td><td>이 장에서는 돌리지 않음(슬롯). 이유의 정보량</td></tr>
-        <tr><td>SL</td><td>S에 '계획을 먼저 쓰라'</td><td>B</td><td>이 장에서는 돌리지 않음(슬롯). 계획과 실행의 불일치</td></tr>
+        <tr><td>SZ</td><td>S</td><td>B, 검사 실패의 이유 없이 'Check failed.'만</td><td>확장 실험에서 돌림. 이유의 정보량</td></tr>
+        <tr><td>SL</td><td>S에 '계획을 먼저 쓰라'</td><td>B</td><td>확장 실험에서 돌림. 계획과 실행의 불일치</td></tr>
       </tbody>
     </table></div>
-    <p>SA와 SB, PA와 PB는 같은 프롬프트와 같은 세계라서 <a class="ref" href="#thm-pair"></a>의 짝으로 견줄 수 있다. 코드에는 SZ와 SL의 정의도 들어 있지만 이 장의 실행에서는 돌리지 않았다.</p>
+    <p>SA와 SB, PA와 PB는 같은 프롬프트와 같은 세계라서 <a class="ref" href="#thm-pair"></a>의 짝으로 견줄 수 있다. 코드에는 SZ와 SL의 정의도 들어 있고, 두 조건은 본 실험이 아니라 아래 확장 실험에서 돌렸다.</p>
 
     <h3 id="h-code15">코드</h3>
     <p>Python 3.14.5, PyTorch 2.11.0(CUDA 12.8), Transformers 5.22.2, NumPy 2.5.4에서 실행했다(<code>OMP_NUM_THREADS=1 python -I -X utf8 exp15.py all</code>로 전체, <code>e0</code>로 모델 없이 E0의 계산만). 하네스는 도구 호출을 읽는 <code>parse_calls</code>, 스키마 검사 <code>check</code>, 도구와 상태 갱신 <code>execute</code>, 검사 <code>done</code>과 거절 보고 <code>report</code>, 마지막 글을 가르는 <code>claim</code>, 호출 인자의 출처를 가르는 <code>source</code>, 한 시행의 루프와 판정을 맡는 <code>trial</code>이다. <a class="ref" href="#def-stop"></a>의 두 규칙이 <code>trial</code>의 <code>for</code> 한 바퀴 안의 분기이다(<code>spec["rule"]</code>이 <code>"A"</code>이면 선언에서 끝나고 <code>"B"</code>이면 <code>done</code>이 참일 때 끝나며 선언은 <code>report</code>를 붙여 계속한다). <code>n_star</code>, <code>value</code>, <code>posterior</code>는 E0의 닫힌 식이다.</p>
@@ -647,7 +647,7 @@ if __name__ == "__main__":
     <p>코드는 시행마다 실행 기록(라운드마다 프롬프트 길이, 생성 길이, 앞 라운드와의 공통 접두부 길이, 모델의 원문 출력, 호출과 결과와 인자 출처)을 <code>out15_raw.json</code>에 쓰고 조건별 요약을 <code>out15_res.json</code>에 쓴다. 조건 하나가 끝날 때마다 <code>ckpt15_*.json</code>에 저장하고, 다시 실행하면 끝난 조건은 건너뛴다.</p>
 
     <h3 id="h-seen15">실행 전에 본 것</h3>
-    <p>전체 실행 전에 예상과 기각 조건을 파일에 적었다. 조건 목록, 프롬프트, 도구 설명, 판정 규칙은 전체 실행 뒤에 바꾸지 않았다. 밝힐 것이 있다. (1) 첫 설계의 질문은 'Ship order ORD-dddd.' 한 문장이었다. 스모크(시드 99, 12시행, SA와 SB)에서 모델은 도구를 부르지 않고 '주문을 조회하겠다'는 글만 썼고(SA는 12시행 모두 호출 0), SB는 거절된 뒤에도 같은 문장을 되풀이해 한도까지 갔다. (2) 탐색(시드 98, 조건당 12시행)에서 '도구를 부르라'고 더 강하게 쓴 프롬프트도, 질문을 'Set order … to shipped.' 같은 명령으로 바꾼 것도 호출을 거의 끌어내지 못했다. 이 모델은 지시문에서 도구를 고르지 않고 '이미 바꿨다'고 말하거나 계획만 썼다. 호출이 나오더라도 SKU 자리에 'SKU', 'unknown' 같은 값을 넣었다. 12시행 모두에서 통과가 0이었다. (3) 질문에 단계를 적으면 호출이 나왔다. 이 설계로 정했고, 같은 시드 98의 12시행에서 통과는 SA 0, PA 0, SB 3, PB 8이었다. (4) 탐색에서 마지막 글을 가르는 규칙을 한 번 고쳤다(처음 규칙은 'To ship order …'를 완료 주장으로 읽었다). 호출 인자의 출처와 검사가 처음 참이 된 라운드의 기록을 더했다. SZ와 SL의 코드 경로는 12시행으로 한 번 돌려 점검했다(SL에서 모델은 계획을 쓰지 않고 바로 호출했다). 이 값들은 쓰지 않았다. (5) 탐색의 시드(98, 99)는 전체 실행의 시드(15)와 달라서, 전체 실행의 세계를 본 적이 없다. (6) 탐색의 12시행에서 시간은 SA 25초, PA 54초, SB 66초, PB 105초였다. 이로부터 네 조건의 한 회차를 십수 분으로 어림했고, 그보다 오래 걸릴 조건은 이 장에서 돌리지 않고 슬롯으로 남기기로 했다.</p>
+    <p>전체 실행 전에 예상과 기각 조건을 파일에 적었다. 조건 목록, 프롬프트, 도구 설명, 판정 규칙은 전체 실행 뒤에 바꾸지 않았다. 밝힐 것이 있다. (1) 첫 설계의 질문은 'Ship order ORD-dddd.' 한 문장이었다. 스모크(시드 99, 12시행, SA와 SB)에서 모델은 도구를 부르지 않고 '주문을 조회하겠다'는 글만 썼고(SA는 12시행 모두 호출 0), SB는 거절된 뒤에도 같은 문장을 되풀이해 한도까지 갔다. (2) 탐색(시드 98, 조건당 12시행)에서 '도구를 부르라'고 더 강하게 쓴 프롬프트도, 질문을 'Set order … to shipped.' 같은 명령으로 바꾼 것도 호출을 거의 끌어내지 못했다. 이 모델은 지시문에서 도구를 고르지 않고 '이미 바꿨다'고 말하거나 계획만 썼다. 호출이 나오더라도 SKU 자리에 'SKU', 'unknown' 같은 값을 넣었다. 12시행 모두에서 통과가 0이었다. (3) 질문에 단계를 적으면 호출이 나왔다. 이 설계로 정했고, 같은 시드 98의 12시행에서 통과는 SA 0, PA 0, SB 3, PB 8이었다. (4) 탐색에서 마지막 글을 가르는 규칙을 한 번 고쳤다(처음 규칙은 'To ship order …'를 완료 주장으로 읽었다). 호출 인자의 출처와 검사가 처음 참이 된 라운드의 기록을 더했다. SZ와 SL의 코드 경로는 12시행으로 한 번 돌려 점검했다(SL에서 모델은 계획을 쓰지 않고 바로 호출했다). 이 값들은 쓰지 않았다. (5) 탐색의 시드(98, 99)는 전체 실행의 시드(15)와 달라서, 전체 실행의 세계를 본 적이 없다. (6) 탐색의 12시행에서 시간은 SA 25초, PA 54초, SB 66초, PB 105초였다. 이로부터 네 조건의 한 회차를 십수 분으로 어림했고, 처음에는 그보다 오래 걸릴 조건을 이 장에서 돌리지 않고 슬롯으로 남기기로 했다. 본 실험의 결과를 본 뒤 그 슬롯의 일부를 돌리기로 해서 '확장 실험'으로 돌렸다.</p>
 
 
     <h3 id="h-res15">결과</h3>
@@ -730,6 +730,92 @@ if __name__ == "__main__":
 <tr><td>PB</td><td class="num">0/12 · 8 · 2</td><td class="num">0/12 · 9 · 1</td><td class="num">0/12 · 9 · 3</td></tr>
 </tbody></table></div>
     <p>S 프롬프트에서 첫 문장('Ship order …: look up the order, …')과 셋째 문장('Order … must be shipped: read the order, …')은 12시행 모두 도구를 부르지 않고 시작했고, 둘째 문장('Please ship order …. Look up the order first, …')은 12시행 가운데 11시행이 호출로 시작했다. SB의 통과 8개는 모두 둘째 문장에서 나왔다. 첫째와 셋째 문장에서는 거절 글에 수량과 이유가 들어 있는데도 모델이 '예약하겠다'는 글만 되풀이해 호출을 내지 않았다(되풀이한 시행이 12와 11). 거절 글이 정보를 주어도 행동으로 바뀌지 않으면 구해지지 않는다. P 프롬프트는 세 문장 모두 첫 라운드에 호출을 냈고 PB의 통과가 8, 9, 9이다. 이론이 값을 정하지 않은 관찰이고, 문장이 셋뿐이라 얼마나 민감한지는 재지 못했다.</p>
+
+
+    <h3 id="h-ext15">확장 실험</h3>
+    <p>본 실험의 결과를 본 뒤에, 처음에는 슬롯으로 남기려 했던 실험을 돌렸다. 같은 하네스에서 설정만 바꾸는 작은 스크립트(<code>exp15x.py</code>, 아래)이고 <code>exp15.py</code>는 고치지 않았다. 셋이다. <b>slots</b>는 본 실험의 SB에서 하나만 바꾼 두 조건이다. SZ는 거절 글에서 이유를 빼고 'Check failed. The task is not complete yet. Keep working.'만 돌려주고, SL은 첫 라운드에 도구 이름의 계획을 쓰라는 지시를 시스템 프롬프트에 더한다. <b>n10</b>은 SB와 PB를 한도 \(N=10\)으로 돌린다. 한도가 다른 두 실행은 한도에 닿기 전까지 같은 실행이므로(<a class="ref" href="#thm-pair"></a>의 1번과 같은 논리), \(N=10\)으로 한 번 돌려 라운드 \(N\)에서 자르면 한도 \(N\)의 실행이 된다. <b>sent</b>는 네 조건을 질문 문장 9개로 돌린다. 앞의 셋은 본 실험의 문장이고 여섯은 새로 썼다. 9는 4와 서로소여서 36시행에서 문장마다 풀 수 있는 시행 3개와 풀 수 없는 시행 1개가 배정된다. 모두 시드 15, 조건마다 36시행, 본 실험과 같은 세계(같은 시행 번호는 같은 주문과 수량)이다.</p>
+    <p>확장 실험의 예상과 기각 조건도 돌리기 전에 파일에 적었다. 모두 본 실험과 같은 종류의 항등식이다. <b>X1</b>(slots) SZ와 SL의 풀 수 없는 시행 9개는 통과 0, 끝이 한도, 라운드 6이고 선언이 받아들여진 시행이 0이며 유형의 합이 36이다. SZ는 SA와 프롬프트가 같으므로 같은 시행 번호의 36쌍에서 갈라지기 전 라운드의 출력이 글자까지 같고 SA가 통과하지 못한 시행에서 SZ의 라운드와 읽은 토큰이 SA 이상이다. <b>X2</b>(n10) 같은 조건, 같은 시행 번호의 N=6 본 실행과 N=10 실행에서 (a) 갈라지기 전 라운드의 출력이 글자까지 같고, (b) N=6에서 통과한 시행은 N=10에서 같은 라운드에 통과하며, (c) N=10 실행을 라운드 6에서 자른 통과 수가 본 실험의 SB 8, PB 26과 같고, (d) 통과 수가 N에 대해 줄지 않으며, (e) 풀 수 없는 시행은 통과 0이고 라운드 10을 쓰며 읽은 토큰이 라운드 1~10 프롬프트 길이의 합이다. <b>X3</b>(sent) SA→SB와 PA→PB의 72쌍에서 E1의 (a)와 (c)의 위반이 0이고, B의 풀 수 없는 시행(각 9개)은 통과 0·한도·라운드 6이며, 선언이 받아들여진 시행이 0이고, 유형의 합이 36이며, 풀 수 없는 시행의 통과가 0이다. 위반이 하나라도 있으면 하네스나 분석 코드를 고친다. 예상하지 않은 것은 관찰로 보고한다. SZ와 SB의 차이, SL에서 모델이 계획을 쓰는지, 통과 곡선의 모양, 문장 9개에서 S 프롬프트의 문장별 결과이다.</p>
+    <p>돌리기 전에 본 것이 있다. 본 실험의 결과는 모두 보았다. SZ와 SL은 탐색(시드 98, 12시행)에서 코드 경로만 점검했고 그때 SL의 계획 열이 비어 있었다(통과는 SZ 0/12, SL 9/12였고 쓰지 않았다). 새 문장 여섯은 모델에 넣어 본 적이 없다. N=10 실행은 본 적이 없다.</p>
+<pre><code>"""exp15.py를 불러와 설정만 바꿔 돌리는 확장 실험. exp15.py는 고치지 않는다.
+python -I -X utf8 exp15x.py &lt;이름&gt;   (결과는 현재 폴더의 out15x_raw.json, out15x_res.json, ckpt15_*.json)
+  slots: 조건 SZ, SL (N=6)       n10: 조건 SB, PB를 한도 N=10으로       sent: 조건 SA, SB, PA, PB를 질문 문장 9개로 (N=6)"""
+import json, os, sys, time
+
+NAME = sys.argv[1] if len(sys.argv) &gt; 1 else "slots"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.argv = [sys.argv[0], "all"]                                # exp15가 읽는 인자
+import numpy as np
+import exp15 as X
+
+SENT = (X.GOAL[0], X.GOAL[1], X.GOAL[2],                       # 앞의 셋은 exp15.py의 문장이다
+        "Can you ship order {order}? First look up the order, then reserve the stock for it, then set its status to shipped.",
+        "I need order {order} shipped. Start by reading the order, reserve the stock it requires, and finish by setting its status to shipped.",
+        "Process order {order} for shipping: retrieve the order, reserve the stock, and update its status to shipped.",
+        "Please handle order {order}. Look it up, reserve the units it needs, and then change its status to shipped.",
+        "Ship out order {order} now: get the order details, reserve enough stock, then mark the order shipped.",
+        "For order {order}, do these steps in order: look up the order, reserve its stock, set the status to shipped.")
+
+if NAME == "slots": X.RUNS = ["SZ", "SL"]
+elif NAME == "n10": X.RUNS = ["SB", "PB"]; X.N = 10
+elif NAME == "sent":
+    X.RUNS = ["SA", "SB", "PA", "PB"]; X.GOAL = SENT; w0 = X.world
+    X.world = lambda t: dict(w0(t), phr=t % len(SENT))         # 문장 수 9는 4와 서로소여서 문장과 풀 수 있음이 섞인다(36시행에서 문장마다 풀 수 있는 3개, 없는 1개)
+else: raise SystemExit("이름은 slots, n10, sent 중 하나")
+
+if __name__ == "__main__":
+    t0 = time.time(); tok, answer = X.load(); raw, res = X.run_model(answer)
+    json.dump(raw, open("out15x_raw.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    json.dump(dict(name=NAME, N=X.N, runs=X.RUNS, n_goal=len(X.GOAL), dim=dict(X.DIM), model=res), open("out15x_res.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    print(f"완료 {time.time() - t0:.0f}s")
+</code></pre>
+    <p><b>SZ와 SL.</b> 두 조건과 본 실험의 SB를 같은 표에 놓았다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건</th><th class="num">통과(95% 구간)</th><th class="num">풀 수 있는 27 중 통과</th><th class="num">끝: 통과 / 선언 / 한도</th><th class="num">라운드</th><th class="num">호출</th><th class="num">오류 결과</th><th class="num">거절</th><th class="num">읽은 토큰(캐시 없이)</th></tr></thead><tbody>
+<tr><td>SB (본 실험, 이유 있는 보고)</td><td class="num">0.22 [0.11, 0.36]</td><td class="num">8/27</td><td class="num">8 / 0 / 28</td><td class="num">6.00</td><td class="num">1.81</td><td class="num">1.06</td><td class="num">4.39</td><td class="num">4,739</td></tr>
+<tr><td>SZ 이유 없는 거절</td><td class="num">0.00 [0.00, 0.00]</td><td class="num">0/27</td><td class="num">0 / 0 / 36</td><td class="num">6.00</td><td class="num">1.44</td><td class="num">0.97</td><td class="num">4.56</td><td class="num">4,322</td></tr>
+<tr><td>SL 계획 지시</td><td class="num">0.75 [0.61, 0.89]</td><td class="num">27/27</td><td class="num">27 / 0 / 9</td><td class="num">5.89</td><td class="num">5.97</td><td class="num">3.47</td><td class="num">2.78</td><td class="num">5,198</td></tr>
+</tbody></table></div>
+    <p><b>이유를 뺀 거절은 구하지 못했다.</b> SZ는 36시행이 모두 한도로 끝났고 통과가 0/36이다. 같은 세계의 SB는 8/36이었다. 시행별로 짝지으면 SB만 통과한 시행이 8개이고 SZ만 통과한 시행은 0개이다(사후 분석의 3절). 둘째 문장에서 SB는 풀 수 있는 9시행 가운데 8시행을 통과했는데, SZ는 같은 문장에서 12시행 가운데 11시행이 첫 라운드에 호출로 시작하고도 통과가 0이다. 거절 글의 이유('예약된 재고가 0이고 정확히 \(q\)여야 한다')가 모델이 호출을 내는 데 필요한 정보를 주었고, 한 비트('Check failed')는 주지 못했다. 이는 <a href="ch13.html#thm-retry">정리 13.3</a>의 4번이 오류 메시지를 정보의 통로로 본 것과 같은 방향의 관찰이다. 이론이 정하는 것은 <a class="ref" href="#thm-pair"></a>의 성립뿐이고, SA와 SZ의 짝에서 갈라지기 전 라운드의 출력이 글자까지 같았다.</p>
+    <p><b>계획 지시는 계획을 만들지 않았고 호출을 끌어냈다.</b> SL은 27/36이 통과했고 풀 수 있는 27시행은 27/27이다. 그러나 36시행의 첫 라운드 출력은 모두 <code>&lt;tool_call&gt;</code>으로 시작했고 계획 글이 있는 시행이 하나도 없었다(계획 열이 비어 있지 않은 시행 0/36). 모델은 '계획을 쓰라'는 지시를 따르지 않고 곧바로 호출했다. SB에서 첫 라운드에 호출이 없던 24시행이 SL에서는 모두 호출로 시작했고, 이 지시가 P 프롬프트처럼 모델이 행동하게 하는 효과만 냈다. 그래서 SL은 <a class="ref" href="#def-plan"></a>의 계획과 실행의 불일치를 재지 못했다. 15.2절의 불일치는 질문에 적힌 단계를 계획으로 읽은 본 실험의 '처음 어긋난 단계'로만 확인했고, 모델이 쓴 계획을 실제로 얻는 설계는 아래 슬롯으로 남는다.</p>
+
+
+    <p><b>한도 N을 바꾸면.</b> N=10으로 돌린 SB와 PB를 본 실험의 같은 조건과 시행 번호로 짝지어 X2를 점검했다. (a) 갈라지기 전 라운드의 출력이 글자까지 다른 시행이 SB와 PB 모두 0이다. (b) N=6에서 통과한 시행이 N=10에서 같은 라운드에 통과하지 않은 시행이 0이다. (c) N=10 실행을 라운드 6에서 자른 통과가 SB 8, PB 26으로 본 실험과 같다. (d) 아래 표에서 통과 수는 N에 대해 줄지 않는다. (e) 풀 수 없는 시행 9개는 SB와 PB 모두 통과 0이고 라운드 10을 썼으며, 읽은 토큰이 라운드 1~10 프롬프트 길이의 합과 같다(SB 평균 9,390, PB 평균 10,457토큰). 아래 표는 N=10 실행을 라운드 \(N\)에서 자른 값이다. 시행당 토큰은 36시행의 평균이고, 통과 하나당 토큰은 그 값에 36을 곱해 통과 수로 나눈 것이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>한도 N</th><th class="num">SB 통과</th><th class="num">SB 시행당 토큰</th><th class="num">SB 통과 하나당 토큰</th><th class="num">PB 통과</th><th class="num">PB 시행당 토큰</th><th class="num">PB 통과 하나당 토큰</th></tr></thead><tbody>
+<tr><td>1</td><td class="num">0</td><td class="num">569</td><td class="num">—</td><td class="num">0</td><td class="num">580</td><td class="num">—</td></tr>
+<tr><td>2</td><td class="num">0</td><td class="num">1,257</td><td class="num">—</td><td class="num">0</td><td class="num">1,362</td><td class="num">—</td></tr>
+<tr><td>3</td><td class="num">0</td><td class="num">2,020</td><td class="num">—</td><td class="num">0</td><td class="num">2,233</td><td class="num">—</td></tr>
+<tr><td>4</td><td class="num">0</td><td class="num">2,858</td><td class="num">—</td><td class="num">0</td><td class="num">3,179</td><td class="num">—</td></tr>
+<tr><td>5</td><td class="num">0</td><td class="num">3,764</td><td class="num">—</td><td class="num">9</td><td class="num">4,189</td><td class="num">16,757</td></tr>
+<tr><td>6</td><td class="num">8</td><td class="num">4,739</td><td class="num">21,327</td><td class="num">26</td><td class="num">5,005</td><td class="num">6,930</td></tr>
+<tr><td>7</td><td class="num">8</td><td class="num">5,533</td><td class="num">24,899</td><td class="num">26</td><td class="num">5,330</td><td class="num">7,380</td></tr>
+<tr><td>8</td><td class="num">8</td><td class="num">6,381</td><td class="num">28,712</td><td class="num">26</td><td class="num">5,676</td><td class="num">7,859</td></tr>
+<tr><td>9</td><td class="num">8</td><td class="num">7,283</td><td class="num">32,772</td><td class="num">26</td><td class="num">6,043</td><td class="num">8,368</td></tr>
+<tr><td>10</td><td class="num">8</td><td class="num">8,241</td><td class="num">37,086</td><td class="num">26</td><td class="num">6,436</td><td class="num">8,911</td></tr>
+</tbody></table></div>
+    <p>통과는 라운드 5와 6에 몰려 있다. SB는 \(N\le5\)에서 0, \(N=6\)에서 8이고 그 뒤로 늘지 않았다. PB는 \(N\le4\)에서 0, \(N=5\)에서 9, \(N=6\)에서 26이고 그 뒤로 늘지 않았다. 한도를 6에서 10으로 올려도 통과는 하나도 늘지 않았고 읽은 토큰만 늘었다. 시행당 읽은 토큰은 SB가 4,739에서 8,241로(74% 증가), PB가 5,005에서 6,436으로(29% 증가) 늘고, 통과 하나당 토큰은 SB가 21,327에서 37,086으로, PB가 6,930에서 8,911로 늘었다. 6라운드까지 통과하지 못한 시행은 한 번도 통과하지 못했다.</p>
+    <p>이 곡선을 <a class="ref" href="#thm-cap"></a>의 닫힌 식과 견주면 식이 어긋난다. 이 절은 보고 나서 한 사후 계산이다. 닫힌 식은 시도 성공률 \(a\)가 라운드마다 같다고 놓는다. 여기서 라운드별 위험률(그 라운드에 처음 통과한 시행 수 / 그때까지 통과하지 않은 풀 수 있는 시행 수)은 상수가 아니다. PB는 라운드 1~4에서 0, 라운드 5에서 9/27, 라운드 6에서 17/18, 그 뒤로 0/1이고, SB는 라운드 1~5에서 0, 라운드 6에서 8/27, 그 뒤로 0/19이다. 통과에는 최소 라운드가 필요하고(호출이 나가고, 선언이 거절되고, 새 호출이 나가야 한다), 그 라운드까지 가지 못한 시행은 같은 모양을 되풀이했다. <a class="ref" href="#thm-post"></a>의 3번이 말한 '같은 시도의 되풀이는 증거가 아니다'가 위험률이 0으로 떨어지는 모양으로 나타난 것이다. 통과 하나의 값을 읽은 토큰으로 환산해 한도를 고르면(비용은 읽은 토큰) 통과 하나의 값이 20,000토큰일 때 PB의 경험적 최적 한도는 6이고, 평균 위험률 \(a=0.166\)으로 쓴 닫힌 식은 \(N^*=12\)를 준다(50,000토큰이면 경험적 6, 닫힌 식 18). SB는 50,000토큰에서 경험적 최적이 6이고 닫힌 식은 \(N^*=28\)이다. 통과 하나의 값이 낮으면(SB는 20,000토큰 이하, PB는 5,000토큰 이하) 경험적 최적이 \(N=0\)이다. 통과 하나당 토큰이 값을 넘으므로 규칙 B를 돌리지 않는 편이 낫다. 이 값들은 읽은 토큰을 비용으로 놓고 \(\pi_0=0.75\)를 설계에서 가져온 근사이다.</p>
+
+
+    <p><b>질문 문장 9개.</b> 네 조건을 문장 9개로 돌렸다. 문장 1~3은 본 실험의 세 문장이고 4~9는 새로 썼다(시행 \(t\)는 문장 \(t\bmod9+1\)을 쓴다). X3을 먼저 점검한다. 같은 시행 번호의 72쌍에서 갈라지기 전 라운드의 출력이 글자까지 같지 않은 시행이 0이고, A가 통과하지 못한 시행에서 B의 라운드나 읽은 토큰이 A보다 작은 시행이 0이다. 이번에는 A가 검사를 통과한 시행이 7개(SA 1개, PA 6개) 있었고, 7시행 모두 B에서 같은 라운드에 통과했다. 본 실험에서 비어 있던 E1의 (b)가 처음으로 확인되었다. B의 풀 수 없는 시행 18개는 통과 0, 한도, 라운드 6이고 선언이 받아들여진 시행이 0이며 유형의 합이 조건마다 36이다. 풀 수 없는 시행의 통과는 네 조건 모두 0이다.</p>
+<div class="table-wrap"><table class="nowrap"><thead><tr><th>조건(문장 9개)</th><th class="num">통과(95% 구간)</th><th class="num">풀 수 있는 27 중</th><th class="num">(구간, 시행 단위)</th><th class="num">끝: 통과 / 선언 / 한도</th><th class="num">라운드</th><th class="num">호출</th><th class="num">읽은 토큰(캐시 없이)</th></tr></thead><tbody>
+<tr><td>SA 기본 프롬프트, 선언으로 끝</td><td class="num">0.03 [0.00, 0.08]</td><td class="num">1/27</td><td class="num">0.04 [0.00, 0.11]</td><td class="num">0 / 36 / 0</td><td class="num">1.83</td><td class="num">2.31</td><td class="num">1,188</td></tr>
+<tr><td>SB 기본 프롬프트, 검사로 끝</td><td class="num">0.44 [0.28, 0.61]</td><td class="num">16/27</td><td class="num">0.59 [0.41, 0.78]</td><td class="num">16 / 0 / 20</td><td class="num">5.83</td><td class="num">3.25</td><td class="num">4,720</td></tr>
+<tr><td>PA 끝까지 하라, 선언으로 끝</td><td class="num">0.17 [0.06, 0.28]</td><td class="num">6/27</td><td class="num">0.22 [0.07, 0.41]</td><td class="num">0 / 36 / 0</td><td class="num">2.61</td><td class="num">3.83</td><td class="num">1,802</td></tr>
+<tr><td>PB 끝까지 하라, 검사로 끝</td><td class="num">0.67 [0.53, 0.81]</td><td class="num">24/27</td><td class="num">0.89 [0.74, 1.00]</td><td class="num">24 / 0 / 12</td><td class="num">5.56</td><td class="num">5.33</td><td class="num">4,662</td></tr>
+</tbody></table></div>
+    <p>통과는 SA 1/36, SB 16/36, PA 6/36, PB 24/36이다. 본 실험의 세 문장(0, 8, 0, 26)과 견주면 S 프롬프트에서 B가 8에서 16으로, A가 0에서 1로, P 프롬프트에서 A가 0에서 6으로 올랐고 PB는 26에서 24로 조금 내렸다. 구조는 그대로이다. B가 A보다 많이 통과했고(구해진 시행이 SA→SB 15개, PA→PB 18개), 풀 수 없는 시행은 B에서 모두 한도까지 갔고, A에서는 완료를 거짓으로 주장한 글이 없었다(유형에 <code>false_done</code>이 없다). 다만 A가 통과할 수도 있음이 이제 보인다.</p>
+<div class="table-wrap"><table class=""><thead><tr><th>문장</th><th class="num">앞부분</th><th class="num">S 프롬프트에서 첫 라운드에 호출이 없던 시행(4개 중)</th><th class="num">SA 통과(풀 수 있는 3개 중)</th><th class="num">SB</th><th class="num">PA</th><th class="num">PB</th></tr></thead><tbody>
+<tr><td>문장 1</td><td class="num">Ship order …: look up the order, reserve …</td><td class="num">4/4</td><td class="num">0/3</td><td class="num">0/3</td><td class="num">0/3</td><td class="num">2/3</td></tr>
+<tr><td>문장 2</td><td class="num">Please ship order …. Look up the order first, …</td><td class="num">0/4</td><td class="num">0/3</td><td class="num">3/3</td><td class="num">0/3</td><td class="num">3/3</td></tr>
+<tr><td>문장 3</td><td class="num">Order … must be shipped: read the order, …</td><td class="num">4/4</td><td class="num">0/3</td><td class="num">0/3</td><td class="num">0/3</td><td class="num">3/3</td></tr>
+<tr><td>문장 4</td><td class="num">Can you ship order …? First look up the order, …</td><td class="num">0/4</td><td class="num">0/3</td><td class="num">3/3</td><td class="num">0/3</td><td class="num">3/3</td></tr>
+<tr><td>문장 5</td><td class="num">I need order … shipped. Start by reading the order, …</td><td class="num">4/4</td><td class="num">0/3</td><td class="num">0/3</td><td class="num">3/3</td><td class="num">3/3</td></tr>
+<tr><td>문장 6</td><td class="num">Process order … for shipping: retrieve the order, …</td><td class="num">1/4</td><td class="num">0/3</td><td class="num">2/3</td><td class="num">0/3</td><td class="num">1/3</td></tr>
+<tr><td>문장 7</td><td class="num">Please handle order …. Look it up, reserve the units …</td><td class="num">0/4</td><td class="num">1/3</td><td class="num">3/3</td><td class="num">3/3</td><td class="num">3/3</td></tr>
+<tr><td>문장 8</td><td class="num">Ship out order … now: get the order details, …</td><td class="num">0/4</td><td class="num">0/3</td><td class="num">2/3</td><td class="num">0/3</td><td class="num">3/3</td></tr>
+<tr><td>문장 9</td><td class="num">For order …, do these steps in order: look up the order, …</td><td class="num">0/4</td><td class="num">0/3</td><td class="num">3/3</td><td class="num">0/3</td><td class="num">3/3</td></tr>
+</tbody></table></div>
+    <p>문장별 표를 보면 S 프롬프트의 결과가 두 무리로 갈린다. 문장 1, 3, 5는 4시행 모두 첫 라운드에 호출이 없었고(<code>announce_stop</code>으로 시작) SB의 통과가 0/3이며, 거절 뒤에 같은 선언을 되풀이한 시행이 각각 4개이다. 문장 2, 4, 7, 9는 호출로 시작했고 SB가 3/3, 문장 6과 8은 2/3이다. 본 실험의 세 문장 가운데 둘(문장 1과 3)이 호출 없이 시작하는 쪽이었던 것이 본 실험에서 S 프롬프트의 통과가 낮았던 이유이다. 아홉 문장 가운데는 셋(33%)뿐이다. P 프롬프트에서는 36시행 모두 첫 라운드에 호출이 있었다. PA는 문장 5와 7에서만 3/3이고 나머지 일곱 문장에서는 0/3이다. PB는 문장 1에서 2/3, 문장 6에서 1/3이고 나머지 일곱 문장에서 3/3이다.</p>
+    <p>문장 사이의 변동은 구간에 들어온다. 풀 수 있는 시행의 통과율을 시행 단위로 부트스트랩하면 SB는 0.59 [0.41, 0.78]인데, 문장 9개를 군집으로 복원 추출하면 0.593 [0.296, 0.852]이다. PB는 시행 단위 0.89 [0.74, 1.00]에 대해 군집 구간이 0.889 [0.704, 1.000]이다(사후 분석의 4절). 본 실험의 구간은 문장을 고정한 불확실성만 담았고, 문장을 다시 뽑는 불확실성이 이만큼 더 있다. 문장 아홉도 사람이 쓴 같은 요청의 변형일 뿐 사용자가 쓰는 말의 표본은 아니다.</p>
 
 
     <h3 id="h-post15">이 장에서 보고 나서 만든 분석</h3>
@@ -986,25 +1072,258 @@ PB 문장0: 첫 라운드에 호출이 없던 시행 0/12, 처음 어긋난 단�
 PB 문장1: 첫 라운드에 호출이 없던 시행 0/12, 처음 어긋난 단계 {'wrong_tool': 12}, 통과 9, 같은 글로 선언을 되풀이한 시행 1
 PB 문장2: 첫 라운드에 호출이 없던 시행 0/12, 처음 어긋난 단계 {'wrong_tool': 12}, 통과 9, 같은 글로 선언을 되풀이한 시행 3</code></pre>
     <p>12절과 13절은 새로 돌린 실행이 아니라 기록을 자른 계산이다. 규칙이 있든 없든 규칙이 멈추는 라운드까지의 기록은 같으므로(<a class="ref" href="#thm-pair"></a>의 1번과 같은 논리), 그 라운드에서 기록을 잘라 라운드와 토큰을 센다. 규칙이 멈춘 뒤의 행동은 보지 못하므로 이 계산이 놓칠 수 있는 것은 멈춘 뒤에 통과했을 시행뿐이고, 그것은 '원래 통과한 시행'으로 센다. 정체 규칙(상태가 바뀌지 않은 채 같은 선언 글이 연속 \(k\)번이면 끝냄)을 SB에 더하면 \(k=2\)와 \(k=3\) 모두 24시행에 걸리고 원래 통과한 시행은 없었다. 아끼는 라운드는 \(k=2\)에서 71, \(k=3\)에서 27이고 토큰은 61,462와 24,853이다(SB가 읽은 전체 170,616토큰의 36%와 15%). PB에서는 \(k=2\)에서 1시행에 걸렸고 아끼는 것이 없었다. 풀 수 없음의 출구(막혔다고 선언했고 상태가 재고 부족을 확인해 주면 그 선언을 받아들임)를 완료 조건에 넣으면 PB의 풀 수 없는 시행 9개가 모두 라운드 2에서 끝나고 읽은 토큰이 47,611에서 12,250으로(74% 감소) 줄며, SB에서는 3시행이 걸려 15,641에서 4,017이 된다. PA는 9시행이 이미 라운드 2에서 끝났으므로 달라지지 않는다. '막혔다고 선언했다'는 판정은 11절의 정규식 분류에 기댄다.</p>
+    <p>확장 실험의 사후 분석은 <code>post15x.py</code>이다. 확장 실험의 <code>out15x_raw.json</code>과 본 실험의 <code>out15_raw.json</code>을 읽고, 실험 이름(<code>slots</code>, <code>n10</code>, <code>sent</code>)에 따라 다른 절을 낸다. <code>python -I -X utf8 post15x.py n10 out15x_raw.json out15_raw.json</code>처럼 돌린다. slots의 1~2절은 회계와 조건별 결과, 3절은 SB와의 짝, 4절은 문장별, 5절은 SL의 계획, 6절은 인자의 출처이다. n10의 1절은 본 실험과의 짝(X2의 (a)~(c)), 2절은 한도별 통과 수(X2의 (d)), 3절은 풀 수 없는 시행(X2의 (e)), 4절은 한도별 토큰, 5절은 라운드별 위험률, 6절은 정리 15.5와의 견줌이다. sent의 2절은 짝 비교(X3), 3절은 문장별, 4절은 문장을 군집으로 한 부트스트랩, 5절은 본 실험의 세 문장과 새 문장의 비교이다. 4절과 5절, n10의 6절은 응답을 본 뒤에 만든 분석이다.</p>
+<pre><code>"""확장 실험(exp15x.py)의 사후 분석: 실행 기록만 읽는다. 모델을 다시 부르지 않는다.
+python -I -X utf8 post15x.py &lt;slots|n10|sent&gt; &lt;확장 실험의 out15x_raw.json&gt; &lt;본 실험의 out15_raw.json&gt;"""
+import json, math, os, random, sys
+from collections import Counter, defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from exp15 import n_star, posterior, value                      # 정리 15.4, 15.5의 식 (같은 폴더의 exp15.py)
+
+NAME, PATH, MAIN = sys.argv[1], sys.argv[2], sys.argv[3]
+J = lambda p: json.load(open(p, encoding="utf8"))
+RAW, MRAW = J(PATH), J(MAIN)
+C, M = defaultdict(dict), defaultdict(dict)
+for r in RAW: C[r["cond"]][r["t"]] = r
+for r in MRAW: M[r["cond"]][r["t"]] = r
+tok = lambda r, n=None: sum(x["n"] for x in r["rounds"][:n])
+pr = lambda r: r["R"] if r["ok"] and r["end"] == "pass" else None   # 통과한 라운드(없으면 None)
+
+
+def summary(c, rs, N):
+    sv = [r for r in rs if r["solvable"]]; im = [r for r in rs if not r["solvable"]]
+    print(f"{c} 통과 {sum(r['ok'] for r in rs)}/{len(rs)} (가능 {sum(r['ok'] for r in sv)}/{len(sv)}, 불가능 {sum(r['ok'] for r in im)}/{len(im)}) 끝 {dict(Counter(r['end'] for r in rs))} 유형 {dict(Counter(r['typ'] for r in rs))}")
+    print(f"    라운드 {sum(r['R'] for r in rs) / len(rs):.2f}, 호출 {sum(r['n_calls'] for r in rs) / len(rs):.2f}, 오류 결과 {sum(r['errs'] for r in rs) / len(rs):.2f}, 거절 {sum(r['rej'] for r in rs) / len(rs):.2f}, 읽은 토큰 {sum(tok(r) for r in rs) / len(rs):.0f}, 선언이 받아들여진 시행 {sum(r['end'] == 'declared' for r in rs) if c[1] == 'B' or c in ('SZ', 'SL') else '-'}, 풀 수 없는 시행의 한도 {sum(r['end'] == 'limit' and r['R'] == N for r in im)}/{len(im)} 통과 {sum(r['ok'] for r in im)}")
+
+
+def pairs(a, b, A, B):                                          # A[a]와 B[b]를 같은 시행 번호끼리 견준다(정리 15.1의 1~3번)
+    v_pass = v_rounds = v_tok = v_text = n_pass = 0; resc = 0
+    for t in sorted(A[a]):
+        x, y = A[a][t], B[b][t]; k = min(x["R"], y["R"])
+        if x["ok"]:
+            n_pass += 1; v_pass += not y["ok"]; v_rounds += y["R"] &gt; x["R"]
+        else:
+            v_rounds += y["R"] &lt; x["R"]; v_tok += tok(y) &lt; tok(x); resc += y["ok"]
+        v_text += x["texts"][:k] != y["texts"][:k]
+    return dict(n=len(A[a]), a_pass=n_pass, v_pass=v_pass, v_rounds=v_rounds, v_tok=v_tok, v_text=v_text, rescued=resc)
+
+
+if NAME == "slots":
+    N = 6
+    print("== 0. 회계")
+    for c in C: ty = Counter(r["typ"] for r in C[c].values()); print(c, len(C[c]), dict(ty), "합", sum(ty.values()), "OK" if sum(ty.values()) == len(C[c]) else "어긋남")
+    print("== 1. 조건별 결과")
+    for c in C: summary(c, list(C[c].values()), N)
+    print("== 2. SZ와 SA의 짝 (같은 프롬프트, 같은 세계)")
+    print(pairs("SA", "SZ", M, C)) if "SZ" in C else None
+    print("== 3. SB(이유 있는 보고), SZ(이유 없음), SL(계획 지시)의 통과 비교 (같은 시행 번호)")
+    for c in ("SZ", "SL"):
+        both = [t for t in C[c] if M["SB"][t]["ok"] and C[c][t]["ok"]]; only_b = [t for t in C[c] if M["SB"][t]["ok"] and not C[c][t]["ok"]]; only_c = [t for t in C[c] if not M["SB"][t]["ok"] and C[c][t]["ok"]]
+        print(f"{c} vs SB: 둘 다 통과 {len(both)}, SB만 {len(only_b)}, {c}만 {len(only_c)}")
+    print("== 4. 질문 문장별 (문장 0/1/2): 첫 라운드에 호출이 없던 시행, 통과, 선언 되풀이")
+    for c in C:
+        for p in range(3):
+            rs = [r for r in C[c].values() if r["phr"] == p]
+            print(f"{c} 문장{p}: 호출 없이 시작 {sum('calls' not in r['rounds'][0] for r in rs)}/{len(rs)}, 통과 {sum(r['ok'] for r in rs)}, 선언 되풀이 {sum(r['rep_text'] &gt; 0 for r in rs)}")
+    print("== 5. SL: 계획")
+    if "SL" in C:
+        rs = list(C["SL"].values()); print(f"계획 열이 비어 있지 않은 시행 {sum(len(r['plan']) &gt; 0 for r in rs)}/{len(rs)}, 계획이 타당({'plan_ok'}) {sum(bool(r['plan_ok']) for r in rs)}, 계획의 예 {Counter(tuple(r['plan']) for r in rs).most_common(3)}")
+        print("첫 라운드의 출력 앞부분:", Counter(r["texts"][0].strip()[:40] for r in rs).most_common(4))
+    print("== 6. 호출 인자의 출처")
+    for c in C: print(c, dict(Counter(x["src"] for r in C[c].values() for x in r["calls"])), "지어낸 값이 든 시행", sum(r["guess"] &gt; 0 for r in C[c].values()))
+
+elif NAME == "n10":
+    N = 10
+    print("== 1. 본 실험(N=6)과의 짝 (같은 조건, 같은 시행 번호)")
+    for c in ("SB", "PB"):
+        v_text = v_pass = v_mono = 0; c6 = 0
+        for t in sorted(C[c]):
+            x, y = M[c][t], C[c][t]; k = min(x["R"], y["R"]); v_text += x["texts"][:k] != y["texts"][:k]
+            if x["ok"]: v_pass += not (y["ok"] and y["R"] == x["R"])
+            c6 += (pr(y) is not None and pr(y) &lt;= 6)
+        print(f"{c}: 갈라지기 전 라운드의 글이 다른 시행 {v_text}, N=6에서 통과했는데 N=10에서 같은 라운드에 통과하지 않은 시행 {v_pass}, 라운드 6까지 자른 통과 {c6} (본 실험 {sum(r['ok'] for r in M[c].values())})")
+    print("== 2. 한도 N에 따른 통과 수 (N=10 실행을 N에서 자름), 풀 수 있는 27 / 전체 36")
+    curves = {}
+    for c in ("SB", "PB"):
+        rs = list(C[c].values()); row = []
+        for n in range(1, 11): row.append(sum(1 for r in rs if pr(r) is not None and pr(r) &lt;= n))
+        curves[c] = row; print(c, row, "줄지 않음" if all(a &lt;= b for a, b in zip(row, row[1:])) else "줄어듦!")
+    print("== 3. 풀 수 없는 시행의 라운드와 읽은 토큰 (N=10)")
+    for c in ("SB", "PB"):
+        im = [r for r in C[c].values() if not r["solvable"]]
+        print(f"{c} 풀 수 없는 {len(im)}개: 통과 {sum(r['ok'] for r in im)}, 라운드 {sorted(Counter(r['R'] for r in im).items())}, 읽은 토큰 평균 {sum(tok(r) for r in im) / len(im):.0f}, 라운드 1~10 프롬프트 길이 합과 같은 시행 {sum(tok(r) == sum(x['n'] for x in r['rounds']) for r in im)}")
+    print("== 4. 한도 N에서 자른 시행당 읽은 토큰 (평균)과 통과 하나당 토큰")
+    for c in ("SB", "PB"):
+        rs = list(C[c].values()); row = []
+        for n in range(1, 11):
+            T = sum(tok(r, pr(r) if pr(r) is not None and pr(r) &lt;= n else n) for r in rs) / len(rs); P = curves[c][n - 1]; row.append((n, round(T), round(T * len(rs) / P) if P else None))
+        print(c, row)
+    print("== 5. 라운드별 위험률(그 라운드에 처음 통과한 시행 / 그때까지 통과하지 않은 풀 수 있는 시행)")
+    for c in ("SB", "PB"):
+        sv = [r for r in C[c].values() if r["solvable"]]; row = []
+        for n in range(1, 11):
+            at = sum(1 for r in sv if pr(r) == n); alive = sum(1 for r in sv if pr(r) is None or pr(r) &gt;= n); row.append((n, at, alive))
+        print(c, row)
+    print("== 6. 정리 15.5와의 견줌: 읽은 토큰을 비용, 통과 하나의 값을 lam 토큰으로 두고 N을 고른다 (c=1토큰)")
+    for c in ("SB", "PB"):
+        rs = list(C[c].values()); sv = [r for r in rs if r["solvable"]]
+        exposure = sum(min(pr(r) if pr(r) is not None else 10, 10) for r in sv); a_hat = sum(1 for r in sv if pr(r) is not None) / exposure   # 풀 수 있는 시행이 노출된 라운드 수당 통과 수
+        mean_n = sum(x["n"] for r in rs for x in r["rounds"]) / sum(len(r["rounds"]) for r in rs)                                             # 한 라운드의 평균 프롬프트 길이
+        for lam in (2000, 5000, 10000, 20000, 50000):
+            V = {}
+            for n in range(0, 11):
+                P = sum(1 for r in rs if pr(r) is not None and pr(r) &lt;= n) / len(rs); T = sum(tok(r, pr(r) if pr(r) is not None and pr(r) &lt;= n else n) for r in rs) / len(rs); V[n] = lam * P - T
+            best = max(V, key=lambda n: (V[n], -n)); cf = n_star(0.75, a_hat, lam / mean_n, 1.0)
+            print(f"{c} 통과 하나의 값 {lam}토큰: 경험적 최적 N={best} (값어치 {V[best]:.0f}, N=6에서 {V[6]:.0f}, N=10에서 {V[10]:.0f}), 닫힌 식(pi0=0.75, a={a_hat:.3f}, lam={lam / mean_n:.1f}, c=1) N*={cf}")
+
+elif NAME == "sent":
+    N = 6
+    print("== 0. 회계")
+    for c in C: ty = Counter(r["typ"] for r in C[c].values()); print(c, len(C[c]), dict(ty), "합", sum(ty.values()), "OK" if sum(ty.values()) == len(C[c]) else "어긋남")
+    print("== 1. 조건별 결과")
+    for c in C: summary(c, list(C[c].values()), N)
+    print("== 2. 짝 비교 (E1)")
+    tot = Counter()
+    for a, b in (("SA", "SB"), ("PA", "PB")):
+        d = pairs(a, b, C, C); tot.update(d); print(a, b, d)
+    print("합계:", dict(tot))
+    print("== 3. 질문 문장별 (문장 0~8, 문장마다 풀 수 있는 3개와 풀 수 없는 1개)")
+    for c in ("SA", "SB", "PA", "PB"):
+        row = []
+        for p in range(9):
+            rs = [r for r in C[c].values() if r["phr"] == p]; sv = [r for r in rs if r["solvable"]]
+            row.append((p, sum('calls' not in r['rounds'][0] for r in rs), sum(r["ok"] for r in sv), sum(r["rep_text"] &gt; 0 for r in rs)))
+        print(c, "(문장, 첫 라운드에 호출이 없던 시행/4, 풀 수 있는 3개 중 통과, 선언 되풀이 시행)", row)
+    print("== 4. 문장을 군집으로 한 부트스트랩 (풀 수 있는 시행의 통과율, 문장 9개를 복원 추출, 2,000번, 시드 17)")
+    rnd = random.Random(17)
+    for c in ("SB", "PB"):
+        per = [(sum(r["ok"] for r in C[c].values() if r["solvable"] and r["phr"] == p), sum(1 for r in C[c].values() if r["solvable"] and r["phr"] == p)) for p in range(9)]
+        bs = []
+        for _ in range(2000):
+            ch = [per[rnd.randrange(9)] for _ in range(9)]; bs.append(sum(a for a, b in ch) / sum(b for a, b in ch))
+        bs.sort(); print(f"{c} 통과율 {sum(a for a, b in per)}/{sum(b for a, b in per)} = {sum(a for a, b in per) / sum(b for a, b in per):.3f}, 문장별 {per}, 군집 부트스트랩 95% [{bs[49]:.3f}, {bs[1949]:.3f}]")
+    print("== 5. 본 실험의 세 문장(문장 0~2)과 새 여섯 문장(3~8)의 통과 (풀 수 있는 시행)")
+    for c in ("SA", "SB", "PA", "PB"):
+        o = [r for r in C[c].values() if r["solvable"] and r["phr"] &lt; 3]; n = [r for r in C[c].values() if r["solvable"] and r["phr"] &gt;= 3]
+        print(f"{c} 앞의 세 문장 {sum(r['ok'] for r in o)}/{len(o)}, 새 여섯 문장 {sum(r['ok'] for r in n)}/{len(n)}")
+    print("== 6. 호출 인자의 출처, 처음 어긋난 단계")
+    for c in C: print(c, dict(Counter(x["src"] for r in C[c].values() for x in r["calls"])), dict(Counter(r["dev"] for r in C[c].values())))
+</code></pre>
+    <p>세 실험의 출력이다(첫 실행의 기록).</p>
+<pre><code>### slots
+== 0. 회계
+SZ 36 {'limit': 36} 합 36 OK
+SL 36 {'pass': 27, 'limit': 9} 합 36 OK
+== 1. 조건별 결과
+SZ 통과 0/36 (가능 0/27, 불가능 0/9) 끝 {'limit': 36} 유형 {'limit': 36}
+    라운드 6.00, 호출 1.44, 오류 결과 0.97, 거절 4.56, 읽은 토큰 4322, 선언이 받아들여진 시행 0, 풀 수 없는 시행의 한도 9/9 통과 0
+SL 통과 27/36 (가능 27/27, 불가능 0/9) 끝 {'pass': 27, 'limit': 9} 유형 {'pass': 27, 'limit': 9}
+    라운드 5.89, 호출 5.97, 오류 결과 3.47, 거절 2.78, 읽은 토큰 5198, 선언이 받아들여진 시행 0, 풀 수 없는 시행의 한도 9/9 통과 0
+== 2. SZ와 SA의 짝 (같은 프롬프트, 같은 세계)
+{'n': 36, 'a_pass': 0, 'v_pass': 0, 'v_rounds': 0, 'v_tok': 0, 'v_text': 0, 'rescued': 0}
+== 3. SB(이유 있는 보고), SZ(이유 없음), SL(계획 지시)의 통과 비교 (같은 시행 번호)
+SZ vs SB: 둘 다 통과 0, SB만 8, SZ만 0
+SL vs SB: 둘 다 통과 8, SB만 0, SL만 19
+== 4. 질문 문장별 (문장 0/1/2): 첫 라운드에 호출이 없던 시행, 통과, 선언 되풀이
+SZ 문장0: 호출 없이 시작 12/12, 통과 0, 선언 되풀이 11
+SZ 문장1: 호출 없이 시작 1/12, 통과 0, 선언 되풀이 8
+SZ 문장2: 호출 없이 시작 12/12, 통과 0, 선언 되풀이 12
+SL 문장0: 호출 없이 시작 0/12, 통과 9, 선언 되풀이 1
+SL 문장1: 호출 없이 시작 0/12, 통과 9, 선언 되풀이 2
+SL 문장2: 호출 없이 시작 0/12, 통과 9, 선언 되풀이 0
+== 5. SL: 계획
+계획 열이 비어 있지 않은 시행 0/36, 계획이 타당(plan_ok) 0, 계획의 예 [((), 36)]
+첫 라운드의 출력 앞부분: [('&lt;tool_call&gt;\n{"name": "get_order", "argum', 36)]
+== 6. 호출 인자의 출처
+SZ {'goal': 22, 'none': 23, 'obs': 7} 지어낸 값이 든 시행 11
+SL {'goal': 100, 'none': 73, 'obs': 42} 지어낸 값이 든 시행 36
+
+### n10
+== 1. 본 실험(N=6)과의 짝 (같은 조건, 같은 시행 번호)
+SB: 갈라지기 전 라운드의 글이 다른 시행 0, N=6에서 통과했는데 N=10에서 같은 라운드에 통과하지 않은 시행 0, 라운드 6까지 자른 통과 8 (본 실험 8)
+PB: 갈라지기 전 라운드의 글이 다른 시행 0, N=6에서 통과했는데 N=10에서 같은 라운드에 통과하지 않은 시행 0, 라운드 6까지 자른 통과 26 (본 실험 26)
+== 2. 한도 N에 따른 통과 수 (N=10 실행을 N에서 자름), 풀 수 있는 27 / 전체 36
+SB [0, 0, 0, 0, 0, 8, 8, 8, 8, 8] 줄지 않음
+PB [0, 0, 0, 0, 9, 26, 26, 26, 26, 26] 줄지 않음
+== 3. 풀 수 없는 시행의 라운드와 읽은 토큰 (N=10)
+SB 풀 수 없는 9개: 통과 0, 라운드 [(10, 9)], 읽은 토큰 평균 9390, 라운드 1~10 프롬프트 길이 합과 같은 시행 9
+PB 풀 수 없는 9개: 통과 0, 라운드 [(10, 9)], 읽은 토큰 평균 10457, 라운드 1~10 프롬프트 길이 합과 같은 시행 9
+== 4. 한도 N에서 자른 시행당 읽은 토큰 (평균)과 통과 하나당 토큰
+SB [(1, 569, None), (2, 1257, None), (3, 2020, None), (4, 2858, None), (5, 3764, None), (6, 4739, 21327), (7, 5533, 24899), (8, 6381, 28712), (9, 7283, 32772), (10, 8241, 37086)]
+PB [(1, 580, None), (2, 1362, None), (3, 2233, None), (4, 3179, None), (5, 4189, 16757), (6, 5005, 6930), (7, 5330, 7380), (8, 5676, 7859), (9, 6043, 8368), (10, 6436, 8911)]
+== 5. 라운드별 위험률(그 라운드에 처음 통과한 시행 / 그때까지 통과하지 않은 풀 수 있는 시행)
+SB [(1, 0, 27), (2, 0, 27), (3, 0, 27), (4, 0, 27), (5, 0, 27), (6, 8, 27), (7, 0, 19), (8, 0, 19), (9, 0, 19), (10, 0, 19)]
+PB [(1, 0, 27), (2, 0, 27), (3, 0, 27), (4, 0, 27), (5, 9, 27), (6, 17, 18), (7, 0, 1), (8, 0, 1), (9, 0, 1), (10, 0, 1)]
+== 6. 정리 15.5와의 견줌: 읽은 토큰을 비용, 통과 하나의 값을 lam 토큰으로 두고 N을 고른다 (c=1토큰)
+SB 통과 하나의 값 2000토큰: 경험적 최적 N=0 (값어치 0, N=6에서 -4295, N=10에서 -7797), 닫힌 식(pi0=0.75, a=0.034, lam=2.2, c=1) N*=0
+SB 통과 하나의 값 5000토큰: 경험적 최적 N=0 (값어치 0, N=6에서 -3628, N=10에서 -7130), 닫힌 식(pi0=0.75, a=0.034, lam=5.5, c=1) N*=0
+SB 통과 하나의 값 10000토큰: 경험적 최적 N=0 (값어치 0, N=6에서 -2517, N=10에서 -6019), 닫힌 식(pi0=0.75, a=0.034, lam=11.1, c=1) N*=0
+SB 통과 하나의 값 20000토큰: 경험적 최적 N=0 (값어치 0, N=6에서 -295, N=10에서 -3797), 닫힌 식(pi0=0.75, a=0.034, lam=22.1, c=1) N*=0
+SB 통과 하나의 값 50000토큰: 경험적 최적 N=6 (값어치 6372, N=6에서 6372, N=10에서 2870), 닫힌 식(pi0=0.75, a=0.034, lam=55.3, c=1) N*=28
+PB 통과 하나의 값 2000토큰: 경험적 최적 N=0 (값어치 0, N=6에서 -3561, N=10에서 -4991), 닫힌 식(pi0=0.75, a=0.166, lam=2.1, c=1) N*=0
+PB 통과 하나의 값 5000토큰: 경험적 최적 N=0 (값어치 0, N=6에서 -1394, N=10에서 -2825), 닫힌 식(pi0=0.75, a=0.166, lam=5.3, c=1) N*=0
+PB 통과 하나의 값 10000토큰: 경험적 최적 N=6 (값어치 2217, N=6에서 2217, N=10에서 786), 닫힌 식(pi0=0.75, a=0.166, lam=10.7, c=1) N*=5
+PB 통과 하나의 값 20000토큰: 경험적 최적 N=6 (값어치 9439, N=6에서 9439, N=10에서 8009), 닫힌 식(pi0=0.75, a=0.166, lam=21.3, c=1) N*=12
+PB 통과 하나의 값 50000토큰: 경험적 최적 N=6 (값어치 31106, N=6에서 31106, N=10에서 29675), 닫힌 식(pi0=0.75, a=0.166, lam=53.3, c=1) N*=18
+
+### sent
+== 0. 회계
+SA 36 {'announce_stop': 15, 'gave_up': 14, 'honest_block': 6, 'pass': 1} 합 36 OK
+SB 36 {'limit': 20, 'pass': 16} 합 36 OK
+PA 36 {'gave_up': 20, 'honest_block': 9, 'pass': 6, 'stopped_other': 1} 합 36 OK
+PB 36 {'pass': 24, 'limit': 12} 합 36 OK
+== 1. 조건별 결과
+SA 통과 1/36 (가능 1/27, 불가능 0/9) 끝 {'declared': 36} 유형 {'announce_stop': 15, 'gave_up': 14, 'honest_block': 6, 'pass': 1}
+    라운드 1.83, 호출 2.31, 오류 결과 1.50, 거절 0.00, 읽은 토큰 1188, 선언이 받아들여진 시행 -, 풀 수 없는 시행의 한도 0/9 통과 0
+SB 통과 16/36 (가능 16/27, 불가능 0/9) 끝 {'limit': 20, 'pass': 16} 유형 {'limit': 20, 'pass': 16}
+    라운드 5.83, 호출 3.25, 오류 결과 1.64, 거절 3.56, 읽은 토큰 4720, 선언이 받아들여진 시행 0, 풀 수 없는 시행의 한도 9/9 통과 0
+PA 통과 6/36 (가능 6/27, 불가능 0/9) 끝 {'declared': 36} 유형 {'gave_up': 20, 'honest_block': 9, 'pass': 6, 'stopped_other': 1}
+    라운드 2.61, 호출 3.83, 오류 결과 2.28, 거절 0.00, 읽은 토큰 1802, 선언이 받아들여진 시행 -, 풀 수 없는 시행의 한도 0/9 통과 0
+PB 통과 24/36 (가능 24/27, 불가능 0/9) 끝 {'pass': 24, 'limit': 12} 유형 {'pass': 24, 'limit': 12}
+    라운드 5.56, 호출 5.33, 오류 결과 2.67, 거절 2.25, 읽은 토큰 4662, 선언이 받아들여진 시행 0, 풀 수 없는 시행의 한도 9/9 통과 0
+== 2. 짝 비교 (E1)
+SA SB {'n': 36, 'a_pass': 1, 'v_pass': 0, 'v_rounds': 0, 'v_tok': 0, 'v_text': 0, 'rescued': 15}
+PA PB {'n': 36, 'a_pass': 6, 'v_pass': 0, 'v_rounds': 0, 'v_tok': 0, 'v_text': 0, 'rescued': 18}
+합계: {'n': 72, 'a_pass': 7, 'v_pass': 0, 'v_rounds': 0, 'v_tok': 0, 'v_text': 0, 'rescued': 33}
+== 3. 질문 문장별 (문장 0~8, 문장마다 풀 수 있는 3개와 풀 수 없는 1개)
+SA (문장, 첫 라운드에 호출이 없던 시행/4, 풀 수 있는 3개 중 통과, 선언 되풀이 시행) [(0, 4, 0, 0), (1, 0, 0, 0), (2, 4, 0, 0), (3, 0, 0, 0), (4, 4, 0, 0), (5, 1, 0, 0), (6, 0, 1, 0), (7, 0, 0, 0), (8, 0, 0, 0)]
+SB (문장, 첫 라운드에 호출이 없던 시행/4, 풀 수 있는 3개 중 통과, 선언 되풀이 시행) [(0, 4, 0, 4), (1, 0, 3, 0), (2, 4, 0, 4), (3, 0, 3, 0), (4, 4, 0, 4), (5, 1, 2, 1), (6, 0, 3, 1), (7, 0, 2, 2), (8, 0, 3, 1)]
+PA (문장, 첫 라운드에 호출이 없던 시행/4, 풀 수 있는 3개 중 통과, 선언 되풀이 시행) [(0, 0, 0, 0), (1, 0, 0, 0), (2, 0, 0, 0), (3, 0, 0, 0), (4, 0, 3, 0), (5, 0, 0, 0), (6, 0, 3, 0), (7, 0, 0, 0), (8, 0, 0, 0)]
+PB (문장, 첫 라운드에 호출이 없던 시행/4, 풀 수 있는 3개 중 통과, 선언 되풀이 시행) [(0, 0, 2, 1), (1, 0, 3, 0), (2, 0, 3, 1), (3, 0, 3, 0), (4, 0, 3, 1), (5, 0, 1, 1), (6, 0, 3, 0), (7, 0, 3, 1), (8, 0, 3, 0)]
+== 4. 문장을 군집으로 한 부트스트랩 (풀 수 있는 시행의 통과율, 문장 9개를 복원 추출, 2,000번, 시드 17)
+SB 통과율 16/27 = 0.593, 문장별 [(0, 3), (3, 3), (0, 3), (3, 3), (0, 3), (2, 3), (3, 3), (2, 3), (3, 3)], 군집 부트스트랩 95% [0.296, 0.852]
+PB 통과율 24/27 = 0.889, 문장별 [(2, 3), (3, 3), (3, 3), (3, 3), (3, 3), (1, 3), (3, 3), (3, 3), (3, 3)], 군집 부트스트랩 95% [0.704, 1.000]
+== 5. 본 실험의 세 문장(문장 0~2)과 새 여섯 문장(3~8)의 통과 (풀 수 있는 시행)
+SA 앞의 세 문장 0/9, 새 여섯 문장 1/18
+SB 앞의 세 문장 3/9, 새 여섯 문장 13/18
+PA 앞의 세 문장 0/9, 새 여섯 문장 6/18
+PB 앞의 세 문장 8/9, 새 여섯 문장 16/18
+== 6. 호출 인자의 출처, 처음 어긋난 단계
+SA {'goal': 43, 'none': 34, 'obs': 6} {'early_stop': 15, 'wrong_tool': 17, 'wrong_arg': 4}
+SB {'goal': 58, 'none': 34, 'obs': 25} {'early_stop': 13, 'wrong_tool': 17, 'wrong_arg': 4, None: 2}
+PA {'goal': 69, 'none': 53, 'obs': 16} {'wrong_tool': 33, 'wrong_arg': 3}
+PB {'goal': 87, 'none': 58, 'obs': 47} {'wrong_tool': 33, 'wrong_arg': 3}
+</code></pre>
 
     <h3 id="h-limits15">해석과 한계</h3>
     <ul>
-      <li><b>미리 적은 예상은 기각되지 않았다.</b> E0: 닫힌 식의 최적 한도가 다섯 설정 모두에서 직접 비교와 같았고 몬테카를로와의 차이가 최대 0.151였다. E1~E5의 위반은 없었다. 기각되지 않은 것이 이론의 입증은 아니다. E1의 (b)는 A가 통과한 시행이 없어 확인할 것이 없었고, (a)와 (c), E2~E5는 규칙과 도구 코드에서 나오는 항등식이어서 코드가 틀렸을 때만 어긋난다. 이론이 모델의 행동에 대해 말하는 것은 짝짓기, 정밀도, 사후확률, 한도의 값이고 위의 행동은 이론에서 나온 예상이 없는 관찰이다.</li>
-      <li><b>질문에 대한 답: 종료 규칙을 선언에서 검사로 바꾸면 실패의 유형이 '선언으로 끝난 미완'에서 '한도 소진'으로 옮겨 가고, 일부는 통과로 바뀐다.</b> 선언으로 끝낸 SA와 PA는 72시행이 모두 검사를 통과하지 못했다. 그 유형은 하겠다고만 말하고 멈춤(25시행)과 막혔다고 보고(47시행)였고 완료를 거짓으로 주장한 것은 없었다. 검사로 끝낸 SB와 PB에서는 34시행이 통과로 바뀌었고 나머지 38시행(풀 수 없는 18개를 포함)이 한도로 끝났다. 이론이 말한 대로 A에서 통과하지 못한 시행만 달라졌고, 달라진 대가는 라운드와 토큰이다(통과 하나당 SB 21,327, PB 6,930토큰).</li>
-      <li><b>검사의 보고가 구하려면 모델이 그 정보를 행동으로 옮겨야 한다.</b> 구해진 34시행은 모두 모델이 이미 호출을 내고 오류를 본 시행이었다. S 프롬프트의 첫째와 셋째 문장에서는 첫 라운드에 호출이 없었고, 거절 글에 수량과 이유가 들어 있는데도 같은 선언을 되풀이하며 한 시행도 구해지지 않았다. 15.3절이 말한 대로 정보가 컨텍스트에 있어도 행동이 바뀌지 않으면 재계획이 아니다. 정체 규칙이 있었다면 SB에서 통과를 하나도 잃지 않고 토큰의 15~36%를 아꼈을 것이다(사후 계산).</li>
+      <li><b>미리 적은 예상은 기각되지 않았다.</b> E0: 닫힌 식의 최적 한도가 다섯 설정 모두에서 직접 비교와 같았고 몬테카를로와의 차이가 최대 0.151였다. 본 실험의 E1~E5와 확장 실험의 X1~X3의 위반은 없었다. 기각되지 않은 것이 이론의 입증은 아니다. 본 실험에서 E1의 (b)는 A가 통과한 시행이 없어 비어 있었고, 문장 9개의 실험에서 A가 통과한 7시행이 생겨 처음으로 확인되었다. 나머지는 규칙과 도구 코드에서 나오는 항등식이어서 코드가 틀렸을 때만 어긋난다. 이론이 모델의 행동에 대해 말하는 것은 짝짓기, 정밀도, 사후확률, 한도의 값이고 위의 행동은 이론에서 나온 예상이 없는 관찰이다.</li>
+      <li><b>질문에 대한 답: 종료 규칙을 선언에서 검사로 바꾸면 실패의 유형이 '선언으로 끝난 미완'에서 '한도 소진'으로 옮겨 가고, 일부는 통과로 바뀐다.</b> 본 실험에서 선언으로 끝낸 SA와 PA는 72시행이 모두 검사를 통과하지 못했다. 그 유형은 하겠다고만 말하고 멈춤(25시행)과 막혔다고 보고(47시행)였고 완료를 거짓으로 주장한 것은 없었다. 검사로 끝낸 SB와 PB에서는 34시행이 통과로 바뀌었고 나머지 38시행(풀 수 없는 18개를 포함)이 한도로 끝났다. 문장 9개에서도 같은 모양이었다(A가 통과하지 못한 시행에서만 B가 달랐고, 풀 수 없는 시행은 모두 한도까지 갔고, 완료의 거짓 주장은 없었다). 달라진 대가는 라운드와 토큰이다(본 실험에서 통과 하나당 SB 21,327, PB 6,930토큰).</li>
+      <li><b>검사의 보고가 구하려면 모델이 그 정보를 행동으로 옮겨야 한다.</b> 구해진 34시행은 모두 모델이 이미 호출을 내고 오류를 본 시행이었다. S 프롬프트에서 첫 라운드에 호출이 없는 문장은 거절 글에 수량과 이유가 들어 있는데도 같은 선언을 되풀이하며 한 시행도 구해지지 않았다(문장 9개에서도 문장 1, 3, 5가 그랬다). 확장 실험의 SZ는 이유 없이 'Check failed.'만 돌려주었고 같은 세계에서 통과가 0/36이었다(SB는 8/36). 호출로 시작하는 문장에서도 한 비트만으로는 구해지지 않았고 이유가 필요했다. 15.3절이 말한 대로 정보가 컨텍스트에 있어도 행동이 바뀌지 않으면 재계획이 아니다. 정체 규칙이 있었다면 SB에서 통과를 하나도 잃지 않고 토큰의 15~36%를 아꼈을 것이다(사후 계산).</li>
+      <li><b>한도를 올려도 늘지 않는 통과가 있었다.</b> N=10 실행에서 모든 통과가 라운드 6까지에 있었고(SB 8, PB 26), 6라운드까지 통과하지 못한 시행은 라운드 10까지 가도 통과하지 못했다. 위험률은 상수가 아니어서 <a class="ref" href="#thm-cap"></a>의 닫힌 식은 이 모델에서 한도를 크게 잡았다(PB에서 통과 하나가 20,000토큰의 값이면 닫힌 식 12, 경험적 6). 닫힌 식의 틀린 가정은 시도가 독립이라는 것이고 결정적 모델에서 같은 시도의 되풀이는 시도가 아니다(<a class="ref" href="#thm-post"></a>의 3번). 실제로는 한도를 경험적 위험률 곡선에서 골라야 한다. 이 곡선은 사후 계산이고 본 실험의 한도 6이 마지막 통과 라운드와 맞았던 것은 그것을 알고 정한 것이 아니다.</li>
       <li><b>완료 조건에 출구가 없는 비용이 숫자로 보였다.</b> 풀 수 없는 시행에서 PA의 모델은 라운드 2에서 막혔다고 맞게 보고했는데, PB의 검사는 그 보고를 거절하고 4라운드를 더 돌렸다. 풀 수 없는 시행 9개가 PB가 읽은 토큰의 26%를 썼다. 출구를 넣었을 때의 계산(74% 감소)은 반사실이고, 출구를 넣은 검사를 실제로 돌려 확인하지는 않았다.</li>
-      <li><b>미리 적은 것과 보고 나서 적은 것.</b> E0~E5의 예상과 기각 조건은 전체 모델 실행 전에 파일에 적었다. 조건 목록, 프롬프트, 도구 설명, 판정 규칙은 전체 실행 뒤에 바꾸지 않았다. 밝힐 것이 있다. (1) 설계는 위 '실행 전에 본 것'의 탐색을 거쳐 정했고, 질문에 단계를 적은 것도 그때 정했다. (2) 모델 없이 도는 E0의 계산은 예상을 적기 전에 보았다. (3) 사후 분석(<code>post15.py</code>)은 응답을 본 뒤에 썼다. 문장별 분해, 인자의 출처, 정체 규칙과 출구 규칙의 반사실이 사후 분석이다. (4) 14장에서 질문 문장을 탐색 때 나누어 보라고 적어 두었는데, 이 실험의 탐색에서는 문장별로 나누어 보지 않았다. 문장을 시행 번호로 고르게 배정해 짝지은 비교는 지켰지만 S 프롬프트의 결과가 문장 하나에 달렸다는 것은 전체 실행 뒤의 분해에서 알았다. 그 결과로 설계를 바꾸거나 다시 돌리지 않았다. (5) 전체 실행은 두 번 했고 둘 사이에 코드와 설정을 바꾸지 않았다. 본문의 수는 첫 실행의 파일에서 옮겼다. 두 실행의 실행 기록 파일(<code>out15_raw.json</code>)은 바이트 단위로 같았다(SHA-256의 앞 12자리 f2892c808388). 요약 파일(<code>out15_res.json</code>)은 조건별로 잰 걸린 시간 필드(<code>secs</code>)를 빼면 같았고, 이 필드만 실행마다 달랐다(조건별 시간의 합은 첫 실행 741초, 둘째 실행 745초). 두 실행이 같았으므로 모델의 호출은 이 설정에서 결정적이었고, 어느 쪽에서 옮겨도 본문의 수가 같다.</li>
-      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 Qwen3-1.7B(비사고 모드) 하나이고 탐욕 디코딩 하나이다. 과제는 가상의 물류 하나이고 질문은 문장 셋이며, S 프롬프트의 결과는 문장 하나에 달려 있어 프롬프트의 성질로 읽을 수 없다. 조건당 36시행이고 풀 수 없는 시행은 9개뿐이어서 구간이 넓다. 도구 호출 형식은 템플릿의 <code>&lt;tool_call&gt;</code> JSON이어서 Claude API의 <code>tool_use</code>나 Stop hook과 같지 않다. 규칙 B의 거절 글은 사용자 역할의 메시지로 붙였고, Claude Code에서 hook의 이유가 모델에 전달되는 방식과 다를 수 있다. 검사 \(V\)는 정확하게 쓴 코드여서 정밀도 \(\alpha\)가 0이고, <a class="ref" href="#thm-prec"></a>이 말하는 검사 오류의 효과는 재지 않았다. 마지막 글의 분류는 정규식이어서(<code>claim</code>) 11절에서 글을 읽어 확인한 것이 전부이다. A가 검사를 통과한 시행이 없어서 <a class="ref" href="#thm-pair"></a>의 4번(성공은 줄지 않는다)은 이 데이터로 점검되지 못했다. 접두부 보존의 토큰은 이 모델 템플릿에서의 가정이고 실제 청구액이 아니다.</li>
+      <li><b>질문 문장이 결과를 갈랐고, 문장 셋은 대표가 아니었다.</b> 본 실험의 S 프롬프트 결과(SB 8/36)는 문장 셋의 값이었다. 문장 9개에서는 SB가 16/36이다. 호출 없이 시작하는 문장은 9개 중 3개인데 본 실험의 세 문장에는 둘이 들어 있었다. 시행 단위 구간은 문장을 고정한 불확실성만 담아서 문장을 군집으로 복원 추출하면 구간이 넓어진다(SB 0.593 [0.296, 0.852]). 문장 아홉도 같은 요청의 변형이고 사용자 말의 표본이 아니므로 얼마나 민감한지의 크기는 아직 잰 것이 아니다.</li>
+      <li><b>미리 적은 것과 보고 나서 적은 것.</b> E0~E5의 예상과 기각 조건은 전체 모델 실행 전에 파일에 적었다. 조건 목록, 프롬프트, 도구 설명, 판정 규칙은 전체 실행 뒤에 바꾸지 않았다. 밝힐 것이 있다. (1) 설계는 위 '실행 전에 본 것'의 탐색을 거쳐 정했고, 질문에 단계를 적은 것도 그때 정했다. (2) 모델 없이 도는 E0의 계산은 예상을 적기 전에 보았다. (3) 사후 분석(<code>post15.py</code>)은 응답을 본 뒤에 썼다. 문장별 분해, 인자의 출처, 정체 규칙과 출구 규칙의 반사실이 사후 분석이다. (4) 14장에서 질문 문장을 탐색 때 나누어 보라고 적어 두었는데, 이 실험의 탐색에서는 문장별로 나누어 보지 않았다. 문장을 시행 번호로 고르게 배정해 짝지은 비교는 지켰지만 S 프롬프트의 결과가 문장에 달렸다는 것은 전체 실행 뒤의 분해에서 알았다. 본 실험은 그 결과로 바꾸거나 다시 돌리지 않았고, 대신 확장 실험의 문장 9개로 확인했다. (5) 본 실험의 전체 실행은 두 번 했고 둘 사이에 코드와 설정을 바꾸지 않았다. 본문의 수는 첫 실행의 파일에서 옮겼다. 두 실행의 실행 기록 파일(<code>out15_raw.json</code>)은 바이트 단위로 같았다(SHA-256의 앞 12자리 f2892c808388). 요약 파일(<code>out15_res.json</code>)은 조건별로 잰 걸린 시간 필드(<code>secs</code>)를 빼면 같았고, 이 필드만 실행마다 달랐다(조건별 시간의 합은 첫 실행 741초, 둘째 실행 745초). 두 실행이 같았으므로 모델의 호출은 이 설정에서 결정적이었고, 어느 쪽에서 옮겨도 본문의 수가 같다. (6) 확장 실험은 본 실험의 결과를 모두 본 뒤에 정했고, 예상과 기각 조건은 확장 실험을 돌리기 전에 파일에 적었다. 새 문장 여섯과 N=10 실행은 돌리기 전에 본 적이 없다. 확장 실험도 두 번씩 돌렸다. 세 확장 실험도 각각 두 번 돌렸고 실행 기록 파일(<code>out15x_raw.json</code>)이 바이트 단위로 같았다(SHA-256 앞 12자리: slots aacc44311505, n10 3acbfed905fa, sent 9a2f6e80869f). 요약 파일은 걸린 시간 필드(<code>secs</code>)를 빼면 같았다(조건별 시간의 합은 첫 실행 기준 slots 513초, n10 646초, sent 763초, 둘째 실행은 slots 501초, n10 675초, sent 925초).</li>
+      <li><b>이 실험이 보여 주지 못하는 것.</b> 모델은 Qwen3-1.7B(비사고 모드) 하나이고 탐욕 디코딩 하나이다. 과제는 가상의 물류 하나이고 질문은 본 실험에서 문장 셋, 확장 실험에서 아홉이며 S 프롬프트의 결과는 문장에 달려 있어 프롬프트의 성질로 읽을 수 없다. 조건당 36시행이고 풀 수 없는 시행은 9개뿐이어서 구간이 넓다. 도구 호출 형식은 템플릿의 <code>&lt;tool_call&gt;</code> JSON이어서 Claude API의 <code>tool_use</code>나 Stop hook과 같지 않다. 규칙 B의 거절 글은 사용자 역할의 메시지로 붙였고, Claude Code에서 hook의 이유가 모델에 전달되는 방식과 다를 수 있다. 검사 \(V\)는 정확하게 쓴 코드여서 거짓 양성률 \(\alpha\)가 0이고, <a class="ref" href="#thm-prec"></a>이 말하는 검사 오류의 효과는 재지 않았다. 마지막 글의 분류는 정규식이어서(<code>claim</code>) 11절에서 글을 읽어 확인한 것이 전부이다. 계획 지시는 모델이 쓴 계획을 얻지 못해서(SL) 계획과 실행의 불일치는 질문에 적힌 단계를 계획으로 읽어서만 확인했다. 접두부 보존의 토큰은 이 모델 템플릿에서의 가정이고 실제 청구액이 아니다.</li>
     </ul>
 
 
     <h3 id="h-slot15">이 장에서 돌리지 않은 실험(슬롯)</h3>
-    <p>아래 다섯 실험은 이 장에서 돌리지 않았다. 앞의 둘은 코드에 조건이 정의되어 있어 한 줄로 돌릴 수 있지만 이 장의 시간 예산(한 회차 십수 분)을 넘겨서 뺐다. 뒤의 셋은 시간이 오래 걸리거나 외부 서비스 호출과 비용이 드는 실험이어서 계획만 적어 둔다. 어느 것도 결과가 없으므로 본문의 어느 주장도 이 실험들에 기대지 않는다.</p>
-    <p class="slot" data-slot="실험 슬롯 1 · SZ: 검사 실패의 이유를 알리지 않으면">질문: 거절 때 붙이는 글에서 이유를 빼고 'Check failed.'만 돌려주면 통과율과 거절 뒤의 행동이 어떻게 달라지는가? 코드의 <code>SZ</code> 조건이다(<code>python -I -X utf8 exp15.py all SZ</code>로 이 조건만 돌린다. 기존 결과 파일을 덮어쓰지 않도록 다른 폴더에서 돌리고, SB와 같은 시행 번호이므로 짝으로 견줄 수 있다). 이론이 정하는 것은 <a class="ref" href="#thm-pair"></a>의 1~6번이 글의 내용과 무관하게 성립한다는 것뿐이고, 이유가 통과율을 올리는지는 관찰할 일이다. 탐색의 12시행에서는 SZ의 시간이 63초였으므로 36시행 한 회차가 약 3분으로 어림된다.</p>
-    <p class="slot" data-slot="실험 슬롯 2 · SL: 계획을 먼저 쓰게 하면">질문: 첫 라운드에 도구 이름의 계획을 쓰게 하면 계획과 실행의 불일치(<a class="ref" href="#def-plan"></a>)가 어떻게 나타나는가? 코드의 <code>SL</code> 조건이다. 탐색의 12시행에서 모델은 계획을 쓰지 않고 바로 호출해 계획 열이 비었다. 계획을 쓰게 하려면 프롬프트나 형식을 바꾸어야 하므로, 바꾸는 것이 둘이 되지 않도록 계획 쓰기만 바꾸는 설계를 먼저 찾아야 한다. 36시행 한 회차가 약 5분으로 어림된다.</p>
-    <p class="slot" data-slot="실험 슬롯 3 · 한도 N을 바꾸며 값어치 곡선 재기">질문: 한도 \(N\)을 2, 4, 6, 10으로 바꿀 때 규칙 B의 통과율과 읽은 토큰이 <a class="ref" href="#thm-cap"></a>의 \(\mathcal V(N)\)과 어떻게 이어지는가? 시행 수를 늘려 시도의 성공률 \(a\)와 풀 수 있는 몫 \(\pi_0\)를 추정하고, 닫힌 식의 \(N^*\)와 견준다. 이 장의 모델은 같은 선언을 되풀이해 시도가 독립이 아니므로(<a class="ref" href="#thm-post"></a>의 3번) 닫힌 식이 어긋날 수 있고, 어긋나는 정도가 이 실험이 재는 것이다. 한도가 클수록 한 시행이 오래 걸려 이 장에서는 뺐다.</p>
-    <p class="slot" data-slot="실험 슬롯 4 · 더 큰 모델과 실제 Claude 에이전트">질문: 같은 과제를 Claude Agent SDK로 돌려 Stop hook이 없을 때(규칙 A)와 상태를 검사해 실패 이유와 함께 멈춤을 막을 때(규칙 B)를 견주면 통과율, 턴 수, 비용(<code>total_cost_usd</code>), 결과의 <code>subtype</code>이 어떻게 달라지는가? 한도는 <code>max_turns</code>로 고정하고, 검사는 모델이 바꿀 수 없는 곳의 스크립트로 둔다. 외부 서비스를 호출하고 비용이 드는 실험이어서 자동으로 돌리지 않고 설계만 적는다.</p>
-    <p class="slot" data-slot="실험 슬롯 5 · 질문 문장과 과제를 늘리기">질문: 이 장의 결과는 문장 셋과 과제 하나에 대한 반응이다. 문장을 스무 개로 늘리고 과제 서넛(예: 재고 이동, 환불, 배송 변경)을 더하면 규칙 A와 B의 차이가 얼마나 퍼지는가? 14장에서 문장 하나가 정답을 전부 또는 전무로 갈랐던 것을 반복하지 않으려면 문장별 분해를 탐색 단계에서 먼저 해야 한다. 조건과 시행이 많아져 이 장에서는 뺐다.</p>
+    <p>아래 셋은 돌리지 않았다. 외부 서비스를 호출하고 비용이 드는 실험이거나, 앞의 확장 실험에서 부족함이 드러나 설계를 먼저 바꿔야 하는 실험이다. 어느 것도 결과가 없으므로 본문의 어느 주장도 이 실험들에 기대지 않는다.</p>
+    <p class="slot" data-slot="실험 슬롯 1 · 모델이 쓴 계획을 실제로 얻기">질문: 모델이 첫 라운드에 도구 이름의 계획을 쓰게 하면 계획과 실행의 불일치(<a class="ref" href="#def-plan"></a>)가 어떻게 나타나는가? 확장 실험의 SL은 계획 지시를 더했지만 36시행 모두 계획 글 없이 곧바로 호출했고, 지시가 호출을 끌어내는 효과만 냈다. 계획을 쓰게 하려면 첫 라운드에 도구를 보이지 않거나(도구 없는 라운드를 먼저 두거나) 계획을 쓰는 형식을 따로 정해야 한다. 그러면 바꾸는 것이 둘이 되므로, 계획 쓰기만 바꾸는 설계를 먼저 찾고 탐색에서 문장별로 나누어 보아야 한다. 이론의 예상은 <a class="ref" href="#thm-plan"></a>의 분해(성공이 \(qf+(1-qf)r\))를 계획의 타당성 \(q\), 충실도 \(f\), 회복 \(r\)의 세 비율로 재는 것이다.</p>
+    <p class="slot" data-slot="실험 슬롯 2 · 더 큰 모델과 실제 Claude 에이전트">질문: 같은 과제를 Claude Agent SDK로 돌려 Stop hook이 없을 때(규칙 A)와 상태를 검사해 실패 이유와 함께 멈춤을 막을 때(규칙 B)를 견주면 통과율, 턴 수, 비용(<code>total_cost_usd</code>), 결과의 <code>subtype</code>이 어떻게 달라지는가? 한도는 <code>max_turns</code>로 고정하고, 검사는 모델이 바꿀 수 없는 곳의 스크립트로 둔다. 외부 서비스를 호출하고 비용이 드는 실험이어서 자동으로 돌리지 않고 설계만 적는다. 이 장의 확장 실험이 보인 두 가지(거절 글의 이유가 행동을 바꾸는지, 한도를 올려도 통과가 늘지 않는 시행이 있는지)가 그대로 나오는지가 첫 관심이다.</p>
+    <p class="slot" data-slot="실험 슬롯 3 · 다른 과제로 넓히기">질문: 이 장의 결과는 가상의 물류 과제 하나에 대한 반응이다. 재고 이동, 환불, 배송 변경처럼 선행 조건이 있는 쓰기 과제를 서넛 더하면 규칙 A와 B의 차이, 호출 없이 시작하는 문장의 몫, 한도의 위험률 모양이 얼마나 퍼지는가? 확장 실험에서 문장 9개로 넓혔을 때 S 프롬프트의 결과가 문장에 갈렸던 것처럼, 과제를 바꾸면 비슷하게 갈릴 수 있다. 과제마다 도구와 검사를 새로 짜야 해서 이 장에서는 뺐다.</p>
 
   </section>
 
@@ -1020,7 +1339,8 @@ PB 문장2: 첫 라운드에 호출이 없던 시행 0/12, 처음 어긋난 단�
       <li>시도 한도의 최적값은 \(\lambda\,a\,\pi_{N-1}\ge c\)인 마지막 \(N\), 곧 \(N^*=1+\lfloor\ln[\pi_0(\lambda a-c)/(c(1-\pi_0))]/\ln(1/(1-a))\rfloor\)이다. 풀 수 없는 입력이 없으면 한도가 필요 없다. 토큰 예산은 \(Rn_0+gR(R-1)/2\le B\)로 라운드 한도가 되고 예산이 4배가 되어도 라운드는 2.6~2.7배밖에 늘지 않는다. 읽기 전용 호출의 되풀이는 정보가 없어 정체 규칙이 정보를 잃지 않는다(<a class="ref" href="#thm-cap"></a>, <a class="ref" href="#thm-stall"></a>).</li>
       <li>중단 조건은 완료, 한도, 정체, 권한이다. 판정은 하네스가 하고, 권한 거부는 모델에 돌아가는 관찰이며 루프를 끝낼지는 하네스가 정한다. 끝의 종류를 기록에 남겨야 성공과 한도 소진을 가를 수 있다.</li>
       <li>실험(Qwen3-1.7B, 가상의 물류 쓰기 도구, 조건마다 36시행, 한도 6)에서 선언으로 끝낸 SA와 PA는 통과가 0/36, 0/36이었고 완료를 거짓으로 주장한 글은 없었다(하겠다고만 말함 25, 막혔다고 보고 47). 검사로 끝낸 SB와 PB는 8/36, 26/36이었고 구해진 34시행은 모두 모델이 오류를 본 시행이었다. 풀 수 없는 시행 18개는 B에서 모두 한도까지 갔다. E0~E5의 예상은 기각되지 않았고 결과 파일은 두 번의 실행에서 같았다.</li>
-      <li>S 프롬프트의 결과는 질문 문장 하나에 달렸다(SB의 통과가 문장별로 0, 8, 0). 거절 글이 정보를 주어도 모델이 호출을 내지 않고 같은 선언을 되풀이하면 구해지지 않았다. 정체 규칙과 출구 규칙의 효과는 기록을 잘라 센 반사실이다. 이 결과는 가상의 도구와 모델 하나, 문장 셋, 탐욕 디코딩에서의 관찰이며, 조건을 늘린 반복과 실제 Claude 에이전트는 슬롯으로 남겼다.</li>
+      <li>확장 실험(같은 코드, 각각 두 번)에서 거절 글에서 이유를 뺀 SZ는 같은 세계에서 0/36이었고(SB는 8/36) 계획 지시를 더한 SL은 27/36이었으나 모델이 계획 글을 쓰지 않고 곧바로 호출해 계획과 실행의 불일치는 재지 못했다. 한도를 10으로 올려도 통과는 늘지 않았고(통과가 모두 라운드 6까지), 위험률이 상수가 아니어서 정리 15.5의 닫힌 식은 한도를 크게 잡았다. 질문 문장 9개에서는 통과가 SA 1/36, SB 16/36, PA 6/36, PB 24/36이었고 A가 통과한 7시행이 모두 B에서도 통과했다.</li>
+      <li>S 프롬프트의 결과는 질문 문장에 달렸다. 호출 없이 시작하는 문장(9개 중 3개)에서는 거절 글에 정보가 있어도 모델이 같은 선언을 되풀이해 구해지지 않았고, 본 실험의 세 문장에는 그런 문장이 둘 들어 있었다. 정체 규칙과 출구 규칙의 효과는 기록을 잘라 센 반사실이다. 이 결과는 가상의 도구와 모델 하나, 탐욕 디코딩에서의 관찰이며, 실제 Claude 에이전트와 다른 과제로의 확대는 슬롯으로 남겼다.</li>
     </ol>
   </section>
 
@@ -1089,6 +1409,6 @@ PB 문장2: 첫 라운드에 호출이 없던 시행 0/12, 처음 어긋난 단�
       (B) <code>get_order</code>, <code>reserve_stock</code>(수량 12), 응답이 타임아웃, 같은 호출을 다시 → 두 번 예약(24), <code>set_status</code>(shipped)로 성공. 검사는 '예약이 정확히 12'이다. 규칙 B, 한도 6.<br>
       (C) <code>get_stock("SKU-9")</code>가 같은 결과를 네 번 되풀이. 규칙 B, 한도 6.</p>
       <details class="sol"><summary>풀이</summary><p>(A) 끝은 선언, 유형은 완료를 주장했는데 검사가 거짓인 미완 선언(<code>false_done</code>)이다. 규칙 A에서는 막을 수 없다. 규칙 B로 바꾸면 선언이 거절된다(<a class="ref" href="#thm-pair"></a>). (B) 예약이 24여서 \(V\)가 거짓이고 예약을 되돌리는 도구가 없으므로 \(V\)는 다시 참이 될 수 없다. 규칙 B는 한도 6까지 쓰고 끝난다(유형은 한도). 고칠 곳은 도구 설명과 하네스이다. 비멱등 쓰기에 멱등 키를 달거나 타임아웃 뒤에 효과의 유무를 읽는 호출을 먼저 하게 한다(<a href="ch13.html#thm-write">정리 13.4</a>의 3, 4번). (C) 읽기 전용 호출의 되풀이는 새 정보가 없다(<a class="ref" href="#thm-stall"></a>). 끝은 한도로 가고 있고, 같은 읽기가 쓰기 없이 세 번째 되풀이되면 정체로 끝내는 규칙이 하네스에 필요하다.</p></details></div>
-    <div class="prob" id="prob-design" data-level="2"><p>이 장의 실험에서 돌리지 않은 조건 SZ(검사가 거짓일 때 이유 없이 'Check failed.'만 돌려줌)를 SB와 견주는 실험을 설계하라. 바꾸는 것 하나, 고정할 것, 관측값, 이론에서 나오는 예상 하나, 그 예상이 틀렸다고 볼 조건을 적어라.</p>
+    <div class="prob" id="prob-design" data-level="2"><p>이 장의 확장 실험의 조건 SZ(검사가 거짓일 때 이유 없이 'Check failed.'만 돌려줌)를 SB와 견주는 실험을 설계하라. 바꾸는 것 하나, 고정할 것, 관측값, 이론에서 나오는 예상 하나, 그 예상이 틀렸다고 볼 조건을 적어라.</p>
       <details class="sol"><summary>풀이</summary><p>한 가지 답이다. 바꾸는 것: 거절 때 붙이는 글(이유가 있는 보고와 한 비트). 고정: 프롬프트, 세계(같은 시행 번호는 같은 세계), 한도 6, 검사 \(V\), 모델과 디코딩. 관측값: 통과율, 거절된 뒤 모델이 낸 첫 행동(호출인지 같은 문장의 되풀이인지), 거절 뒤 호출한 인자의 출처(fb, obs, none), 같은 선언 글을 되풀이한 시행의 몫, 읽은 토큰. 이론에서 나오는 예상: <a class="ref" href="#thm-pair"></a>은 거절 글의 내용과 무관하므로 SA와 SZ 사이에서도 1~6번이 성립한다. 곧 A가 통과한 시행은 SZ도 통과하고, 풀 수 없는 시행은 6라운드를 쓴다. 이유가 정보를 주는지(통과율이 오르는지)는 이론이 값을 정하지 않으므로 관찰로 보고한다. 틀렸다고 볼 조건: 위 1~6번의 위반이 하나라도 있으면 하네스의 오류이다.</p></details></div>
   </section>
