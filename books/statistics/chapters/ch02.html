@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>02 확률 변수와 기댓값 · StatBook</title>
-<meta name="description" content="확률 변수와 누적 분포 함수 · 확률 질량 함수와 확률 밀도 함수 · 기댓값과 그 선형성 · 분산과 적률 · 확률 변수의 변환 · 머신러닝에서: 손실은 기댓값이다">
+<meta name="description" content="결과를 숫자로 옮기는 확률 변수에서 출발해 누적 분포 함수, 확률 질량·밀도 함수, 기댓값의 선형성, 분산과 적률, 변환된 확률 변수의 분포를 유도하고, 손실이 기댓값이라는 사실에서 미니배치 기울기의 불편성과 제곱·절대 손실이 평균·중앙값을 고르는 이유를 계산한다.">
 <link rel="icon" href="../../../assets/favicon.svg" type="image/svg+xml">
 <script>try { var t = localStorage.getItem("ls-theme"); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -25,66 +25,348 @@
 <script defer src="../../../assets/js/book.js"></script>
 </head>
 <body data-root="../../../" data-book="statistics" data-field="math" data-chapter="ch02">
-<!-- ✎ 아직 쓰지 않은 장입니다. 절 제목은 data/books.js의 목차를 옮긴 것입니다.
-     쓸 때는 templates/textbook.html의 부품과 books/statistics/GUIDE.md의 규칙을 따릅니다. -->
 <main class="chapter">
   <header class="chapter-hero">
     <div class="eyebrow">Chapter <span data-fill="chapter-num">02</span></div>
     <h1 data-fill="chapter-title">확률 변수와 기댓값</h1>
-    <p class="lead slot" data-slot="리드 문단">이 장이 답하려는 질문을 두세 문장으로 적습니다.</p>
+    <p class="lead">주사위 두 개의 눈의 합, 센서가 잰 길이, 분류기가 한 사례에서 낸 손실처럼 우리가 실제로 다루는 것은 사건이 아니라 숫자다. 이 장은 결과를 숫자로 옮기는 확률 변수를 세우고, 그 숫자의 분포를 함수 하나로 나타낸 뒤, 평균과 퍼짐이라는 두 가지 요약으로 줄인다. 이를 바탕으로 신경망의 손실이 기댓값이라는 사실에서 미니배치 학습과 손실 함수의 선택을 읽는다.</p>
     <ul class="objectives">
-      <li class="slot" data-slot="학습 목표">학습 목표 1</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 2</li>
-      <li class="slot" data-slot="학습 목표">학습 목표 3</li>
+      <li>확률 변수를 표본 공간에서 실수로 가는 함수로 정의하고, 누적 분포 함수로 구간의 확률을 계산할 수 있다.</li>
+      <li>확률 질량 함수와 확률 밀도 함수를 구별하고, 밀도가 확률이 아니라 단위 길이당 확률임을 설명할 수 있다.</li>
+      <li>기댓값의 선형성을 독립 가정 없이 쓰고, 지시 확률 변수로 확률을 기댓값으로 바꿔 계산할 수 있다.</li>
+      <li>분산과 적률을 계산하고, 변환한 확률 변수 \(Y=g(X)\)의 분포를 구해 \(\mathbb E[g(X)]\neq g(\mathbb E[X])\)인 이유를 설명할 수 있다.</li>
+      <li>경험 위험과 미니배치 손실이 기댓값의 불편 추정임을 보이고, 제곱 손실과 절대 손실이 평균과 중앙값을 고르는 이유를 유도할 수 있다.</li>
     </ul>
-    <p class="prereq"><b>선수 지식</b><span class="slot" data-slot="선수 지식">앞 장의 어떤 내용이 필요한지</span></p>
+    <p class="prereq"><b>선수 지식</b><a href="ch01.html">1장</a>의 사건, 확률의 공리, 독립. 미적분의 적분, 연쇄 법칙, 적분 구간의 변수 치환.</p>
   </header>
 
   <section id="s1">
     <h2>확률 변수와 누적 분포 함수</h2>
-    <p class="slot" data-slot="2.1절">아직 쓰지 않은 절입니다.</p>
+    <p>1장에서는 사건의 확률을 계산했다. 그런데 실제로 알고 싶은 것은 대개 숫자다. 주사위 두 개를 던지면 결과가 36가지지만 궁금한 것은 눈의 합이고, 분류기가 한 사례에서 낸 손실은 사건이 아니라 실수다. 결과마다 숫자 하나를 대응시켜 두면 '결과가 무엇인가' 대신 '숫자가 얼마인가'를 두고 확률을 물을 수 있다.</p>
+    <div class="box def" id="def-random-variable"><div class="box-h">확률 변수</div>
+      <p>표본 공간 \(\Omega\)의 각 결과 \(\omega\)에 실수 \(X(\omega)\)를 대응시키는 함수 \(X:\Omega\to\mathbb R\)를 <span class="term">확률 변수</span> <span class="en">(random variable)</span>라 한다. 실수의 집합 \(B\)에 대해 'X가 B에 속한다'는 사건을 \(\{X\in B\}=\{\omega\in\Omega: X(\omega)\in B\}\)로 쓰고, 그 확률을 \(P(X\in B)\)라 한다.</p>
+    </div>
+    <p>이름은 '변수'지만 함수다. 실험 전에는 어떤 \(\omega\)가 나올지 모르므로 \(X\)의 값도 모르고, 실험을 해서 \(\omega\)가 정해지면 \(X(\omega)\)가 정해진다. 이 책에서는 확률 변수를 대문자 \(X\), 그 실현값을 소문자 \(x\)로 쓴다. \(P(X=x)\)는 '확률 변수 \(X\)가 값 \(x\)를 취할 확률'이다.</p>
+    <div class="callout deep"><strong>모든 함수가 확률 변수인 것은 아니다</strong><p>엄밀하게는 모든 실수 \(x\)에 대해 \(\{X\le x\}\)가 확률을 매길 수 있는 사건이어야 한다. 유한한 표본 공간에서 모든 부분집합을 사건으로 삼으면 이 조건은 저절로 성립하고, 이 책의 모든 예에서도 성립한다. 조건이 왜 필요한지는 측도론이 다루며 이 책은 그 부분에 들어가지 않는다.</p></div>
+    <div class="box ex" id="ex-two-coins"><div class="box-h">두 번 던진 동전의 앞면 수</div>
+      <p>공정한 동전을 두 번 던지고 앞면이 나온 횟수를 \(X\)라 하자. \(\Omega=\{HH,HT,TH,TT\}\)이고 \(X\)는 결과마다 다음 값을 갖는다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>결과 \(\omega\)</th><th>HH</th><th>HT</th><th>TH</th><th>TT</th></tr></thead>
+        <tbody><tr><td>\(X(\omega)\)</td><td>2</td><td>1</td><td>1</td><td>0</td></tr></tbody>
+      </table></div>
+      <p>네 결과의 확률이 각각 \(1/4\)이므로 \(\{X=1\}=\{HT,TH\}\)의 확률은 \(P(X=1)=P(\{HT\})+P(\{TH\})=1/2\)이다. 같은 방식으로 값마다 확률을 모으면 다음 표를 얻는다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>값 \(x\)</th><th>0</th><th>1</th><th>2</th></tr></thead>
+        <tbody><tr><td>\(P(X=x)\)</td><td>1/4</td><td>1/2</td><td>1/4</td></tr></tbody>
+      </table></div>
+      <p>1장 <a href="ch01.html#ex-sample-space">예제 1.1</a>에서 앞면 횟수 0, 1, 2가 같은 확률이 아니라고 한 이유가 이 표다. 1이 나오는 결과가 둘이다.</p>
+    </div>
+    <p>확률 변수가 어떤 값을 얼마의 확률로 취하는지를 모두 알려 주는 것을 \(X\)의 <span class="term">분포</span> <span class="en">(distribution)</span>라 한다. 곧 모든 \(B\)에 대해 \(P(X\in B)\)를 알려 주는 것이다. 앞으로의 계산은 거의 \(\Omega\)를 거치지 않고 분포만으로 한다.</p>
+    <p>분포를 적는 방법이 하나 필요하다. 값마다 확률을 적는 표는 값이 셀 수 있을 때만 쓸 수 있다. 0과 1 사이에서 실수 하나를 뽑는 경우처럼 값이 연속이면 한 점의 확률이 0이라(2.2절) 표가 아무것도 알려 주지 않는다. 두 경우에 모두 통하는 방법은 '\(x\) 이하일 확률'을 \(x\)의 함수로 적는 것이다.</p>
+    <div class="box def" id="def-cdf"><div class="box-h">누적 분포 함수</div>
+      <p>확률 변수 \(X\)의 <span class="term">누적 분포 함수</span> <span class="en">(cumulative distribution function, CDF)</span>는 모든 실수 \(x\)에 대해</p>
+      <div class="formula" id="eq-cdf">\[F(x)=P(X\le x)\]</div>
+      <p>로 정의한 함수다. 어느 확률 변수의 것인지 밝혀야 할 때는 \(F_X(x)\)로 쓴다.</p>
+    </div>
+    <div class="box ex" id="ex-two-coins-cdf"><div class="box-h">앞면 수의 누적 분포 함수</div>
+      <p>앞의 \(X\)에서 \(F(0)=P(X\le0)=1/4\), \(F(1)=P(X\le1)=P(X=0)+P(X=1)=3/4\), \(F(2)=1\)이다. 값과 값 사이에서는 \(F\)가 변하지 않는다. 예를 들어 \(F(0.5)=P(X\le0.5)=P(X=0)=1/4\)다. 모두 모으면</p>
+      <div class="formula">\[F(x)=\begin{cases}0,&amp;x&lt;0,\\1/4,&amp;0\le x&lt;1,\\3/4,&amp;1\le x&lt;2,\\1,&amp;x\ge2\end{cases}\]</div>
+      <p>이다. 그림 2-1의 (b)처럼 계단 모양이고, 계단의 높이가 그 점의 확률이다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><svg viewBox="0 0 320 236" role="img" aria-label="두 동전의 앞면 수 X의 확률 질량 함수. x가 0, 1, 2일 때 막대의 높이는 1/4, 1/2, 1/4이다"><line x1="44" y1="126.8" x2="306" y2="126.8" class="s-grid"/><text x="38" y="130.8" text-anchor="end" class="t-dim">1/4</text><line x1="44" y1="57.7" x2="306" y2="57.7" class="s-grid"/><text x="38" y="61.7" text-anchor="end" class="t-dim">1/2</text><line x1="97.9" y1="196" x2="97.9" y2="200" class="s-line" stroke-width="1"/><text x="97.9" y="214" text-anchor="middle" class="t-dim">0</text><line x1="175" y1="196" x2="175" y2="200" class="s-line" stroke-width="1"/><text x="175" y="214" text-anchor="middle" class="t-dim">1</text><line x1="252.1" y1="196" x2="252.1" y2="200" class="s-line" stroke-width="1"/><text x="252.1" y="214" text-anchor="middle" class="t-dim">2</text><line x1="44" y1="196" x2="306" y2="196" class="s-line" stroke-width="1"/><line x1="44" y1="196" x2="44" y2="30" class="s-line" stroke-width="1"/><text x="306" y="228" text-anchor="end" class="t-dim">x</text><rect x="84.1" y="126.8" width="27.7" height="69.2" class="f-acc-soft" stroke-width="1.5"/><text x="97.9" y="120.8" text-anchor="middle" class="t-acc">1/4</text><rect x="161.1" y="57.7" width="27.7" height="138.3" class="f-acc-soft" stroke-width="1.5"/><text x="175" y="51.7" text-anchor="middle" class="t-acc">1/2</text><rect x="238.2" y="126.8" width="27.7" height="69.2" class="f-acc-soft" stroke-width="1.5"/><text x="252.1" y="120.8" text-anchor="middle" class="t-acc">1/4</text><text x="44" y="18" class="t-b">(a) 질량 함수 p(x)</text></svg><svg viewBox="0 0 320 236" role="img" aria-label="같은 확률 변수의 누적 분포 함수. 0에서 1/4, 1에서 3/4, 2에서 1로 올라가는 계단이고 각 계단의 왼쪽 끝 값을 갖는다"><line x1="44" y1="157.6" x2="306" y2="157.6" class="s-grid"/><text x="38" y="161.6" text-anchor="end" class="t-dim">1/4</text><line x1="44" y1="119.1" x2="306" y2="119.1" class="s-grid"/><text x="38" y="123.1" text-anchor="end" class="t-dim">1/2</text><line x1="44" y1="80.7" x2="306" y2="80.7" class="s-grid"/><text x="38" y="84.7" text-anchor="end" class="t-dim">3/4</text><line x1="44" y1="42.3" x2="306" y2="42.3" class="s-grid"/><text x="38" y="46.3" text-anchor="end" class="t-dim">1</text><line x1="109.5" y1="196" x2="109.5" y2="200" class="s-line" stroke-width="1"/><text x="109.5" y="214" text-anchor="middle" class="t-dim">0</text><line x1="175" y1="196" x2="175" y2="200" class="s-line" stroke-width="1"/><text x="175" y="214" text-anchor="middle" class="t-dim">1</text><line x1="240.5" y1="196" x2="240.5" y2="200" class="s-line" stroke-width="1"/><text x="240.5" y="214" text-anchor="middle" class="t-dim">2</text><line x1="44" y1="196" x2="306" y2="196" class="s-line" stroke-width="1"/><line x1="44" y1="196" x2="44" y2="30" class="s-line" stroke-width="1"/><text x="306" y="228" text-anchor="end" class="t-dim">x</text><line x1="109.5" y1="196" x2="109.5" y2="157.6" class="s-acc" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/><line x1="175" y1="157.6" x2="175" y2="80.7" class="s-acc" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/><line x1="240.5" y1="80.7" x2="240.5" y2="42.3" class="s-acc" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/><line x1="44" y1="196" x2="109.5" y2="196" class="s-acc" stroke-width="2.5"/><line x1="109.5" y1="157.6" x2="175" y2="157.6" class="s-acc" stroke-width="2.5"/><line x1="175" y1="80.7" x2="240.5" y2="80.7" class="s-acc" stroke-width="2.5"/><line x1="240.5" y1="42.3" x2="306" y2="42.3" class="s-acc" stroke-width="2.5"/><circle cx="109.5" cy="157.6" r="4" class="f-acc"/><circle cx="109.5" cy="196" r="4" style="fill:var(--bg-elev);stroke:var(--accent);stroke-width:2"/><circle cx="175" cy="80.7" r="4" class="f-acc"/><circle cx="175" cy="157.6" r="4" style="fill:var(--bg-elev);stroke:var(--accent);stroke-width:2"/><circle cx="240.5" cy="42.3" r="4" class="f-acc"/><circle cx="240.5" cy="80.7" r="4" style="fill:var(--bg-elev);stroke:var(--accent);stroke-width:2"/><text x="183" y="72.7" class="t-acc">F(1) = 3/4</text><text x="44" y="18" class="t-b">(b) 누적 분포 함수 F(x)</text></svg></div>
+      <figcaption><b>그림 2-1.</b> 두 동전을 던져 앞면이 나온 횟수 \(X\). (a) 막대의 높이가 확률 질량이다. (b) 누적 분포 함수는 계단이고, 계단 하나의 높이가 그 점의 확률 질량이다. 채운 점은 그 점에서의 함숫값(오른쪽 연속), 빈 점은 그 값이 아님을 나타낸다.</figcaption>
+    </figure>
+    <div class="box thm" id="thm-cdf-properties"><div class="box-h">누적 분포 함수의 성질</div>
+      <p>확률 변수 \(X\)의 누적 분포 함수 \(F\)는 다음을 만족한다.</p>
+      <ol>
+        <li>\(a&lt;b\)이면 \(P(a&lt;X\le b)=F(b)-F(a)\).</li>
+        <li>\(F\)는 단조 비감소다. 곧 \(a&lt;b\)이면 \(F(a)\le F(b)\).</li>
+        <li>\(\lim_{x\to-\infty}F(x)=0\), \(\lim_{x\to\infty}F(x)=1\).</li>
+        <li>\(F\)는 오른쪽 연속이다. 곧 \(\lim_{t\downarrow x}F(t)=F(x)\).</li>
+      </ol>
+      <details class="proof"><summary>증명</summary>
+        <p>(1) \(\{X\le b\}\)는 겹치지 않는 두 사건 \(\{X\le a\}\)와 \(\{a&lt;X\le b\}\)의 합집합이다. 가법성에서 \(F(b)=F(a)+P(a&lt;X\le b)\)이고, 이 식을 정리하면 (1)이다. (2) 확률은 음수가 아니므로 (1)의 값 \(F(b)-F(a)\)가 0 이상이다.</p>
+        <p>(3)과 (4)는 사건이 단조롭게 늘거나 줄 때 확률이 극한 사건의 확률로 수렴한다는 사실, 곧 확률의 연속성을 쓴다. \(x\to-\infty\)이면 \(\{X\le x\}\)는 \(\varnothing\)으로 줄고, \(x\to\infty\)이면 \(\Omega\)로 늘며, \(t\)가 오른쪽에서 \(x\)로 다가가면 \(\{X\le t\}\)는 \(\{X\le x\}\)로 줄어든다. 확률의 연속성은 가산 가법성 공리에서 유도되지만 이 책은 그 단계를 건너뛴다.</p>
+      </details>
+    </div>
+    <p>누적 분포 함수에서 한 점의 확률도 읽을 수 있다. 성질 (1)에서 \(a\)를 \(x\)의 왼쪽에서 \(x\)로 가져가면 \(P(X=x)=F(x)-F(x^{-})\)를 얻는다. 여기서 \(F(x^{-})=\lim_{t\uparrow x}F(t)\)는 \(x\)의 왼쪽 극한이다. 곧 \(F\)가 한 점에서 위로 뛰는 높이(<span class="term">점프</span>)가 그 점의 확률이고, \(F\)가 \(x\)에서 연속이면 \(P(X=x)=0\)이다. 이 읽는 법이 2.2절의 두 종류의 분포를 하나로 묶는다.</p>
+    <div class="callout tip"><strong>끝점을 넣는지 확인하자</strong><p>성질 (1)은 왼쪽 끝 \(a\)를 빼고 오른쪽 끝 \(b\)를 넣는다. \(F\)가 '이하'로 정의되기 때문이다. 값이 이산이면 \(P(a\le X\le b)\)는 \(a\)에 있는 질량만큼 더 크다. 연속이면 끝점의 확률이 0이라 어느 쪽이든 같다.</p></div>
   </section>
 
   <section id="s2">
     <h2>확률 질량 함수와 확률 밀도 함수</h2>
-    <p class="slot" data-slot="2.2절">아직 쓰지 않은 절입니다.</p>
+    <p>누적 분포 함수는 어떤 분포든 나타내지만 읽기에는 불편하다. 값이 셀 수 있는 경우(주사위, 앞면 수, 토큰 번호)와 값이 구간 전체에 걸치는 경우(길이, 시간, 로짓)에는 각각 더 읽기 쉬운 함수가 있다.</p>
+    <div class="box def" id="def-pmf"><div class="box-h">이산 확률 변수와 확률 질량 함수</div>
+      <p>\(X\)가 가질 수 있는 값이 유한하거나 셀 수 있을 만큼일 때 \(X\)를 <span class="term">이산 확률 변수</span> <span class="en">(discrete random variable)</span>라 하고,</p>
+      <div class="formula" id="eq-pmf">\[p(x)=P(X=x)\]</div>
+      <p>를 <span class="term">확률 질량 함수</span> <span class="en">(probability mass function, PMF)</span>라 한다. 어느 확률 변수의 것인지 밝혀야 할 때는 \(p_X(x)\)로 쓴다.</p>
+    </div>
+    <p>사건 \(\{X=x\}\)들은 \(\Omega\)를 겹치지 않게 나누므로 가법성에서 다음이 따른다.</p>
+    <ul>
+      <li>\(p(x)\ge0\)이고 \(\sum_x p(x)=1\)이다.</li>
+      <li>\(P(X\in B)=\sum_{x\in B}p(x)\)다. 특히 \(F(x)=\sum_{t\le x}p(t)\)다.</li>
+    </ul>
+    <p>이제 값이 연속인 경우를 보자. 0과 1 사이에서 '아무렇게나' 실수 하나를 뽑는다면 어느 한 값이 나올 확률은 얼마여야 할까? 가능한 값이 무수히 많고 어느 값도 특별하지 않으므로 모든 값의 확률이 같아야 한다. 그 확률이 \(\varepsilon&gt;0\)이면 \(1/\varepsilon\)보다 많은 값을 모았을 때 확률의 합이 1을 넘으므로 \(\varepsilon\)는 0일 수밖에 없다. 그러나 구간의 확률은 0이 아닐 수 있다. 그래서 점이 아니라 구간의 확률을 적분으로 적는다.</p>
+    <div class="box def" id="def-pdf"><div class="box-h">연속 확률 변수와 확률 밀도 함수</div>
+      <p>음이 아닌 함수 \(f\)가 있어서 모든 \(a\le b\)에 대해</p>
+      <div class="formula" id="eq-pdf">\[P(a\le X\le b)=\int_a^b f(x)\,dx\]</div>
+      <p>일 때 \(X\)를 <span class="term">연속 확률 변수</span> <span class="en">(continuous random variable)</span>라 하고, \(f\)를 <span class="term">확률 밀도 함수</span> <span class="en">(probability density function, PDF)</span>라 한다. 어느 확률 변수의 것인지 밝혀야 할 때는 \(f_X(x)\)로 쓴다.</p>
+    </div>
+    <p>식 <a class="ref" href="#eq-pdf"></a>에서 \(a\)를 \(-\infty\)로 보내고 \(b=x\)로 두면 누적 분포 함수와의 관계가 나온다. 미적분의 기본 정리에 따라 \(f\)가 연속인 점에서는 \(F\)를 미분한 것이 \(f\)다.</p>
+    <div class="formula" id="eq-cdf-density">\[\begin{aligned}F(x)&amp;=\int_{-\infty}^{x}f(t)\,dt,\\f(x)&amp;=F'(x),\\\int_{-\infty}^{\infty}f(x)\,dx&amp;=1\end{aligned}\]</div>
+    <p>마지막 식은 \(P(-\infty&lt;X&lt;\infty)=1\)이다. 이 책에서 '연속 확률 변수'는 이처럼 밀도가 있는 경우를 뜻한다.</p>
+    <p>밀도 \(f(x)\)가 무엇을 뜻하는지는 작은 구간으로 보면 분명하다. \(f\)가 \(x\) 근처에서 연속이면 폭 \(\Delta\)가 작은 구간의 확률은 높이 \(f(x)\), 폭 \(\Delta\)인 직사각형의 넓이로 근사된다.</p>
+    <div class="formula" id="eq-density-meaning">\[P(x&lt;X\le x+\Delta)=\int_x^{x+\Delta}f(t)\,dt\approx f(x)\,\Delta\]</div>
+    <p>그래서 \(f(x)\)는 \(x\) 근처의 '단위 길이당 확률'이다. 확률이 아니라 <b>밀도</b>다. 질량 \(p(x)\)가 확률 자체인 것과 다르다.</p>
+    <div class="callout warn"><strong>밀도는 1보다 클 수 있고, 확률 0은 불가능이 아니다</strong><p>\(f(x)\)가 확률이 아니므로 1을 넘어도 된다. 넓이인 적분만 1이면 된다. 또 연속 확률 변수는 어느 한 값도 확률 0으로 취하지만, 실험을 하면 어떤 값이든 하나는 나온다. 확률이 0인 사건은 '일어날 수 없다'가 아니라 '확률로 셀 수 있는 크기가 없다'는 뜻이다.</p></div>
+    <div class="box ex" id="ex-density-2x"><div class="box-h">밀도 2x</div>
+      <p>밀도가 \(f(x)=2x\ (0\le x\le1)\)이고 그 밖에서 0인 \(X\)를 이 장의 예로 삼자. 이 밀도가 쓰이는 곳이 있다. 0과 1 사이에서 균등하게, 서로 독립으로 뽑은 두 수 중 큰 수 \(M\)은 1장의 독립 때문에 \(P(M\le x)=P(\text{둘 다 }\le x)=x\cdot x=x^2\)이다. 이 \(x^2\)이 아래 \(F\)와 같다.</p>
+      <ul>
+        <li>적분이 1이다. \(\int_0^1 2x\,dx=1\).</li>
+        <li>누적 분포 함수는 \(0\le x\le1\)에서 \(F(x)=\int_0^x 2t\,dt=x^2\)이고, \(x&lt;0\)이면 0, \(x&gt;1\)이면 1이다.</li>
+        <li>\(P(0.5&lt;X\le0.8)=F(0.8)-F(0.5)=0.64-0.25=0.39\)다. 성질 (1)을 썼다.</li>
+        <li>\(f(1)=2\)로 1보다 크다. 밀도는 확률이 아니므로 문제가 없다. \(x>1/2\)이면 이미 1을 넘는다.</li>
+      </ul>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><svg viewBox="0 0 320 236" role="img" aria-label="밀도 f(x)=2x의 그래프. 0에서 1까지 직선으로 올라 f(1)=2이고, 0.5와 0.8 사이의 넓이 0.39가 색으로 칠해져 있다"><line x1="44" y1="123.8" x2="306" y2="123.8" class="s-grid"/><text x="38" y="127.8" text-anchor="end" class="t-dim">1</text><line x1="44" y1="51.7" x2="306" y2="51.7" class="s-grid"/><text x="38" y="55.7" text-anchor="end" class="t-dim">2</text><line x1="80.1" y1="196" x2="80.1" y2="200" class="s-line" stroke-width="1"/><text x="80.1" y="214" text-anchor="middle" class="t-dim">0</text><line x1="170.5" y1="196" x2="170.5" y2="200" class="s-line" stroke-width="1"/><text x="170.5" y="214" text-anchor="middle" class="t-dim">0.5</text><line x1="224.7" y1="196" x2="224.7" y2="200" class="s-line" stroke-width="1"/><text x="224.7" y="214" text-anchor="middle" class="t-dim">0.8</text><line x1="260.8" y1="196" x2="260.8" y2="200" class="s-line" stroke-width="1"/><text x="260.8" y="214" text-anchor="middle" class="t-dim">1</text><line x1="44" y1="196" x2="306" y2="196" class="s-line" stroke-width="1"/><line x1="44" y1="196" x2="44" y2="30" class="s-line" stroke-width="1"/><text x="306" y="228" text-anchor="end" class="t-dim">x</text><polygon points="170.5,196 170.5,123.8 172.3,122.4 174.1,120.9 175.9,119.5 177.7,118.1 179.5,116.6 181.3,115.2 183.1,113.7 184.9,112.3 186.7,110.8 188.6,109.4 190.4,107.9 192.2,106.5 194,105.1 195.8,103.6 197.6,102.2 199.4,100.7 201.2,99.3 203,97.8 204.8,96.4 206.6,95 208.4,93.5 210.2,92.1 212,90.6 213.8,89.2 215.7,87.7 217.5,86.3 219.3,84.9 221.1,83.4 222.9,82 224.7,80.5 224.7,196" class="f-acc2-soft" stroke-width="1" opacity="0.9"/><line x1="44" y1="196" x2="80.1" y2="196" class="s-acc" stroke-width="2.5"/><polyline points="80.1,196 84.7,192.4 89.2,188.8 93.7,185.2 98.2,181.6 102.7,178 107.2,174.3 111.8,170.7 116.3,167.1 120.8,163.5 125.3,159.9 129.8,156.3 134.3,152.7 138.9,149.1 143.4,145.5 147.9,141.9 152.4,138.3 156.9,134.7 161.4,131 166,127.4 170.5,123.8 175,120.2 179.5,116.6 184,113 188.6,109.4 193.1,105.8 197.6,102.2 202.1,98.6 206.6,95 211.1,91.3 215.7,87.7 220.2,84.1 224.7,80.5 229.2,76.9 233.7,73.3 238.2,69.7 242.8,66.1 247.3,62.5 251.8,58.9 256.3,55.3 260.8,51.7" class="s-acc" stroke-width="2.5"/><line x1="260.8" y1="51.7" x2="260.8" y2="196" class="s-acc" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/><line x1="260.8" y1="196" x2="306" y2="196" class="s-acc" stroke-width="2.5"/><circle cx="260.8" cy="51.7" r="4" class="f-acc"/><text x="197.6" y="175.8" text-anchor="middle" class="t-acc">넓이 0.39</text><text x="198.8" y="47.7" class="t-acc">f(1) = 2</text><text x="44" y="18" class="t-b">(a) 밀도 f(x) = 2x</text></svg><svg viewBox="0 0 320 236" role="img" aria-label="누적 분포 함수 F(x)=x²의 그래프. F(0.5)=0.25와 F(0.8)=0.64의 차이 0.39가 표시되어 있다"><line x1="44" y1="158.9" x2="306" y2="158.9" class="s-grid"/><text x="38" y="162.9" text-anchor="end" class="t-dim">0.25</text><line x1="44" y1="101.1" x2="306" y2="101.1" class="s-grid"/><text x="38" y="105.1" text-anchor="end" class="t-dim">0.64</text><line x1="44" y1="47.8" x2="306" y2="47.8" class="s-grid"/><text x="38" y="51.8" text-anchor="end" class="t-dim">1</text><line x1="80.1" y1="196" x2="80.1" y2="200" class="s-line" stroke-width="1"/><text x="80.1" y="214" text-anchor="middle" class="t-dim">0</text><line x1="170.5" y1="196" x2="170.5" y2="200" class="s-line" stroke-width="1"/><text x="170.5" y="214" text-anchor="middle" class="t-dim">0.5</text><line x1="224.7" y1="196" x2="224.7" y2="200" class="s-line" stroke-width="1"/><text x="224.7" y="214" text-anchor="middle" class="t-dim">0.8</text><line x1="260.8" y1="196" x2="260.8" y2="200" class="s-line" stroke-width="1"/><text x="260.8" y="214" text-anchor="middle" class="t-dim">1</text><line x1="44" y1="196" x2="306" y2="196" class="s-line" stroke-width="1"/><line x1="44" y1="196" x2="44" y2="30" class="s-line" stroke-width="1"/><text x="306" y="228" text-anchor="end" class="t-dim">x</text><line x1="44" y1="196" x2="80.1" y2="196" class="s-acc" stroke-width="2.5"/><polyline points="80.1,196 84.7,195.9 89.2,195.6 93.7,195.2 98.2,194.5 102.7,193.7 107.2,192.7 111.8,191.5 116.3,190.1 120.8,188.5 125.3,186.7 129.8,184.8 134.3,182.7 138.9,180.3 143.4,177.8 147.9,175.2 152.4,172.3 156.9,169.2 161.4,166 166,162.6 170.5,158.9 175,155.1 179.5,151.2 184,147 188.6,142.6 193.1,138.1 197.6,133.4 202.1,128.5 206.6,123.4 211.1,118.1 215.7,112.6 220.2,107 224.7,101.1 229.2,95.1 233.7,88.9 238.2,82.5 242.8,75.9 247.3,69.2 251.8,62.2 256.3,55.1 260.8,47.8" class="s-acc" stroke-width="2.5"/><line x1="260.8" y1="47.8" x2="306" y2="47.8" class="s-acc" stroke-width="2.5"/><line x1="44" y1="158.9" x2="170.5" y2="158.9" class="s-acc2" stroke-width="1.3" stroke-dasharray="4 3"/><line x1="170.5" y1="158.9" x2="170.5" y2="196" class="s-acc2" stroke-width="1.3" stroke-dasharray="4 3"/><circle cx="170.5" cy="158.9" r="3.5" class="f-acc2"/><line x1="44" y1="101.1" x2="224.7" y2="101.1" class="s-acc2" stroke-width="1.3" stroke-dasharray="4 3"/><line x1="224.7" y1="101.1" x2="224.7" y2="196" class="s-acc2" stroke-width="1.3" stroke-dasharray="4 3"/><circle cx="224.7" cy="101.1" r="3.5" class="f-acc2"/><line x1="236.7" y1="158.9" x2="236.7" y2="101.1" class="s-acc2" stroke-width="1.5"/><line x1="232.7" y1="158.9" x2="240.7" y2="158.9" class="s-acc2" stroke-width="1.5"/><line x1="232.7" y1="101.1" x2="240.7" y2="101.1" class="s-acc2" stroke-width="1.5"/><text x="244.7" y="134" class="t-acc">0.39</text><text x="44" y="18" class="t-b">(b) 누적 분포 함수 F(x) = x²</text></svg></div>
+      <figcaption><b>그림 2-2.</b> 밀도가 \(f(x)=2x\ (0\le x\le1)\)인 확률 변수. (a) 밀도는 확률이 아니라 확률의 '넓이'를 만드는 높이다. \(x>1/2\)에서는 1을 넘는다. (b) 누적 분포 함수는 밀도를 \(-\infty\)부터 적분한 것이다. 두 값의 차 \(F(0.8)-F(0.5)=0.39\)가 (a)의 칠한 넓이와 같다.</figcaption>
+    </figure>
+    <div class="callout deep"><strong>이산도 연속도 아닌 분포</strong><p>두 경우가 전부는 아니다. 대칭인 연속 분포를 따르는 \(X\)에 ReLU \(\max(X,0)\)를 적용하면, 값 0에는 확률 \(P(X\le0)=1/2\)의 질량이 있고 양수 쪽에는 밀도가 있다. 이런 섞인 분포에서도 누적 분포 함수는 똑같이 정의되고 성질 (1)–(4)도 그대로 성립한다. 그래서 누적 분포 함수가 모든 경우의 공통 언어다.</p></div>
   </section>
 
   <section id="s3">
     <h2>기댓값과 그 선형성</h2>
-    <p class="slot" data-slot="2.3절">아직 쓰지 않은 절입니다.</p>
+    <p>분포는 완전한 정보지만 한눈에 읽기 어렵다. 분포를 숫자 하나로 줄이는 가장 흔한 방법이 평균이다. 값 \(x\)가 확률 \(p(x)\)로 나온다면, 같은 실험을 아주 여러 번 해서 평균을 낼 때 그 평균이 가까워질 수를 '값 \(\times\) 확률'의 합으로 쓸 수 있다. 이것이 정말 그렇다는 것이 6장의 큰 수의 법칙이다. 여기서는 이 합을 정의로 삼는다.</p>
+    <div class="box def" id="def-expectation"><div class="box-h">기댓값</div>
+      <p>이산 확률 변수 \(X\)와 연속 확률 변수 \(X\)의 <span class="term">기댓값</span> <span class="en">(expectation, expected value)</span>은 각각</p>
+      <div class="formula" id="eq-expectation">\[\mathbb E[X]=\sum_x x\,p(x),\qquad\mathbb E[X]=\int_{-\infty}^{\infty}x\,f(x)\,dx\]</div>
+      <p>이다. 합 또는 적분이 절대 수렴할 때, 곧 \(\sum_x|x|p(x)\) 또는 \(\int|x|f(x)\,dx\)가 유한할 때만 정의한다. \(\mu\) 또는 \(\mu_X\)로도 쓰고 <span class="term">평균</span> <span class="en">(mean)</span>이라고도 부른다.</p>
+    </div>
+    <div class="box ex" id="ex-expectation-basic"><div class="box-h">세 가지 기댓값</div>
+      <p>공정한 주사위의 눈 \(D\)는 \(\mathbb E[D]=(1+2+\cdots+6)/6=7/2\)이다. 기댓값 3.5는 주사위가 실제로 내는 값이 아니다. 두 동전의 앞면 수 \(X\)는 \(\mathbb E[X]=0\cdot\tfrac14+1\cdot\tfrac12+2\cdot\tfrac14=1\)이다. 밀도 \(2x\)인 \(X\)는 \(\mathbb E[X]=\int_0^1 x\cdot2x\,dx=2/3\)이다.</p>
+    </div>
+    <div class="callout tip"><strong>무게중심</strong><p>길이 방향의 막대에서 위치 \(x\)에 질량 \(p(x)\)를 놓았을 때 막대를 한 점으로 받쳐 균형을 이루는 위치가 \(\mathbb E[X]\)다. 밀도 \(2x\)의 평균 \(2/3\)이 구간 \([0,1]\)의 가운데 \(1/2\)보다 큰 것은 질량이 오른쪽에 몰려 있기 때문이다.</p></div>
+    <div class="callout warn"><strong>기댓값이 없는 분포</strong><p>밀도가 \(f(x)=1/(\pi(1+x^2))\)인 <span class="term">코시 분포</span> <span class="en">(Cauchy distribution)</span>는 좌우 대칭이라 평균이 0일 것 같다. 그러나 \(\int_0^\infty x f(x)\,dx=\frac1{2\pi}\ln(1+x^2)\big|_0^\infty\)가 발산한다. 절대 수렴하지 않으므로 기댓값이 정의되지 않는다. 6장에서 이런 분포의 표본 평균이 전혀 안정되지 않음을 본다.</p></div>
+    <p>확률 변수에 함수를 적용한 \(g(X)\)의 기댓값이 필요한 일이 많다. 제곱 오차 \((X-c)^2\)과 로그 가능도 \(\log p(X)\)가 모두 확률 변수의 함수이고, 학습의 목적함수는 이런 양의 기댓값이다. 다행히 \(g(X)\)의 분포를 새로 구하지 않아도 \(X\)의 분포로 바로 계산할 수 있다.</p>
+    <div class="box thm" id="thm-lotus"><div class="box-h">무의식적 통계학자의 법칙</div>
+      <p>합 또는 적분이 절대 수렴하면, 이산 확률 변수와 연속 확률 변수에 대해 각각</p>
+      <div class="formula" id="eq-lotus">\[\begin{aligned}\mathbb E[g(X)]&amp;=\sum_x g(x)\,p(x)\quad(\text{이산}),\\\mathbb E[g(X)]&amp;=\int_{-\infty}^{\infty}g(x)\,f(x)\,dx\quad(\text{연속}).\end{aligned}\]</div>
+      <details class="proof"><summary>증명 (이산)</summary>
+        <p>\(Y=g(X)\)의 값 \(y\)마다 \(\{Y=y\}\)는 \(g(x)=y\)인 \(x\)들의 사건 \(\{X=x\}\)를 겹치지 않게 합친 것이므로 \(p_Y(y)=\sum_{x:\,g(x)=y}p(x)\)다. 따라서</p>
+        <div class="formula">\[\begin{aligned}\mathbb E[Y]&amp;=\sum_y y\sum_{x:\,g(x)=y}p(x)\\&amp;=\sum_y\sum_{x:\,g(x)=y}g(x)\,p(x)\\&amp;=\sum_x g(x)\,p(x).\end{aligned}\]</div>
+        <p>마지막 등식은 \(y\)별로 묶어 더한 것을 다시 \(x\) 전체에 대한 합으로 풀어 쓴 것이다. 연속인 경우는 2.5절에서 \(g\)가 단조일 때를 확인한다. 일반적인 \(g\)에 대한 증명은 측도론이 필요하다.</p>
+      </details>
+    </div>
+    <p>이름은 \(Y=g(X)\)의 분포를 구하지 않고 \(X\)의 분포만 쓰는 것을 통계학자들이 무의식적으로 한다는 데서 왔다(<span class="term">law of the unconscious statistician</span>, LOTUS). 어느 분포에 대한 기댓값인지 밝혀야 할 때는 \(\mathbb E_{x\sim p}[g(x)]=\sum_x g(x)\,p(x)\)처럼 아래첨자로 적는다. '\(x\)가 \(p\)를 따를 때 \(g(x)\)의 기댓값'이라는 뜻이고 머신러닝 문헌에서 흔히 쓴다. 이 법칙으로 \(\mathbb E[X^2]\)도 바로 계산한다. 주사위에서 \(\mathbb E[D^2]=(1+4+9+16+25+36)/6=91/6\)이고, 밀도 \(2x\)에서 \(\mathbb E[X^2]=\int_0^1x^2\cdot2x\,dx=1/2\)이다.</p>
+    <p>기댓값의 가장 중요한 성질은 선형성이다. 이 성질에는 독립이 필요하지 않다.</p>
+    <div class="box thm" id="thm-linearity"><div class="box-h">기댓값의 선형성</div>
+      <p>같은 표본 공간에서 정의된 두 확률 변수 \(X,Y\)와 상수 \(a,b,c\)에 대해</p>
+      <div class="formula" id="eq-linearity">\[\mathbb E[aX+bY+c]=a\,\mathbb E[X]+b\,\mathbb E[Y]+c.\]</div>
+      <p>\(X\)와 \(Y\)가 독립이어야 한다는 조건은 없다.</p>
+    </div>
+    <p><b>증명.</b> 표본 공간이 유한하다고 하자(셀 수 있는 경우도 같다). 기댓값을 값별이 아니라 결과별로 더해 쓸 수 있다. 같은 값 \(x\)를 갖는 결과를 묶으면</p>
+    <div class="formula" id="eq-expectation-omega">\[\begin{aligned}\sum_{\omega}X(\omega)P(\{\omega\})&amp;=\sum_x x\sum_{\omega:\,X(\omega)=x}P(\{\omega\})\\&amp;=\sum_x x\,p(x)=\mathbb E[X]\end{aligned}\]</div>
+    <p>이기 때문이다. \(aX+bY+c\)도 결과 \(\omega\)에 \(aX(\omega)+bY(\omega)+c\)를 대응시키는 확률 변수이므로</p>
+    <div class="formula">\[\begin{aligned}\mathbb E[aX+bY+c]&amp;=\sum_{\omega}\bigl(aX(\omega)+bY(\omega)+c\bigr)P(\{\omega\})\\&amp;=a\,\mathbb E[X]+b\,\mathbb E[Y]+c\sum_{\omega}P(\{\omega\}),\end{aligned}\]</div>
+    <p>이고 마지막 합은 1이다. \(\blacksquare\) 이 계산에서 \(X\)와 \(Y\)의 관계는 한 번도 쓰이지 않았다. 둘이 같은 \(\omega\)에서 정해진다는 사실만 썼다. 연속 확률 변수는 결과별로 더할 수 없으므로 같은 식을 두 변수의 결합 밀도로 4장에서 확인한다. 귀납으로 \(\mathbb E[X_1+\cdots+X_n]=\mathbb E[X_1]+\cdots+\mathbb E[X_n]\)도 얻는다.</p>
+    <p>확률도 기댓값으로 쓸 수 있다. 사건 \(A\)가 일어나면 1, 아니면 0인 확률 변수 \(\mathbb I(A)\)를 <span class="term">지시 확률 변수</span> <span class="en">(indicator)</span>라 하면, 값이 두 가지뿐이므로</p>
+    <div class="formula" id="eq-indicator">\[\mathbb E[\mathbb I(A)]=1\cdot P(A)+0\cdot P(A^c)=P(A)\]</div>
+    <p>이다. 복잡한 수를 세는 문제를 사건별 지시 확률 변수의 합으로 쓰면 선형성만으로 풀리는 일이 많다.</p>
+    <div class="box ex" id="ex-count-heads"><div class="box-h">앞면 횟수의 기댓값</div>
+      <p>앞면 확률이 \(p\)인 동전을 \(n\)번 던질 때 앞면 횟수를 \(X\)라 하자. \(A_i\)를 \(i\)번째 던지기가 앞면인 사건이라 하면 \(X=\sum_{i=1}^n\mathbb I(A_i)\)이고, 식 <a class="ref" href="#eq-indicator"></a>과 선형성에서 \(\mathbb E[X]=\sum_i P(A_i)=np\)다. 던지기가 서로 독립인지는 쓰지 않았다. 독립이라면 3장의 이항 분포가 되고 같은 값을 \(\sum_k k\,P(X=k)\)로 계산해도 얻지만 훨씬 길다.</p>
+    </div>
+    <div class="box ex" id="ex-hats"><div class="box-h">모자 문제: 독립이 아닌 사건들의 합</div>
+      <p>\(n\)명이 모자를 벗어 모은 뒤 섞어서 한 명에 하나씩 무작위로 돌려준다. 자기 모자를 돌려받은 사람 수 \(X\)의 기댓값은? \(A_i\)를 \(i\)번째 사람이 자기 모자를 받는 사건이라 하자. \(i\)번째 사람은 \(n\)개 모자 중 어느 것이든 같은 확률로 받으므로 \(P(A_i)=1/n\)이다. 따라서</p>
+      <div class="formula">\[\mathbb E[X]=\sum_{i=1}^n\mathbb E[\mathbb I(A_i)]=n\cdot\frac1n=1.\]</div>
+      <p>사람이 3명이든 1,000명이든 기댓값은 1이다. 사건들은 독립이 아니다. \(n=3\)에서 처음 두 사람이 모두 자기 모자를 받으면 셋째도 자기 모자를 받을 수밖에 없어 \(P(A_1\cap A_2)=1/6\)인데, 독립이라면 \((1/3)(1/3)=1/9\)여야 한다. 그래도 선형성은 성립한다. 직접 확인하면 \(n=3\)의 6가지 배정 중 \(X=0\)이 2가지, \(X=1\)이 3가지, \(X=3\)이 1가지이므로 다음과 같다.</p>
+      <div class="formula">\[\mathbb E[X]=\frac{0\cdot2+1\cdot3+3\cdot1}{6}=1.\]</div>
+    </div>
+    <div class="callout warn"><strong>선형인 것은 합과 상수배뿐이다</strong><p>일반적으로 \(\mathbb E[XY]\neq\mathbb E[X]\,\mathbb E[Y]\)이고(곱은 독립일 때 성립한다, 4장), \(\mathbb E[g(X)]\neq g(\mathbb E[X])\)다. 주사위에서 \(\mathbb E[D^2]=91/6\approx15.17\)인데 \((\mathbb E[D])^2=49/4=12.25\)이다. 평균을 구한 뒤 함수를 적용하는 것과 함수를 적용한 뒤 평균을 구하는 것은 다르다. 2.5절에서 다시 본다.</p></div>
   </section>
 
   <section id="s4">
     <h2>분산과 적률</h2>
-    <p class="slot" data-slot="2.4절">아직 쓰지 않은 절입니다.</p>
+    <p>평균이 같아도 분포는 전혀 다를 수 있다. \(X\)가 \(-1\)과 \(1\)을 반반으로 취하고 \(W\)가 \(-100\)과 \(100\)을 반반으로 취하면 둘 다 평균이 0이다. 평균에서 얼마나 멀리 퍼지는지를 따로 재야 한다. 편차 \(X-\mu\)의 평균은 \(\mathbb E[X]-\mu=0\)이라 아무것도 알려 주지 않으므로, 부호를 없애도록 제곱해서 평균을 낸다.</p>
+    <div class="box def" id="def-variance"><div class="box-h">분산과 표준편차</div>
+      <p>\(\mu=\mathbb E[X]\)일 때 \(X\)의 <span class="term">분산</span> <span class="en">(variance)</span>은</p>
+      <div class="formula" id="eq-variance">\[\operatorname{Var}(X)=\mathbb E\bigl[(X-\mu)^2\bigr]\]</div>
+      <p>이고, 그 양의 제곱근 \(\sigma=\sqrt{\operatorname{Var}(X)}\)를 <span class="term">표준편차</span> <span class="en">(standard deviation)</span>라 한다. 분산은 단위가 제곱이어서 \(X\)와 같은 단위로 읽으려면 표준편차를 쓴다.</p>
+    </div>
+    <p>정의대로 계산하면 매번 \(\mu\)를 먼저 빼야 한다. 다음 식이 훨씬 편하다.</p>
+    <div class="box thm" id="thm-variance-shortcut"><div class="box-h">분산의 계산 공식</div>
+      <div class="formula" id="eq-variance-shortcut">\[\operatorname{Var}(X)=\mathbb E[X^2]-\mu^2\]</div>
+    </div>
+    <p><b>증명.</b> \((X-\mu)^2=X^2-2\mu X+\mu^2\)이다. 선형성에서 \(\mathbb E[(X-\mu)^2]=\mathbb E[X^2]-2\mu\,\mathbb E[X]+\mu^2=\mathbb E[X^2]-2\mu^2+\mu^2=\mathbb E[X^2]-\mu^2\)이다. \(\blacksquare\) 분산이 0 이상이므로 \(\mathbb E[X^2]\ge(\mathbb E[X])^2\)도 따른다. 앞 절의 \(g(x)=x^2\)에서 \(\mathbb E[g(X)]\neq g(\mathbb E[X])\)였던 이유가 이 차이, 곧 분산이다.</p>
+    <div class="box ex" id="ex-variance"><div class="box-h">세 가지 분산</div>
+      <p>주사위는 \(\mathbb E[D^2]=91/6\), \(\mu=7/2\)이므로 \(\operatorname{Var}(D)=91/6-49/4=35/12\approx2.92\)다. 확률 \(p\)로 1, \(1-p\)로 0인 확률 변수(<span class="term">베르누이 확률 변수</span> <span class="en">(Bernoulli random variable)</span>)는 \(X^2=X\)이므로 \(\mathbb E[X^2]=p\), \(\operatorname{Var}(X)=p-p^2=p(1-p)\)다. 지시 확률 변수 \(\mathbb I(A)\)가 이 경우이고 분산은 \(P(A)(1-P(A))\)이다. 밀도 \(2x\)는 \(\mathbb E[X^2]=1/2\), \(\mu=2/3\)이므로 \(\operatorname{Var}(X)=1/2-4/9=1/18\)이다.</p>
+    </div>
+    <p>평균을 옮기고 눈금을 바꾸면 분산은 어떻게 바뀔까?</p>
+    <div class="box thm" id="thm-variance-affine"><div class="box-h">일차 변환의 평균과 분산</div>
+      <div class="formula" id="eq-variance-affine">\[\begin{aligned}\mathbb E[aX+b]&amp;=a\mu+b,\\\operatorname{Var}(aX+b)&amp;=a^2\operatorname{Var}(X)\end{aligned}\]</div>
+    </div>
+    <p><b>증명.</b> 첫 식은 선형성이다. \((aX+b)-(a\mu+b)=a(X-\mu)\)이므로 \(\operatorname{Var}(aX+b)=\mathbb E[a^2(X-\mu)^2]=a^2\operatorname{Var}(X)\)이다. \(\blacksquare\) 상수를 더하면 퍼짐이 그대로고, \(a\)배 하면 표준편차가 \(|a|\)배, 분산이 \(a^2\)배가 된다.</p>
+    <p>이를 써서 평균을 0, 분산을 1로 맞출 수 있다. \(\sigma>0\)일 때 \(Z=(X-\mu)/\sigma\)는 \(a=1/\sigma\), \(b=-\mu/\sigma\)인 일차 변환이므로 다음을 얻는다.</p>
+    <div class="formula" id="eq-standardize">\[\mathbb E[Z]=\frac{\mu-\mu}{\sigma}=0,\qquad\operatorname{Var}(Z)=\frac{\sigma^2}{\sigma^2}=1.\]</div>
+    <p>이 변환을 <span class="term">표준화</span> <span class="en">(standardization)</span>라 한다. \(Z\)의 값은 \(X\)가 평균에서 표준편차 몇 개만큼 떨어져 있는지를 나타낸다.</p>
+    <div class="callout ml"><strong>입력 특성의 표준화</strong><p>학습 전에 입력 특성 하나하나를 표준화하는 것이 이 변환이다. 단위가 다른 특성(키 cm, 몸무게 kg)이 같은 눈금에서 평균 0, 분산 1이 되므로, 특성마다 눈금이 달라서 기울기 하강이 느려지는 일이 줄어든다. 실제로는 \(\mu,\sigma\)를 모르므로 학습 데이터에서 잰 평균과 표준편차로 대신하고(추정은 8장), 테스트 데이터에도 <em>같은 값</em>을 써야 한다. 테스트 데이터로 새로 재면 테스트 정보가 학습 쪽에 섞인다.</p></div>
+    <h3 id="h-moments">적률</h3>
+    <p>평균과 분산은 더 일반적인 양의 첫 두 항이다.</p>
+    <div class="box def" id="def-moment"><div class="box-h">적률</div>
+      <p>자연수 \(k\)에 대해 \(\mathbb E[X^k]\)를 \(X\)의 \(k\)차 <span class="term">적률</span> <span class="en">(moment)</span>, \(\mathbb E[(X-\mu)^k]\)를 \(k\)차 <span class="term">중심 적률</span> <span class="en">(central moment)</span>이라 한다.</p>
+    </div>
+    <p>1차 적률은 평균이고, 2차 중심 적률은 분산이다. 표준화한 \(Z\)의 3차 적률 \(\mathbb E[Z^3]\)을 <span class="term">왜도</span> <span class="en">(skewness)</span>라 하며 분포가 한쪽으로 치우친 정도를 잰다. 밀도 \(2x\)는 큰 값 쪽이 빽빽하고 작은 값 쪽으로 꼬리가 늘어져 있어서 왜도가 \(-2\sqrt2/5\approx-0.57\)로 음수다. 4차 적률 \(\mathbb E[Z^4]\)는 <span class="term">첨도</span> <span class="en">(kurtosis)</span>라 하며 꼬리가 얼마나 무거운지를 잰다. 정규 분포의 첨도는 3이다.</p>
+    <div class="callout deep"><strong>적률 생성 함수</strong><p>모든 적률을 한 함수에 담는 방법이 있다. \(M_X(t)=\mathbb E[e^{tX}]\)가 \(0\) 근처의 모든 \(t\)에서 유한하면, \(e^{tX}=\sum_k t^kX^k/k!\)에서 각 항의 기댓값을 취해 \(M_X(t)=\sum_k t^k\,\mathbb E[X^k]/k!\)이고(항별로 기댓값을 취해도 되는지의 정당화는 생략한다) 따라서 \(\mathbb E[X^k]=M_X^{(k)}(0)\)이다. 베르누이 확률 변수는 \(M_X(t)=1-p+pe^t\)이므로 \(M_X'(0)=M_X''(0)=p\)이고, 위의 \(\mathbb E[X]=\mathbb E[X^2]=p\)와 같다. 또 \(0\) 근처에서 유한한 \(M_X\)는 분포를 하나로 정한다(증명하지 않는다).</p></div>
   </section>
 
   <section id="s5">
     <h2>확률 변수의 변환</h2>
-    <p class="slot" data-slot="2.5절">아직 쓰지 않은 절입니다.</p>
+    <p>확률 변수에 함수를 적용하면 새 확률 변수 \(Y=g(X)\)가 된다. 입력의 표준화, 로그 변환, 시그모이드, 손실 함수가 모두 그렇다. \(X\)의 분포를 알 때 \(Y\)의 분포는 어떻게 될까? 이산이면 \(g(x)=y\)가 되는 모든 \(x\)의 확률을 모으면 된다.</p>
+    <div class="formula" id="eq-discrete-transform">\[P(Y=y)=\sum_{x:\,g(x)=y}p(x)\]</div>
+    <div class="box ex" id="ex-discrete-transform"><div class="box-h">두 값이 한 값으로 합쳐진다</div>
+      <p>두 동전의 앞면 수 \(X\)에서 \(Y=(X-1)^2\)을 만들자. \(Y=0\)은 \(X=1\)일 때뿐이므로 \(P(Y=0)=1/2\)이다. \(Y=1\)은 \(X=0\) 또는 \(X=2\)일 때이므로 \(P(Y=1)=1/4+1/4=1/2\)이다. 서로 다른 \(x\)가 같은 \(y\)로 가면 확률이 더해진다.</p>
+    </div>
+    <p>연속이면 한 점의 확률이 0이라 그 방법을 쓸 수 없다. 대신 \(Y\)의 누적 분포 함수를 \(X\)의 것으로 쓴 뒤 미분한다. 곧 \(F_Y(y)=P(g(X)\le y)\)를 \(\{x:g(x)\le y\}\)에 대한 \(X\)의 확률로 바꾼다.</p>
+    <div class="box ex" id="ex-square"><div class="box-h">밀도 2x의 제곱</div>
+      <p>밀도가 \(2x\)인 \(X\)에서 \(Y=X^2\)을 만들자. \(0\le y\le1\)에서 \(F_Y(y)=P(X^2\le y)=P(X\le\sqrt y)=F_X(\sqrt y)=(\sqrt y)^2=y\)다. 이는 \([0,1]\)에서 균등한 분포의 누적 분포 함수다. \(F_X(x)=x^2\)이므로 \(Y=X^2=F_X(X)\)다. 확률 변수를 자기 누적 분포 함수에 넣으면 균등해진다는 것이고, 이 현상은 아래 <a class="ref" href="#thm-pit"></a>로 일반화한다.</p>
+    </div>
+    <p>같은 계산을 \(g\)가 단조이기만 하면 한 번에 할 수 있다.</p>
+    <div class="box thm" id="thm-density-transform"><div class="box-h">밀도 변환 공식</div>
+      <p>\(X\)가 밀도 \(f_X\)를 갖고 구간 \(I\) 밖에서는 \(f_X=0\)이라 하자. \(g\)가 \(I\)에서 미분 가능하고 \(g'\)이 어디서나 0이 아닌 순증가 또는 순감소 함수이며 \(h=g^{-1}\)이 그 역함수일 때, \(Y=g(X)\)는 밀도</p>
+      <div class="formula" id="eq-density-transform">\[f_Y(y)=f_X\bigl(h(y)\bigr)\,\bigl|h'(y)\bigr|\]</div>
+      <p>를 갖는다(\(y\)가 \(g\)의 치역에 있을 때. 그 밖에서는 0).</p>
+      <details class="proof"><summary>증명</summary>
+        <p>\(g\)가 증가하면 \(g(X)\le y\)와 \(X\le h(y)\)가 같은 사건이라 \(F_Y(y)=F_X(h(y))\)이다. 연쇄 법칙으로 미분하면 \(f_Y(y)=f_X(h(y))\,h'(y)\)이고, \(h'&gt;0\)이므로 \(h'=|h'|\)다.</p>
+        <p>\(g\)가 감소하면 \(g(X)\le y\)와 \(X\ge h(y)\)가 같은 사건이다. \(F_X\)가 연속이라 \(P(X\ge h(y))=1-F_X(h(y))\)이므로 \(F_Y(y)=1-F_X(h(y))\)이고, 미분하면 \(f_Y(y)=-f_X(h(y))\,h'(y)\)이다. \(h'&lt;0\)이므로 \(-h'=|h'|\)다.</p>
+      </details>
+    </div>
+    <div class="callout tip"><strong>왜 |h′(y)|가 곱해지나</strong><p>\(y\) 근처의 작은 구간 \([y,y+dy]\)가 \(x\)축에서는 길이 \(|h'(y)|\,dy\)의 구간에 대응한다. 두 구간의 확률은 같아야 하므로 \(f_Y(y)\,dy=f_X(h(y))\,|h'(y)|\,dy\)다. 변환이 구간을 늘이면 밀도는 그만큼 낮아지고 줄이면 높아진다. 넓이의 총합은 1로 유지된다.</p></div>
+    <div class="box ex" id="ex-affine"><div class="box-h">일차 변환</div>
+      <p>\(Y=aX+b\ (a\neq0)\)이면 \(h(y)=(y-b)/a\), \(|h'(y)|=1/|a|\)이다. 따라서 \(f_Y(y)=\dfrac1{|a|}f_X\!\left(\dfrac{y-b}{a}\right)\)이다. \(|a|\)배 늘어난 만큼 높이가 \(1/|a|\)배로 낮아져 넓이가 1로 유지된다.</p>
+    </div>
+    <div class="box ex" id="ex-neglog"><div class="box-h">Y = −ln X</div>
+      <p>밀도 \(2x\ (0&lt;x\le1)\)인 \(X\)에서 \(Y=-\ln X\ (y\ge0)\)를 만들자. \(g(x)=-\ln x\)는 순감소이고 \(h(y)=e^{-y}\), \(|h'(y)|=e^{-y}\)다. 식 <a class="ref" href="#eq-density-transform"></a>에서</p>
+      <div class="formula">\[f_Y(y)=2e^{-y}\cdot e^{-y}=2e^{-2y},\qquad y\ge0.\]</div>
+      <p>직접 확인하면 \(F_Y(y)=P(-\ln X\le y)=P(X\ge e^{-y})=1-F_X(e^{-y})=1-e^{-2y}\)이고 이를 미분하면 같은 식이다. 이것이 모수 2인 <span class="term">지수 분포</span> <span class="en">(exponential distribution)</span>이며 3장에서 다시 만난다. 그림 2-3의 (a)가 이 밀도다.</p>
+    </div>
+    <p>이제 <a class="ref" href="#thm-lotus"></a>의 연속인 경우를 단조 \(g\)에 대해 마무리할 수 있다. \(\mathbb E[Y]=\int y\,f_Y(y)\,dy\)에서 \(y=g(x)\), \(dy=g'(x)\,dx\)로 치환하고 \(h'(g(x))=1/g'(x)\)를 쓰면 \(f_Y(g(x))=f_X(x)/|g'(x)|\)이므로</p>
+    <div class="formula">\[\begin{aligned}\int y\,f_Y(y)\,dy&amp;=\int g(x)\,\frac{f_X(x)}{|g'(x)|}\,|g'(x)|\,dx\\&amp;=\int g(x)\,f_X(x)\,dx\end{aligned}\]</div>
+    <p>이다. \(g\)가 감소하면 치환에서 적분 구간의 방향이 뒤집히지만 절댓값이 부호를 바로잡는다.</p>
+    <div class="box ex" id="ex-nonmonotone"><div class="box-h">단조가 아닌 변환: Y = X²</div>
+      <p>\(X\)가 \((-1,1)\)에서 균등해 밀도가 \(1/2\)이라 하자. \(0&lt;y&lt;1\)에서 \(F_Y(y)=P(X^2\le y)=P(-\sqrt y\le X\le\sqrt y)=2\sqrt y\cdot\tfrac12=\sqrt y\)이고 미분하면</p>
+      <div class="formula">\[f_Y(y)=\frac1{2\sqrt y},\qquad0&lt;y&lt;1.\]</div>
+      <p>\(g(x)=x^2\)은 \(x&lt;0\)에서 감소, \(x>0\)에서 증가하므로 두 가지 \(h_{1,2}(y)=\mp\sqrt y\)가 있고, 식 <a class="ref" href="#eq-density-transform"></a>을 가지마다 적용해 더한 \(\sum_i f_X(h_i(y))\,|h_i'(y)|=2\cdot\tfrac12\cdot\tfrac1{2\sqrt y}\)가 같은 값이다. \(y\to0\)에서 밀도가 한없이 커지지만 \(\int_0^1\frac1{2\sqrt y}\,dy=1\)이라 문제가 없다. 밀도는 확률이 아니기 때문이다.</p>
+    </div>
+    <figure class="diagram">
+      <div class="fig-row"><svg viewBox="0 0 320 236" role="img" aria-label="X의 밀도가 2x일 때 Y=-ln X의 히스토그램과 밀도 2e^(-2y). 막대가 곡선을 따라 줄어든다"><line x1="44" y1="123.8" x2="306" y2="123.8" class="s-grid"/><text x="38" y="127.8" text-anchor="end" class="t-dim">1</text><line x1="44" y1="51.7" x2="306" y2="51.7" class="s-grid"/><text x="38" y="55.7" text-anchor="end" class="t-dim">2</text><line x1="53.9" y1="196" x2="53.9" y2="200" class="s-line" stroke-width="1"/><text x="53.9" y="214" text-anchor="middle" class="t-dim">0</text><line x1="136.3" y1="196" x2="136.3" y2="200" class="s-line" stroke-width="1"/><text x="136.3" y="214" text-anchor="middle" class="t-dim">1</text><line x1="218.7" y1="196" x2="218.7" y2="200" class="s-line" stroke-width="1"/><text x="218.7" y="214" text-anchor="middle" class="t-dim">2</text><line x1="301.1" y1="196" x2="301.1" y2="200" class="s-line" stroke-width="1"/><text x="301.1" y="214" text-anchor="middle" class="t-dim">3</text><line x1="44" y1="196" x2="306" y2="196" class="s-line" stroke-width="1"/><line x1="44" y1="196" x2="44" y2="30" class="s-line" stroke-width="1"/><text x="306" y="228" text-anchor="end" class="t-dim">y</text><rect x="53.9" y="65.6" width="8.2" height="130.4" class="f-acc-soft" stroke-width="0.6"/><rect x="62.1" y="90.4" width="8.2" height="105.6" class="f-acc-soft" stroke-width="0.6"/><rect x="70.4" y="108.1" width="8.2" height="87.9" class="f-acc-soft" stroke-width="0.6"/><rect x="78.6" y="124.2" width="8.2" height="71.8" class="f-acc-soft" stroke-width="0.6"/><rect x="86.8" y="136.7" width="8.2" height="59.3" class="f-acc-soft" stroke-width="0.6"/><rect x="95.1" y="147.8" width="8.2" height="48.2" class="f-acc-soft" stroke-width="0.6"/><rect x="103.3" y="156" width="8.2" height="40" class="f-acc-soft" stroke-width="0.6"/><rect x="111.6" y="163.7" width="8.2" height="32.3" class="f-acc-soft" stroke-width="0.6"/><rect x="119.8" y="169.2" width="8.2" height="26.8" class="f-acc-soft" stroke-width="0.6"/><rect x="128" y="174.2" width="8.2" height="21.8" class="f-acc-soft" stroke-width="0.6"/><rect x="136.3" y="178.7" width="8.2" height="17.3" class="f-acc-soft" stroke-width="0.6"/><rect x="144.5" y="181.3" width="8.2" height="14.7" class="f-acc-soft" stroke-width="0.6"/><rect x="152.8" y="183.9" width="8.2" height="12.1" class="f-acc-soft" stroke-width="0.6"/><rect x="161" y="186.2" width="8.2" height="9.8" class="f-acc-soft" stroke-width="0.6"/><rect x="169.2" y="188.4" width="8.2" height="7.6" class="f-acc-soft" stroke-width="0.6"/><rect x="177.5" y="189.5" width="8.2" height="6.5" class="f-acc-soft" stroke-width="0.6"/><rect x="185.7" y="190.6" width="8.2" height="5.4" class="f-acc-soft" stroke-width="0.6"/><rect x="193.9" y="191.8" width="8.2" height="4.2" class="f-acc-soft" stroke-width="0.6"/><rect x="202.2" y="192.3" width="8.2" height="3.7" class="f-acc-soft" stroke-width="0.6"/><rect x="210.4" y="193" width="8.2" height="3" class="f-acc-soft" stroke-width="0.6"/><rect x="218.7" y="193.5" width="8.2" height="2.5" class="f-acc-soft" stroke-width="0.6"/><rect x="226.9" y="194" width="8.2" height="2" class="f-acc-soft" stroke-width="0.6"/><rect x="235.1" y="194.4" width="8.2" height="1.6" class="f-acc-soft" stroke-width="0.6"/><rect x="243.4" y="194.7" width="8.2" height="1.3" class="f-acc-soft" stroke-width="0.6"/><rect x="251.6" y="194.9" width="8.2" height="1.1" class="f-acc-soft" stroke-width="0.6"/><rect x="259.9" y="195.2" width="8.2" height="0.8" class="f-acc-soft" stroke-width="0.6"/><rect x="268.1" y="195.2" width="8.2" height="0.8" class="f-acc-soft" stroke-width="0.6"/><rect x="276.3" y="195.4" width="8.2" height="0.6" class="f-acc-soft" stroke-width="0.6"/><rect x="284.6" y="195.5" width="8.2" height="0.5" class="f-acc-soft" stroke-width="0.6"/><rect x="292.8" y="195.6" width="8.2" height="0.4" class="f-acc-soft" stroke-width="0.6"/><polyline points="53.9,51.7 55.1,55.9 56.4,60.1 57.6,64.1 58.9,68.1 60.1,71.9 61.3,75.5 62.6,79.1 63.8,82.6 65.1,86 66.3,89.2 67.5,92.4 68.8,95.5 70,98.5 71.3,101.4 72.5,104.2 73.8,106.9 75,109.5 76.2,112.1 77.5,114.6 78.7,117 80,119.4 81.2,121.6 82.5,123.8 83.7,126 84.9,128.1 86.2,130.1 87.4,132 88.7,133.9 89.9,135.8 91.1,137.6 92.4,139.3 93.6,141 94.9,142.6 96.1,144.2 97.4,145.8 98.6,147.2 99.8,148.7 101.1,150.1 102.3,151.5 103.6,152.8 104.8,154.1 106.1,155.3 107.3,156.5 108.5,157.7 109.8,158.8 111,159.9 112.3,161 113.5,162 114.7,163.1 116,164 117.2,165 118.5,165.9 119.7,166.8 121,167.7 122.2,168.5 123.4,169.3 124.7,170.1 125.9,170.9 127.2,171.6 128.4,172.4 129.7,173.1 130.9,173.7 132.1,174.4 133.4,175 134.6,175.7 135.9,176.3 137.1,176.9 138.3,177.4 139.6,178 140.8,178.5 142.1,179 143.3,179.5 144.6,180 145.8,180.5 147,181 148.3,181.4 149.5,181.8 150.8,182.3 152,182.7 153.3,183.1 154.5,183.4 155.7,183.8 157,184.2 158.2,184.5 159.5,184.9 160.7,185.2 161.9,185.5 163.2,185.8 164.4,186.1 165.7,186.4 166.9,186.7 168.2,187 169.4,187.3 170.6,187.5 171.9,187.8 173.1,188 174.4,188.3 175.6,188.5 176.9,188.7 178.1,188.9 179.3,189.1 180.6,189.3 181.8,189.5 183.1,189.7 184.3,189.9 185.5,190.1 186.8,190.3 188,190.4 189.3,190.6 190.5,190.8 191.8,190.9 193,191.1 194.2,191.2 195.5,191.4 196.7,191.5 198,191.6 199.2,191.8 200.4,191.9 201.7,192 202.9,192.1 204.2,192.2 205.4,192.4 206.7,192.5 207.9,192.6 209.1,192.7 210.4,192.8 211.6,192.9 212.9,193 214.1,193 215.4,193.1 216.6,193.2 217.8,193.3 219.1,193.4 220.3,193.5 221.6,193.5 222.8,193.6 224,193.7 225.3,193.7 226.5,193.8 227.8,193.9 229,193.9 230.3,194 231.5,194.1 232.7,194.1 234,194.2 235.2,194.2 236.5,194.3 237.7,194.3 239,194.4 240.2,194.4 241.4,194.5 242.7,194.5 243.9,194.6 245.2,194.6 246.4,194.7 247.6,194.7 248.9,194.7 250.1,194.8 251.4,194.8 252.6,194.8 253.9,194.9 255.1,194.9 256.3,194.9 257.6,195 258.8,195 260.1,195 261.3,195.1 262.6,195.1 263.8,195.1 265,195.1 266.3,195.2 267.5,195.2 268.8,195.2 270,195.2 271.2,195.3 272.5,195.3 273.7,195.3 275,195.3 276.2,195.3 277.5,195.4 278.7,195.4 279.9,195.4 281.2,195.4 282.4,195.4 283.7,195.5 284.9,195.5 286.2,195.5 287.4,195.5 288.6,195.5 289.9,195.5 291.1,195.5 292.4,195.6 293.6,195.6 294.8,195.6 296.1,195.6 297.3,195.6 298.6,195.6 299.8,195.6 301.1,195.6" class="s-acc2" stroke-width="2.4"/><text x="44" y="18" class="t-b">(a) Y = −ln X</text></svg><svg viewBox="0 0 320 236" role="img" aria-label="X가 -1과 1 사이에서 균등할 때 Y=X²의 히스토그램과 밀도 1/(2√y). y가 0에 가까울수록 밀도가 커진다"><line x1="44" y1="162.8" x2="306" y2="162.8" class="s-grid"/><text x="38" y="166.8" text-anchor="end" class="t-dim">1</text><line x1="44" y1="129.6" x2="306" y2="129.6" class="s-grid"/><text x="38" y="133.6" text-anchor="end" class="t-dim">2</text><line x1="44" y1="96.4" x2="306" y2="96.4" class="s-grid"/><text x="38" y="100.4" text-anchor="end" class="t-dim">3</text><line x1="44" y1="63.2" x2="306" y2="63.2" class="s-grid"/><text x="38" y="67.2" text-anchor="end" class="t-dim">4</text><line x1="44" y1="30" x2="306" y2="30" class="s-grid"/><text x="38" y="34" text-anchor="end" class="t-dim">5</text><line x1="53.9" y1="196" x2="53.9" y2="200" class="s-line" stroke-width="1"/><text x="53.9" y="214" text-anchor="middle" class="t-dim">0</text><line x1="177.5" y1="196" x2="177.5" y2="200" class="s-line" stroke-width="1"/><text x="177.5" y="214" text-anchor="middle" class="t-dim">0.5</text><line x1="301.1" y1="196" x2="301.1" y2="200" class="s-line" stroke-width="1"/><text x="301.1" y="214" text-anchor="middle" class="t-dim">1</text><line x1="44" y1="196" x2="306" y2="196" class="s-line" stroke-width="1"/><line x1="44" y1="196" x2="44" y2="30" class="s-line" stroke-width="1"/><text x="306" y="228" text-anchor="end" class="t-dim">y</text><rect x="53.9" y="48" width="12.4" height="148" class="f-acc-soft" stroke-width="0.6"/><rect x="66.2" y="135" width="12.4" height="61" class="f-acc-soft" stroke-width="0.6"/><rect x="78.6" y="149.2" width="12.4" height="46.8" class="f-acc-soft" stroke-width="0.6"/><rect x="91" y="156.2" width="12.4" height="39.8" class="f-acc-soft" stroke-width="0.6"/><rect x="103.3" y="161.5" width="12.4" height="34.5" class="f-acc-soft" stroke-width="0.6"/><rect x="115.7" y="164.3" width="12.4" height="31.7" class="f-acc-soft" stroke-width="0.6"/><rect x="128" y="166.3" width="12.4" height="29.7" class="f-acc-soft" stroke-width="0.6"/><rect x="140.4" y="168.9" width="12.4" height="27.1" class="f-acc-soft" stroke-width="0.6"/><rect x="152.8" y="170.9" width="12.4" height="25.1" class="f-acc-soft" stroke-width="0.6"/><rect x="165.1" y="171.8" width="12.4" height="24.2" class="f-acc-soft" stroke-width="0.6"/><rect x="177.5" y="172.4" width="12.4" height="23.6" class="f-acc-soft" stroke-width="0.6"/><rect x="189.8" y="172.7" width="12.4" height="23.3" class="f-acc-soft" stroke-width="0.6"/><rect x="202.2" y="174.8" width="12.4" height="21.2" class="f-acc-soft" stroke-width="0.6"/><rect x="214.5" y="175.8" width="12.4" height="20.2" class="f-acc-soft" stroke-width="0.6"/><rect x="226.9" y="176.6" width="12.4" height="19.4" class="f-acc-soft" stroke-width="0.6"/><rect x="239.3" y="177.1" width="12.4" height="18.9" class="f-acc-soft" stroke-width="0.6"/><rect x="251.6" y="178" width="12.4" height="18" class="f-acc-soft" stroke-width="0.6"/><rect x="264" y="178.4" width="12.4" height="17.6" class="f-acc-soft" stroke-width="0.6"/><rect x="276.3" y="179" width="12.4" height="17" class="f-acc-soft" stroke-width="0.6"/><rect x="288.7" y="179.1" width="12.4" height="16.9" class="f-acc-soft" stroke-width="0.6"/><polyline points="56.4,30 57.6,60.3 58.8,78.5 60,90.9 61.3,100 62.5,107.1 63.7,112.8 65,117.6 66.2,121.6 67.4,125.1 68.7,128.1 69.9,130.8 71.1,133.1 72.3,135.3 73.6,137.2 74.8,138.9 76,140.5 77.3,142 78.5,143.4 79.7,144.7 81,145.8 82.2,146.9 83.4,148 84.6,148.9 85.9,149.9 87.1,150.7 88.3,151.5 89.6,152.3 90.8,153 92,153.7 93.2,154.4 94.5,155 95.7,155.6 96.9,156.2 98.2,156.8 99.4,157.3 100.6,157.8 101.9,158.3 103.1,158.8 104.3,159.2 105.5,159.7 106.8,160.1 108,160.5 109.2,160.9 110.5,161.3 111.7,161.7 112.9,162 114.2,162.4 115.4,162.7 116.6,163 117.8,163.4 119.1,163.7 120.3,164 121.5,164.3 122.8,164.6 124,164.8 125.2,165.1 126.4,165.4 127.7,165.6 128.9,165.9 130.1,166.1 131.4,166.4 132.6,166.6 133.8,166.8 135.1,167 136.3,167.2 137.5,167.5 138.7,167.7 140,167.9 141.2,168.1 142.4,168.3 143.7,168.5 144.9,168.6 146.1,168.8 147.4,169 148.6,169.2 149.8,169.4 151,169.5 152.3,169.7 153.5,169.9 154.7,170 156,170.2 157.2,170.3 158.4,170.5 159.6,170.6 160.9,170.8 162.1,170.9 163.3,171.1 164.6,171.2 165.8,171.3 167,171.5 168.3,171.6 169.5,171.7 170.7,171.9 171.9,172 173.2,172.1 174.4,172.2 175.6,172.3 176.9,172.5 178.1,172.6 179.3,172.7 180.6,172.8 181.8,172.9 183,173 184.2,173.1 185.5,173.2 186.7,173.4 187.9,173.5 189.2,173.6 190.4,173.7 191.6,173.8 192.8,173.9 194.1,174 195.3,174.1 196.5,174.1 197.8,174.2 199,174.3 200.2,174.4 201.5,174.5 202.7,174.6 203.9,174.7 205.1,174.8 206.4,174.9 207.6,175 208.8,175 210.1,175.1 211.3,175.2 212.5,175.3 213.8,175.4 215,175.4 216.2,175.5 217.4,175.6 218.7,175.7 219.9,175.7 221.1,175.8 222.4,175.9 223.6,176 224.8,176 226,176.1 227.3,176.2 228.5,176.3 229.7,176.3 231,176.4 232.2,176.5 233.4,176.5 234.7,176.6 235.9,176.7 237.1,176.7 238.3,176.8 239.6,176.8 240.8,176.9 242,177 243.3,177 244.5,177.1 245.7,177.2 247,177.2 248.2,177.3 249.4,177.3 250.6,177.4 251.9,177.5 253.1,177.5 254.3,177.6 255.6,177.6 256.8,177.7 258,177.7 259.2,177.8 260.5,177.8 261.7,177.9 262.9,177.9 264.2,178 265.4,178.1 266.6,178.1 267.9,178.2 269.1,178.2 270.3,178.3 271.5,178.3 272.8,178.4 274,178.4 275.2,178.5 276.5,178.5 277.7,178.6 278.9,178.6 280.2,178.7 281.4,178.7 282.6,178.7 283.8,178.8 285.1,178.8 286.3,178.9 287.5,178.9 288.8,179 290,179 291.2,179.1 292.4,179.1 293.7,179.1 294.9,179.2 296.1,179.2 297.4,179.3 298.6,179.3 299.8,179.4 301.1,179.4" class="s-acc2" stroke-width="2.4"/><text x="44" y="18" class="t-b">(b) Y = X², X는 (−1, 1)에서 균등</text><text x="83.5" y="41.6" class="t-dim">y → 0에서 밀도가 한없이 커진다</text></svg></div>
+      <figcaption><b>그림 2-3.</b> 변환한 확률 변수의 분포. 막대는 시드를 고정해 뽑은 표본 10만 개의 히스토그램(구간 확률 ÷ 구간 폭)이고, 곡선은 밀도 변환 공식으로 구한 밀도다. (a) 단조 변환. 밀도는 \(2e^{-2y}\)이다(<a class="ref" href="#thm-density-transform"></a>). (b) 단조가 아닌 변환. 두 가지를 더한 밀도 \(1/(2\sqrt y)\)이다.</figcaption>
+    </figure>
+    <p>마지막으로 누적 분포 함수 자체를 변환으로 쓰면 어떤 분포든 균등 분포로, 거꾸로 균등 분포에서 어떤 분포로든 옮길 수 있다.</p>
+    <div class="box thm" id="thm-pit"><div class="box-h">확률 적분 변환</div>
+      <p>\(X\)의 누적 분포 함수 \(F\)가 연속이고 \(0&lt;F&lt;1\)인 구간에서 순증가이면 \(U=F(X)\)는 \([0,1]\)에서 균등하다. 곧 \(0&lt;u&lt;1\)에 대해 \(P(U\le u)=u\)다. 거꾸로 \(U\)가 \([0,1]\)에서 균등하면 \(F^{-1}(U)\)의 누적 분포 함수는 \(F\)다.</p>
+      <details class="proof"><summary>증명</summary>
+        <p>\(F\)가 순증가이므로 \(F(x)\le u\)와 \(x\le F^{-1}(u)\)는 같다. 따라서 \(P(F(X)\le u)=P(X\le F^{-1}(u))=F(F^{-1}(u))=u\)다. 거꾸로 \(P(F^{-1}(U)\le x)=P(U\le F(x))=F(x)\)다. 마지막 등식은 균등한 \(U\)에서 \(P(U\le u)=u\)이기 때문이다.</p>
+      </details>
+    </div>
+    <p>밀도 \(2x\)에서 \(F(x)=x^2\), \(F^{-1}(u)=\sqrt u\)이므로 균등한 난수의 제곱근이 밀도 \(2x\)를 따른다. 균등한 난수 하나만 만들 수 있으면 누적 분포 함수의 역함수를 알 때 어떤 분포의 표본이든 만들 수 있다는 뜻이다. 이것이 7장의 역변환 표집이다.</p>
+    <div class="box ex" id="ex-jensen"><div class="box-h">E[g(X)]와 g(E[X])는 다르다</div>
+      <p>\(X\)가 \([0,1]\)에서 균등해 밀도가 1이라 하고 \(Y=e^X\)라 하자. <a class="ref" href="#thm-lotus"></a>에서 \(\mathbb E[Y]=\int_0^1e^x\,dx=e-1\approx1.718\)이다. 평균을 먼저 구하면 \(e^{\mathbb E[X]}=e^{1/2}\approx1.649\)로 다른 값이다. 밀도 변환으로도 확인할 수 있다. \(h(y)=\ln y\)이므로 \(f_Y(y)=1\cdot\tfrac1y\ (1&lt;y&lt;e)\)이고 \(\int_1^e y\cdot\tfrac1y\,dy=e-1\)이다. 두 방법이 같은 값을 준다.</p>
+      <p>\(e^x\)처럼 아래로 볼록한 \(g\)에서는 \(\mathbb E[g(X)]\ge g(\mathbb E[X])\)가 성립한다(<span class="term">젠센 부등식</span> <span class="en">(Jensen's inequality)</span>). \(g(x)=x^2\)이면 앞 절의 \(\operatorname{Var}(X)\ge0\)이 그 특수한 경우다. 일반적인 부등식은 11장에서 쓴다.</p>
+    </div>
+    <div class="callout ml"><strong>시그모이드는 누적 분포 함수다</strong><p>\(U\)가 \((0,1)\)에서 균등하다고 하고 \(Z=\ln\dfrac U{1-U}\)(로짓)라 하자. \(u\mapsto u/(1-u)\)가 증가 함수이므로 \(P(Z\le z)=P\bigl(U\le\tfrac{e^z}{1+e^z}\bigr)=\dfrac1{1+e^{-z}}=\sigma(z)\)다. 시그모이드 \(\sigma(z)=1/(1+e^{-z})\)는 어떤 확률 변수(표준 <span class="term">로지스틱 분포</span> <span class="en">(logistic distribution)</span>)의 누적 분포 함수이고, 그 밀도는 \(\sigma'(z)=\sigma(z)(1-\sigma(z))\)다. 이 분포를 따르는 \(\varepsilon\)은 \(0\)에 대해 대칭이라서 \(P(\varepsilon>-z)=1-\sigma(-z)=\sigma(z)\)이다. 곧 로지스틱 회귀의 출력 \(\sigma(\mathbf w^\top\mathbf x)\)를 '\(\mathbf w^\top\mathbf x\)에 로지스틱 잡음 \(\varepsilon\)을 더한 값이 0을 넘을 확률'로 읽을 수 있다. 16장에서 다시 본다. 변수 변환 공식을 층층이 쌓아 복잡한 분포를 만드는 생성 모형을 정규화 흐름(normalizing flow)이라 부르며, 식 <a class="ref" href="#eq-density-transform"></a>이 그 출발점이다.</p></div>
   </section>
 
   <section id="s6">
     <h2>머신러닝에서: 손실은 기댓값이다</h2>
-    <p class="slot" data-slot="2.6절">아직 쓰지 않은 절입니다.</p>
+    <p>신경망을 학습한다는 것은 손실을 줄이는 것이다. 이 절은 그 손실이 확률 변수의 기댓값이라는 데서 출발해, 학습의 세 관행인 평균 손실, 미니배치, 손실 함수의 선택을 이 장의 결과로 설명한다.</p>
+    <h3 id="h-risk">위험과 경험 위험</h3>
+    <p>모델의 매개변수를 \(\theta\), 데이터 한 점을 \(Z\)라 하자. \(Z\)는 입력과 정답의 쌍이라 숫자 하나는 아니지만(여러 확률 변수를 함께 다루는 법은 4장에서 정식으로 다룬다), 고정한 \(\theta\)에서 손실 \(\ell(\theta;Z)\)는 \(Z\)에 따라 값이 정해지는 확률 변수다. 우리가 정말 줄이고 싶은 것은 앞으로 만날 데이터에서의 평균 손실, 곧 기댓값이다.</p>
+    <div class="formula" id="eq-risk">\[R(\theta)=\mathbb E\bigl[\ell(\theta;Z)\bigr]\]<div class="where">\(R\)을 <span class="term">위험</span> <span class="en">(risk)</span>, 정확히는 기대 위험이라 한다. 분포를 밝혀 \(\mathbb E_{z\sim p}[\ell(\theta;z)]\)로도 쓴다.</div></div>
+    <p>이 값은 \(Z\)의 분포를 알아야 계산되는데 우리에게는 분포가 아니라 데이터 \(Z_1,\ldots,Z_n\)만 있다. 그래서 평균으로 대신한다.</p>
+    <div class="formula" id="eq-empirical-risk">\[\hat R_n(\theta)=\frac1n\sum_{i=1}^n\ell(\theta;Z_i)\]<div class="where">\(\hat R_n\)을 <span class="term">경험 위험</span> <span class="en">(empirical risk)</span>이라 한다. 학습 손실이 이 값이다.</div></div>
+    <p>이 평균이 \(R(\theta)\)의 믿을 만한 대용품인 첫째 이유는 선형성이다. 각 \(Z_i\)가 \(Z\)와 같은 분포를 따르면 고정한 \(\theta\)에서 \(\mathbb E[\ell(\theta;Z_i)]=R(\theta)\)이므로, <a class="ref" href="#thm-linearity"></a>에서</p>
+    <div class="formula">\[\mathbb E\bigl[\hat R_n(\theta)\bigr]=\frac1n\sum_{i=1}^n\mathbb E\bigl[\ell(\theta;Z_i)\bigr]=\frac1n\cdot n\,R(\theta)=R(\theta).\]</div>
+    <p>추정값의 기댓값이 추정하려는 값과 같을 때 그 추정을 <span class="term">불편</span> <span class="en">(unbiased)</span>이라 한다(8장). 이 계산에는 독립이 필요 없다. 평균이 \(R(\theta)\) 근처에서 얼마나 흔들리는지는 독립일 때 \(n\)이 커지며 줄어드는데, 그것은 6장이다.</p>
+    <div class="callout warn"><strong>θ를 데이터로 고르면 불편이 아니다</strong><p>위 계산은 \(\theta\)가 데이터와 상관없이 정해진 값이라는 전제에 선다. 학습은 \(\theta\)를 \(\hat R_n\)이 작아지게 고르므로, 학습한 \(\hat\theta\)에서의 \(\hat R_n(\hat\theta)\)는 대개 \(R(\hat\theta)\)보다 작은 쪽으로 치우친다(17장). 테스트 데이터를 따로 떼어 두는 이유다. 학습에 쓰지 않은 데이터의 평균 손실은 \(\hat\theta\)가 고정된 상태에서의 위 불편 추정이다.</p></div>
+    <p>정확도도 같은 틀이다. 0-1 손실 \(\ell(\theta;Z)=\mathbb I\bigl(f_\theta(X)\neq Y\bigr)\)(예측이 틀리면 1)이면 식 <a class="ref" href="#eq-indicator"></a>에서 \(R(\theta)=P(f_\theta(X)\neq Y)\), 곧 오분류 확률이다. 테스트 데이터의 정확도는 1에서 경험 위험을 뺀 값이므로 정답을 맞힐 확률의 불편 추정이다. 이 추정에 오차 막대를 다는 법은 12장에서 다룬다.</p>
+    <h3 id="h-minibatch">미니배치 손실은 전체 손실의 불편 추정이다</h3>
+    <p>데이터 \(N\)개의 전체 손실을 \(L(\theta)=\frac1N\sum_{i=1}^N\ell_i(\theta)\)라 쓰자. \(\ell_i\)는 \(i\)번째 데이터의 손실이다. 한 단계에서 \(N\)개 중 크기 \(B\)의 부분집합 \(S\)를 모든 부분집합이 같은 확률이 되도록 뽑아 \(L_S(\theta)=\frac1B\sum_{i\in S}\ell_i(\theta)\)를 계산한다고 하자. 지시 확률 변수로 쓰면 \(L_S(\theta)=\frac1B\sum_{i=1}^N\mathbb I(i\in S)\,\ell_i(\theta)\)이다. 데이터 \(i\)를 포함하는 크기 \(B\)의 부분집합은 나머지 \(N-1\)개에서 \(B-1\)개를 고르는 \(\binom{N-1}{B-1}\)가지이고 전체는 \(\binom NB\)가지이므로</p>
+    <div class="formula" id="eq-inclusion">\[P(i\in S)=\frac{\binom{N-1}{B-1}}{\binom NB}=\frac BN.\]</div>
+    <p>식 <a class="ref" href="#eq-indicator"></a>에서 \(\mathbb E[\mathbb I(i\in S)]=B/N\)이므로 선형성으로</p>
+    <div class="formula" id="eq-minibatch-unbiased">\[\mathbb E\bigl[L_S(\theta)\bigr]=\frac1B\sum_{i=1}^N\frac BN\,\ell_i(\theta)=L(\theta).\]</div>
+    <p>\(\ell_i\) 자리에 기울기 \(\nabla\ell_i\)를 넣어도 같은 계산이 된다. \(\mathbb I(i\in S)\)는 \(\theta\)와 무관하므로 \(\mathbb E[\nabla L_S(\theta)]=\nabla L(\theta)\)다. 곧 미니배치 기울기는 전체 기울기의 불편 추정이고, 확률적 경사 하강법은 매 단계에서 정확한 기울기를 모르지만 평균해서 맞는 방향을 쓴다. 지시 확률 변수들은 독립이 아니다. 합이 정확히 \(B\)로 정해져 있기 때문이다. 선형성은 독립을 요구하지 않으므로 상관없다.</p>
+    <div class="box ex" id="ex-minibatch"><div class="box-h">네 개 중 두 개 뽑기</div>
+      <p>손실이 \(1,3,5,7\)인 데이터 \(N=4\)개에서 \(B=2\)개를 뽑으면 부분집합은 6가지이고 미니배치 평균 손실은 \(2,3,4,4,5,6\)이다. 이 여섯 값의 평균은 \(4\)이고 전체 평균 \((1+3+5+7)/4=4\)와 같다. 한 번의 미니배치는 2에서 6까지 흔들리지만 기댓값은 어긋나지 않는다.</p>
+    </div>
+    <p>데이터를 섞은 뒤 순서대로 \(B\)개씩 자르는 흔한 구현에서도 각 미니배치는 균등하게 뽑은 \(B\)개와 분포가 같으므로 위 결과가 각 미니배치에 성립한다. 이 결과는 손실을 <b>평균</b>으로 정의해야 성립한다. 합으로 정의하면 기댓값이 \(B\,L(\theta)\)가 되어 배치 크기를 바꿀 때마다 학습률도 바꿔야 한다. PyTorch 2.11에서 <code>CrossEntropyLoss</code>, <code>MSELoss</code>, <code>L1Loss</code>의 기본값이 <code>reduction='mean'</code>인 것도 이 성질과 맞는다.</p>
+    <h3 id="h-mean-median">무엇의 기댓값인가가 무엇을 배울지 정한다</h3>
+    <p>같은 데이터라도 손실을 어떻게 정하느냐에 따라 모델이 배우는 대상이 달라진다. 가장 단순한 경우로, 입력 없이 정답 \(Y\)만 있고 모델이 상수 \(c\)를 내놓는다고 하자. 제곱 손실의 위험은 \(\mathbb E[(Y-c)^2]\)다. \(Y-c=(Y-\mu)+(\mu-c)\)로 쓰고 제곱하면</p>
+    <div class="formula" id="eq-mse-decomposition">\[\begin{aligned}\mathbb E\bigl[(Y-c)^2\bigr]&amp;=\mathbb E\bigl[\bigl((Y-\mu)+(\mu-c)\bigr)^2\bigr]\\&amp;=\operatorname{Var}(Y)+2(\mu-c)\,\mathbb E[Y-\mu]+(\mu-c)^2\\&amp;=\operatorname{Var}(Y)+(\mu-c)^2.\end{aligned}\]</div>
+    <p>교차항은 \(\mathbb E[Y-\mu]=0\)이어서 사라진다. 마지막 항은 \(c=\mu\)에서만 0이므로 <b>제곱 손실의 최적 상수 예측은 평균</b>이고 그 최솟값은 분산이다. 분산이 '평균으로 예측해도 남는 오차'라는 뜻이다.</p>
+    <p>절댓값 손실은 다르다. \(Y\)가 밀도 \(f\)를 가진다고 하고 \(\mathbb E|Y-c|\)를 \(c\)로 미분하자.</p>
+    <div class="formula" id="eq-abs-derivative">\[\begin{aligned}\mathbb E|Y-c|&amp;=\int_{-\infty}^{c}(c-y)f(y)\,dy+\int_{c}^{\infty}(y-c)f(y)\,dy,\\\frac{d}{dc}\,\mathbb E|Y-c|&amp;=F(c)-\bigl(1-F(c)\bigr)=2F(c)-1.\end{aligned}\]</div>
+    <p>적분 구간의 끝점 \(c\)에서 나오는 항은 \((c-c)f(c)=0\)이라 사라지고, 남는 것이 \(\int_{-\infty}^cf=F(c)\)와 \(-\int_c^\infty f=-(1-F(c))\)이다. 도함수가 0이 되는 곳은 \(F(c)=1/2\), 곧 <span class="term">중앙값</span> <span class="en">(median)</span>이고, 도함수의 도함수 \(2f(c)\ge0\)이므로 그 점이 최솟값이다. <b>절댓값 손실의 최적 상수 예측은 중앙값</b>이다.</p>
+    <p>차이는 이상치가 있을 때 분명하다. 정답이 \(1,2,3,4,100\)(각각 확률 \(1/5\))이면 평균은 22이고 중앙값은 3이다. 아래 코드는 \(c\)를 훑어서 두 손실의 최소점을 찾는다.</p>
+<pre><code>import numpy as np
+y = np.array([1., 2., 3., 4., 100.])
+c = np.linspace(0, 100, 100001)
+mse = ((y[None, :] - c[:, None]) ** 2).mean(axis=1)
+mae = np.abs(y[None, :] - c[:, None]).mean(axis=1)
+print(c[mse.argmin()], c[mae.argmin()], y.mean(), np.median(y))</code></pre>
+    <p>출력은 <code>22.0 3.0 22.0 3.0</code>이다. 제곱 손실의 최소점은 평균 22, 절댓값 손실의 최소점은 중앙값 3이다. 이상치 하나가 제곱 손실의 최적점을 22로 끌어올리지만 절댓값 손실의 최적점은 그대로다. 이 이산 분포에서 식 <a class="ref" href="#eq-abs-derivative"></a>는 쓰지 않았으나(밀도가 없다) 같은 결론이 수치로 확인된다.</p>
+    <div class="callout ml"><strong>입력이 있으면 평균이 조건부 평균으로 바뀐다</strong><p>입력 \(\mathbf x\)가 있으면 상수 \(c\) 자리에 모델의 출력 \(f_\theta(\mathbf x)\)가 오고, 같은 논증이 '\(\mathbf x\)가 주어졌을 때의 평균'(조건부 기댓값, 4장)을 낳는다. 제곱 오차로 학습한 회귀 모델은 조건부 평균을, 절댓값 오차는 조건부 중앙값을 배우려 한다. 선형 회귀는 15장, 교차 엔트로피가 어떤 기댓값의 최소화인지는 9장과 11장에서 본다.</p></div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li class="slot" data-slot="요점">요점</li>
+      <li>확률 변수는 결과를 실수로 옮기는 함수이고, 분포는 \(P(X\in B)\)를 모든 \(B\)에 대해 알려 주는 것이다. 누적 분포 함수 \(F(x)=P(X\le x)\)는 이산이든 연속이든 쓸 수 있고 \(P(a&lt;X\le b)=F(b)-F(a)\)이다.</li>
+      <li>확률 질량 함수는 확률 자체이고, 확률 밀도 함수는 \(F\)의 도함수로서 단위 길이당 확률이다. 밀도는 1보다 클 수 있으며 연속 확률 변수는 한 점의 확률이 0이다.</li>
+      <li>기댓값은 \(\sum xp(x)\) 또는 \(\int xf(x)\,dx\)이고, \(\mathbb E[g(X)]\)는 \(g(X)\)의 분포 없이 \(\sum g(x)p(x)\)나 \(\int g(x)f(x)\,dx\)로 구한다. 절대 수렴하지 않으면(코시 분포) 기댓값이 없다.</li>
+      <li>선형성 \(\mathbb E[aX+bY+c]=a\mathbb E[X]+b\mathbb E[Y]+c\)는 독립 없이 성립한다. 지시 확률 변수의 기댓값이 확률이라서 개수 세기 문제(모자 문제)가 풀린다.</li>
+      <li>\(\operatorname{Var}(X)=\mathbb E[X^2]-\mu^2\)이고 \(\operatorname{Var}(aX+b)=a^2\operatorname{Var}(X)\)이다. 표준화 \((X-\mu)/\sigma\)는 평균 0, 분산 1이다.</li>
+      <li>변환한 \(Y=g(X)\)의 분포는 이산이면 확률을 합치고, 연속이면 누적 분포 함수로 구하거나 \(f_Y(y)=f_X(h(y))|h'(y)|\)로 구한다. \(F(X)\)는 균등하다. 일반적으로 \(\mathbb E[g(X)]\neq g(\mathbb E[X])\)다.</li>
+      <li>손실은 기댓값이다. 경험 위험과 미니배치 손실은 선형성 때문에 고정한 \(\theta\)에서 위험과 전체 손실의 불편 추정이고, 손실을 평균으로 정의해야 배치 크기와 무관하다.</li>
+      <li>제곱 손실의 최적 상수는 평균(최솟값은 분산), 절댓값 손실의 최적 상수는 중앙값이다. 손실의 선택이 모델이 배우는 대상을 정한다.</li>
     </ol>
   </section>
 
   <section class="quiz-sec" id="quiz">
     <h2>확인 퀴즈</h2>
-    <p class="slot" data-slot="퀴즈">장을 쓰면서 4~6문항을 만듭니다.</p>
+    <p class="quiz-score"></p>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 두 동전의 앞면 수 \(X\)에서 \(F(1)=P(X\le1)\)은?</p><div class="opts"><button class="opt">1/4</button><button class="opt">1/2</button><button class="opt" data-correct>3/4</button></div><div class="quiz-exp">\(F(1)=P(X=0)+P(X=1)=1/4+1/2=3/4\)이다. '이하'이므로 1에서의 확률도 포함한다.</div></div>
+      <div class="quiz-q"><p>2. 연속 확률 변수 \(X\)의 밀도 \(f\)에 대해 옳은 것은?</p><div class="opts"><button class="opt">\(f(x)=P(X=x)\)이다.</button><button class="opt" data-correct>\(f(x)\)가 1보다 큰 값을 가질 수 있다.</button><button class="opt">\(f(x)\le1\)이어야 한다.</button></div><div class="quiz-exp">\(f\)는 확률이 아니라 단위 길이당 확률이고, 넓이 \(\int f\,dx\)가 1이면 된다. 폭이 좁은 구간에 확률이 몰리면 \(f\)가 1을 넘는다. 연속 확률 변수에서 \(P(X=x)\)는 항상 0이다.</div></div>
+      <div class="quiz-q"><p>3. \(X\)와 \(Y\)가 독립이 아닐 때 \(\mathbb E[X+Y]=\mathbb E[X]+\mathbb E[Y]\)는?</p><div class="opts"><button class="opt">성립하지 않는다.</button><button class="opt" data-correct>성립한다.</button><button class="opt">\(X=Y\)일 때만 성립한다.</button></div><div class="quiz-exp">선형성은 결과마다 값을 더한 합에서 나오며 독립을 쓰지 않는다. 모자 문제의 지시 확률 변수가 독립이 아닌데도 기댓값을 더할 수 있었다.</div></div>
+      <div class="quiz-q"><p>4. \(\mathbb E[X]=3\), \(\operatorname{Var}(X)=4\)일 때 \(Y=-2X+1\)의 평균과 분산은?</p><div class="opts"><button class="opt">평균 \(-5\), 분산 \(-8\)</button><button class="opt" data-correct>평균 \(-5\), 분산 16</button><button class="opt">평균 \(-5\), 분산 4</button></div><div class="quiz-exp">평균은 \(-2\cdot3+1=-5\)이고 분산은 \((-2)^2\cdot4=16\)이다. 분산은 음수가 될 수 없고, 상수배는 제곱으로 들어간다.</div></div>
+      <div class="quiz-q"><p>5. 일반적으로 성립하지 않는 식은?</p><div class="opts"><button class="opt">\(\mathbb E[2X+1]=2\mathbb E[X]+1\)</button><button class="opt" data-correct>\(\mathbb E[X^2]=(\mathbb E[X])^2\)</button><button class="opt">\(\operatorname{Var}(X)=\mathbb E[X^2]-(\mathbb E[X])^2\)</button></div><div class="quiz-exp">두 값의 차가 분산이므로 분산이 0이 아니면 \(\mathbb E[X^2]&gt;(\mathbb E[X])^2\)이다. 나머지 둘은 선형성과 분산의 계산 공식이다.</div></div>
+      <div class="quiz-q"><p>6. 정답이 \(1,2,3,4,100\)일 때 평균 절대 오차를 최소로 하는 상수 예측은?</p><div class="opts"><button class="opt">22</button><button class="opt" data-correct>3</button><button class="opt">100</button></div><div class="quiz-exp">절댓값 손실의 최적 상수는 중앙값 3이다. 평균 22는 제곱 손실의 최적 상수다.</div></div>
+    </div>
   </section>
 
   <section class="exercises" id="exercises">
     <h2>연습문제</h2>
-    <p class="slot" data-slot="연습문제">장을 쓰면서 6~12문제를 만듭니다. 풀이는 접어 둡니다.</p>
+    <div class="prob" id="prob-two-dice" data-level="1"><p>공정한 주사위 두 개의 눈의 합 \(S\)에 대해 \(P(S\le4)\)와 \(P(S=7)\)을 구하고, \(\mathbb E[S]\)를 분포로 계산한 값과 선형성으로 구한 값을 비교하라.</p><details class="sol"><summary>풀이</summary><p>36가지 결과 중 \(S=2,3,4\)가 각각 1, 2, 3가지이므로 \(P(S\le4)=6/36=1/6\)이고, \(S=7\)은 6가지라 \(P(S=7)=1/6\)이다. 분포로는 \(\mathbb E[S]=\sum_k k\,P(S=k)=7\)이다. 선형성으로는 \(\mathbb E[S]=\mathbb E[D_1]+\mathbb E[D_2]=7/2+7/2=7\)로 훨씬 짧고 같은 값이다.</p></details></div>
+    <div class="prob" id="prob-cdf-reading" data-level="1"><p>확률 변수 \(X\)의 누적 분포 함수가 \(F(x)=0\ (x&lt;1)\), \(0.3\ (1\le x&lt;3)\), \(0.8\ (3\le x&lt;4)\), \(1\ (x\ge4)\)이다. \(X\)의 확률 질량 함수, \(P(1&lt;X\le3)\), \(P(X>3)\), \(\mathbb E[X]\)를 구하라.</p><details class="sol"><summary>풀이</summary><p>점프에서 \(p(1)=0.3\), \(p(3)=0.8-0.3=0.5\), \(p(4)=1-0.8=0.2\)이다. \(P(1&lt;X\le3)=F(3)-F(1)=0.8-0.3=0.5\), \(P(X>3)=1-F(3)=0.2\)이다. \(\mathbb E[X]=1(0.3)+3(0.5)+4(0.2)=2.6\)이다.</p></details></div>
+    <div class="prob" id="prob-density-constant" data-level="2"><p>\(f(x)=c\,x(1-x)\ (0\le x\le1)\), 그 밖에서 0이 밀도가 되도록 \(c\)를 구하라. 그 밀도의 누적 분포 함수, \(\mathbb E[X]\), \(\operatorname{Var}(X)\)를 구하고, 밀도의 최댓값이 1을 넘는지 확인하라.</p><details class="sol"><summary>풀이</summary><p>\(\int_0^1x(1-x)\,dx=1/2-1/3=1/6\)이므로 \(c=6\)이다. \(F(x)=\int_0^x6t(1-t)\,dt=3x^2-2x^3\ (0\le x\le1)\)이다. 밀도가 \(x=1/2\)에 대해 대칭이므로 \(\mathbb E[X]=1/2\)이고, \(\mathbb E[X^2]=\int_0^16x^3(1-x)\,dx=6(1/4-1/5)=3/10\)이라 \(\operatorname{Var}(X)=3/10-1/4=1/20\)이다. 최댓값은 \(f(1/2)=6\cdot\tfrac14=1.5>1\)이다.</p></details></div>
+    <div class="prob" id="prob-minibatch-positives" data-level="2"><p>양성이 1%인 데이터 10,000개에서 크기 64의 미니배치를 균등하게(비복원) 뽑는다. 지시 확률 변수와 선형성으로 미니배치에 든 양성 개수의 기댓값을 구하고, 이 값이 1보다 작다는 것이 학습에 어떤 문제를 주는지 말하라.</p><details class="sol"><summary>풀이</summary><p>양성 개수는 \(\sum_{i\in\text{양성}}\mathbb I(i\in S)\)이고 \(P(i\in S)=64/10000\)이다. 양성이 100개이므로 \(\mathbb E=100\cdot64/10000=0.64\)다. 개수 \(K\)는 0 이상의 정수라 \(K\ge\mathbb I(K\ge1)\)이고, 양변의 기댓값을 취하면 \(P(K\ge1)\le\mathbb E[K]=0.64\)다. 따라서 양성이 한 개도 없는 미니배치가 적어도 36%다. 그런 배치의 기울기에는 양성에 대한 정보가 없어 양성 쪽 학습이 느리고 들쭉날쭉하다. 클래스를 맞춰 뽑거나 양성에 가중치를 주는 방법을 쓰는 이유다.</p></details></div>
+    <div class="prob" id="prob-variance-affine" data-level="2"><p>두 동전의 앞면 수 \(X\)의 분산을 계산 공식으로 구하고, \(Y=3-2X\)의 평균과 분산을 구하라.</p><details class="sol"><summary>풀이</summary><p>\(\mathbb E[X]=1\), \(\mathbb E[X^2]=0\cdot\tfrac14+1\cdot\tfrac12+4\cdot\tfrac14=3/2\)이므로 \(\operatorname{Var}(X)=3/2-1=1/2\)다. \(\mathbb E[Y]=3-2\cdot1=1\), \(\operatorname{Var}(Y)=(-2)^2\cdot\tfrac12=2\)이다.</p></details></div>
+    <div class="prob" id="prob-abs-uniform" data-level="2"><p>\(X\)가 \((-1,1)\)에서 균등하다(밀도 \(1/2\)). \(Y=|X|\)의 누적 분포 함수와 밀도를 구하고, 식 <a class="ref" href="#eq-density-transform"></a>으로 확인하라.</p><details class="sol"><summary>풀이</summary><p>\(0\le y\le1\)에서 \(F_Y(y)=P(-y\le X\le y)=2y\cdot\tfrac12=y\)이므로 \(Y\)는 \([0,1]\)에서 균등하고 밀도는 1이다. \(g(x)=|x|\)는 두 가지 \(h_{1,2}(y)=\mp y\)를 가지므로 \(\sum_i f_X(h_i(y))|h_i'(y)|=2\cdot\tfrac12\cdot1=1\)로 같다.</p></details></div>
+    <div class="prob" id="prob-reciprocal" data-level="3"><p>\(X\)가 \([0,1]\)에서 균등하다(밀도 1). \(Y=1/X\)의 밀도를 구하고 \(\mathbb E[Y]\)가 존재하는지 판정하라. \(1/\mathbb E[X]\)와 비교하라.</p><details class="sol"><summary>풀이</summary><p>\(g(x)=1/x\)는 순감소이고 \(h(y)=1/y\), \(|h'(y)|=1/y^2\)이므로 \(f_Y(y)=1/y^2\ (y>1)\)이다. \(\int_1^\infty f_Y\,dy=1\)이지만 \(\int_1^\infty y\cdot y^{-2}\,dy=\int_1^\infty dy/y\)는 발산하므로 \(\mathbb E[Y]\)는 유한하지 않다(\(\mathbb E[1/X]=\infty\)). 반면 \(1/\mathbb E[X]=2\)다. 평균의 역수와 역수의 평균이 이처럼 다를 수 있다.</p></details></div>
+    <div class="prob" id="prob-inverse-transform" data-level="3"><p>누적 분포 함수가 \(F(x)=1-e^{-2x}\ (x\ge0)\)인 분포에서 균등한 \(U\)로 표본을 만드는 식을 <a class="ref" href="#thm-pit"></a>로 유도하라. <a class="ref" href="#ex-neglog"></a>의 \(Y=-\ln X\)와 어떻게 이어지는가?</p><details class="sol"><summary>풀이</summary><p>\(u=1-e^{-2x}\)를 \(x\)에 대해 풀면 \(F^{-1}(u)=-\tfrac12\ln(1-u)\)이므로 \(X=-\tfrac12\ln(1-U)\)의 누적 분포 함수가 \(F\)다. \(1-U\)도 \([0,1]\)에서 균등하므로 \(X=-\tfrac12\ln U\)로 써도 같은 분포다. 예제의 \(Y=-\ln X\)는 밀도 \(2e^{-2y}\), 곧 같은 분포를 따르는데, 거기서 \(X=\sqrt U\)이므로 \(Y=-\ln\sqrt U=-\tfrac12\ln U\)이다. 방금 얻은 식과 일치한다.</p></details></div>
+    <div class="prob" id="prob-median-density" data-level="2"><p>밀도 \(2x\ (0\le x\le1)\)인 \(X\)의 중앙값 \(m\)을 구하고 평균 \(2/3\)과 비교하라. \(\mathbb E|X-c|\)를 최소로 하는 \(c\)는 무엇인가?</p><details class="sol"><summary>풀이</summary><p>\(F(m)=m^2=1/2\)에서 \(m=1/\sqrt2\approx0.707\)이다. 평균 \(2/3\approx0.667\)보다 크다. 왼쪽 꼬리가 길어(왜도가 음수) 평균이 중앙값을 왼쪽으로 끌어당긴 것이다. \(\mathbb E|X-c|\)를 최소로 하는 \(c\)는 중앙값 \(1/\sqrt2\)이다.</p></details></div>
+    <div class="prob" id="prob-minibatch-enumerate" data-level="2"><p>손실이 \(1,2,6\)인 데이터 3개에서 크기 2의 미니배치를 균등하게 뽑는다. 모든 부분집합을 나열해 평균 손실의 기댓값이 전체 평균과 같음을 확인하라. 손실을 평균이 아니라 합으로 정의하면 기댓값은 얼마인가?</p><details class="sol"><summary>풀이</summary><p>부분집합 \(\{1,2\},\{1,6\},\{2,6\}\)의 평균 손실은 \(1.5,\ 3.5,\ 4\)이고 이들의 평균은 \((1.5+3.5+4)/3=3\)이다. 전체 평균 \((1+2+6)/3=3\)과 같다. 합으로 정의하면 \(3,\ 7,\ 8\)의 평균 6으로 \(B\cdot3=2\cdot3\)이다.</p></details></div>
+    <div class="prob" id="prob-sim-hats" data-level="2"><p>짧은 파이썬 실험: 시드를 고정하고 \(n=10\)명의 모자 문제를 10만 번 반복해 자기 모자를 받은 사람 수의 평균과 분산을 구하라. 평균이 이론값 1에서 정확히 같을 필요가 있는가?</p><details class="sol"><summary>풀이</summary><pre><code>import numpy as np
+rng = np.random.default_rng(7)
+n, reps = 10, 100_000
+x = np.array([(rng.permutation(n) == np.arange(n)).sum() for _ in range(reps)])
+print(x.mean(), x.var())</code></pre><p>위 시드에서 출력은 평균 1.00312, 분산 1.0016902656이다. 이론값 1과 가깝지만 같을 필요는 없다. 반복마다 우연히 흔들리기 때문이며, 반복을 늘리면 흔들림이 대체로 줄어든다(6장). 평균이 \(n\)과 무관하게 1이라는 것이 선형성의 결과다. 분산도 1 근처로 나오는데 이는 이 장의 범위를 벗어난다.</p></details></div>
+    <div class="prob" id="prob-sim-transform" data-level="2"><p>짧은 파이썬 실험: 시드를 고정하고 균등한 난수 \(U\)를 100만 개 뽑아 \(X=\sqrt U\), \(Y=-\ln X\)를 만들어라. \(Y\)의 표본 평균과 \(P(Y\le1)\)의 관측 비율을 밀도 \(2e^{-2y}\)에서 나온 이론값 \(1/2\), \(1-e^{-2}\)와 비교하라.</p><details class="sol"><summary>풀이</summary><pre><code>import numpy as np
+rng = np.random.default_rng(7)
+u = rng.random(1_000_000)
+y = -np.log(np.sqrt(u))
+print(y.mean(), (y &lt;= 1).mean(), 1 - np.exp(-2))</code></pre><p>위 시드에서 출력은 <code>0.49991610475080245 0.864348 0.8646647167633873</code>이다. 평균은 \(1/2\)에, 비율은 \(1-e^{-2}\approx0.8647\)에 가깝다. 표본이 유한하므로 완전히 같지는 않다. \(\sqrt U\)가 밀도 \(2x\)를 따르고(<a class="ref" href="#thm-pit"></a>), 그 \(-\ln\)이 밀도 \(2e^{-2y}\)를 따른다는 두 단계가 함께 확인된다.</p></details></div>
   </section>
 </main>
 </body>
