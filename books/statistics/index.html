@@ -145,6 +145,9 @@
       <tr><td>\(\operatorname{Var}(X),\ \operatorname{Cov}(X,Y)\)</td><td>분산, 공분산<div class="note">2장, 4장</div></td></tr>
       <tr><td>\(\mathbf x,\ \mathbf A,\ \boldsymbol\mu,\ \boldsymbol\Sigma\)</td><td>벡터는 굵은 소문자, 행렬은 굵은 대문자<div class="note">벡터와 행렬에서는 확률 변수와 실현값을 대소문자로 구분하지 않습니다. 데이터 행렬 \(\mathbf X\in\mathbb R^{n\times d}\)는 행 하나가 표본 하나입니다.</div></td></tr>
       <tr><td>\(\mathcal N(\mu,\sigma^2)\)</td><td>정규 분포. 둘째 자리는 분산<div class="note">PyTorch의 <code>torch.distributions.Normal(loc, scale)</code>은 둘째 자리로 표준편차를 받습니다.</div></td></tr>
+      <tr><td>\(X\sim\mathrm{Binomial}(n,p)\) 등</td><td>분포의 이름과 모수. Bernoulli\((p)\), Binomial\((n,p)\), Categorical\((\boldsymbol\pi)\), Multinomial\((n,\boldsymbol\pi)\), Geometric\((p)\), Poisson\((\lambda)\), Uniform\((a,b)\), Exponential\((\lambda)\), Gamma\((\alpha,\lambda)\), Beta\((\alpha,\beta)\), Dirichlet\((\boldsymbol\alpha)\)<div class="note">3장. 지수·감마 분포는 비율 \(\lambda\)를 모수로 쓰고(평균이 \(1/\lambda\), \(\alpha/\lambda\)), NumPy의 <code>scale</code>은 \(1/\lambda\)입니다.</div></td></tr>
+      <tr><td>\(\Gamma(\alpha),\ B(\alpha,\beta)\)</td><td>감마 함수, 베타 함수<div class="note">3장. \(\Gamma(n)=(n-1)!\)</div></td></tr>
+      <tr><td>\(\boldsymbol\pi,\ \mathbf y,\ \sigma(z),\ \operatorname{softmax}(\mathbf z)\)</td><td>범주 분포의 확률 벡터(심플렉스 위의 점), 원-핫 벡터, 시그모이드, 소프트맥스<div class="note">3장. \(\sigma(z)=1/(1+e^{-z})\). 이진 분류에서 \(z\)는 로짓입니다.</div></td></tr>
       <tr><td>\(X_1,\dots,X_n \overset{\text{iid}}{\sim} p\)</td><td>같은 분포 \(p\)에서 서로 독립으로 뽑은 표본<div class="note">4장</div></td></tr>
       <tr><td>\(\hat\theta,\ \bar X_n\)</td><td>추정량(모자를 씌운다), 표본 평균<div class="note">6장, 8장</div></td></tr>
       <tr><td>\(L(\theta),\ \ell(\theta)\)</td><td>가능도와 로그 가능도<div class="note">9장. likelihood는 한국통계학회 용어인 '가능도'로 씁니다. '우도'라고도 합니다.</div></td></tr>
