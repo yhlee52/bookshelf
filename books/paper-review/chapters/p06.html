@@ -77,7 +77,7 @@
     <p>설비 센서, 전력, 교통, 서버 지표처럼 변수가 여러 개인 시계열에서 현장이 원하는 일은 크게 둘이다. <b>① 예측:</b> 다음 몇 시간의 값을 미리 안다. <b>② 이상 탐지:</b> 지금 값이 평소와 다른지 가린다. 이상은 드물고 라벨이 거의 없으며 '이상'의 정의가 도메인마다 달라서, 두 번째 문제는 보통 <i>정상의 모양을 학습해 두고 어긋남을 점수화</i>하는 비지도 방식으로 푼다.</p>
     <p>최근의 흐름은 예측에서는 <b>사전학습한 시계열 인코더를 freeze하고 가벼운 헤드만 맞추는</b> 것(MOMENT 등), 이상 탐지에서는 <b>가려진 값을 복원하는 생성 모델</b>(conditional diffusion)이다. Kumo-TS는 이 두 흐름을 NVIDIA 계정으로 묶어 오픈한 것이다. 이름 그대로 NVIDIA의 구조화 데이터용 <b>Kumo</b> 모델군(표 형식 · 관계형 · 시계열)에서 시계열을 맡는다.</p>
     <div class="callout warn"><strong>이 리뷰가 읽은 것은 '어느 시점의 무엇'인가 — 대상이 몇 주 단위로 바뀐다</strong>
-      <p>이름과 구성이 짧은 기간에 두 번 바뀌었다(표 6-1). 공개 설명 자료 중 일부는 옛 이름 · 옛 버전 기준이다. 그래서 아래의 모든 판단은 <b>GitHub main <code>ad45947</code>(2026-11-09) · 릴리스 v1.0.1(2026-11-10 게시), HF <code>nvidia/Kumo-Forecast</code> · <code>nvidia/Kumo-Anomaly</code>의 2026-10-27 수정본</b>을 기준으로 한다. 일주일 뒤의 저장소는 달라져 있을 수 있다. 숫자 중 '논문'이라 표시한 것은 arXiv v1, '체크포인트'는 위 HF 파일, '코드'는 위 main에서 읽은 것이다.</p>
+      <p>이름과 구성이 짧은 기간에 두 번 바뀌었다(표 1-1). 공개 설명 자료 중 일부는 옛 이름 · 옛 버전 기준이다. 그래서 아래의 모든 판단은 <b>GitHub main <code>ad45947</code>(2026-11-09) · 릴리스 v1.0.1(2026-11-10 게시), HF <code>nvidia/Kumo-Forecast</code> · <code>nvidia/Kumo-Anomaly</code>의 2026-10-27 수정본</b>을 기준으로 한다. 일주일 뒤의 저장소는 달라져 있을 수 있다. 숫자 중 '논문'이라 표시한 것은 arXiv v1, '체크포인트'는 위 HF 파일, '코드'는 위 main에서 읽은 것이다.</p>
     </div>
 
     <div class="table-wrap"><table>
@@ -93,7 +93,7 @@
         <tr><td>2026-11-10</td><td><b>v1.0.1</b> — 저장소 이름을 Kumo-TS로 변경(예측 → Kumo-Forecast, AD Diffusion → Kumo-Anomaly), missingness-aware 예측, 이상 설명 · historical attribution 추가. 같은 날 GitHub 릴리스 게시(CHANGELOG에는 아직 'Unreleased')</td><td>CHANGELOG · GitHub API</td></tr>
       </tbody>
     </table></div>
-    <p>표 6-1. 이름과 버전의 흐름. 날짜가 자료마다 어긋난다: HF 이상 탐지 카드는 '출시 2026-06-29', 예측 카드는 '04/07/2026'(월 · 일 순서 불명)이라 쓰고, 저장소 생성일은 04-21 · 04-07, 첫 릴리스는 07-07이다. GitHub 별 62개 · 포크 26개(읽은 시점) — 사용 규모는 아직 작다.</p>
+    <p>표 1-1. 이름과 버전의 흐름. 날짜가 자료마다 어긋난다: HF 이상 탐지 카드는 '출시 2026-06-29', 예측 카드는 '04/07/2026'(월 · 일 순서 불명)이라 쓰고, 저장소 생성일은 04-21 · 04-07, 첫 릴리스는 07-07이다. GitHub 별 62개 · 포크 26개(읽은 시점) — 사용 규모는 아직 작다.</p>
 
     <div class="callout warn"><strong>이전 방법의 한계 (저자들이 겨냥한 곳)</strong>
       <p>① <b>예측:</b> 제로샷 파운데이션 모델은 학습에 없던 도메인에서 흔들리고, 채널을 따로 처리하면 변수 사이의 관계를 못 쓴다 → cross-channel attention과 과거 window retrieval(DARR, 논문의 초록 요지는 'retrieval이 domain shift에 대한 견고성을 높인다'). ② <b>이상 탐지:</b> 학습이 불안정하고 정상 · 이상 구분 없이 섞인 자료에서 사소한 복원으로 붕괴하기 쉽다 → 쉬운 복원부터 어려운 복원으로 가는 커리큘럼. 그리고 <b>임계값</b>이 병목이라는 것이 논문 스스로의 결론이다.</p>
@@ -194,7 +194,7 @@
           <text x="14" y="66" class="t-dim">체크포인트: CSDI형 6블록 · 128 · 500스텝 선형</text>
           <text x="14" y="88" class="t-dim">모델 카드의 '8M · ResNet34'도 체크포인트와 다름</text></g>
       </svg>
-      <figcaption><b>그림 6-1.</b> 위: Kumo-Forecast. 파란 상자의 인코더만 외부(MOMENT) 가중치이고 frozen 상태다. 학습되는 것은 cross-channel attention과 헤드뿐이다(합 8,919,112개). 아래: Kumo-Anomaly. 아래 오른쪽 상자의 불일치는 '공개물끼리 맞춰 보기' 절에서 표로 정리한다.</figcaption>
+      <figcaption><b>그림 1-1.</b> 위: Kumo-Forecast. 파란 상자의 인코더만 외부(MOMENT) 가중치이고 frozen 상태다. 학습되는 것은 cross-channel attention과 헤드뿐이다(합 8,919,112개). 아래: Kumo-Anomaly. 아래 오른쪽 상자의 불일치는 '공개물끼리 맞춰 보기' 절에서 표로 정리한다.</figcaption>
     </figure>
 
     <h3>① Kumo-Forecast — frozen 인코더, 학습되는 건 헤드와 cross-channel attention</h3>
@@ -211,7 +211,7 @@
         <tr class="best"><td>학습되는 부분 합 (기본 체크포인트) — 모델 파라미터의 약 2.5%</td><td class="num">8,919,112</td><td></td></tr>
       </tbody>
     </table></div>
-    <p>표 6-2. 두 체크포인트의 총 원소 수는 351,078,984(cross-channel attention 없음)와 355,279,432이고, 차이 4,200,448은 위 cross-channel attention과 정확히 같다. 파일 크기 차이(16,803,033바이트)도 fp32로 환산한 cross-channel attention(16,801,792바이트)과 일치한다. 모델 카드의 '약 3.4억 인코더'는 341,231,104와 맞는다. <b>missingness-aware 모델</b>(<code>kumo-forecast-1.2.0</code>)은 별도 구조(<code>MOMENTLFPlusCRS</code>)로 설정에 <code>seq_len 96 · pred_len 24</code>, 채널 7개(ETT 열 이름: OT · HUFL · HULL · LUFL · LULL · MUFL · MULL)가 적혀 있다 — 이름으로 정렬하는 ETT용 모델이다.</p>
+    <p>표 1-2. 두 체크포인트의 총 원소 수는 351,078,984(cross-channel attention 없음)와 355,279,432이고, 차이 4,200,448은 위 cross-channel attention과 정확히 같다. 파일 크기 차이(16,803,033바이트)도 fp32로 환산한 cross-channel attention(16,801,792바이트)과 일치한다. 모델 카드의 '약 3.4억 인코더'는 341,231,104와 맞는다. <b>missingness-aware 모델</b>(<code>kumo-forecast-1.2.0</code>)은 별도 구조(<code>MOMENTLFPlusCRS</code>)로 설정에 <code>seq_len 96 · pred_len 24</code>, 채널 7개(ETT 열 이름: OT · HUFL · HULL · LUFL · LULL · MUFL · MULL)가 적혀 있다 — 이름으로 정렬하는 ETT용 모델이다.</p>
 
     <h3>② DARR — 임베딩 kNN으로 과거의 '뒤'를 빌려 온다</h3>
     <p>context DataFrame을 stride \( s \)로 자른 window마다 (임베딩, 그 뒤 \( H' = \max(72, H) \)스텝)을 저장한다. 임베딩은 인코더 출력(cross-channel attention 포함)을 <b>채널과 패치에 걸쳐 평균</b>해 L2 정규화한 1,024차원 벡터이고, 쿼리(입력의 마지막 window)와의 코사인 상위 \( k \)개에 softmax 가중치를 줘 이웃의 '뒤'를 평균한다.</p>
@@ -254,30 +254,30 @@
         <tr><td>NVExplain (arXiv 2608.25080)</td><td>설명 방법의 faithfulness. <b>설명 대상은 MOMENT</b>이고 Kumo-Forecast가 아니다</td><td>예측 정확도 아님</td></tr>
       </tbody>
     </table></div>
-    <p>표 6-3. 예측 쪽 근거. 직접 예측이든 DARR든 ETT · ECL · Traffic에서 MSE가 얼마인지, 다른 파운데이션 모델(Chronos · TimesFM · MOMENT 자체)보다 나은지는 <b>이 리뷰가 접근한 자료 어디에도 없다</b>(DARR 논문 본문은 접근하지 못했다). 이 책의 <a href="p02.html">리뷰 02 Timestral</a>은 같은 종류의 모델을 공개 코드와 원자료로 검증했는데, Kumo-Forecast는 그런 비교를 독자가 직접 해야 한다.</p>
+    <p>표 1-3. 예측 쪽 근거. 직접 예측이든 DARR든 ETT · ECL · Traffic에서 MSE가 얼마인지, 다른 파운데이션 모델(Chronos · TimesFM · MOMENT 자체)보다 나은지는 <b>이 리뷰가 접근한 자료 어디에도 없다</b>(DARR 논문 본문은 접근하지 못했다). 이 책의 <a href="p02.html">리뷰 02 Timestral</a>은 같은 종류의 모델을 공개 코드와 원자료로 검증했는데, Kumo-Forecast는 그런 비교를 독자가 직접 해야 한다.</p>
 
     <h3>설명 — NVExplain의 faithfulness (MOMENT를 대상으로)</h3>
     <figure>
       <div data-chart='{"type":"bar","title":"faithfulness 통과율 FPR (%) — 논문 표 1 (설명 대상: MOMENT)","labels":["ETTh1","Exchange","ILI","Weather"],"series":[{"name":"무작위","data":[13.9,17.3,17.0,7.4]},{"name":"어텐션","data":[21.8,13.3,15.6,54.2]},{"name":"IntGrad","data":[83.8,83.8,76.1,48.5]},{"name":"TimeSHAP","data":[99.1,67.6,44.4,64.8]},{"name":"Ours (flow)","data":[99.1,88.9,67.1,96.3]},{"name":"Ours (full)","data":[96.8,59.9,50.6,72.1]}],"highlight":"Ours (flow)","yMin":0,"yMax":105,"digits":1,"aspect":0.42}'></div>
-      <figcaption><b>그림 6-2.</b> 상위 lag을 평균으로 바꿨을 때 예측이 무작위 · 하위 lag 제거보다 크게 변하는 horizon의 비율. 'flow'가 4개 중 3개에서 가장 높거나 같지만 ILI에서는 IntGrad(76.1)보다 낮다. 실행 시간은 flow 2–15초, IntGrad 52–259초, TimeSHAP 20–159초. 저자들이 적은 한계: 모델 하나 · 데이터 네 개 · '예비적(preliminary)', 임베딩 접근이 필요함, 'full'은 세 데이터셋에서 flow보다 나쁨.</figcaption>
+      <figcaption><b>그림 1-2.</b> 상위 lag을 평균으로 바꿨을 때 예측이 무작위 · 하위 lag 제거보다 크게 변하는 horizon의 비율. 'flow'가 4개 중 3개에서 가장 높거나 같지만 ILI에서는 IntGrad(76.1)보다 낮다. 실행 시간은 flow 2–15초, IntGrad 52–259초, TimeSHAP 20–159초. 저자들이 적은 한계: 모델 하나 · 데이터 네 개 · '예비적(preliminary)', 임베딩 접근이 필요함, 'full'은 세 데이터셋에서 flow보다 나쁨.</figcaption>
     </figure>
     <p>이 수치는 <b>MOMENT를 검은 상자로 놓고 잰 것</b>이다. 공개 SDK는 같은 코드를 Kumo-Forecast(cross-channel attention + 새 헤드)에 붙였지만, 그 모델에서 faithfulness를 잰 결과는 공개물에 없다.</p>
 
     <h3>이상 탐지 — 논문 (arXiv 2610.12754)</h3>
     <figure>
       <div data-chart='{"type":"bar","title":"TSB-UAD-M test split — 커리큘럼 없는 2025 baseline 대 NV-Tesseract-AD (논문 표 3)","labels":["F1","정밀도","재현율"],"series":[{"name":"2025 baseline (커리큘럼 없음)","data":[0.0376,0.0571,0.0280]},{"name":"NV-Tesseract-AD (2026)","data":[0.1404,0.1882,0.1119]}],"highlight":"NV-Tesseract-AD (2026)","yMin":0,"yMax":0.25,"digits":3,"aspect":0.4}'></div>
-      <figcaption><b>그림 6-3.</b> '3.7배 향상'의 정체: F1이 0.038에서 0.140으로 오른 것이다(reconstruction MAE 1.90 → 1.25, MSE 3.66 → 1.62 = 34% · 56% 감소). baseline은 <b>같은 백본에 훈련 절차와 전처리만 다른 자사 이전 모델</b> 하나뿐이고, 논문도 커리큘럼 효과와 '학습-추론 전처리 정렬' 효과를 가를 수 없다고 적었다. 또 이 표의 evaluation set은 test split 전체(약 1,655만 점)가 아니라 캡션에 적힌 <b>5,000행 · 원시 변수 38개 · 이상 비율 1.18%(이상 약 59점)</b>이다(리뷰어 계산: 전체의 약 0.03%). F1 0.14라는 절대값은 논문 표 4의 어느 제로샷 계열(최저 0.34)보다 낮다.</figcaption>
+      <figcaption><b>그림 1-3.</b> '3.7배 향상'의 정체: F1이 0.038에서 0.140으로 오른 것이다(reconstruction MAE 1.90 → 1.25, MSE 3.66 → 1.62 = 34% · 56% 감소). baseline은 <b>같은 백본에 훈련 절차와 전처리만 다른 자사 이전 모델</b> 하나뿐이고, 논문도 커리큘럼 효과와 '학습-추론 전처리 정렬' 효과를 가를 수 없다고 적었다. 또 이 표의 evaluation set은 test split 전체(약 1,655만 점)가 아니라 캡션에 적힌 <b>5,000행 · 원시 변수 38개 · 이상 비율 1.18%(이상 약 59점)</b>이다(리뷰어 계산: 전체의 약 0.03%). F1 0.14라는 절대값은 논문 표 4의 어느 제로샷 계열(최저 0.34)보다 낮다.</figcaption>
     </figure>
 
     <figure>
       <div data-chart='{"type":"bar","title":"EasyTSAD 열 개 계열 제로샷 — PA 정밀도 · 재현율 · F1 (논문 표 4)","labels":["NAB","NormA","NEK","UCR4","GutenTAG","UCR","AIOPS","CalIt2","Yahoo","WSD"],"series":[{"name":"F1","data":[0.9841,0.9477,0.8830,0.7831,0.6928,0.6409,0.5557,0.5381,0.4328,0.3406]},{"name":"정밀도","data":[0.9692,0.9123,0.8261,0.6872,0.5997,0.5957,0.5745,0.5315,0.3536,0.3039]},{"name":"재현율","data":[1.0,0.9877,0.9578,1.0,0.9773,0.7364,0.597,0.5468,0.7893,0.6923]}],"highlight":"F1","yMin":0,"yMax":1.05,"digits":2,"aspect":0.45}'></div>
-      <figcaption><b>그림 6-4.</b> 논문의 '제로샷' 결과. 평균 F1 0.680 · 평균 정밀도 0.635 · 평균 재현율 0.828(리뷰어 계산)이고, <b>열 계열 중 다섯 개(NAB · NormA · NEK · UCR4 · GutenTAG)의 재현율이 0.95 이상</b>이다. 재현율이 정밀도보다 높게 치우친 모양은 PA의 지문이다(네 번째 실험 참고).</figcaption>
+      <figcaption><b>그림 1-4.</b> 논문의 '제로샷' 결과. 평균 F1 0.680 · 평균 정밀도 0.635 · 평균 재현율 0.828(리뷰어 계산)이고, <b>열 계열 중 다섯 개(NAB · NormA · NEK · UCR4 · GutenTAG)의 재현율이 0.95 이상</b>이다. 재현율이 정밀도보다 높게 치우친 모양은 PA의 지문이다(네 번째 실험 참고).</figcaption>
     </figure>
 
     <h3>임계값이 병목이라는 진단 — 그런데 천장도 낮다</h3>
     <figure>
       <div data-chart='{"type":"bar","title":"TSB-UAD-M test split의 PA-F1 — 임계값 방식별 (논문 5.3절, 일부는 근삿값)","labels":["기본 SCS","기본 MACS","SCS 격자 탐색 최고 (라벨 사용)","오라클 AdjBestF1 (라벨 사용)"],"series":[{"name":"F1","data":[0.16,0.12,0.218,0.244]}],"yMin":0,"yMax":0.3,"digits":3,"aspect":0.4}'></div>
-      <figcaption><b>그림 6-5.</b> 논문은 임계값 보정을 병목으로 꼽는다(기본 0.16 → 오라클 0.244). 맞는 말이지만 <b>오라클 상한 자체가 0.244</b>라는 점이 더 크다 — 라벨로 임계값을 가장 잘 골라도 이 분할의 PA-F1이 0.24이므로 reconstruction error 점수가 이상을 잘 가르지 못한다. 최적 SCS 설정(APCA · c 0.90 · 필터 15 · 구간 2 · 창 계수 3)은 공개 기본값(c 0.99 · 필터 95 · 구간 3)과 크게 다르다.</figcaption>
+      <figcaption><b>그림 1-5.</b> 논문은 임계값 보정을 병목으로 꼽는다(기본 0.16 → 오라클 0.244). 맞는 말이지만 <b>오라클 상한 자체가 0.244</b>라는 점이 더 크다 — 라벨로 임계값을 가장 잘 골라도 이 분할의 PA-F1이 0.24이므로 reconstruction error 점수가 이상을 잘 가르지 못한다. 최적 SCS 설정(APCA · c 0.90 · 필터 15 · 구간 2 · 창 계수 3)은 공개 기본값(c 0.99 · 필터 95 · 구간 3)과 크게 다르다.</figcaption>
     </figure>
 
     <h3>샘플러 — 빠르지만 임계값과 얽힌다</h3>
@@ -289,7 +289,7 @@
         <tr><td>Wafer</td><td class="num">380 s</td><td class="num">135 s</td><td class="num">94 s</td><td class="num">2.81 / 4.04</td><td class="num">0.109 / 0.092 / 0.117</td></tr>
       </tbody>
     </table></div>
-    <p>표 6-4. D = DDPM, MP = DPM-Solver++ 멀티스텝, S = 싱글스텝(추론 시간은 초). 마지막 열은 논문의 'Best Thresholded F1'. 배수는 리뷰어 계산. 초록의 '3.5–5.7배'는 표에서 싱글스텝만 4.0–5.7배, 멀티스텝은 2.1–2.8배로 나와 하한이 표와 맞지 않는다. window 하나의 지연은 약 500ms → 12ms(약 40배), EasyTSAD 전체 평가는 DDPM 약 31시간(표: UCR4 하나가 12.9시간) → DPM 6–9시간이다. 임계값을 건 F1은 솔버에 따라 오르내려, 저자 말대로 솔버가 '모델 사양의 일부'다. 공개 v1.0.1은 <b>DPM-Solver++만 남기고 DDPM · DDIM을 제거</b>했으므로 이 표의 DDPM 쪽은 공개물로 재현할 수 없다.</p>
+    <p>표 1-4. D = DDPM, MP = DPM-Solver++ 멀티스텝, S = 싱글스텝(추론 시간은 초). 마지막 열은 논문의 'Best Thresholded F1'. 배수는 리뷰어 계산. 초록의 '3.5–5.7배'는 표에서 싱글스텝만 4.0–5.7배, 멀티스텝은 2.1–2.8배로 나와 하한이 표와 맞지 않는다. window 하나의 지연은 약 500ms → 12ms(약 40배), EasyTSAD 전체 평가는 DDPM 약 31시간(표: UCR4 하나가 12.9시간) → DPM 6–9시간이다. 임계값을 건 F1은 솔버에 따라 오르내려, 저자 말대로 솔버가 '모델 사양의 일부'다. 공개 v1.0.1은 <b>DPM-Solver++만 남기고 DDPM · DDIM을 제거</b>했으므로 이 표의 DDPM 쪽은 공개물로 재현할 수 없다.</p>
 
     <h3>공식 블로그의 유일한 이상 탐지 수치</h3>
     <p>HF 블로그는 fine-tuning 효과를 하나 보인다: 평균 test AP(average precision)가 사전학습 그대로 <b>0.016</b>, 정상 관측 5만 개로 fine-tuning하면 <b>0.201</b>(약 12.5배, 짝지은 시드 3개, H100 한 장). 어느 데이터셋인지, 이상 비율이 얼마인지는 적혀 있지 않다. AP는 무작위 점수가 이상 비율과 같은 값을 내므로 <b>이상 비율 없이는 읽을 수 없다</b>. 다만 사전학습 상태의 AP가 0.016으로 사실상 바닥이라는 점은, 논문 표 4의 높은 제로샷 점수와 대조해서 읽을 만하다.</p>
@@ -312,11 +312,11 @@
         <tr><td>커리큘럼</td><td>마스킹 비율 {0.1, 0.3, 0.5} 고정, t를 3등분</td><td>YAML: 단계 1·2는 30epoch씩, 마스킹 0.1–0.3 / 0.3–0.6 / 0.6–0.8, <code>noise_ratio</code> 0.0001–0.1 / 0.1–0.3 / 0.3–0.5. <b>저장소의 어떤 .py도 이 값을 읽지 않는다</b></td><td>학습 코드 비공개</td></tr>
         <tr><td>보조 손실</td><td>속도 0.1 · 가속도 0.05</td><td><code>use_aux_loss: False</code> (가중 0.4 / 0.4는 꺼진 상태)</td><td>꺼짐</td></tr>
         <tr><td>추론 기본값</td><td>DPM-Solver++ 25스텝, S = 8, 중앙값</td><td><code>dpm_steps</code> 20, <code>nsample</code> 15, 중앙값. DDPM · DDIM은 v1.0.1에서 제거</td><td>다름</td></tr>
-        <tr><td>임계값</td><td>식 (27): validation set에서 F1을 최대화한 γ, test 라벨 미사용. 표 4는 '고정 SCS/MACS'</td><td>SDK는 SCS · MACS를 라벨 없이 계산 (기본값은 그림 6-5의 최적값과 다름)</td><td>두 서술이 병존</td></tr>
+        <tr><td>임계값</td><td>식 (27): validation set에서 F1을 최대화한 γ, test 라벨 미사용. 표 4는 '고정 SCS/MACS'</td><td>SDK는 SCS · MACS를 라벨 없이 계산 (기본값은 그림 1-5의 최적값과 다름)</td><td>두 서술이 병존</td></tr>
         <tr><td>계보 표기</td><td>CSDI를 관련 연구에서 한 번 인용. 방법 절에 백본 계보 언급 없음</td><td><code>main_model.py</code> · <code>diff_models.py</code>의 클래스 · 함수 · 설정 키가 CSDI 공개 코드와 같고, YAML 주석의 '128→256 · 16→64 · 4→6 · 64→128'은 CSDI 기본값(timeemb 128 · featureemb 16 · layers 4 · channels 64)에서 키운 값. 저장소 NOTICE · THIRD_PARTY_LICENSES에는 DPM-Solver만 있음</td><td>표기 확인 필요</td></tr>
       </tbody>
     </table></div>
-    <p>표 6-5. 공개 체크포인트의 설정(config · args)은 파일 안에 저장된 값이다. <b>어느 쪽이 논문 표 3 · 4의 모델인지 이 자료만으로는 알 수 없다.</b> '논문의 구조에 맞춘 다른 체크포인트가 있다'면 논문 수치는 공개 가중치와 다른 모델의 것이고, '공개 가중치가 그 모델이다'면 논문의 구조 서술이 틀린 것이다. 어느 쪽이든 <b>논문 표를 공개 가중치의 성능으로 읽을 근거가 없다.</b> CSDI(Tashiro 외, 2021)는 MIT 라이선스로 저작권 고지의 유지를 요구하는데, 아키텍처를 가져온 것인지 · 어떤 표기가 필요한지는 이 리뷰가 판단하지 않는다. 다만 이 모델은 'Transformer diffusion 백본'이라는 논문의 소개보다 <b>'CSDI 계열의 시간 · 변수 dual-axis 어텐션 diffusion denoiser'</b>라는 설명이 더 정확하다.</p>
+    <p>표 1-5. 공개 체크포인트의 설정(config · args)은 파일 안에 저장된 값이다. <b>어느 쪽이 논문 표 3 · 4의 모델인지 이 자료만으로는 알 수 없다.</b> '논문의 구조에 맞춘 다른 체크포인트가 있다'면 논문 수치는 공개 가중치와 다른 모델의 것이고, '공개 가중치가 그 모델이다'면 논문의 구조 서술이 틀린 것이다. 어느 쪽이든 <b>논문 표를 공개 가중치의 성능으로 읽을 근거가 없다.</b> CSDI(Tashiro 외, 2021)는 MIT 라이선스로 저작권 고지의 유지를 요구하는데, 아키텍처를 가져온 것인지 · 어떤 표기가 필요한지는 이 리뷰가 판단하지 않는다. 다만 이 모델은 'Transformer diffusion 백본'이라는 논문의 소개보다 <b>'CSDI 계열의 시간 · 변수 dual-axis 어텐션 diffusion denoiser'</b>라는 설명이 더 정확하다.</p>
 
     <h3>예측 — 카드 · README · 코드 · 체크포인트</h3>
     <div class="table-wrap"><table>
@@ -333,7 +333,7 @@
         <tr><td>메모리</td><td>README: 기본 예측은 CPU RAM 8–16GB, <code>quick_example.py</code>(표준 + DARR + 설명 한 프로세스)는 1.0.1 점검에서 <b>최고 약 37GiB</b></td><td>DARR · 적분 기울기는 모드를 나눠 실행하거나 GPU를 쓸 것</td></tr>
       </tbody>
     </table></div>
-    <p>표 6-6. 예측 쪽 공개물 사이의 어긋남과 코드에서 읽은 성질. '입력 길이'와 'level 정보'는 코드를 읽어 도출한 것이고 실행으로 확인하지는 않았다.</p>
+    <p>표 1-6. 예측 쪽 공개물 사이의 어긋남과 코드에서 읽은 성질. '입력 길이'와 'level 정보'는 코드를 읽어 도출한 것이고 실행으로 확인하지는 않았다.</p>
 
     <h3>본문 주장과 숫자를 맞춰 보면</h3>
     <div class="table-wrap"><table>
@@ -350,7 +350,7 @@
         <tr><td>HF 카드 "8 million parameters · ResNet34"</td><td>체크포인트 모델 가중치 2.44M, 구조는 CSDI형 잔차 블록 + 트랜스포머. 7.32M은 Adam 상태를 포함한 원소 수</td><td>카드가 부정확</td></tr>
       </tbody>
     </table></div>
-    <p>표 6-7. '판정'은 논문이 틀렸다는 단정이 아니라 논문의 본문 · 표 · 방법 · 공개물 사이에서 이 리뷰가 확인할 수 없었던 곳의 표시다. 이름이 겹친다는 것은 같은 시계열이라는 뜻이 아니다 — 겹침 여부는 논문 저자만 답할 수 있고, 학습 파일 수가 가장 많은 Yahoo · WSD가 오히려 가장 낮은 점수를 받았다는 점은 단순한 암기로는 설명되지 않는다. 학습 데이터가 논문의 코퍼스가 아니라 모델 카드의 다변량 TSB-AD-M이라면 이 우려는 사라지지만, 그 경우 논문의 데이터 서술(55.3M점)이 틀린 것이 된다.</p>
+    <p>표 1-7. '판정'은 논문이 틀렸다는 단정이 아니라 논문의 본문 · 표 · 방법 · 공개물 사이에서 이 리뷰가 확인할 수 없었던 곳의 표시다. 이름이 겹친다는 것은 같은 시계열이라는 뜻이 아니다 — 겹침 여부는 논문 저자만 답할 수 있고, 학습 파일 수가 가장 많은 Yahoo · WSD가 오히려 가장 낮은 점수를 받았다는 점은 단순한 암기로는 설명되지 않는다. 학습 데이터가 논문의 코퍼스가 아니라 모델 카드의 다변량 TSB-AD-M이라면 이 우려는 사라지지만, 그 경우 논문의 데이터 서술(55.3M점)이 틀린 것이 된다.</p>
   </section>
 
   <section id="critique">
@@ -390,7 +390,7 @@
         <tr><td>보안</td><td>체크포인트 · standardizer는 <code>torch.load</code> · <code>joblib.load</code>(pickle 의미론)로 읽힌다. 신뢰할 수 없는 파일을 넘기면 코드가 실행될 수 있다고 저장소가 경고한다</td></tr>
       </tbody>
     </table></div>
-<pre><code># 예측 (직접) — 위 표 6-6의 입력 조건을 지킨다
+<pre><code># 예측 (직접) — 위 표 1-6의 입력 조건을 지킨다
 from sdk.forecasting import ForecastingConfig, perform_forecasting
 cfg = ForecastingConfig(forecast_horizon=72)               # seq_len=512 고정(공개 가중치)
 fc  = perform_forecasting(df=df, config=cfg)               # df: timestamp, target, (숫자 공변량…)
@@ -405,10 +405,10 @@ res = perform_anomaly_analysis_with_diffusion(df=df[["s1","s2","s3"]], threshold
 res[["Anomaly", "MAE"]]                                    # 0/1 플래그와 reconstruction error(점수)
 </code></pre>
     <div class="callout deep"><strong>이 리뷰가 하지 않은 것</strong>
-      <p>저장소의 코드를 <b>실행하지 않았다</b>. 읽기만 했고, 그래서 위 코드 조각이 문제없이 돈다거나 표 6-6의 '입력 길이 512만 불러와진다'가 실제로 그렇다고는 말할 수 없다(코드를 읽어 도출한 것). 체크포인트는 가중치 <b>값</b>을 보지 않고 텐서 이름 · 모양과 저장된 설정만 열었다(예측 체크포인트 둘은 앞 4MB만). 두 모델의 정확도를 다시 재지도 않았다. 논문 두 편(2610.12754 · 2608.25080)은 원문(HTML)을 읽었으나 DARR · TDE 논문(IEEE BigData 2025)은 본문에 접근하지 못해, 예측 방법의 실험은 확인하지 못했다. 네 실험은 모두 장난감 계산이다. 가장 값싼 후속 확인은 ① 자기 데이터의 holdout 구간에서 <b>직접 / DARR(stride · α 바꿔서) / 단순 계절 baseline</b>의 롤링 오차를 재는 것, ② 같은 이상 탐지 데이터에서 <b>PA 없는 pointwise F1 · VUS-PR</b>과 무작위 점수 baseline을 함께 재는 것, ③ 저자에게 논문 표의 체크포인트가 공개본인지 묻는 것이다.</p>
+      <p>저장소의 코드를 <b>실행하지 않았다</b>. 읽기만 했고, 그래서 위 코드 조각이 문제없이 돈다거나 표 1-6의 '입력 길이 512만 불러와진다'가 실제로 그렇다고는 말할 수 없다(코드를 읽어 도출한 것). 체크포인트는 가중치 <b>값</b>을 보지 않고 텐서 이름 · 모양과 저장된 설정만 열었다(예측 체크포인트 둘은 앞 4MB만). 두 모델의 정확도를 다시 재지도 않았다. 논문 두 편(2610.12754 · 2608.25080)은 원문(HTML)을 읽었으나 DARR · TDE 논문(IEEE BigData 2025)은 본문에 접근하지 못해, 예측 방법의 실험은 확인하지 못했다. 네 실험은 모두 장난감 계산이다. 가장 값싼 후속 확인은 ① 자기 데이터의 holdout 구간에서 <b>직접 / DARR(stride · α 바꿔서) / 단순 계절 baseline</b>의 롤링 오차를 재는 것, ② 같은 이상 탐지 데이터에서 <b>PA 없는 pointwise F1 · VUS-PR</b>과 무작위 점수 baseline을 함께 재는 것, ③ 저자에게 논문 표의 체크포인트가 공개본인지 묻는 것이다.</p>
     </div>
     <div class="callout tip"><strong>직접 써 본다면</strong>
-      <p>① <b>예측:</b> 먼저 직접 예측만으로 holdout 구간에서 naive baseline(마지막 값 · 계절 반복)과 비교하자. DARR를 켤 때는 context stride를 주기의 배수가 아니게 하고, α를 0.01 · 0.2 · 0.5에서 같은 구간에 비교하며, level이 바뀐 시계열이면 retrieval 예측의 level 오차부터 확인하자. ② <b>공변량:</b> DataFrame에 ID · 날짜 숫자 열이 없는지 확인하자. ③ <b>이상 탐지:</b> 신호 열만 넘기고, 같은 열 · 같은 설정으로 비교하자. PA 말고 pointwise F1과 이상 구간 단위 재현율 · 정밀도를 따로 보고, 무작위 점수의 같은 지표를 곁들이자. ④ <b>임계값:</b> 기본 SCS/MACS가 데이터에 맞는지는 그림 6-5처럼 라벨 있는 소량으로 점검하자. ⑤ <b>설명:</b> Lag–Horizon 행렬은 flow magnitude + hard-coded kernel이라는 것을 알고, per-step 몫 표를 보되 '모델이 의존한 lag'이라고 읽지는 말자. ⑥ 이름 · 버전이 빠르게 바뀌므로 <b>커밋 · 릴리스를 적어 두자</b>.</p>
+      <p>① <b>예측:</b> 먼저 직접 예측만으로 holdout 구간에서 naive baseline(마지막 값 · 계절 반복)과 비교하자. DARR를 켤 때는 context stride를 주기의 배수가 아니게 하고, α를 0.01 · 0.2 · 0.5에서 같은 구간에 비교하며, level이 바뀐 시계열이면 retrieval 예측의 level 오차부터 확인하자. ② <b>공변량:</b> DataFrame에 ID · 날짜 숫자 열이 없는지 확인하자. ③ <b>이상 탐지:</b> 신호 열만 넘기고, 같은 열 · 같은 설정으로 비교하자. PA 말고 pointwise F1과 이상 구간 단위 재현율 · 정밀도를 따로 보고, 무작위 점수의 같은 지표를 곁들이자. ④ <b>임계값:</b> 기본 SCS/MACS가 데이터에 맞는지는 그림 1-5처럼 라벨 있는 소량으로 점검하자. ⑤ <b>설명:</b> Lag–Horizon 행렬은 flow magnitude + hard-coded kernel이라는 것을 알고, per-step 몫 표를 보되 '모델이 의존한 lag'이라고 읽지는 말자. ⑥ 이름 · 버전이 빠르게 바뀌므로 <b>커밋 · 릴리스를 적어 두자</b>.</p>
     </div>
   </section>
 
@@ -422,7 +422,7 @@ res[["Anomaly", "MAE"]]                                    # 0/1 플래그와 re
       <tbody>
         <tr><td>자기 데이터로 헤드 fine-tuning (인코더 frozen)</td><td>공식 예제. <code>MSELoss</code>, AdamW lr 1e-4 + OneCycleLR, 5 epoch, batch 8, 시간순 분할(validation 10%). <code>--ckpt-init auto</code>가 공개 체크포인트에서 warm start하고, 산출물(<code>best_model.pt</code> · <code>standardizer.pkl</code>)을 SDK의 <code>ckpt</code> · <code>standardizer_pkl</code>에 그대로 연결한다</td><td>trainable 4.72M(<code>--use-cross-channel</code>이면 8.92M). 인코더가 frozen이라 backward가 인코더로 들어가지 않아 메모리가 inference에 가깝다(리뷰어 추론). <b>주의:</b> 예제가 <code>model.train()</code>을 호출해 frozen 인코더의 dropout(MOMENT 설정 <code>dropout_rate</code> 0.1)도 켜진다(코드 읽기, 영향은 미확인). test 분할 기본값이 0이라 따로 떼어 둘 것</td><td><b>권장</b></td></tr>
         <tr><td>예측 horizon 변경 (96 · 192 · 336 · 720)</td><td><code>--forecast-horizon</code>. 헤드가 <code>Linear(65,536 → H)</code>로 새로 만들어지고, warm start 때 shape이 다른 키는 건너뛴다(예제가 로그로 알림). 인코더와 cross-channel attention만 가져온다. 대안은 72 헤드 + autoregressive rollout(SDK 최대 512)</td><td>헤드 파라미터 \( 65{,}536H+H \): H=96 6.29M · 192 12.58M · 336 22.02M · 720 47.19M. rollout은 오차가 쌓인다</td><td><b>가능</b></td></tr>
-        <tr><td>입력 길이(seq_len) 변경</td><td>헤드 입력이 \( 1024\times\text{seq\_len}/8 \)이라 헤드를 새로 학습해야 한다(256: 헤드 2.36M · 1024: 9.44M · 2048: 18.87M). MOMENT의 사전학습 길이가 512(HF 설정 <code>seq_len</code> 512)</td><td>512 밖은 사전학습 분포 밖. 모델 카드의 256–2048 지원은 공개 체크포인트로는 불가(표 6-6)</td><td><b>주의</b></td></tr>
+        <tr><td>입력 길이(seq_len) 변경</td><td>헤드 입력이 \( 1024\times\text{seq\_len}/8 \)이라 헤드를 새로 학습해야 한다(256: 헤드 2.36M · 1024: 9.44M · 2048: 18.87M). MOMENT의 사전학습 길이가 512(HF 설정 <code>seq_len</code> 512)</td><td>512 밖은 사전학습 분포 밖. 모델 카드의 256–2048 지원은 공개 체크포인트로는 불가(표 1-6)</td><td><b>주의</b></td></tr>
         <tr><td>인코더까지 fine-tuning</td><td><code>--unfreeze-encoder</code> · <code>--unfreeze-embedder</code> 플래그. gradient checkpointing이 기본으로 켜져 있다(<code>backbone.py</code>)</td><td>학습 대상 341M → AdamW 기준 약 5.5GB(활성화 제외). 작은 데이터에서는 overfitting · forgetting 위험. 기본 lr 1e-4는 full fine-tuning에는 큰 편(리뷰어 판단)이라 1e-5대에서 시작하고 frozen 헤드 결과와 비교할 것</td><td><b>주의</b></td></tr>
         <tr><td>backbone 교체 (MOMENT small · base)</td><td><code>--model-name</code> 인자가 있다. HF 파일 크기(fp32 환산)로 small ≈ 3,790만 · base ≈ 1.13억 · large ≈ 3.46억 파라미터. MOMENT 가중치는 MIT 라이선스(HF API 확인)</td><td>d_model이 달라 공개 헤드와 cross-channel attention은 호환되지 않아 모두 재학습한다. small · base로 돌려 본 적은 없다</td><td><b>미검증</b></td></tr>
         <tr><td>cross-channel attention 구조 변경</td><td><code>CrossChannelAttention</code>이 독립 모듈(패치 위치마다 C개 토큰 full MHA + residual + LayerNorm)이라 교체가 쉽다. 지금은 채널 identity 정보가 없어(permutation-equivariant) 센서 종류를 구분하지 못한다 → 채널 ID 임베딩 · 그룹 attention이 자연스러운 변형</td><td>비용이 \( C^2 \)에 비례: C=200 · batch 8이면 attention weight만 \( 8\times64\times8\times200^2 \) ≈ 1.6억 원소(fp32 0.66GB). 새 모듈은 처음부터 학습</td><td><b>가능</b></td></tr>
@@ -433,7 +433,7 @@ res[["Anomaly", "MAE"]]                                    # 0/1 플래그와 re
         <tr><td>downstream task 변경 (분류 · 클러스터링 · 회귀)</td><td>백본 코드에 MOMENT의 <code>classify</code> · <code>reconstruction</code> · <code>embed</code> 경로가 남아 있지만 <code>build_model</code>이 forecasting 전용이고 예제 · 체크포인트가 없다. 현실적인 길은 <code>embed()</code>로 임베딩을 뽑아 별도 분류기를 얹는 것</td><td>모델 카드대로 인코더가 MOMENT 그대로(frozen)라면 Kumo가 아니라 MOMENT를 직접 쓰는 것과 같다. Kumo 고유 요소는 cross-channel attention을 거친 임베딩뿐</td><td><b>비권장</b></td></tr>
       </tbody>
     </table></div>
-    <p>표 6-8. 예측 쪽 확장 시나리오별 평가. '권장 · 가능'은 공식 예제나 인자로 닿는 길이고, '주의'는 가능하지만 점검할 것이 있는 길, '비권장'은 공식 경로가 없어 직접 구현해야 하는 길이다.</p>
+    <p>표 1-8. 예측 쪽 확장 시나리오별 평가. '권장 · 가능'은 공식 예제나 인자로 닿는 길이고, '주의'는 가능하지만 점검할 것이 있는 길, '비권장'은 공식 경로가 없어 직접 구현해야 하는 길이다.</p>
 
     <h3>이상 탐지 (Kumo-Anomaly)</h3>
     <div class="table-wrap"><table>
@@ -443,12 +443,12 @@ res[["Anomaly", "MAE"]]                                    # 0/1 플래그와 re
         <tr><td>변수 수가 다른 데이터</td><td><code>FeatureAdapter</code>: 열 &gt; 40이면 PCA로 40차원, &lt; 40이면 0 채움, 이어서 min-max 스케일. 변수 임베딩 표가 40행이라 target_dim 변경은 예제에 인자가 없고 바꾸면 shape이 맞지 않는다</td><td>변수가 수백이면 PCA 40에서 정보를 잃고, 설명(attribution)도 PCA 공간의 기여가 된다</td><td><b>가능</b></td></tr>
         <tr><td>window · split 변경</td><td><code>--window-length</code> · <code>--split</code>(window가 split의 배수) · <code>--window-stride</code> 인자. 사전학습 window는 100</td><td>사전학습 설정에서 멀어질수록 warm start의 이득이 줄 것</td><td><b>가능</b></td></tr>
         <tr><td>구조 · diffusion 설정(layers · channels · steps) 변경, scratch 학습</td><td>YAML로 바꿀 수는 있으나 예제가 항상 사전학습 체크포인트를 읽고(<code>--pretrained-model</code> 기본 <code>final_model.pth</code>, 자동 다운로드) '처음부터' 옵션이 없다. shape이 다르면 <code>load_state_dict(strict=False)</code>도 오류를 낸다. 커리큘럼 학습 코드는 비공개</td><td>학습 루프를 직접 써야 한다(모델 클래스 <code>TSDiffuser_Generic</code>은 공개)</td><td><b>비권장</b></td></tr>
-        <tr><td>점수 · 임계값 후처리 교체</td><td>출력에 <code>MAE</code> 점수가 그대로 있고 <code>thresholds.py</code>가 분리되어 있다 → 소량 라벨로 임계값 보정, 점수 smoothing, 이벤트 단위 후처리를 모델 밖에서 붙일 수 있다</td><td>가장 싸다. 기본 SCS/MACS(그림 6-5)는 데이터에 맞게 다시 조정할 것</td><td><b>권장</b></td></tr>
+        <tr><td>점수 · 임계값 후처리 교체</td><td>출력에 <code>MAE</code> 점수가 그대로 있고 <code>thresholds.py</code>가 분리되어 있다 → 소량 라벨로 임계값 보정, 점수 smoothing, 이벤트 단위 후처리를 모델 밖에서 붙일 수 있다</td><td>가장 싸다. 기본 SCS/MACS(그림 1-5)는 데이터에 맞게 다시 조정할 것</td><td><b>권장</b></td></tr>
         <tr><td>downstream task 변경</td><td>모델 자체가 conditional imputer(모델 카드: "imputation and anomaly detection")라 결측 보간은 <code>impute()</code>로 가능하지만 SDK의 공식 진입점은 이상 탐지뿐이다. 예측(미래를 가리기)은 CSDI에 forecasting 변형이 있으나 Kumo 코드에는 없다. 분류는 맞지 않는다</td><td>imputation은 비공식 경로</td><td><b>가능</b> (비공식)</td></tr>
         <tr><td>실시간 · 스트리밍</td><td>window 100마다 nsample 15 × 20스텝 샘플링이 필요하다. 논문의 'window당 약 12ms'는 하드웨어와 샘플 수가 적혀 있지 않다</td><td>지연은 측정하지 않았다</td><td><b>미검증</b></td></tr>
       </tbody>
     </table></div>
-    <p>표 6-9. 이상 탐지 쪽 확장 시나리오별 평가. 'positional 대 shared 변수 임베딩'은 예제의 <code>TSDiffuser_Generic(...)</code> 호출(기본값 <code>positional</code>)과 SDK의 <code>DEFAULT_FEATURE_EMBEDDING_MODE</code>를 비교해 읽은 것이며 실행으로 확인하지는 않았다.</p>
+    <p>표 1-9. 이상 탐지 쪽 확장 시나리오별 평가. 'positional 대 shared 변수 임베딩'은 예제의 <code>TSDiffuser_Generic(...)</code> 호출(기본값 <code>positional</code>)과 SDK의 <code>DEFAULT_FEATURE_EMBEDDING_MODE</code>를 비교해 읽은 것이며 실행으로 확인하지는 않았다.</p>
 
     <h3>공통으로 볼 것</h3>
     <div class="table-wrap"><table>
