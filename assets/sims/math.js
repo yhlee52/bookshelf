@@ -405,4 +405,171 @@
       update();
     },
   });
+
+  // <gauss2d-lib>
+  // 이변량 정규 분포: 모수 → 공분산의 고유분해, 조건부 분포, 표집 (5장)
+  function g2model(mx, my, sx, sy, rho) {
+    const a = sx * sx, c = sy * sy, b = rho * sx * sy;
+    const disc = Math.sqrt((a - c) ** 2 + 4 * b * b);
+    const th = 0.5 * Math.atan2(2 * b, a - c); // 큰 고유값 쪽 주축의 각도
+    const s = Math.sqrt(1 - rho * rho);
+    return {
+      mx, my, sx, sy, rho, th, s,
+      l1: (a + c + disc) / 2, l2: (a + c - disc) / 2,
+      q1: [Math.cos(th), Math.sin(th)], q2: [-Math.sin(th), Math.cos(th)],
+      slope: (rho * sy) / sx,
+      condMean: (x) => my + rho * (sy / sx) * (x - mx),
+      condSd: sy * s,
+      // 표준 정규 쌍 (z1, z2) → 표본. 콜레스키 인자 L = [[sx, 0], [rho sy, sy sqrt(1 - rho^2)]]
+      map: (z1, z2) => [mx + sx * z1, my + sy * (rho * z1 + s * z2)],
+      // 마할라노비스 거리의 제곱
+      delta2: (x, y) => { const u = (x - mx) / sx, v = (y - my) / sy; return (u * u - 2 * rho * u * v + v * v) / (s * s); },
+    };
+  }
+  // 표본 2×2 공분산 행렬의 고유값 (큰 쪽, 작은 쪽)
+  function g2eig(a, b, c) {
+    const disc = Math.sqrt((a - c) ** 2 + 4 * b * b);
+    return [(a + c + disc) / 2, (a + c - disc) / 2];
+  }
+  // </gauss2d-lib>
+
+  Lab.register({
+    id: "gauss2d", field: "math", thumb: "scatter", layout: "stack",
+    title: "2변량 정규 분포 — 타원, 주축, 조건부 분포",
+    desc: "평균, 표준편차, 상관계수를 바꾸며 이변량 정규 분포의 등고선 타원과 주축, 조건 x = x₀에서의 y의 분포(평균 직선과 분산)를 표본과 이론값으로 비교합니다.",
+    tags: ["다변량 정규 분포", "공분산 행렬", "고유분해", "조건부 분포"],
+    note: "해볼 것: ① ρ를 0에서 0.9까지 올리며 타원이 길어지고 주축(녹색)이 대각선으로 눕는 것을 보세요. 고유값은 σx = σy일 때 1 ± ρ입니다. ② σx와 σy를 다르게 두면 주축(녹색)과 평균 직선(주황)이 서로 다른 직선이 됩니다. 평균 직선의 기울기는 ρσy/σx이고 x₀를 옮기면 조건부 분포의 중심이 이 직선을 따라 움직입니다. ③ 조건부 분산 σy²(1 − ρ²)은 x₀에 상관없이 같습니다. ④ 표본의 조건부 평균과 분산은 x₀ ± 0.2σx 안에 든 표본으로 잽니다. x₀를 가장자리(예: 4σ)로 옮기면 그 표본이 8개 아래로 줄어 표본값을 내지 못하고(—), 표본이 적을 때는 이론값에서 크게 벗어납니다. 표본은 시드를 고정해 뽑고, 같은 표준 정규 난수에 모수를 입히므로 슬라이더를 움직이면 같은 점 구름이 변형됩니다. '다시 뽑기'는 다른 표본을 뽑습니다.",
+    mount(S) {
+      const st = { mx: 0, my: 0, sx: 1, sy: 1, rho: 0.8, x0: 1.5, n: 2000, seed: 1 };
+      let Z = [], M = null, pts = [], band = null;
+      const R = 6, fmt = (v) => VZ.fmt(v, 3), pct = (v) => (100 * v).toFixed(1) + "%";
+      const draw = (ctx, w, h) => {
+        if (!M) return;
+        const P = VZ.palette(), m = M;
+        const ml = 34, mr = 8, mt = 26, mb = 24;
+        const q = Math.max(120, Math.min(h - mt - mb, 0.64 * w - ml - mr));
+        const boxL = { x: 0, y: 0, w: q + ml + mr, h: q + mt + mb };
+        const ticks = [-4, -2, 0, 2, 4];
+        const c = VZ.chart(ctx, boxL, {
+          x: [-R, R], y: [-R, R], xTicks: ticks, yTicks: ticks, title: "(x, y)의 표본", margin: { l: ml, r: mr, t: mt, b: mb },
+          series: [{ type: "scatter", data: pts, color: P.accent, r: 2, alpha: 0.35 }],
+          bands: band ? [{ x0: band.lo, x1: band.hi, color: VZ.alpha(P.accent2, 0.1) }] : [],
+          vlines: [{ x: st.x0, color: P.dim, dash: [4, 4] }],
+        });
+        ctx.save();
+        ctx.beginPath(); ctx.rect(c.box.x, c.box.y, c.box.w, c.box.h); ctx.clip();
+        // 등고선 타원: 마할라노비스 거리 Δ = 1, 2, 3
+        ctx.strokeStyle = P.accent; ctx.lineWidth = 1.8;
+        [1, 2, 3].forEach((k) => {
+          ctx.globalAlpha = 1.05 - 0.25 * k;
+          ctx.beginPath();
+          for (let i = 0; i <= 120; i++) { const t = (i / 120) * 2 * Math.PI, p = m.map(k * Math.cos(t), k * Math.sin(t)); i ? ctx.lineTo(c.X(p[0]), c.Y(p[1])) : ctx.moveTo(c.X(p[0]), c.Y(p[1])); }
+          ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+        // 주축 (고유벡터 방향, 길이 2√λ)
+        ctx.strokeStyle = P.ok; ctx.lineWidth = 2.2;
+        [[m.q1, m.l1], [m.q2, m.l2]].forEach(([qv, l]) => {
+          const r = 2 * Math.sqrt(l);
+          ctx.beginPath(); ctx.moveTo(c.X(m.mx - r * qv[0]), c.Y(m.my - r * qv[1])); ctx.lineTo(c.X(m.mx + r * qv[0]), c.Y(m.my + r * qv[1])); ctx.stroke();
+        });
+        // 평균 직선 E[Y | X = x]
+        ctx.strokeStyle = P.accent2; ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.moveTo(c.X(-R), c.Y(m.condMean(-R))); ctx.lineTo(c.X(R), c.Y(m.condMean(R))); ctx.stroke();
+        // 조건부 평균 ± 표준편차
+        const cm = m.condMean(st.x0);
+        ctx.lineWidth = 5; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(c.X(st.x0), c.Y(cm - m.condSd)); ctx.lineTo(c.X(st.x0), c.Y(cm + m.condSd)); ctx.stroke();
+        ctx.fillStyle = P.accent2; ctx.beginPath(); ctx.arc(c.X(st.x0), c.Y(cm), 5.5, 0, 7); ctx.fill();
+        ctx.fillStyle = P.dim; ctx.beginPath(); ctx.arc(c.X(m.mx), c.Y(m.my), 3.5, 0, 7); ctx.fill();
+        ctx.restore();
+        // 오른쪽: x = x₀일 때 y의 분포 (이론 곡선, 근방 표본의 히스토그램, 주변 분포)
+        const npdf = (y, mu, sd) => Math.exp(-0.5 * ((y - mu) / sd) ** 2) / (Math.sqrt(2 * Math.PI) * sd);
+        const BW = 0.4, nb = Math.round((2 * R) / BW), cnt = new Array(nb).fill(0);
+        if (band && band.ok) band.ys.forEach((v) => { const b = Math.floor((v + R) / BW); if (b >= 0 && b < nb) cnt[b]++; });
+        const hd = band && band.ok ? cnt.map((v) => v / (band.ys.length * BW)) : [];
+        const gy = VZ.linspace(-R, R, 241);
+        const condPdf = (y) => npdf(y, cm, m.condSd), margPdf = (y) => npdf(y, m.my, m.sy);
+        const dmax = 1.12 * Math.max(condPdf(cm), margPdf(m.my), ...hd, 0.05);
+        const boxR = { x: boxL.w, y: 0, w: Math.max(40, w - boxL.w), h: boxL.h };
+        const c2 = VZ.chart(ctx, boxR, {
+          x: [0, dmax], y: [-R, R], xTicks: [], yTicks: [], title: "x = x₀일 때 y", margin: { l: 4, r: 6, t: mt, b: mb },
+          series: [
+            { type: "line", data: gy.map((y) => [margPdf(y), y]), color: P.dim, width: 1.6, dash: [5, 4] },
+            { type: "line", data: gy.map((y) => [condPdf(y), y]), color: P.accent2, width: 2.6 },
+          ],
+        });
+        ctx.save();
+        ctx.beginPath(); ctx.rect(c2.box.x, c2.box.y, c2.box.w, c2.box.h); ctx.clip();
+        ctx.fillStyle = VZ.alpha(P.accent2, 0.3);
+        hd.forEach((d, i) => { if (d > 0) ctx.fillRect(c2.X(0), c2.Y(-R + (i + 1) * BW), c2.X(d) - c2.X(0), c2.Y(-R + i * BW) - c2.Y(-R + (i + 1) * BW)); });
+        ctx.restore();
+      };
+      const cv = S.canvas({ aspect: 0.62, minHeight: 250, maxHeight: 560 }, draw);
+      const set = S.stats([
+        { k: "eigT", label: "고유값 λ₁, λ₂ (이론)" },
+        { k: "eigS", label: "고유값 (표본)" },
+        { k: "rhoS", label: "상관계수 (표본)" },
+        { k: "cmT", label: "E[Y | x₀] (이론)" },
+        { k: "cmS", label: "E[Y | x₀] (표본)" },
+        { k: "cnt", label: "x₀ 근방 표본 수" },
+        { k: "cvT", label: "Var(Y | x₀) (이론)" },
+        { k: "cvS", label: "Var(Y | x₀) (표본)" },
+        { k: "inT", label: "Δ ≤ 1, 2, 3 안의 비율 (이론)" },
+        { k: "inS", label: "Δ ≤ 1, 2, 3 안의 비율 (표본)" },
+      ]);
+      function resample() {
+        const rand = VZ.rng(st.seed * 104729 + 7);
+        Z = Array.from({ length: st.n }, () => [VZ.randn(rand), VZ.randn(rand)]);
+        update();
+      }
+      function update() {
+        M = g2model(st.mx, st.my, st.sx, st.sy, st.rho);
+        pts = Z.map((z) => M.map(z[0], z[1]));
+        const n = pts.length;
+        let mxs = 0, mys = 0;
+        pts.forEach((p) => { mxs += p[0] / n; mys += p[1] / n; });
+        let a = 0, b = 0, c = 0, i1 = 0, i2 = 0, i3 = 0;
+        pts.forEach((p) => {
+          a += (p[0] - mxs) ** 2 / (n - 1); b += ((p[0] - mxs) * (p[1] - mys)) / (n - 1); c += (p[1] - mys) ** 2 / (n - 1);
+          const d2 = M.delta2(p[0], p[1]); if (d2 <= 1) i1++; if (d2 <= 4) i2++; if (d2 <= 9) i3++;
+        });
+        // x가 x₀ ± 0.2σx 안에 든 표본을 근방으로 삼는다 (8개 미만이면 표본값을 내지 않는다)
+        const wd = 0.2 * st.sx;
+        const ys = pts.filter((p) => Math.abs(p[0] - st.x0) <= wd).map((p) => p[1]);
+        const enough = ys.length >= 8;
+        band = { lo: st.x0 - wd, hi: st.x0 + wd, ys, ok: enough };
+        const cm = enough ? VZ.mean(ys) : NaN, cvv = enough ? ys.reduce((s, v) => s + (v - cm) ** 2, 0) / (ys.length - 1) : NaN;
+        const e = g2eig(a, b, c);
+        set("eigT", fmt(M.l1) + ", " + fmt(M.l2));
+        set("eigS", fmt(e[0]) + ", " + fmt(e[1]));
+        set("rhoS", fmt(b / Math.sqrt(a * c)));
+        set("cmT", fmt(M.condMean(st.x0)));
+        set("cmS", fmt(cm));
+        set("cnt", ys.length + "개 (|x − x₀| ≤ " + fmt(wd) + ")" + (enough ? "" : " · 너무 적음"));
+        set("cvT", fmt(M.condSd ** 2));
+        set("cvS", fmt(cvv));
+        set("inT", [1, 4, 9].map((c2) => pct(1 - Math.exp(-c2 / 2))).join(" · "));
+        set("inS", [i1, i2, i3].map((v) => pct(v / n)).join(" · "));
+        cv.redraw();
+      }
+      const slider = (label, key, min, max, step, f) => S.range({ label, min, max, step, value: st[key], fmt: f, onInput: (v) => { st[key] = v; update(); } });
+      const f1 = (v) => v.toFixed(1), f2 = (v) => v.toFixed(2);
+      slider("평균 μx", "mx", -2, 2, 0.1, f1);
+      slider("평균 μy", "my", -2, 2, 0.1, f1);
+      slider("표준편차 σx", "sx", 0.5, 1.5, 0.1, f1);
+      slider("표준편차 σy", "sy", 0.5, 1.5, 0.1, f1);
+      slider("상관계수 ρ", "rho", -0.95, 0.95, 0.05, f2);
+      slider("조건 값 x₀", "x0", -5, 5, 0.1, f1);
+      S.seg({ label: "표본 수", options: [[500, "500"], [2000, "2,000"], [5000, "5,000"]], value: st.n, onChange: (v) => { st.n = Number(v); resample(); } });
+      S.button("다시 뽑기", () => { st.seed++; resample(); }, { primary: true });
+      S.legend([
+        { label: "등고선 Δ = 1, 2, 3", color: (p) => p.accent },
+        { label: "주축 (고유벡터)", color: (p) => p.ok },
+        { label: "평균 직선 · 조건부 분포", color: (p) => p.accent2 },
+        { label: "y의 주변 분포", color: (p) => p.dim, dash: true },
+      ]);
+      resample();
+    },
+  });
 })();
