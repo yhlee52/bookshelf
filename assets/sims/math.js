@@ -2,6 +2,8 @@
    수학 실험 모음 (field: "math")
    bayes-base-rate — 기저율·민감도·특이도와 양성 예측도
    dist-explorer   — 자주 만나는 분포의 질량·밀도 함수, 누적 분포 함수, 표본의 평균과 분산
+   gauss2d         — 2변량 정규 분포의 등고선 타원, 주축, 조건부 분포
+   clt             — 표본 평균의 분포와 누적 평균 (큰 수의 법칙, 중심 극한 정리)
    ========================================================================== */
 (function () {
   "use strict";
@@ -570,6 +572,162 @@
         { label: "y의 주변 분포", color: (p) => p.dim, dash: true },
       ]);
       resample();
+    },
+  });
+
+  // <clt-lib>
+  // 표본 평균의 분포 (6장): 모분포와 모멘트, 표본 평균과 누적 평균의 표집, 정규 누적 분포 함수
+  function normCdf(x) {
+    // erfc의 체비쇼프 근사 (상대 오차 1.2e-7)
+    const z = Math.abs(x) / Math.SQRT2, t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? 1 - 0.5 * r : 0.5 * r;
+  }
+  function boxMuller(r) {
+    let u = 0, v = 0;
+    while (u === 0) u = r();
+    while (v === 0) v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  const CLT = {
+    uniform: { name: "균등 U(0, 1)", mean: 0.5, vari: 1 / 12, skew: 0, sample: (r) => r() },
+    exponential: { name: "지수 Exponential(1)", mean: 1, vari: 1, skew: 2, sample: (r) => { let u = 0; while (u === 0) u = r(); return -Math.log(u); } },
+    bernoulli: { name: "베르누이 Bernoulli(0.1)", mean: 0.1, vari: 0.09, skew: 0.8 / 0.3, sample: (r) => (r() < 0.1 ? 1 : 0) },
+    lognormal: { name: "로그정규 (σ = 1)", mean: Math.exp(0.5), vari: (Math.E - 1) * Math.E, skew: (Math.E + 2) * Math.sqrt(Math.E - 1), sample: (r) => Math.exp(boxMuller(r)) },
+    cauchy: { name: "코시 Cauchy(0, 1)", mean: NaN, vari: NaN, skew: NaN, sample: (r) => Math.tan(Math.PI * (r() - 0.5)) },
+  };
+  // n개의 평균을 R번 구한다
+  function sampleMeans(d, n, R, rand) {
+    const out = new Float64Array(R);
+    for (let i = 0; i < R; i++) { let s = 0; for (let k = 0; k < n; k++) s += d.sample(rand); out[i] = s / n; }
+    return out;
+  }
+  // 한 번의 표집에서 k = 1..M의 누적 평균
+  function runningMeans(d, M, rand) {
+    const out = new Float64Array(M);
+    let s = 0;
+    for (let k = 0; k < M; k++) { s += d.sample(rand); out[k] = s / (k + 1); }
+    return out;
+  }
+  function momentsOf(a) {
+    const n = a.length;
+    let m = 0;
+    for (let i = 0; i < n; i++) m += a[i] / n;
+    let v = 0, c3 = 0;
+    for (let i = 0; i < n; i++) { const e = a[i] - m; v += e * e; c3 += e * e * e; }
+    const sd = Math.sqrt(v / (n - 1));
+    return { mean: m, sd, skew: c3 / n / Math.pow(v / n, 1.5) };
+  }
+  function quantileOf(sorted, q) {
+    const p = q * (sorted.length - 1), lo = Math.floor(p), hi = Math.ceil(p);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (p - lo);
+  }
+  // 표준화한 값들과 N(0,1) 사이의 콜모고로프-스미르노프 거리 sup|F_n − Φ|
+  function ksToNormal(zs) {
+    const s = Float64Array.from(zs).sort(), n = s.length;
+    let d = 0;
+    for (let i = 0; i < n; i++) { const f = normCdf(s[i]); d = Math.max(d, Math.abs((i + 1) / n - f), Math.abs(i / n - f)); }
+    return d;
+  }
+  // </clt-lib>
+
+  Lab.register({
+    id: "clt", field: "math", thumb: "bars", layout: "stack",
+    title: "중심 극한 정리 — 표본 평균의 분포",
+    desc: "모분포와 표본 크기 n을 바꾸며 표본 평균 2,000개의 히스토그램을 정규 근사와 비교하고, 표준 오차 σ/√n과 왜도 γ/√n의 이론값을 잽니다. 아래 그림은 한 번의 표집에서 누적 평균이 모평균에 다가가는 모습입니다. 코시 분포에서는 어느 쪽도 일어나지 않습니다.",
+    tags: ["중심 극한 정리", "큰 수의 법칙", "표준 오차", "코시 분포"],
+    note: "해볼 것: ① 균등 분포에서 n을 1에서 5까지만 올려도 히스토그램이 종 모양이 됩니다. ② 지수·베르누이·로그정규처럼 치우친 분포는 더 큰 n이 필요합니다. 왜도가 γ/√n으로 줄어드는 것을 판독값에서 보세요. 로그정규는 n = 100에서도 조금 치우쳐 있습니다. ③ 베르누이 분포에서 n이 작으면 평균이 k/n 값만 가져서 막대가 듬성듬성합니다. ④ 코시 분포에서는 n을 키워도 표본 평균의 사분위 범위가 2로 그대로이고, 아래 누적 평균은 가끔 큰 값이 나올 때마다 튑니다. 가로축을 '표본 평균'으로 바꾸면 n이 커질수록 분포가 좁아지는 것(σ/√n)이 보입니다. 표본은 시드를 고정해 뽑으며 KS 거리에는 표본 2,000개에서 오는 ±0.03 정도의 흔들림이 섞입니다.",
+    mount(S) {
+      const st = { key: "exponential", pos: 40, n: 16, axis: "z", seed: 1 };
+      const R = 2000, MPATH = 3000;
+      let means = null, path = null;
+      const fmt = (v) => VZ.fmt(v, 3);
+      const nOf = (pos) => Math.max(1, Math.round(Math.pow(10, (pos * 3) / 100)));
+      const cv = S.canvas({ aspect: 0.92, minHeight: 380, maxHeight: 600 }, (ctx, w, h) => {
+        if (!means) return;
+        const P = VZ.palette(), d = CLT[st.key], n = st.n, cauchy = st.key === "cauchy";
+        const se = Math.sqrt(d.vari / n), mu = d.mean;
+        const top = { x: 0, y: 0, w, h: Math.round(h * 0.6) }, bot = { x: 0, y: Math.round(h * 0.6), w, h: h - Math.round(h * 0.6) };
+        const standard = st.axis === "z" && !cauchy;
+        let lo, hi, title, curve;
+        if (cauchy) { lo = -8; hi = 8; title = "표본 평균 X̄ (n = " + n + ")의 분포 — 코시(0, 1)와 같다"; curve = (x) => 1 / (Math.PI * (1 + x * x)); }
+        else if (standard) { lo = -4; hi = 4; title = "표준화한 표본 평균 Z = (X̄ − μ)/(σ/√n), n = " + n; curve = (x) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
+        else { lo = mu - 4 * se; hi = mu + 4 * se; title = "표본 평균 X̄ (n = " + n + ")의 분포 — 정규 N(μ, σ²/n)과 비교"; curve = (x) => Math.exp(-0.5 * ((x - mu) / se) ** 2) / (Math.sqrt(2 * Math.PI) * se); }
+        const NB = 40, bw = (hi - lo) / NB, cnt = new Array(NB).fill(0);
+        for (let i = 0; i < R; i++) {
+          const v = standard ? (means[i] - mu) / se : means[i];
+          const b = Math.floor((v - lo) / bw);
+          if (b >= 0 && b < NB) cnt[b]++;
+        }
+        const dens = cnt.map((c) => c / (R * bw));
+        const grid = Array.from({ length: 241 }, (_, i) => lo + ((hi - lo) * i) / 240);
+        const ymax = 1.15 * Math.max(...dens, ...grid.map(curve));
+        VZ.chart(ctx, top, {
+          x: [lo, hi], y: [0, ymax], title, margin: { l: 46 }, yFmt: (v) => String(Number(v.toPrecision(2))),
+          series: [
+            { type: "bar", data: dens.map((v, i) => [lo + (i + 0.5) * bw, v]), barWidth: bw, color: P.accent2, alpha: 0.42 },
+            { type: "line", data: grid.map((x) => [x, curve(x)]), color: P.accent, width: 2.4 },
+          ],
+        });
+        // 아래: 한 번의 표집에서 누적 평균
+        const ks = Array.from({ length: MPATH }, (_, i) => i + 1);
+        const ylo = cauchy ? -6 : mu - 2.4 * Math.sqrt(d.vari), yhi = cauchy ? 6 : mu + 2.4 * Math.sqrt(d.vari);
+        const series = [{ type: "line", data: ks.map((k) => [k, path[k - 1]]), color: P.accent2, width: 1.8 }];
+        if (!cauchy) {
+          series.push({ type: "line", data: ks.map((k) => [k, mu + (2 * Math.sqrt(d.vari)) / Math.sqrt(k)]), color: P.dim, width: 1.2, dash: [5, 4] });
+          series.push({ type: "line", data: ks.map((k) => [k, mu - (2 * Math.sqrt(d.vari)) / Math.sqrt(k)]), color: P.dim, width: 1.2, dash: [5, 4] });
+        }
+        VZ.chart(ctx, bot, {
+          x: [1, MPATH], y: [ylo, yhi], logX: true, title: "누적 평균 (k = 1…" + MPATH + ")" + (cauchy ? " — 수렴하지 않는다" : ", 점선 μ ± 2σ/√k"),
+          xLabel: "k", margin: { l: 46 }, yFmt: (v) => String(Number(v.toPrecision(3))), series,
+          hlines: cauchy ? [{ y: 0, color: P.faint }] : [{ y: mu, color: P.ok, dash: [], width: 1.4 }],
+        });
+      });
+      const set = S.stats([
+        { k: "mean", label: "표본 평균들의 평균" },
+        { k: "sd", label: "표본 평균들의 표준편차" },
+        { k: "skew", label: "표본 평균들의 왜도" },
+        { k: "iqr", label: "사분위 범위" },
+        { k: "ks", label: "정규와의 거리 (KS)" },
+        { k: "path", label: "누적 평균의 마지막 값" },
+      ]);
+      function build() {
+        const d = CLT[st.key], n = st.n, cauchy = st.key === "cauchy";
+        const rand = VZ.rng(st.seed * 7907 + 13);
+        means = sampleMeans(d, n, R, rand);
+        path = runningMeans(d, MPATH, VZ.rng(st.seed * 6571 + 5));
+        const m = momentsOf(means), se = Math.sqrt(d.vari / n);
+        const sorted = Float64Array.from(means).sort();
+        const iqr = quantileOf(sorted, 0.75) - quantileOf(sorted, 0.25);
+        if (cauchy) {
+          set("mean", fmt(m.mean) + " <small>(μ 없음)</small>");
+          set("sd", fmt(m.sd) + " <small>(σ 없음)</small>");
+          set("skew", "—");
+          set("iqr", fmt(iqr) + " <small>(코시 이론 2, n과 무관)</small>");
+          set("ks", "—");
+          set("path", fmt(path[MPATH - 1]) + " <small>(수렴하지 않음)</small>");
+        } else {
+          set("mean", fmt(m.mean) + " <small>(이론 " + fmt(d.mean) + ")</small>");
+          set("sd", fmt(m.sd) + " <small>(이론 σ/√n = " + fmt(se) + ")</small>");
+          set("skew", fmt(m.skew) + " <small>(이론 γ/√n = " + fmt(d.skew / Math.sqrt(n)) + ")</small>");
+          set("iqr", fmt(iqr / se) + " σ/√n <small>(정규 1.349)</small>");
+          set("ks", fmt(ksToNormal(Array.from(means, (v) => (v - d.mean) / se))));
+          set("path", fmt(path[MPATH - 1]) + " <small>(μ = " + fmt(d.mean) + ", 2σ/√k = " + fmt((2 * Math.sqrt(d.vari)) / Math.sqrt(MPATH)) + ")</small>");
+        }
+        cv.redraw();
+      }
+      S.select({ label: "모분포", options: Object.keys(CLT).map((k) => [k, CLT[k].name]), value: st.key, onChange: (k) => { st.key = k; build(); } });
+      S.range({ label: "표본 크기 n", min: 0, max: 100, step: 1, value: st.pos, fmt: (p) => String(nOf(p)), onInput: (p) => { st.pos = p; st.n = nOf(p); build(); } });
+      S.seg({ label: "가로축", options: [["z", "표준화"], ["raw", "표본 평균"]], value: st.axis, onChange: (v) => { st.axis = v; cv.redraw(); } });
+      S.button("다시 뽑기", () => { st.seed++; build(); }, { primary: true });
+      S.legend([
+        { label: "표본 평균 2,000개의 히스토그램", color: (p) => p.accent2 },
+        { label: "이론 밀도 (정규 또는 코시)", color: (p) => p.accent },
+        { label: "누적 평균", color: (p) => p.accent2 },
+        { label: "μ ± 2σ/√k", color: (p) => p.dim, dash: true },
+      ]);
+      st.n = nOf(st.pos);
+      build();
     },
   });
 })();
