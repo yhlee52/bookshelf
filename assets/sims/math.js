@@ -730,4 +730,142 @@
       build();
     },
   });
+
+  // <importance-lib>
+  // 중요도 표집 (7장): p = N(0,1)에서 꼬리 확률 I = P(X > c)를 제안 q = N(m, s²)로 추정한다.
+  // 추정량은 g(x)w(x)의 평균(g = 1(x > c), w = p/q)이고 이론 분산은 E_q[(gw)²] − I²다.
+  // E_q[(gw)²] = ∫_c^∞ p²/q dx 는 제곱을 완성해 닫힌 식으로 쓰인다 (a = 1 − 1/(2s²) > 0일 때만 유한).
+  function logNormSf(z) {
+    // log P(Z > z). z < 8은 erfc 근사를 쓰고 그 위는 점근 전개를 쓴다.
+    if (z < 8) return Math.log(normCdf(-z));
+    const z2 = z * z;
+    return -0.5 * z2 - Math.log(z * Math.sqrt(2 * Math.PI)) + Math.log(1 - 1 / z2 + 3 / (z2 * z2) - 15 / (z2 * z2 * z2));
+  }
+  function logSecondMoment(c, m, s) {
+    const a = 1 - 1 / (2 * s * s);
+    if (a <= 1e-12) return Infinity;
+    const K = (m * m) / (4 * a * Math.pow(s, 4)) + (m * m) / (2 * s * s);
+    const z = Math.sqrt(2 * a) * (c + m / (2 * a * s * s));
+    return Math.log(s / Math.sqrt(2 * a)) + K + logNormSf(z);
+  }
+  function isTheory(c, m, s) {
+    const I = normCdf(-c), ls = logSecondMoment(c, m, s);
+    const sec = ls === Infinity ? Infinity : Math.exp(ls);
+    const varIS = sec === Infinity ? Infinity : Math.max(sec - I * I, 0);
+    const varNv = I * (1 - I);
+    return { I, sec, varIS, varNv, ratio: varIS === Infinity ? 0 : varNv / varIS, essFrac: sec === Infinity ? 0 : (I * I) / sec };
+  }
+  // Z: q의 표본을 만드는 표준 정규(x = m + s z), Z2: p에서 그대로 뽑는 보통 몬테카를로용 표준 정규
+  // marks: 누적 추정값을 기록할 표본 번호(1부터, 오름차순)
+  function isRun(c, m, s, Z, Z2, n, marks) {
+    let sH = 0, sH2 = 0, hits = 0, nv = 0, nvHits = 0, j = 0;
+    const isPath = new Float64Array(marks.length), nvPath = new Float64Array(marks.length);
+    for (let i = 0; i < n; i++) {
+      const z = Z[i], x = m + s * z;
+      if (x > c) { const w = s * Math.exp(-0.5 * (x * x - z * z)); sH += w; sH2 += w * w; hits++; }
+      if (Z2[i] > c) nvHits++;
+      while (j < marks.length && marks[j] === i + 1) { isPath[j] = sH / (i + 1); nvPath[j] = nvHits / (i + 1); j++; }
+    }
+    const mean = sH / n, vr = n > 1 ? Math.max(sH2 / n - mean * mean, 0) * (n / (n - 1)) : 0;
+    return { mean, se: Math.sqrt(vr / n), hits, nvMean: nvHits / n, nvHits, ess: sH2 > 0 ? (sH * sH) / sH2 : 0, isPath, nvPath };
+  }
+  // </importance-lib>
+
+  Lab.register({
+    id: "importance", field: "math", thumb: "curve", layout: "stack",
+    title: "중요도 표집 — 제안 분포와 가중치 쏠림",
+    desc: "표준 정규 분포의 꼬리 확률 P(X > c)를 정규 제안 분포 N(m, s²)에서 뽑은 표본과 가중치 p/q로 추정합니다. 제안 분포의 위치와 폭, 표본 수를 바꾸며 보통 몬테카를로와 추정값·표준 오차·유효 표본 크기를 비교하고, 가중치가 쏠릴 때 누적 추정값이 튀는 모습을 봅니다.",
+    tags: ["중요도 표집", "유효 표본 크기", "분산 줄이기", "몬테카를로"],
+    note: "해볼 것: ① 기본값(c = 4, q = N(4, 1))에서 보통 몬테카를로는 표본 10,000개 중 문턱을 넘는 것이 평균 0.3개라 대개 추정값이 0이고 가끔 크게 튑니다. 중요도 표집의 상대 표준 오차는 2% 안팎입니다. ② 제안 위치 m을 0으로 내리고 s = 1로 두면 q = p가 되어 보통 몬테카를로와 같아지고 분산 감소가 1입니다. m을 6 이상으로 올리거나 2 이하로 내려도 이론 분산이 다시 커집니다. ③ 폭 s를 줄이면 처음에는 분산이 줄지만 s가 0.71(= 1/√2) 아래로 가면 이론 분산이 무한대가 됩니다. 이때 표본에서 잰 표준 오차는 작아 보이는데도 가끔 아래 누적 추정값이 크게 튑니다. 표본이 드문 큰 가중치를 아직 못 봤기 때문입니다. ④ 표본 수를 늘리면 오차가 1/√n로 줄지만 분산이 무한이면 이 규칙이 깨집니다. 판독값의 n_eff는 (Σ g·w)² / Σ (g·w)²로 센 유효 표본 크기이고 이론값은 n · I² / E_q[(gw)²]입니다. 표본은 시드를 고정해 뽑으며 '다시 뽑기'는 다른 표본을 뽑습니다.",
+    mount(S) {
+      const st = { c: 4, m: 4, s: 1, n: 10000, seed: 1 };
+      const NMAX = 100000;
+      let Z = null, Z2 = null, run = null, th = null, marks = [];
+      const fmt = (v) => VZ.fmt(v, 3), pct = (v) => (100 * v).toFixed(1) + "%";
+      const npdf = (x, m, sd) => Math.exp(-0.5 * ((x - m) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
+      const makeMarks = (n) => {
+        const out = [];
+        for (let i = 0; i <= 160; i++) { const k = Math.max(1, Math.round(Math.pow(n, i / 160))); if (!out.length || k > out[out.length - 1]) out.push(k); }
+        return out;
+      };
+      const cv = S.canvas({ aspect: 0.92, minHeight: 380, maxHeight: 620 }, (ctx, w, h) => {
+        if (!run) return;
+        const P = VZ.palette(), n = st.n;
+        const top = { x: 0, y: 0, w, h: Math.round(h * 0.56) }, bot = { x: 0, y: Math.round(h * 0.56), w, h: h - Math.round(h * 0.56) };
+        const lo = -3, hi = 8, grid = VZ.linspace(lo, hi, 331);
+        const pf = (x) => npdf(x, 0, 1), qf = (x) => npdf(x, st.m, st.s);
+        const ymax = 1.18 * Math.max(...grid.map(pf), ...grid.map(qf));
+        const show = Math.min(n, 300), inH = [], outH = [];
+        for (let i = 0; i < show; i++) { const x = st.m + st.s * Z[i]; (x > st.c ? inH : outH).push([x, 0.03 * ymax]); }
+        VZ.chart(ctx, top, {
+          x: [lo, hi], y: [0, ymax], title: "목표 p = N(0, 1), 제안 q = N(" + fmt(st.m) + ", " + fmt(st.s) + "²), 문턱 c = " + fmt(st.c),
+          margin: { l: 40 }, yFmt: (v) => String(Number(v.toPrecision(2))),
+          series: [
+            { type: "line", data: grid.filter((x) => x >= st.c).map((x) => [x, pf(x)]), color: P.accent2, width: 1.5, fill: VZ.alpha(P.accent2, 0.35) },
+            { type: "line", data: grid.map((x) => [x, pf(x)]), color: P.dim, width: 1.8, dash: [5, 4] },
+            { type: "line", data: grid.map((x) => [x, qf(x)]), color: P.accent, width: 2.4 },
+            { type: "scatter", data: outH, color: P.accent, r: 1.8, alpha: 0.4 },
+            { type: "scatter", data: inH, color: P.accent2, r: 2.2, alpha: 0.9 },
+          ],
+          vlines: [{ x: st.c, color: P.accent2, dash: [3, 3] }],
+        });
+        const I = th.I, ks = marks;
+        const rel = (v) => v / I;
+        const seBand = (sign) => ks.map((k) => [k, 1 + sign * 2 * Math.sqrt(th.varIS / k) / I]);
+        const series = [
+          { type: "line", data: ks.map((k, j) => [k, rel(run.nvPath[j])]), color: P.accent2, width: 1.8 },
+          { type: "line", data: ks.map((k, j) => [k, rel(run.isPath[j])]), color: P.accent, width: 2.2 },
+        ];
+        if (isFinite(th.varIS)) { series.push({ type: "line", data: seBand(1), color: P.dim, width: 1.1, dash: [5, 4] }); series.push({ type: "line", data: seBand(-1), color: P.dim, width: 1.1, dash: [5, 4] }); }
+        VZ.chart(ctx, bot, {
+          x: [1, n], y: [0, 3], logX: true, xLabel: "표본 수 k", margin: { l: 40 },
+          title: "누적 추정값 ÷ 참값 (k = 1…" + n.toLocaleString("en-US") + ")" + (isFinite(th.varIS) ? ", 점선 1 ± 2 SE(k)" : " — 이론 분산이 무한대"),
+          yFmt: (v) => String(Number(v.toPrecision(2))), series, hlines: [{ y: 1, color: P.ok, dash: [], width: 1.4 }],
+        });
+      });
+      const set = S.stats([
+        { k: "I", label: "참값 P(X > c)" },
+        { k: "hits", label: "문턱을 넘은 표본 수 (제안 q | 보통)" },
+        { k: "est", label: "중요도 표집 추정값 ± 표본 표준 오차" },
+        { k: "nv", label: "보통 몬테카를로 추정값" },
+        { k: "seT", label: "상대 표준 오차 (이론: 중요도 표집 | 보통)" },
+        { k: "ratio", label: "분산 감소 Var(보통) ÷ Var(중요도) (이론)" },
+        { k: "ess", label: "유효 표본 크기 n_eff (표본 | 이론)" },
+      ]);
+      function build() {
+        const rand = VZ.rng(st.seed * 9973 + 11), rand2 = VZ.rng(st.seed * 7919 + 3);
+        Z = new Float64Array(NMAX); Z2 = new Float64Array(NMAX);
+        for (let i = 0; i < NMAX; i++) { Z[i] = VZ.randn(rand); Z2[i] = VZ.randn(rand2); }
+        update();
+      }
+      function update() {
+        const n = st.n;
+        marks = makeMarks(n);
+        th = isTheory(st.c, st.m, st.s);
+        run = isRun(st.c, st.m, st.s, Z, Z2, n, marks);
+        const I = th.I, fin = isFinite(th.varIS);
+        set("I", VZ.fmt(I, 4));
+        set("hits", run.hits.toLocaleString("en-US") + " | " + run.nvHits.toLocaleString("en-US") + " <small>(기대 " + fmt(n * normCdf(-(st.c - st.m) / st.s)) + " | " + fmt(n * I) + ")</small>");
+        set("est", VZ.fmt(run.mean, 4) + " ± " + VZ.fmt(run.se, 2) + " <small>(" + (run.mean > 0 ? pct(run.se / run.mean) : "—") + ")</small>");
+        set("nv", VZ.fmt(run.nvMean, 4) + " <small>(" + (run.nvMean > 0 ? "오차 " + pct(Math.abs(run.nvMean / I - 1)) : "문턱을 넘은 표본 없음") + ")</small>");
+        set("seT", (fin ? pct(Math.sqrt(th.varIS / n) / I) : "∞") + " | " + pct(Math.sqrt(th.varNv / n) / I));
+        set("ratio", fin ? fmt(th.ratio) + "배" : "0 <small>(분산 무한대)</small>");
+        set("ess", fmt(run.ess) + " (" + pct(run.ess / n) + ") | " + fmt(n * th.essFrac) + " (" + pct(th.essFrac) + ")");
+        cv.redraw();
+      }
+      const slider = (label, key, min, max, step, f) => S.range({ label, min, max, step, value: st[key], fmt: f, onInput: (v) => { st[key] = v; update(); } });
+      slider("문턱 c", "c", 1, 5, 0.1, (v) => v.toFixed(1));
+      slider("제안 위치 m", "m", -1, 7, 0.1, (v) => v.toFixed(1));
+      slider("제안 폭 s", "s", 0.5, 3, 0.05, (v) => v.toFixed(2));
+      S.seg({ label: "표본 수 n", options: [[100, "100"], [1000, "1,000"], [10000, "10,000"], [100000, "100,000"]], value: st.n, onChange: (v) => { st.n = Number(v); update(); } });
+      S.button("다시 뽑기", () => { st.seed++; build(); }, { primary: true });
+      S.legend([
+        { label: "중요도 표집 (q에서 뽑아 p/q로 보정)", color: (p) => p.accent },
+        { label: "보통 몬테카를로 (p에서 뽑음)", color: (p) => p.accent2 },
+        { label: "목표 p", color: (p) => p.dim, dash: true },
+        { label: "1 ± 2 SE (이론)", color: (p) => p.dim, dash: true },
+      ]);
+      build();
+    },
+  });
 })();

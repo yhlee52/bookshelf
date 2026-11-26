@@ -160,7 +160,9 @@
       <tr><td>\(H(p),\ H(p,q),\ D_{\mathrm{KL}}(p\,\|\,q)\)</td><td>엔트로피, 교차 엔트로피, KL 발산<div class="note">11장. \(\log\)는 자연로그(단위 nat)이고, 비트가 필요할 때만 \(\log_2\)를 씁니다.</div></td></tr>
       <tr><td>\(\mathbb I(A)\)</td><td>지시 함수: \(A\)가 참이면 1, 거짓이면 0</td></tr>
       <tr><td>\(\xrightarrow{p},\ \xrightarrow{d}\)</td><td>확률 수렴, 분포 수렴<div class="note">6장</div></td></tr>
-      <tr><td>\(\gamma,\ n_{\mathrm{eff}}\)</td><td>왜도 \(\mathbb E[(X-\mu)^3]/\sigma^3\), 상관된 표본의 유효 표본 크기<div class="note">6장. 표준 오차는 표본 평균의 표준편차 \(\sigma/\sqrt n\)입니다. 자료 하나의 표준편차 \(\sigma\)와 구별합니다.</div></td></tr>
+      <tr><td>\(\gamma,\ n_{\mathrm{eff}}\)</td><td>왜도 \(\mathbb E[(X-\mu)^3]/\sigma^3\), 상관된 표본과 중요도 가중치가 쏠린 표본의 유효 표본 크기<div class="note">6장, 7장. 표준 오차는 표본 평균의 표준편차 \(\sigma/\sqrt n\)입니다. 자료 하나의 표준편차 \(\sigma\)와 구별합니다. 중요도 가중치에서는 \(n_{\mathrm{eff}}=(\sum w_i)^2/\sum w_i^2\)입니다.</div></td></tr>
+      <tr><td>\(\hat I_n,\ w(x)=p(x)/q(x)\)</td><td>몬테카를로 추정량, 중요도 가중치(목표 \(p\), 제안 \(q\))<div class="note">7장. 정규화 상수를 모를 때의 \(\tilde w=\tilde p/q\)와 정규화한 \(\bar w_i\)도 씁니다.</div></td></tr>
+      <tr><td>\(\nabla_\phi\ln p_\phi(x)\)</td><td>점수(score): 로그 확률의 모수에 대한 기울기<div class="note">7장. 평균이 0입니다. 제곱의 기댓값은 9장의 피셔 정보입니다.</div></td></tr>
       <tr><td>번호</td><td>식 (n.k), 정의·정리·예제 n.k, 문제 n.k<div class="note">장마다 1부터 센다</div></td></tr>
     </tbody>
   </table></div>
