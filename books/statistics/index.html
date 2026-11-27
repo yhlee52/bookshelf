@@ -154,13 +154,16 @@
       <tr><td>\(\Gamma(\alpha),\ B(\alpha,\beta)\)</td><td>감마 함수, 베타 함수<div class="note">3장. \(\Gamma(n)=(n-1)!\)</div></td></tr>
       <tr><td>\(\boldsymbol\pi,\ \mathbf y,\ \sigma(z),\ \operatorname{softmax}(\mathbf z)\)</td><td>범주 분포의 확률 벡터(심플렉스 위의 점), 원-핫 벡터, 시그모이드, 소프트맥스<div class="note">3장. \(\sigma(z)=1/(1+e^{-z})\). 이진 분류에서 \(z\)는 로짓입니다.</div></td></tr>
       <tr><td>\(X_1,\dots,X_n \overset{\text{iid}}{\sim} p\)</td><td>같은 분포 \(p\)에서 서로 독립으로 뽑은 표본<div class="note">4장</div></td></tr>
-      <tr><td>\(\hat\theta,\ \bar X_n\)</td><td>추정량(모자를 씌운다), 표본 평균<div class="note">6장, 8장</div></td></tr>
+      <tr><td>\(\hat\theta,\ \bar X_n\)</td><td>추정량(모자를 씌운다), 표본 평균<div class="note">6장, 8장. 추정량은 데이터의 함수라 확률 변수이고, 실제 데이터를 넣어 얻은 숫자는 '추정값'입니다. 표본 크기를 밝혀야 할 때는 \(\hat\theta_n\)으로 씁니다.</div></td></tr>
+      <tr><td>\(\hat F_n,\ \hat m_k\)</td><td>경험 분포(관측값마다 질량 \(1/n\)), \(k\)번째 표본 적률 \(\frac1n\sum X_i^k\)<div class="note">8장. \(F\) 대신 \(\hat F_n\)을 넣은 추정량이 플러그인 추정량입니다.</div></td></tr>
+      <tr><td>\(\operatorname{bias}(\hat\theta),\ \mathrm{MSE}(\hat\theta)\)</td><td>편향 \(\mathbb E[\hat\theta]-\theta\), 평균 제곱 오차 \(\mathbb E[(\hat\theta-\theta)^2]=\operatorname{Var}+\operatorname{bias}^2\)<div class="note">8장. \(\theta\)가 참일 때의 기댓값이라 \(\mathbb E_\theta\)로 쓰기도 합니다.</div></td></tr>
+      <tr><td>\(S^2,\ \hat\sigma^2\)</td><td>표본 분산 \(\frac1{n-1}\sum(X_i-\bar X)^2\)(불편), 플러그인 분산 \(\frac1n\sum(X_i-\bar X)^2\)<div class="note">8장. NumPy의 <code>var</code>와 <code>std</code>는 \(n\)으로, PyTorch의 <code>var</code>, <code>std</code>, <code>cov</code>와 <code>np.cov</code>는 \(n-1\)로 나눕니다.</div></td></tr>
       <tr><td>\(L(\theta),\ \ell(\theta)\)</td><td>가능도와 로그 가능도<div class="note">9장. likelihood는 한국통계학회 용어인 '가능도'로 씁니다. '우도'라고도 합니다.</div></td></tr>
       <tr><td>\(\mathcal I(\theta)\)</td><td>피셔 정보<div class="note">9장. 상호 정보량 \(I(X;Y)\)와 구별하려고 필기체로 씁니다.</div></td></tr>
       <tr><td>\(H(p),\ H(p,q),\ D_{\mathrm{KL}}(p\,\|\,q)\)</td><td>엔트로피, 교차 엔트로피, KL 발산<div class="note">11장. \(\log\)는 자연로그(단위 nat)이고, 비트가 필요할 때만 \(\log_2\)를 씁니다.</div></td></tr>
       <tr><td>\(\mathbb I(A)\)</td><td>지시 함수: \(A\)가 참이면 1, 거짓이면 0</td></tr>
       <tr><td>\(\xrightarrow{p},\ \xrightarrow{d}\)</td><td>확률 수렴, 분포 수렴<div class="note">6장</div></td></tr>
-      <tr><td>\(\gamma,\ n_{\mathrm{eff}}\)</td><td>왜도 \(\mathbb E[(X-\mu)^3]/\sigma^3\), 상관된 표본과 중요도 가중치가 쏠린 표본의 유효 표본 크기<div class="note">6장, 7장. 표준 오차는 표본 평균의 표준편차 \(\sigma/\sqrt n\)입니다. 자료 하나의 표준편차 \(\sigma\)와 구별합니다. 중요도 가중치에서는 \(n_{\mathrm{eff}}=(\sum w_i)^2/\sum w_i^2\)입니다.</div></td></tr>
+      <tr><td>\(\gamma,\ n_{\mathrm{eff}}\)</td><td>왜도 \(\mathbb E[(X-\mu)^3]/\sigma^3\), 상관된 표본, 중요도 가중치가 쏠린 표본, 지수 이동 평균의 유효 표본 크기<div class="note">6장, 7장, 8장. 표준 오차는 표본 평균의 표준편차 \(\sigma/\sqrt n\)입니다. 자료 하나의 표준편차 \(\sigma\)와 구별합니다. 중요도 가중치에서는 \(n_{\mathrm{eff}}=(\sum w_i)^2/\sum w_i^2\)이고, 지수 이동 평균(\(\beta\))에서는 \(t\to\infty\)에서 \((1+\beta)/(1-\beta)\)입니다.</div></td></tr>
       <tr><td>\(\hat I_n,\ w(x)=p(x)/q(x)\)</td><td>몬테카를로 추정량, 중요도 가중치(목표 \(p\), 제안 \(q\))<div class="note">7장. 정규화 상수를 모를 때의 \(\tilde w=\tilde p/q\)와 정규화한 \(\bar w_i\)도 씁니다.</div></td></tr>
       <tr><td>\(\nabla_\phi\ln p_\phi(x)\)</td><td>점수(score): 로그 확률의 모수에 대한 기울기<div class="note">7장. 평균이 0입니다. 제곱의 기댓값은 9장의 피셔 정보입니다.</div></td></tr>
       <tr><td>번호</td><td>식 (n.k), 정의·정리·예제 n.k, 문제 n.k<div class="note">장마다 1부터 센다</div></td></tr>
