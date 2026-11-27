@@ -4,6 +4,8 @@
    dist-explorer   — 자주 만나는 분포의 질량·밀도 함수, 누적 분포 함수, 표본의 평균과 분산
    gauss2d         — 2변량 정규 분포의 등고선 타원, 주축, 조건부 분포
    clt             — 표본 평균의 분포와 누적 평균 (큰 수의 법칙, 중심 극한 정리)
+   importance      — 중요도 표집의 제안 분포와 가중치 쏠림
+   likelihood      — 로그 가능도 곡선, 곡률과 피셔 정보, 최대 가능도 추정값의 퍼짐
    ========================================================================== */
 (function () {
   "use strict";
@@ -866,6 +868,220 @@
         { label: "1 ± 2 SE (이론)", color: (p) => p.dim, dash: true },
       ]);
       build();
+    },
+  });
+
+  // <likelihood-lib>
+  // 가능도 곡선 (9장): 모형 네 개의 로그 가능도, 최대 가능도 추정값, 피셔 정보, 충분 통계량의 분위수 함수(역변환 표집),
+  // 로그 가능도가 최댓값에서 drop만큼 내려가는 두 점(가능도 구간).
+  // 로그 가능도는 충분 통계량 T와 표본 크기 n만으로 정해진다(상수항은 뺀다): 베르누이 T = 맞은 개수 k, 포아송·지수 T = 합, 정규 T = 표본 평균.
+  const xlogy = (x, y) => (x === 0 ? 0 : x * Math.log(y));
+  // P(K ≤ k) = I_{1−p}(n−k, k+1)인 가장 작은 정수 k (이항)
+  function binomQuantile(n, p, u) {
+    if (p <= 0) return 0;
+    if (p >= 1) return n;
+    let lo = 0, hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      const c = mid >= n ? 1 : betaI(1 - p, n - mid, mid + 1);
+      if (c >= u) hi = mid; else lo = mid + 1;
+    }
+    return lo;
+  }
+  // P(S ≤ k) = 1 − P(k+1, μ)인 가장 작은 정수 k (포아송)
+  function poisQuantile(mu, u) {
+    let lo = 0, hi = Math.ceil(mu + 12 * Math.sqrt(mu) + 30);
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (1 - gammaP(mid + 1, mu) >= u) hi = mid; else lo = mid + 1;
+    }
+    return lo;
+  }
+  // 감마(모양 a, 비율 1)의 분위수 (이분법)
+  function gammaQuantile(a, u) {
+    let lo = 0, hi = a + 12 * Math.sqrt(a) + 40;
+    for (let i = 0; i < 60; i++) { const mid = 0.5 * (lo + hi); if (gammaP(a, mid) < u) lo = mid; else hi = mid; }
+    return 0.5 * (lo + hi);
+  }
+  // lo, hi: 참 모수 슬라이더 범위, dlo, dhi: 모수 공간, ll: 로그 가능도, mle: 최대 가능도 추정값, info: 관측 하나의 피셔 정보, draw: 충분 통계량 표집(u는 균등, z는 표준 정규)
+  const LK = {
+    bernoulli: {
+      name: "베르누이 (동전, 정확도)", sym: "θ", lo: 0.05, hi: 0.95, def: 0.3, step: 0.01, dlo: 0, dhi: 1,
+      ll: (t, n, T) => xlogy(T, t) + xlogy(n - T, 1 - t), mle: (n, T) => T / n, info: (t) => 1 / (t * (1 - t)),
+      draw: (n, t, u) => binomQuantile(n, t, u), tname: "맞은 개수 k",
+    },
+    poisson: {
+      name: "포아송 (개수)", sym: "λ", lo: 0.5, hi: 8, def: 2, step: 0.1, dlo: 0, dhi: Infinity,
+      ll: (t, n, T) => xlogy(T, t) - n * t, mle: (n, T) => T / n, info: (t) => 1 / t,
+      draw: (n, t, u) => poisQuantile(n * t, u), tname: "합 Σx",
+    },
+    exponential: {
+      name: "지수 (대기 시간, 비율 λ)", sym: "λ", lo: 0.5, hi: 4, def: 1, step: 0.05, dlo: 0, dhi: Infinity,
+      ll: (t, n, T) => (t <= 0 ? -Infinity : n * Math.log(t) - t * T), mle: (n, T) => n / T, info: (t) => 1 / (t * t),
+      draw: (n, t, u) => gammaQuantile(n, u) / t, tname: "합 Σx",
+    },
+    normal: {
+      name: "정규 (평균 μ, σ = 1)", sym: "μ", lo: -2, hi: 2, def: 0.5, step: 0.05, dlo: -Infinity, dhi: Infinity,
+      ll: (t, n, T) => -0.5 * n * (t - T) * (t - T), mle: (n, T) => T, info: () => 1,
+      draw: (n, t, u, z) => t + z / Math.sqrt(n), tname: "표본 평균 x̄",
+    },
+  };
+  Object.keys(LK).forEach((k) => { LK[k].key = k; });
+  // 로그 가능도가 최댓값보다 drop 이상 내려가지 않는 구간 [lo, hi] (경계에 닿으면 경계)
+  function likInterval(m, n, T, drop) {
+    const th = m.mle(n, T), top = m.ll(th, n, T);
+    const f = (t) => m.ll(t, n, T) - top + drop;
+    const side = (dir) => {
+      const edge = dir < 0 ? m.dlo : m.dhi;
+      let a = th, b;
+      if (isFinite(edge)) {
+        if (f(edge) >= 0) return edge;
+        b = edge;
+      } else {
+        let w = Math.max(0.05, 0.5 * Math.abs(th)), g = 0;
+        b = th + dir * w;
+        while (f(b) > 0 && g++ < 80) { a = b; w *= 2; b = th + dir * w; }
+      }
+      for (let i = 0; i < 90; i++) { const mid = 0.5 * (a + b); if (f(mid) > 0) a = mid; else b = mid; }
+      return 0.5 * (a + b);
+    };
+    return [side(-1), side(1)];
+  }
+  // 최댓값에서 수치 미분으로 잰 곡률 −ℓ''(θ̂). 경계에 있으면 NaN
+  function curvature(m, n, T) {
+    const th = m.mle(n, T), h = 1e-3 * Math.max(Math.abs(th), 0.1);
+    if (th - h <= m.dlo || th + h >= m.dhi) return NaN;
+    return -(m.ll(th + h, n, T) - 2 * m.ll(th, n, T) + m.ll(th - h, n, T)) / (h * h);
+  }
+  // </likelihood-lib>
+
+  Lab.register({
+    id: "likelihood", field: "math", thumb: "curve", layout: "stack",
+    title: "가능도 곡선 — 뾰족함이 곧 피셔 정보",
+    desc: "동전·포아송·지수·정규 모형에서 데이터를 뽑아 로그 가능도 곡선과 최대 가능도 추정값을 그리고, 표본 수와 참 모수를 바꿔 곡선이 뾰족해지는 정도(곡률)가 n 곱하기 피셔 정보와 같은지, 같은 실험을 400번 되풀이한 추정값의 퍼짐이 크라메르-라오 하한과 정규 근사에 맞는지 확인합니다.",
+    tags: ["최대 가능도", "피셔 정보", "점근 정규성", "크라메르-라오"],
+    note: "해볼 것: ① 베르누이에서 n을 3에서 1,000으로 올리면 로그 가능도 곡선이 뾰족해지고 가능도 구간과 왈드 구간이 모두 좁아져 둘이 겹칩니다. 곡률의 수치 미분과 n·I(θ̂)는 언제나 같습니다(이 모형들에서는 최댓값에서 관측 정보와 기대 정보가 같습니다). ② n이 작으면 가능도 구간이 비대칭이고 왈드 구간은 대칭이라 서로 다릅니다. 베르누이에서 참값을 0.05 쪽으로 옮겨 보세요. ③ 정규 모형에서는 로그 가능도가 정확히 포물선이라 두 구간이 항상 같습니다. ④ 아래 히스토그램은 같은 실험 400번의 추정값입니다. n이 작으면 포아송·지수에서 오른쪽으로 치우치고, n이 크면 정규 근사 N(θ, 1/(nI))에 겹칩니다. ⑤ 반복 추정값의 분산을 크라메르-라오 하한 1/(nI)로 나눈 값이 베르누이·포아송·정규에서는 1에 가깝고, 지수에서는 편향 때문에 n이 작을 때 1보다 큽니다. 표본은 시드를 고정해 뽑으며 '다시 뽑기'는 다른 표본을 뽑습니다. 이 실험은 표본 전체가 아니라 충분 통계량을 뽑는 것과 같은 결과를 줍니다(예: 동전 n번의 맞은 개수 k).",
+    mount(S) {
+      const st = { key: "bernoulli", npos: 32, n: 20, theta: 0.3, seed: 1 };
+      const R = 400;
+      let U = null, Zr = null, cur = null;
+      const fmt = (v) => VZ.fmt(v, 3), fmt4 = (v) => VZ.fmt(v, 4);
+      const nOf = (pos) => Math.max(3, Math.round(Math.pow(10, 0.5 + (2.5 * pos) / 100)));
+      const cv = S.canvas({ aspect: 0.95, minHeight: 400, maxHeight: 640 }, (ctx, w, h) => {
+        if (!cur) return;
+        const P = VZ.palette(), m = LK[st.key], { n, T0, th0, hat, win, hats, others, lik, wald } = cur;
+        const top = { x: 0, y: 0, w, h: Math.round(h * 0.58) }, bot = { x: 0, y: Math.round(h * 0.58), w, h: h - Math.round(h * 0.58) };
+        const [x0, x1] = win, grid = VZ.linspace(x0, x1, 241);
+        const YLO = -6, clip = (v) => Math.max(v, YLO - 0.5);
+        const curve = (Tx) => { const mh = m.mle(n, Tx), tp = m.ll(mh, n, Tx); return grid.map((x) => [x, clip(m.ll(x, n, Tx) - tp)]); };
+        const series = others.map((Tx) => ({ type: "line", data: curve(Tx), color: VZ.alpha(P.dim, 0.4), width: 1 }));
+        const info = m.info(hat);
+        if (isFinite(info)) series.push({ type: "line", data: grid.map((x) => [x, clip(-0.5 * n * info * (x - hat) * (x - hat))]), color: P.dim, width: 1.6, dash: [5, 4] });
+        series.push({ type: "line", data: curve(T0), color: P.accent, width: 2.6 });
+        series.push({ type: "line", data: [[lik[0], -0.5], [lik[1], -0.5]], color: P.accent2, width: 4.5 });
+        if (wald) series.push({ type: "line", data: [[wald[0], -0.95], [wald[1], -0.95]], color: P.dim, width: 4.5 });
+        VZ.chart(ctx, top, {
+          x: [x0, x1], y: [YLO, 0.3], margin: { l: 40 }, xLabel: m.sym,
+          title: "상대 로그 가능도 ℓ(" + m.sym + ") − ℓ(" + m.sym + "̂)",
+          yFmt: (v) => String(Number(v.toPrecision(2))), series,
+          vlines: [{ x: th0, color: P.ok, dash: [], width: 1.4 }, { x: hat, color: P.accent2, dash: [3, 3] }],
+          hlines: [{ y: -0.5, color: P.faint, dash: [2, 3] }],
+        });
+        // 아래: 같은 실험 R번의 추정값
+        // 베르누이·포아송의 추정값은 k/n 꼴의 격자에만 놓이므로 막대 폭을 1/n로 맞춘다(빈 폭이 다르면 막대 높이가 왜곡된다)
+        const discrete = m.key === "bernoulli" || m.key === "poisson";
+        let bars, bw;
+        if (discrete) {
+          bw = 1 / n;
+          const cnt = new Map();
+          for (const v of hats) { const k = Math.round(v * n); cnt.set(k, (cnt.get(k) || 0) + 1); }
+          bars = [...cnt.entries()].filter(([k]) => k / n >= x0 - bw && k / n <= x1 + bw).map(([k, c]) => [k / n, c / (hats.length * bw)]);
+        } else {
+          const NB = 34, cnt = new Array(NB).fill(0);
+          bw = (x1 - x0) / NB;
+          for (const v of hats) { const b = Math.floor((v - x0) / bw); if (b >= 0 && b < NB) cnt[b]++; }
+          bars = cnt.map((c, i) => [x0 + (i + 0.5) * bw, c / (hats.length * bw)]);
+        }
+        const sd0 = 1 / Math.sqrt(n * m.info(th0)), gaussian = (x) => Math.exp(-0.5 * ((x - th0) / sd0) ** 2) / (Math.sqrt(2 * Math.PI) * sd0);
+        const gdat = grid.map((x) => [x, gaussian(x)]);
+        const ymax = 1.2 * Math.max(...bars.map((p) => p[1]), ...gdat.map((p) => p[1]));
+        VZ.chart(ctx, bot, {
+          x: [x0, x1], y: [0, ymax], margin: { l: 40 }, xLabel: m.sym + "̂", title: "같은 실험 " + R + "번의 추정값 " + m.sym + "̂ (곡선: 정규 근사)",
+          yFmt: (v) => String(Number(v.toPrecision(2))),
+          series: [
+            { type: "bar", data: bars, barWidth: bw, color: P.accent2, alpha: 0.42 },
+            { type: "line", data: gdat, color: P.accent, width: 2.4 },
+          ],
+          vlines: [{ x: th0, color: P.ok, dash: [], width: 1.4 }],
+        });
+      });
+      const set = S.stats([
+        { k: "data", label: "데이터 요약" },
+        { k: "mle", label: "최대 가능도 추정값 (참값)" },
+        { k: "curv", label: "곡률 −ℓ″(θ̂): 수치 미분 | n·I(θ̂)" },
+        { k: "se", label: "표준 오차 1/√(n·I): 추정값에서 | 참값에서" },
+        { k: "int", label: "가능도 구간 (ℓ이 ½ 내려감) | 왈드 구간 (± 1 SE)" },
+        { k: "rep", label: "반복 추정값: 평균 | 표준편차" },
+        { k: "crlb", label: "반복 추정값의 분산 ÷ 크라메르-라오 하한 1/(n·I)" },
+      ]);
+      function build() {
+        const rand = VZ.rng(st.seed * 7907 + 29);
+        U = new Float64Array(R + 1); Zr = new Float64Array(R + 1);
+        for (let i = 0; i <= R; i++) { U[i] = Math.min(1 - 1e-9, Math.max(1e-9, rand())); Zr[i] = VZ.randn(rand); }
+        update();
+      }
+      function update() {
+        const m = LK[st.key], n = st.n, th0 = st.theta;
+        const T0 = m.draw(n, th0, U[0], Zr[0]), hat = m.mle(n, T0);
+        const hats = new Float64Array(R);
+        for (let r = 0; r < R; r++) hats[r] = m.mle(n, m.draw(n, th0, U[r + 1], Zr[r + 1]));
+        const others = []; for (let r = 0; r < 8; r++) others.push(m.draw(n, th0, U[r + 1], Zr[r + 1]));
+        const sd0 = 1 / Math.sqrt(n * m.info(th0));
+        let x0 = th0 - 4.5 * sd0, x1 = th0 + 4.5 * sd0;
+        x0 = Math.max(x0, isFinite(m.dlo) ? m.dlo + (m.key === "bernoulli" ? 0 : 0.02 * th0) : x0);
+        x1 = Math.min(x1, m.dhi);
+        if (hat < x0) x0 = hat - 0.1 * sd0; if (hat > x1) x1 = hat + 0.1 * sd0;
+        const lik = likInterval(m, n, T0, 0.5), infoHat = m.info(hat);
+        const wald = isFinite(infoHat) && infoHat > 0 ? [hat - 1 / Math.sqrt(n * infoHat), hat + 1 / Math.sqrt(n * infoHat)] : null;
+        let mean = 0; for (const v of hats) mean += v / R;
+        let vr = 0; for (const v of hats) vr += (v - mean) * (v - mean) / (R - 1);
+        cur = { n, T0, th0, hat, win: [x0, x1], hats, others, lik, wald };
+        const cvt = curvature(m, n, T0), sym = m.sym;
+        const dat = m.key === "bernoulli" ? "k = " + T0 + " (n = " + n + ")" : m.key === "normal" ? "x̄ = " + fmt(T0) + " (n = " + n + ")" : "Σx = " + fmt(T0) + " (n = " + n + ")";
+        set("data", dat);
+        set("mle", fmt4(hat) + " <small>(참값 " + fmt4(th0) + ")</small>");
+        set("curv", (isNaN(cvt) ? "—" : fmt(cvt)) + " | " + (isFinite(infoHat) ? fmt(n * infoHat) : "∞"));
+        set("se", (isFinite(infoHat) && infoHat > 0 ? fmt4(1 / Math.sqrt(n * infoHat)) : "—") + " | " + fmt4(sd0));
+        set("int", "[" + fmt(lik[0]) + ", " + fmt(lik[1]) + "] | " + (wald ? "[" + fmt(wald[0]) + ", " + fmt(wald[1]) + "]" : "—"));
+        set("rep", fmt4(mean) + " | " + fmt4(Math.sqrt(vr)) + " <small>(이론 " + fmt4(sd0) + ")</small>");
+        set("crlb", fmt(vr * n * m.info(th0)) + " <small>(효율적이면 이론값 1, 반복 " + R + "번의 흔들림이 있음)</small>");
+        cv.redraw();
+      }
+      // 참 모수 슬라이더는 0–100 위치로 두고 모형마다 범위로 옮긴다
+      const toVal = (m, pos) => Number((Math.round((m.lo + ((m.hi - m.lo) * pos) / 100) / m.step) * m.step).toFixed(6));
+      const toPos = (m, v) => Math.round((100 * (v - m.lo)) / (m.hi - m.lo));
+      S.select({ label: "모형", options: Object.keys(LK).map((k) => [k, LK[k].name]), value: st.key, onChange: (k) => { st.key = k; configure(); } });
+      const thetaSlider = S.range({ label: "참 모수", min: 0, max: 100, step: 1, value: 28,
+        fmt: (pos) => String(toVal(LK[st.key], pos)), onInput: (pos) => { st.theta = toVal(LK[st.key], pos); update(); } });
+      S.range({ label: "표본 크기 n", min: 0, max: 100, step: 1, value: st.npos, fmt: (p) => String(nOf(p)), onInput: (p) => { st.npos = p; st.n = nOf(p); update(); } });
+      S.button("다시 뽑기", () => { st.seed++; build(); }, { primary: true });
+      S.legend([
+        { label: "이 데이터의 로그 가능도", color: (p) => p.accent },
+        { label: "다른 데이터 8벌 · 곡률 포물선 · 왈드 구간(굵은 회색 선)", color: (p) => p.dim },
+        { label: "가능도 구간 (굵은 주황 선) · 추정값 (주황 점선)", color: (p) => p.accent2 },
+        { label: "참값 (초록)", color: (p) => p.ok },
+        { label: "반복 추정값의 히스토그램", color: (p) => p.accent2 },
+      ]);
+      function configure() {
+        const m = LK[st.key];
+        st.theta = m.def;
+        thetaSlider.el.parentElement.querySelector("span").firstChild.nodeValue = "참 모수 " + m.sym + " ";
+        thetaSlider.set(toPos(m, m.def), false);
+        st.theta = toVal(m, toPos(m, m.def));
+        build();
+      }
+      st.n = nOf(st.npos);
+      configure();
     },
   });
 })();
