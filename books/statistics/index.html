@@ -161,6 +161,9 @@
       <tr><td>\(L(\theta),\ \ell(\theta)\)</td><td>가능도와 로그 가능도<div class="note">9장. likelihood는 한국통계학회 용어인 '가능도'로 씁니다. '우도'라고도 합니다. 손실은 \(-\frac1n\ell(\theta)\)입니다.</div></td></tr>
       <tr><td>\(\mathcal I(\theta)\)</td><td>피셔 정보. 관측 하나의 점수의 분산 \(=-\mathbb E[\partial^2\ln p/\partial\theta^2]\)<div class="note">9장. 독립인 \(n\)개 관측이면 \(n\mathcal I(\theta)\)입니다. 상호 정보량 \(I(X;Y)\)와 구별하려고 필기체로 씁니다.</div></td></tr>
       <tr><td>\(J(\hat\theta),\ \ell_p(\psi)\)</td><td>관측 정보 \(-\ell''(\hat\theta)\), 프로파일 로그 가능도 \(\max_{\boldsymbol\lambda}\ell(\psi,\boldsymbol\lambda)\)<div class="note">9장. 표준 오차는 \(1/\sqrt{n\mathcal I(\hat\theta)}\approx1/\sqrt{J(\hat\theta)}\)이고, \(\psi\)는 관심 모수, \(\boldsymbol\lambda\)는 장애 모수입니다.</div></td></tr>
+      <tr><td>\(p(\theta),\ p(\theta\mid\mathcal D)\)</td><td>사전 분포, 사후 분포<div class="note">10장. 사후는 가능도 \(\times\) 사전에 비례합니다. 모수의 밀도에도 같은 \(p\)를 쓰므로 무엇의 밀도인지는 인자로 읽습니다.</div></td></tr>
+      <tr><td>\(\hat\theta_{\mathrm{MAP}},\ [l,u]\)</td><td>MAP 추정값(사후 최빈값), 신용 구간<div class="note">10장. MAP은 \(\arg\max[\ell(\theta)+\ln p(\theta)]\)이고 모수화에 불변이 아닙니다. 신용 구간은 \(\theta\)가 안에 있을 사후 확률이 \(1-\alpha\)인 구간이라 12장의 신뢰 구간과 해석이 다릅니다.</div></td></tr>
+      <tr><td>\(\lambda=1/\tau^2\)</td><td>정규 사전 \(\mathcal N(0,\tau^2)\)의 정밀도, 곧 가중치 감쇠 계수<div class="note">10장. 정규 잡음 회귀에서는 \(\lambda=\sigma^2/\tau^2\)입니다. 포아송의 비율 \(\lambda\)와 같은 글자이므로 문맥으로 구별합니다.</div></td></tr>
       <tr><td>\(H(p),\ H(p,q),\ D_{\mathrm{KL}}(p\,\|\,q)\)</td><td>엔트로피, 교차 엔트로피, KL 발산<div class="note">11장. \(\log\)는 자연로그(단위 nat)이고, 비트가 필요할 때만 \(\log_2\)를 씁니다.</div></td></tr>
       <tr><td>\(\mathbb I(A)\)</td><td>지시 함수: \(A\)가 참이면 1, 거짓이면 0</td></tr>
       <tr><td>\(\xrightarrow{p},\ \xrightarrow{d}\)</td><td>확률 수렴, 분포 수렴<div class="note">6장</div></td></tr>
