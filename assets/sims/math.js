@@ -6,6 +6,7 @@
    clt             — 표본 평균의 분포와 누적 평균 (큰 수의 법칙, 중심 극한 정리)
    importance      — 중요도 표집의 제안 분포와 가중치 쏠림
    likelihood      — 로그 가능도 곡선, 곡률과 피셔 정보, 최대 가능도 추정값의 퍼짐
+   beta-update     — 베타-베르누이 갱신: 사전과 가능도가 사후로, MAP·사후 평균·신용 구간
    ========================================================================== */
 (function () {
   "use strict";
@@ -1082,6 +1083,142 @@
       }
       st.n = nOf(st.npos);
       configure();
+    },
+  });
+
+  // <beta-lib>
+  // 베타-베르누이 갱신 (10장): 사전 Beta(a, b)에서 앞면 k번, 뒷면 n−k번을 보면 사후 Beta(a+k, b+n−k)다.
+  // 밀도, 분위수(이분법), 최빈값, 가장 높은 사후 밀도(HPD) 구간을 낸다.
+  function betaPdf(x, a, b) {
+    if (x <= 0 || x >= 1) return a === 1 && x === 0 ? b : b === 1 && x === 1 ? a : 0;
+    return Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x));
+  }
+  function betaQuantile(p, a, b) {
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 70; i++) { const mid = 0.5 * (lo + hi); if (betaI(mid, a, b) < p) lo = mid; else hi = mid; }
+    return 0.5 * (lo + hi);
+  }
+  // 최빈값. 밀도가 경계에서 가장 크면 0 또는 1, 양쪽이 모두 1 이하이면 양 끝이 봉우리라 정의하지 않는다(NaN)
+  function betaMode(a, b) {
+    if (a > 1 && b > 1) return (a - 1) / (a + b - 2);
+    if (a <= 1 && b > 1) return 0;
+    if (b <= 1 && a > 1) return 1;
+    if (a === 1 && b === 1) return NaN;
+    return NaN;
+  }
+  // 질량 mass를 담는 가장 짧은 구간 (밀도가 하나의 봉우리일 때). 하한 꼬리 확률 p를 삼분 탐색한다
+  function betaHpd(a, b, mass) {
+    const w = (p) => betaQuantile(p + mass, a, b) - betaQuantile(p, a, b);
+    let lo = 0, hi = 1 - mass;
+    for (let i = 0; i < 60; i++) {
+      const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3;
+      if (w(m1) < w(m2)) hi = m2; else lo = m1;
+    }
+    const p = 0.5 * (lo + hi);
+    return [betaQuantile(p, a, b), betaQuantile(p + mass, a, b)];
+  }
+  // </beta-lib>
+
+  Lab.register({
+    id: "beta-update", field: "math", thumb: "curve", layout: "stack",
+    title: "베타-베르누이 갱신 — 사전 분포가 데이터에 밀려나는 과정",
+    desc: "동전의 앞면 확률 θ에 베타 사전 분포를 두고 동전을 던질 때마다 사후 분포가 어떻게 갱신되는지 봅니다. 사전 분포의 α, β와 참값을 바꾸고 앞면·뒷면을 하나씩 또는 한꺼번에 던져, 최대 가능도 추정값과 MAP, 사후 평균·중앙값, 95% 신용 구간(동일 꼬리와 최고 사후 밀도)이 던진 횟수에 따라 어떻게 변하는지 비교합니다.",
+    tags: ["베이즈 추론", "켤레 사전 분포", "MAP", "신용 구간"],
+    note: "해볼 것: ① 기본값(사전 Beta(1, 1))에서 앞면 3번과 뒷면 7번을 던져 보세요. 사후는 Beta(4, 8)이고 MLE와 MAP은 0.30으로 같으며 사후 평균 0.333, 중앙값 0.324가 서로 다릅니다. ② α = β = 10으로 올린 강한 사전 분포에서는 같은 데이터가 사후를 조금만 움직이고 '사전의 몫'이 50%입니다. ③ 던진 횟수를 늘리면 사전의 몫이 줄고 사후 평균과 MLE가 가까워지며 구간이 1/√n으로 좁아집니다. 사전이 참값과 다르게 치우쳐 있어도(예: Beta(20, 5), 참값 0.3) 데이터가 쌓이면 극복됩니다. ④ 뒷면만 3번 던지면 MLE는 0이지만 사후 평균은 0.2(균등 사전)라 '다음에 앞면이 나올 확률'이 0이 되지 않습니다. ⑤ 같은 앞면·뒷면 횟수면 던진 순서와 상관없이 사후가 같습니다. ⑥ α = β = 0.5(제프리스 사전)에서는 데이터가 없을 때 MAP이 정의되지 않고(양 끝이 봉우리), 뒷면만 나오면 MAP이 0입니다. 던지는 동전은 시드를 고정해 뽑으며 '처음부터'를 누르면 같은 시드에서 다시 시작합니다.",
+    mount(S) {
+      const st = { a: 1, b: 1, theta: 0.3, seq: [], seed: 1 };
+      let rand = VZ.rng(st.seed * 7919 + 5);
+      const fmt = (v) => VZ.fmt(v, 3), pct = (v) => (100 * v).toFixed(0) + "%";
+      const cur = () => { const n = st.seq.length; let k = 0; for (const v of st.seq) k += v; return { n, k, A: st.a + k, B: st.b + n - k }; };
+      const cv = S.canvas({ aspect: 0.95, minHeight: 400, maxHeight: 640 }, (ctx, w, h) => {
+        const P = VZ.palette(), { n, k, A, B } = cur();
+        const top = { x: 0, y: 0, w, h: Math.round(h * 0.6) }, bot = { x: 0, y: Math.round(h * 0.6), w, h: h - Math.round(h * 0.6) };
+        const grid = VZ.linspace(0.002, 0.998, 400);
+        const cap = (v) => Math.min(v, 14);
+        const prior = grid.map((x) => [x, cap(betaPdf(x, st.a, st.b))]);
+        const post = grid.map((x) => [x, cap(betaPdf(x, A, B))]);
+        const like = n > 0 ? grid.map((x) => [x, cap(betaPdf(x, k + 1, n - k + 1))]) : null;
+        const ymax = 1.15 * Math.max(...post.map((p) => p[1]), ...prior.map((p) => p[1]), ...(like ? like.map((p) => p[1]) : [0]));
+        const lo95 = betaQuantile(0.025, A, B), hi95 = betaQuantile(0.975, A, B);
+        const series = [
+          { type: "line", data: post.filter((p) => p[0] >= lo95 && p[0] <= hi95), color: P.accent, width: 0.1, fill: VZ.alpha(P.accent, 0.22) },
+          { type: "line", data: prior, color: P.dim, width: 1.8, dash: [5, 4] },
+        ];
+        if (like) series.push({ type: "line", data: like, color: P.accent2, width: 1.8 });
+        series.push({ type: "line", data: post, color: P.accent, width: 2.6 });
+        const vl = [{ x: st.theta, color: P.ok, dash: [], width: 1.4 }];
+        const mapv = betaMode(A, B);
+        if (isFinite(mapv)) vl.push({ x: mapv, color: P.accent, dash: [2, 3], width: 1.4 });
+        vl.push({ x: A / (A + B), color: P.accent, dash: [6, 4], width: 1.4 });
+        if (n > 0) vl.push({ x: k / n, color: P.accent2, dash: [2, 3], width: 1.4 });
+        VZ.chart(ctx, top, {
+          x: [0, 1], y: [0, ymax], margin: { l: 40 }, xLabel: "θ", yFmt: (v) => String(Number(v.toPrecision(2))),
+          title: "사전 · 가능도 · 사후 (음영: 95% 신용 구간)", series, vlines: vl,
+        });
+        // 아래: 던진 횟수에 따른 추정값
+        const N = n, stride = Math.max(1, Math.ceil(N / 120));
+        const xs = [], mean = [], mle = [], lo = [], hi = [];
+        let kk = 0;
+        for (let i = 0; i <= N; i++) {
+          if (i > 0) kk += st.seq[i - 1];
+          if (i % stride !== 0 && i !== N) continue;
+          const a2 = st.a + kk, b2 = st.b + i - kk;
+          xs.push(i); mean.push([i, a2 / (a2 + b2)]); lo.push([i, betaQuantile(0.025, a2, b2)]); hi.push([i, betaQuantile(0.975, a2, b2)]);
+          if (i > 0) mle.push([i, kk / i]);
+        }
+        const xmax = Math.max(10, N);
+        const s2 = [
+          { type: "line", data: lo, color: P.accent, width: 1.2, dash: [5, 4] },
+          { type: "line", data: hi, color: P.accent, width: 1.2, dash: [5, 4] },
+          { type: "line", data: mean, color: P.accent, width: 2.4 },
+        ];
+        if (mle.length) s2.push({ type: "line", data: mle, color: P.accent2, width: 1.8 });
+        VZ.chart(ctx, bot, {
+          x: [0, xmax], y: [0, 1], margin: { l: 40 }, xLabel: "던진 횟수 n", yFmt: (v) => String(v),
+          title: "사후 평균 · 95% 구간 · 최대 가능도 · 참값", series: s2, hlines: [{ y: st.theta, color: P.ok, dash: [], width: 1.4 }],
+        });
+      });
+      const set = S.stats([
+        { k: "data", label: "관측 (앞면 k / 던진 횟수 n)" },
+        { k: "post", label: "사후 분포" },
+        { k: "est", label: "MLE | MAP | 사후 평균 | 중앙값" },
+        { k: "ci", label: "95% 신용 구간: 동일 꼬리 | 최고 사후 밀도" },
+        { k: "w", label: "사전의 몫 (α+β)/(α+β+n)" },
+        { k: "pred", label: "다음 던지기가 앞면일 확률 (사후 예측) | P(θ > 0.5)" },
+      ]);
+      function update() {
+        const { n, k, A, B } = cur();
+        const mapv = betaMode(A, B), mean = A / (A + B), med = betaQuantile(0.5, A, B);
+        const et = [betaQuantile(0.025, A, B), betaQuantile(0.975, A, B)];
+        const hp = A <= 1 && B <= 1 ? null : betaHpd(A, B, 0.95);      // 평평하거나 양 끝이 봉우리면 구간이 하나로 정해지지 않는다
+        const w = (st.a + st.b) / (st.a + st.b + n);
+        set("data", k + " / " + n);
+        set("post", "Beta(" + fmt(A) + ", " + fmt(B) + ")");
+        set("est", (n > 0 ? fmt(k / n) : "—") + " | " + (isFinite(mapv) ? fmt(mapv) : "정의 안 됨") + " | " + fmt(mean) + " | " + fmt(med));
+        const f0 = (v) => (Math.abs(v) < 1e-4 ? "0" : fmt(v));
+        set("ci", "[" + f0(et[0]) + ", " + f0(et[1]) + "] | " + (hp ? "[" + f0(hp[0]) + ", " + f0(hp[1]) + "]" : "정해지지 않음"));
+        set("w", pct(w) + " <small>(사후 평균 = " + pct(w) + " × 사전 평균 " + fmt(st.a / (st.a + st.b)) + " + " + pct(1 - w) + " × MLE)</small>");
+        set("pred", fmt(mean) + " | " + fmt(1 - betaI(0.5, A, B)));
+        cv.redraw();
+      }
+      const toss = (count) => { for (let i = 0; i < count; i++) st.seq.push(rand() < st.theta ? 1 : 0); update(); };
+      S.range({ label: "사전 α", min: 0.5, max: 20, step: 0.5, value: st.a, fmt: (v) => v.toFixed(1), onInput: (v) => { st.a = v; update(); } });
+      S.range({ label: "사전 β", min: 0.5, max: 20, step: 0.5, value: st.b, fmt: (v) => v.toFixed(1), onInput: (v) => { st.b = v; update(); } });
+      S.range({ label: "동전의 참값 θ", min: 0.05, max: 0.95, step: 0.01, value: st.theta, fmt: (v) => v.toFixed(2), onInput: (v) => { st.theta = v; update(); } });
+      S.button("앞면", () => { st.seq.push(1); update(); });
+      S.button("뒷면", () => { st.seq.push(0); update(); });
+      S.button("참값에서 10번", () => toss(10));
+      S.button("참값에서 100번", () => toss(100), { primary: true });
+      S.button("처음부터", () => { st.seq = []; rand = VZ.rng(st.seed * 7919 + 5); update(); });
+      S.legend([
+        { label: "사후 분포 (음영: 95% 신용 구간)", color: (p) => p.accent },
+        { label: "사전 분포", color: (p) => p.dim, dash: true },
+        { label: "가능도 (정규화) · MLE", color: (p) => p.accent2 },
+        { label: "참값", color: (p) => p.ok },
+      ]);
+      // 처음 화면은 본문 예제와 같은 열 번(앞면 3, 뒷면 7)이다. 이후 '참값에서 던지기'는 시드를 고정한 난수를 쓴다.
+      st.seq = [0, 0, 1, 0, 1, 0, 0, 0, 1, 0];
+      update();
     },
   });
 })();
